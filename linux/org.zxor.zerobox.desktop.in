@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=ZeroBox
+Comment=Wearable device manager
+Exec=@CMAKE_INSTALL_PREFIX@/zerobox %u
+Icon=org.zxor.zerobox
+Terminal=false
+Type=Application
+Categories=Utility;
+MimeType=x-scheme-handler/zerobox;

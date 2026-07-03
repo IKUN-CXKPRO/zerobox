@@ -1,0 +1,100 @@
+import 'dart:async';
+import 'dart:typed_data';
+
+import 'package:zerobox/src/core/logging/logging_service.dart';
+import 'package:zerobox/src/device/core/event_bus.dart';
+import 'package:zerobox/src/device/xiaomi/system/xiaomi_system.dart';
+import 'package:zerobox/src/device/xiaomi/utils/auth_utils.dart';
+import 'package:zerobox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
+import 'package:zerobox/src/protocols/generated/xiaomi/wear_account.pb.dart'
+    as pb_account;
+import 'package:zerobox/src/protocols/xiaomi/crypto/miwear_crypto.dart';
+
+class XiaomiAuthSystem extends XiaomiPbSystem {
+  static final _log = getLogger('XiaomiAuthSystem');
+  Completer<void>? _completer;
+  String? _authKeyHex;
+  Uint8List? _appRandom;
+
+  Future<void> authenticate(String authKeyHex) async {
+    _log.info('[${entity.id}] starting auth');
+    _authKeyHex = authKeyHex;
+    _appRandom = generateRandomBytes(16);
+    _completer = Completer<void>();
+    final packet = buildAuthStep1(_appRandom!);
+    try {
+      await component.sendPbPacketUnencrypted(packet);
+    } catch (e, st) {
+      _log.severe('[${entity.id}] failed to send auth step 1', e, st);
+      _completeError(e);
+      rethrow;
+    }
+    return _completer!.future;
+  }
+
+  @override
+  void onWearPacket(pb.WearPacket packet) {
+    if (packet.whichPayload() != pb.WearPacket_Payload.account) return;
+    final account = packet.account;
+    _log.fine('[${entity.id}] account payload: ${account.whichPayload()}');
+    switch (account.whichPayload()) {
+      case pb_account.Account_Payload.authDeviceVerify:
+        _onDeviceVerify(account.authDeviceVerify);
+      case pb_account.Account_Payload.authDeviceConfirm:
+        _onDeviceConfirm(account.authDeviceConfirm);
+      default:
+        break;
+    }
+  }
+
+  Future<void> _onDeviceVerify(pb_account.Auth_DeviceVerify verify) async {
+    try {
+      if (_authKeyHex == null || _appRandom == null) {
+        throw StateError('auth state missing');
+      }
+      _log.info('[${entity.id}] received device verify, building confirm');
+      final (keys, confirmPacket) = buildAuthStep2(
+        authKeyHex: _authKeyHex!,
+        appRandom: _appRandom!,
+        deviceVerify: verify,
+      );
+      component.authKeys = keys;
+      await component.sendPbPacketUnencrypted(confirmPacket);
+    } catch (e, st) {
+      _log.severe('[${entity.id}] auth step 2 failed', e, st);
+      entity.emit(AuthFailed(deviceId: entity.id, error: e.toString()));
+      _completeError(e);
+    }
+  }
+
+  void _onDeviceConfirm(pb_account.Auth_DeviceConfirm confirm) {
+    if (confirm.confirmResult) {
+      _log.info('[${entity.id}] auth confirmed');
+      entity.emit(DeviceAuthenticated(deviceId: entity.id));
+      final c = _completer;
+      _completer = null;
+      if (c != null && !c.isCompleted) {
+        c.complete();
+      }
+    } else {
+      const error = 'auth confirm rejected by device';
+      _log.warning('[${entity.id}] $error');
+      entity.emit(const AuthFailed(deviceId: '', error: error));
+      _completeError(Exception(error));
+    }
+  }
+
+  void _completeError(Object error) {
+    final c = _completer;
+    _completer = null;
+    if (c != null && !c.isCompleted) {
+      c.completeError(error);
+    }
+  }
+
+  @override
+  Future<void> dispose() async {
+    _completeError(StateError('auth system disposed'));
+    await super.dispose();
+  }
+}

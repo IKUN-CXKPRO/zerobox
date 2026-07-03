@@ -6,8 +6,12 @@
 *.swp
 .buildlog/
 .history
+.example_tmp/
+.idea/
+*.iml
 
-
+# Application lockfile should be versioned for reproducible builds.
+!/pubspec.lock
 
 # Flutter repo-specific
 /bin/cache/
@@ -56,6 +60,11 @@ unlinked_spec.ds
 **/android/**/GeneratedPluginRegistrant.java
 **/android/key.properties
 *.jks
+
+# Android Gradle wrapper belongs in the app repository.
+!/android/gradle/wrapper/gradle-wrapper.jar
+!/android/gradlew
+!/android/gradlew.bat
 
 # iOS/XCode related
 **/ios/**/*.mode1v3
@@ -117,3 +126,6 @@ app.*.symbols
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
+
+# FVM Version Cache
+.fvm/

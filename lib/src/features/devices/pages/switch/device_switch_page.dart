@@ -1,0 +1,939 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:zerobox/src/app/generated/app_localizations.dart';
+import 'package:zerobox/src/app/widgets/page_container.dart';
+import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
+import 'package:zerobox/src/core/constants/style_constants.dart';
+import 'package:zerobox/src/core/models/bt_models.dart';
+import 'package:zerobox/src/core/models/device.dart';
+import 'package:zerobox/src/core/providers/ble_service_provider.dart';
+import 'package:zerobox/src/core/services/ble_service_manager.dart';
+import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
+import 'package:zerobox/src/features/devices/services/device_share_link.dart';
+import 'package:zerobox/src/features/devices/providers/pending_shared_device_provider.dart';
+import 'package:zerobox/src/protocols/common/device_protocol.dart' as proto;
+
+class DeviceSwitchPage extends ConsumerStatefulWidget {
+  const DeviceSwitchPage({super.key});
+
+  @override
+  ConsumerState<DeviceSwitchPage> createState() => _DeviceSwitchPageState();
+}
+
+class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() async {
+      final ble = ref.read(bleServiceManagerProvider);
+      final available = await ble.isAvailable();
+      if (!available) return;
+      await ble.requestPermissions();
+      if (mounted) {
+        ref.read(deviceManagerProvider.notifier).startBleScan();
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final pending = ref.read(pendingSharedDeviceProvider);
+    if (pending != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(pendingSharedDeviceProvider.notifier).set(null);
+        _showPendingDeviceDialog(pending);
+      });
+    }
+  }
+
+  Future<void> _showPendingDeviceDialog(MiWearState device) async {
+    final l10n = AppLocalizations.of(context)!;
+    await ref.read(deviceManagerProvider.notifier).importSharedDevice(device);
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.deviceActionsShareQR),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(device.name),
+            const SizedBox(height: 4),
+            Text(device.addr, style: Theme.of(dialogContext).textTheme.bodySmall),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.close),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.deviceConnect),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final state = ref.watch(deviceManagerProvider);
+    final currentAddr = state.currentDevice?.addr;
+
+    ref.listen<DeviceManagerState>(deviceManagerProvider, (previous, next) {
+      final wasConnecting = previous?.connecting ?? false;
+      final isReady = next.protocolState == proto.ProtocolState.ready;
+      final justBecameReady = isReady &&
+          (previous?.protocolState != proto.ProtocolState.ready);
+      if (wasConnecting && justBecameReady) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.deviceConnected)),
+        );
+        if (context.mounted) {
+          context.pop();
+        }
+      } else if (next.error != null && next.error != previous?.error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.error!)),
+        );
+      }
+    });
+
+    return Scaffold(
+      appBar: SysAppBar(
+        title: Text(l10n.switchDeviceTitle),
+      ),
+      body: !kIsWeb
+          ? _buildLayout(context, ref, state, currentAddr)
+          : const _WebSerialHint(),
+    );
+  }
+
+  Widget _buildLayout(
+    BuildContext context,
+    WidgetRef ref,
+    DeviceManagerState state,
+    String? currentAddr,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 840;
+        final savedList = _SavedDeviceList(
+          selectedAddr: currentAddr,
+          onComplete: () => setState(() {}),
+        );
+        final scanList = _ScanDeviceList(onComplete: () => setState(() {}));
+
+        return PageContainer(
+          padding: const EdgeInsets.symmetric(
+            horizontal: StyleConstants.pagePadding,
+            vertical: StyleConstants.pagePadding,
+          ),
+          child: isWide
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _ListWrapper(
+                        isFirst: true,
+                        child: savedList,
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      margin: const EdgeInsets.symmetric(vertical: 12),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .outlineVariant
+                          .withValues(alpha: 0.5),
+                    ),
+                    Expanded(
+                      child: _ListWrapper(
+                        isFirst: false,
+                        child: scanList,
+                      ),
+                    ),
+                  ],
+                )
+              : CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _SectionHeader(
+                        title: AppLocalizations.of(context)!.savedDevices,
+                      ),
+                    ),
+                    _SliverSavedDeviceList(
+                      selectedAddr: currentAddr,
+                      onComplete: () => setState(() {}),
+                    ),
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(height: 1),
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: _ScanSectionHeader(
+                        onComplete: () => setState(() {}),
+                      ),
+                    ),
+                    _SliverScanDeviceList(
+                      onComplete: () => setState(() {}),
+                    ),
+                  ],
+                ),
+        );
+      },
+    );
+  }
+}
+
+class _ListWrapper extends StatelessWidget {
+  const _ListWrapper({
+    required this.child,
+    required this.isFirst,
+  });
+
+  final Widget child;
+  final bool isFirst;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: EdgeInsets.only(
+        left: isFirst ? 0 : 20,
+        right: isFirst ? 20 : 0,
+      ),
+      decoration: isFirst
+          ? BoxDecoration(
+              border: Border(
+                right: BorderSide(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                ),
+              ),
+            )
+          : null,
+      child: child,
+    );
+  }
+}
+
+class _WebSerialHint extends StatelessWidget {
+  const _WebSerialHint();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return PageContainer(
+      padding: const EdgeInsets.symmetric(
+        horizontal: StyleConstants.pagePadding,
+        vertical: StyleConstants.pagePadding,
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cable,
+              size: 64,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.webSerialTitle,
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.webSerialHint,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () => _showWebSerialConnectDialog(context),
+              icon: const Icon(Icons.link),
+              label: Text(l10n.deviceConnect),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showWebSerialConnectDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final authController = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.webSerialConnectDialogTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              l10n.webSerialConnectDialogHint,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: authController,
+              decoration: InputDecoration(
+                labelText: l10n.authkeyPrompt,
+                hintText: l10n.authkeyPlaceholder,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final authKey = authController.text;
+              Navigator.of(context).pop();
+              final manager = ProviderScope.containerOf(
+                context,
+                listen: false,
+              ).read(deviceManagerProvider.notifier);
+              await manager.connect('web-serial', 'Web Serial', authKey);
+            },
+            child: Text(l10n.deviceConnect),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SavedDeviceList extends ConsumerWidget {
+  const _SavedDeviceList({
+    required this.selectedAddr,
+    required this.onComplete,
+  });
+
+  final String? selectedAddr;
+  final VoidCallback onComplete;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final state = ref.watch(deviceManagerProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: l10n.savedDevices,
+          hiddenOnMobile: true,
+        ),
+        if (state.pairedDevices.isEmpty)
+          const Expanded(child: _EmptyState(message: ''))
+        else
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.only(top: 8),
+              itemCount: state.pairedDevices.length,
+              itemBuilder: (context, index) {
+                final device = state.pairedDevices[index];
+                return _DeviceCard(
+                  device: device,
+                  connected:
+                      device.addr == selectedAddr && !device.disconnected,
+                  saved: true,
+                  onComplete: onComplete,
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ScanDeviceList extends ConsumerStatefulWidget {
+  const _ScanDeviceList({required this.onComplete});
+
+  final VoidCallback onComplete;
+
+  @override
+  ConsumerState<_ScanDeviceList> createState() => _ScanDeviceListState();
+}
+
+class _ScanDeviceListState extends ConsumerState<_ScanDeviceList> {
+  StreamSubscription<ScannedBTDevice>? _scanSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _listenScan();
+  }
+
+  @override
+  void dispose() {
+    _scanSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _listenScan() {
+    _scanSubscription?.cancel();
+    final ble = ref.read(bleServiceManagerProvider);
+    _scanSubscription = ble.scanStream.listen((device) {
+      ref.read(deviceManagerProvider.notifier).onScannedDevice(device);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final state = ref.watch(deviceManagerProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedOpacity(
+          opacity: state.scanning ? 1 : 0,
+          duration: const Duration(milliseconds: 300),
+          child: const LinearProgressIndicator(minHeight: 2),
+        ),
+        _SectionHeader(
+          title: l10n.scanAndAdd,
+          trailing: IconButton(
+            icon: AnimatedRotation(
+              turns: state.scanning ? 1 : 0,
+              duration: const Duration(milliseconds: 500),
+              child: const Icon(Icons.refresh),
+            ),
+            onPressed: state.scanning
+                ? null
+                : () => ref.read(deviceManagerProvider.notifier).startBleScan(),
+            tooltip: l10n.refresh,
+          ),
+        ),
+        if (!state.scanning && state.scannedDevices.isEmpty)
+          const Expanded(child: _EmptyState(message: ''))
+        else if (state.scanning && state.scannedDevices.isEmpty)
+          const Expanded(
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.only(top: 8),
+              itemCount: state.scannedDevices.length,
+              itemBuilder: (context, index) {
+                final device = state.scannedDevices[index];
+                return _DeviceCard(
+                  device: MiWearState(
+                    name: device.name,
+                    addr: device.addr,
+                    connectType: device.connectType,
+                    disconnected: true,
+                  ),
+                  saved: false,
+                  onComplete: widget.onComplete,
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _SliverSavedDeviceList extends ConsumerWidget {
+  const _SliverSavedDeviceList({
+    required this.selectedAddr,
+    required this.onComplete,
+  });
+
+  final String? selectedAddr;
+  final VoidCallback onComplete;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(deviceManagerProvider);
+
+    if (state.pairedDevices.isEmpty) {
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: _EmptyState(message: ''),
+      );
+    }
+    return SliverList.builder(
+      itemCount: state.pairedDevices.length,
+      itemBuilder: (context, index) {
+        final device = state.pairedDevices[index];
+        return _DeviceCard(
+          device: device,
+          connected: device.addr == selectedAddr && !device.disconnected,
+          saved: true,
+          onComplete: onComplete,
+        );
+      },
+    );
+  }
+}
+
+class _ScanSectionHeader extends ConsumerWidget {
+  const _ScanSectionHeader({required this.onComplete});
+
+  final VoidCallback onComplete;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final state = ref.watch(deviceManagerProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedOpacity(
+          opacity: state.scanning ? 1 : 0,
+          duration: const Duration(milliseconds: 300),
+          child: const LinearProgressIndicator(minHeight: 2),
+        ),
+        _SectionHeader(
+          title: l10n.scanAndAdd,
+          trailing: IconButton(
+            icon: AnimatedRotation(
+              turns: state.scanning ? 1 : 0,
+              duration: const Duration(milliseconds: 500),
+              child: const Icon(Icons.refresh),
+            ),
+            onPressed: state.scanning
+                ? null
+                : () => ref.read(deviceManagerProvider.notifier).startBleScan(),
+            tooltip: l10n.refresh,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SliverScanDeviceList extends ConsumerStatefulWidget {
+  const _SliverScanDeviceList({required this.onComplete});
+
+  final VoidCallback onComplete;
+
+  @override
+  ConsumerState<_SliverScanDeviceList> createState() =>
+      _SliverScanDeviceListState();
+}
+
+class _SliverScanDeviceListState extends ConsumerState<_SliverScanDeviceList> {
+  StreamSubscription<ScannedBTDevice>? _scanSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _listenScan();
+  }
+
+  @override
+  void dispose() {
+    _scanSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _listenScan() {
+    _scanSubscription?.cancel();
+    final ble = ref.read(bleServiceManagerProvider);
+    _scanSubscription = ble.scanStream.listen((device) {
+      ref.read(deviceManagerProvider.notifier).onScannedDevice(device);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(deviceManagerProvider);
+
+    if (!state.scanning && state.scannedDevices.isEmpty) {
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: _EmptyState(message: ''),
+      );
+    }
+    if (state.scanning && state.scannedDevices.isEmpty) {
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return SliverList.builder(
+      itemCount: state.scannedDevices.length,
+      itemBuilder: (context, index) {
+        final device = state.scannedDevices[index];
+        return _DeviceCard(
+          device: MiWearState(
+            name: device.name,
+            addr: device.addr,
+            connectType: device.connectType,
+            disconnected: true,
+          ),
+          saved: false,
+          onComplete: widget.onComplete,
+        );
+      },
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.title,
+    this.trailing,
+    this.hiddenOnMobile = false,
+  });
+
+  final String title;
+  final Widget? trailing;
+  final bool hiddenOnMobile;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final isWide = MediaQuery.sizeOf(context).width >= 840;
+    if (hiddenOnMobile && !isWide) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          trailing ?? const SizedBox.shrink(),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeviceCard extends ConsumerStatefulWidget {
+  const _DeviceCard({
+    required this.device,
+    this.connected = false,
+    this.saved = false,
+    this.onComplete,
+  });
+
+  final MiWearState device;
+  final bool connected;
+  final bool saved;
+  final VoidCallback? onComplete;
+
+  @override
+  ConsumerState<_DeviceCard> createState() => _DeviceCardState();
+}
+
+class _DeviceCardState extends ConsumerState<_DeviceCard> {
+  bool _showInput = false;
+  late final TextEditingController _authController;
+
+  @override
+  void initState() {
+    super.initState();
+    _authController = TextEditingController(text: widget.device.authkey ?? '');
+  }
+
+  @override
+  void dispose() {
+    _authController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _connect() async {
+    await ref.read(deviceManagerProvider.notifier).connect(
+          widget.device.addr,
+          widget.device.name,
+          _authController.text,
+          connectType: widget.device.connectType,
+        );
+    widget.onComplete?.call();
+    if (mounted) {
+      final state = ref.read(deviceManagerProvider);
+      if (state.protocolState == proto.ProtocolState.ready) {
+        context.pop();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final state = ref.watch(deviceManagerProvider);
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 5),
+      color: widget.connected
+          ? colorScheme.primaryContainer.withValues(alpha: 0.3)
+          : colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(StyleConstants.cardRadius),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          InkWell(
+            onTap: widget.connected
+                ? null
+                : () => setState(() => _showInput = !_showInput),
+            borderRadius: BorderRadius.circular(StyleConstants.cardRadius),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SvgPicture.asset(
+                    widget.device.illustrationAsset(),
+                    width: 32,
+                    height: 32,
+                    colorFilter: ColorFilter.mode(
+                      colorScheme.onSurface,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.device.name,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            height: 1.25,
+                          ),
+                        ),
+                        Text(
+                          widget.device.addr,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colorScheme.onSurfaceVariant,
+                            height: 1.25,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (widget.saved)
+                    PopupMenuButton<String>(
+                      onSelected: (value) async {
+                        final manager = ref.read(
+                          deviceManagerProvider.notifier,
+                        );
+                        if (value == 'delete') {
+                          await manager.removeDevice(widget.device.addr);
+                        } else if (value == 'disconnect') {
+                          await manager.disconnect();
+                        } else if (value == 'share') {
+                          await Future.delayed(const Duration(milliseconds: 50));
+                          if (context.mounted) {
+                            await _showQrDialog(context, widget.device);
+                          }
+                        }
+                        widget.onComplete?.call();
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.delete_outline),
+                              const SizedBox(width: 8),
+                              Text(l10n.deviceActionsDelete),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'disconnect',
+                          enabled: widget.connected,
+                          child: Row(
+                            children: [
+                              const Icon(Icons.power_off_outlined),
+                              const SizedBox(width: 8),
+                              Text(l10n.deviceActionsDisconnect),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'share',
+                          enabled: widget.device.authkey?.isNotEmpty ?? false,
+                          child: Row(
+                            children: [
+                              const Icon(Icons.qr_code_2),
+                              const SizedBox(width: 8),
+                              Text(l10n.deviceActionsShareQR),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            child: _showInput
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    child: TextField(
+                      controller: _authController,
+                      enabled: state.connectStatus == 0 ||
+                          state.connectStatus == 3,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        labelText: l10n.authkeyPrompt,
+                        hintText: l10n.authkeyPlaceholder,
+                        errorText: state.connectStatus == 3
+                            ? l10n.connectFailed
+                            : null,
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.send),
+                          onPressed: state.connecting ? null : _connect,
+                        ),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showQrDialog(BuildContext context, MiWearState device) async {
+    final l10n = AppLocalizations.of(context)!;
+    var compatibleMode = false;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final link =
+              (compatibleMode
+                      ? DeviceShareLink.buildAstroBoxCompatible(device)
+                      : DeviceShareLink.build(device))
+                  .toString();
+          return AlertDialog(
+            title: Text(l10n.deviceActionsShareQR),
+            content: SizedBox(
+              width: 260,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  QrImageView(
+                    data: link,
+                    version: QrVersions.auto,
+                    size: 220,
+                    backgroundColor: Colors.white,
+                    eyeStyle: const QrEyeStyle(
+                      eyeShape: QrEyeShape.square,
+                      color: Colors.black,
+                    ),
+                    dataModuleStyle: const QrDataModuleStyle(
+                      dataModuleShape: QrDataModuleShape.square,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SelectableText(
+                    link,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      setDialogState(() => compatibleMode = !compatibleMode);
+                    },
+                    icon: Icon(compatibleMode ? Icons.link : Icons.swap_horiz),
+                    label: Text(
+                      compatibleMode ? '切换为 ZeroBox 码' : '切换 AstroBox 兼容码',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: link));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(l10n.copy)));
+                },
+                child: Text(l10n.copy),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(l10n.close),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({this.message});
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.bluetooth_searching,
+            size: 48,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 12),
+          if (message != null && message!.isNotEmpty)
+            Text(
+              message!,
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            ),
+        ],
+      ),
+    );
+  }
+}

@@ -1,0 +1,1658 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/intl.dart' as intl;
+
+import 'app_localizations_en.dart';
+import 'app_localizations_zh.dart';
+
+// ignore_for_file: type=lint
+
+/// Callers can lookup localized strings with an instance of AppLocalizations
+/// returned by `AppLocalizations.of(context)`.
+///
+/// Applications need to include `AppLocalizations.delegate()` in their app's
+/// `localizationDelegates` list, and the locales they support in the app's
+/// `supportedLocales` list. For example:
+///
+/// ```dart
+/// import 'generated/app_localizations.dart';
+///
+/// return MaterialApp(
+///   localizationsDelegates: AppLocalizations.localizationsDelegates,
+///   supportedLocales: AppLocalizations.supportedLocales,
+///   home: MyApplicationHome(),
+/// );
+/// ```
+///
+/// ## Update pubspec.yaml
+///
+/// Please make sure to update your pubspec.yaml to include the following
+/// packages:
+///
+/// ```yaml
+/// dependencies:
+///   # Internationalization support.
+///   flutter_localizations:
+///     sdk: flutter
+///   intl: any # Use the pinned version from flutter_localizations
+///
+///   # Rest of dependencies
+/// ```
+///
+/// ## iOS Applications
+///
+/// iOS applications define key application metadata, including supported
+/// locales, in an Info.plist file that is built into the application bundle.
+/// To configure the locales supported by your app, you’ll need to edit this
+/// file.
+///
+/// First, open your project’s ios/Runner.xcworkspace Xcode workspace file.
+/// Then, in the Project Navigator, open the Info.plist file under the Runner
+/// project’s Runner folder.
+///
+/// Next, select the Information Property List item, select Add Item from the
+/// Editor menu, then select Localizations from the pop-up menu.
+///
+/// Select and expand the newly-created Localizations item then, for each
+/// locale your application supports, add a new item and select the locale
+/// you wish to add from the pop-up menu in the Value field. This list should
+/// be consistent with the languages listed in the AppLocalizations.supportedLocales
+/// property.
+abstract class AppLocalizations {
+  AppLocalizations(String locale)
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+
+  final String localeName;
+
+  static AppLocalizations? of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations);
+  }
+
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
+
+  /// A list of this localizations delegate along with the default localizations
+  /// delegates.
+  ///
+  /// Returns a list of localizations delegates containing this delegate along with
+  /// GlobalMaterialLocalizations.delegate, GlobalCupertinoLocalizations.delegate,
+  /// and GlobalWidgetsLocalizations.delegate.
+  ///
+  /// Additional delegates can be added by appending to this list in
+  /// MaterialApp. This list does not have to be used at all if a custom list
+  /// of delegates is preferred or required.
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
+
+  /// A list of this localizations delegate's supported locales.
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('en'),
+    Locale('zh'),
+  ];
+
+  /// No description provided for @appTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'ZeroBox'**
+  String get appTitle;
+
+  /// No description provided for @homeTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get homeTab;
+
+  /// No description provided for @resourcesTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Resources'**
+  String get resourcesTab;
+
+  /// No description provided for @devicesTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices'**
+  String get devicesTab;
+
+  /// No description provided for @settingsTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTab;
+
+  /// No description provided for @search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get search;
+
+  /// No description provided for @refresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get refresh;
+
+  /// No description provided for @notifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notifications;
+
+  /// No description provided for @pendingTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending tasks'**
+  String get pendingTasks;
+
+  /// No description provided for @manageDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage device'**
+  String get manageDevice;
+
+  /// No description provided for @installLocalResource.
+  ///
+  /// In en, this message translates to:
+  /// **'Install local resource'**
+  String get installLocalResource;
+
+  /// No description provided for @recentUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent updates'**
+  String get recentUpdates;
+
+  /// No description provided for @newlyPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Newly published'**
+  String get newlyPublished;
+
+  /// No description provided for @news.
+  ///
+  /// In en, this message translates to:
+  /// **'News'**
+  String get news;
+
+  /// No description provided for @zeroBoxNews.
+  ///
+  /// In en, this message translates to:
+  /// **'ZeroBox news'**
+  String get zeroBoxNews;
+
+  /// No description provided for @bandbbsNews.
+  ///
+  /// In en, this message translates to:
+  /// **'BandBBS news'**
+  String get bandbbsNews;
+
+  /// No description provided for @astroBoxNews.
+  ///
+  /// In en, this message translates to:
+  /// **'AstroBox news'**
+  String get astroBoxNews;
+
+  /// No description provided for @resourceLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource library'**
+  String get resourceLibrary;
+
+  /// No description provided for @creatorCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Creator center'**
+  String get creatorCenter;
+
+  /// No description provided for @filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get filter;
+
+  /// No description provided for @importLocalResource.
+  ///
+  /// In en, this message translates to:
+  /// **'Import local resource'**
+  String get importLocalResource;
+
+  /// No description provided for @allDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'All devices'**
+  String get allDevices;
+
+  /// No description provided for @currentDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Current device'**
+  String get currentDevice;
+
+  /// No description provided for @all.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get all;
+
+  /// No description provided for @watchfaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Watchfaces'**
+  String get watchfaces;
+
+  /// No description provided for @quickApps.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick apps'**
+  String get quickApps;
+
+  /// No description provided for @firmwareTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Firmware / Tools'**
+  String get firmwareTools;
+
+  /// No description provided for @localResources.
+  ///
+  /// In en, this message translates to:
+  /// **'Local resources'**
+  String get localResources;
+
+  /// No description provided for @zeroBox.
+  ///
+  /// In en, this message translates to:
+  /// **'ZeroBox'**
+  String get zeroBox;
+
+  /// No description provided for @bandbbs.
+  ///
+  /// In en, this message translates to:
+  /// **'BandBBS'**
+  String get bandbbs;
+
+  /// No description provided for @astroBox.
+  ///
+  /// In en, this message translates to:
+  /// **'AstroBox'**
+  String get astroBox;
+
+  /// No description provided for @local.
+  ///
+  /// In en, this message translates to:
+  /// **'Local'**
+  String get local;
+
+  /// No description provided for @install.
+  ///
+  /// In en, this message translates to:
+  /// **'Install'**
+  String get install;
+
+  /// No description provided for @update.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get update;
+
+  /// No description provided for @manage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage'**
+  String get manage;
+
+  /// No description provided for @description.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get description;
+
+  /// No description provided for @supportedDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Supported devices'**
+  String get supportedDevices;
+
+  /// No description provided for @downloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads'**
+  String get downloads;
+
+  /// No description provided for @changelog.
+  ///
+  /// In en, this message translates to:
+  /// **'Changelog'**
+  String get changelog;
+
+  /// No description provided for @notFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Not found'**
+  String get notFound;
+
+  /// No description provided for @downloadStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Download started'**
+  String get downloadStarted;
+
+  /// No description provided for @compatible.
+  ///
+  /// In en, this message translates to:
+  /// **'Compatible with'**
+  String get compatible;
+
+  /// No description provided for @incompatible.
+  ///
+  /// In en, this message translates to:
+  /// **'Incompatible with'**
+  String get incompatible;
+
+  /// No description provided for @incompatibleSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **''**
+  String get incompatibleSuffix;
+
+  /// No description provided for @openSourcePage.
+  ///
+  /// In en, this message translates to:
+  /// **'Open source page'**
+  String get openSourcePage;
+
+  /// No description provided for @creatorDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Creator dashboard'**
+  String get creatorDashboard;
+
+  /// No description provided for @myResources.
+  ///
+  /// In en, this message translates to:
+  /// **'My resources'**
+  String get myResources;
+
+  /// No description provided for @drafts.
+  ///
+  /// In en, this message translates to:
+  /// **'Drafts'**
+  String get drafts;
+
+  /// No description provided for @pendingReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending review'**
+  String get pendingReview;
+
+  /// No description provided for @published.
+  ///
+  /// In en, this message translates to:
+  /// **'Published'**
+  String get published;
+
+  /// No description provided for @failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed / Needs action'**
+  String get failed;
+
+  /// No description provided for @newResource.
+  ///
+  /// In en, this message translates to:
+  /// **'New resource'**
+  String get newResource;
+
+  /// No description provided for @basicInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic info'**
+  String get basicInfo;
+
+  /// No description provided for @packageFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Package files'**
+  String get packageFiles;
+
+  /// No description provided for @deviceSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Device selection'**
+  String get deviceSelection;
+
+  /// No description provided for @deviceFileMapping.
+  ///
+  /// In en, this message translates to:
+  /// **'Device-file mapping'**
+  String get deviceFileMapping;
+
+  /// No description provided for @publishTargets.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish targets'**
+  String get publishTargets;
+
+  /// No description provided for @publishPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish preview'**
+  String get publishPreview;
+
+  /// No description provided for @reviewStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Review status'**
+  String get reviewStatus;
+
+  /// No description provided for @scan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan'**
+  String get scan;
+
+  /// No description provided for @logs.
+  ///
+  /// In en, this message translates to:
+  /// **'Logs'**
+  String get logs;
+
+  /// No description provided for @connectedDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected devices'**
+  String get connectedDevices;
+
+  /// No description provided for @pairedDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired devices'**
+  String get pairedDevices;
+
+  /// No description provided for @discoveredDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovered devices'**
+  String get discoveredDevices;
+
+  /// No description provided for @overview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get overview;
+
+  /// No description provided for @apps.
+  ///
+  /// In en, this message translates to:
+  /// **'Apps'**
+  String get apps;
+
+  /// No description provided for @connection.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection'**
+  String get connection;
+
+  /// No description provided for @protocol.
+  ///
+  /// In en, this message translates to:
+  /// **'Protocol'**
+  String get protocol;
+
+  /// No description provided for @error.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get error;
+
+  /// No description provided for @copyLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy logs'**
+  String get copyLogs;
+
+  /// No description provided for @exportLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Export logs'**
+  String get exportLogs;
+
+  /// No description provided for @clearLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear logs'**
+  String get clearLogs;
+
+  /// No description provided for @personalCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal center'**
+  String get personalCenter;
+
+  /// No description provided for @accountAndPublishing.
+  ///
+  /// In en, this message translates to:
+  /// **'Account & Publishing'**
+  String get accountAndPublishing;
+
+  /// No description provided for @appearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get appearance;
+
+  /// No description provided for @resources.
+  ///
+  /// In en, this message translates to:
+  /// **'Resources'**
+  String get resources;
+
+  /// No description provided for @devices.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices'**
+  String get devices;
+
+  /// No description provided for @advanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get advanced;
+
+  /// No description provided for @aboutZeroBox.
+  ///
+  /// In en, this message translates to:
+  /// **'About ZeroBox'**
+  String get aboutZeroBox;
+
+  /// No description provided for @openSourceLicenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Open source licenses'**
+  String get openSourceLicenses;
+
+  /// No description provided for @acknowledgements.
+  ///
+  /// In en, this message translates to:
+  /// **'Special Acknowledgements'**
+  String get acknowledgements;
+
+  /// No description provided for @developmentTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Development team'**
+  String get developmentTeam;
+
+  /// No description provided for @deviceNotConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected'**
+  String get deviceNotConnected;
+
+  /// No description provided for @deviceConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get deviceConnected;
+
+  /// No description provided for @deviceDisconnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnected'**
+  String get deviceDisconnected;
+
+  /// No description provided for @deviceReconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect'**
+  String get deviceReconnect;
+
+  /// No description provided for @deviceConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get deviceConnect;
+
+  /// No description provided for @deviceSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get deviceSwitch;
+
+  /// No description provided for @deviceCharging.
+  ///
+  /// In en, this message translates to:
+  /// **'Charging'**
+  String get deviceCharging;
+
+  /// No description provided for @deviceFeaturesInstallApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Install app'**
+  String get deviceFeaturesInstallApp;
+
+  /// No description provided for @deviceFeaturesInstallAppDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Install third-party app from local file'**
+  String get deviceFeaturesInstallAppDesc;
+
+  /// No description provided for @deviceFeaturesInstallWatchface.
+  ///
+  /// In en, this message translates to:
+  /// **'Install watchface'**
+  String get deviceFeaturesInstallWatchface;
+
+  /// No description provided for @deviceFeaturesInstallWatchfaceDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Install watchface from local file'**
+  String get deviceFeaturesInstallWatchfaceDesc;
+
+  /// No description provided for @deviceFeaturesInstallFirmware.
+  ///
+  /// In en, this message translates to:
+  /// **'Install firmware'**
+  String get deviceFeaturesInstallFirmware;
+
+  /// No description provided for @deviceFeaturesInstallFirmwareDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash firmware or tool package'**
+  String get deviceFeaturesInstallFirmwareDesc;
+
+  /// No description provided for @deviceFeaturesManageApps.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage apps'**
+  String get deviceFeaturesManageApps;
+
+  /// No description provided for @deviceFeaturesManageAppsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'View and uninstall installed apps'**
+  String get deviceFeaturesManageAppsDesc;
+
+  /// No description provided for @deviceFeaturesManageWatchfaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage watchfaces'**
+  String get deviceFeaturesManageWatchfaces;
+
+  /// No description provided for @deviceFeaturesManageWatchfacesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'View, delete and set current watchface'**
+  String get deviceFeaturesManageWatchfacesDesc;
+
+  /// No description provided for @deviceFeaturesDeviceInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Device info'**
+  String get deviceFeaturesDeviceInfo;
+
+  /// No description provided for @deviceFeaturesDeviceInfoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Firmware, storage and details'**
+  String get deviceFeaturesDeviceInfoDesc;
+
+  /// No description provided for @switchDeviceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch device'**
+  String get switchDeviceTitle;
+
+  /// No description provided for @savedDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved devices'**
+  String get savedDevices;
+
+  /// No description provided for @scanAndAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan and add'**
+  String get scanAndAdd;
+
+  /// No description provided for @scanNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No devices found'**
+  String get scanNotFound;
+
+  /// No description provided for @noSavedDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved devices'**
+  String get noSavedDevices;
+
+  /// No description provided for @authkey.
+  ///
+  /// In en, this message translates to:
+  /// **'Auth key'**
+  String get authkey;
+
+  /// No description provided for @authkeyPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter device auth key'**
+  String get authkeyPrompt;
+
+  /// No description provided for @authkeyPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Auth key'**
+  String get authkeyPlaceholder;
+
+  /// No description provided for @connectFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed'**
+  String get connectFailed;
+
+  /// No description provided for @webSerialTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Web Serial'**
+  String get webSerialTitle;
+
+  /// No description provided for @webSerialHint.
+  ///
+  /// In en, this message translates to:
+  /// **'On the web, ZeroBox connects to devices via Web Serial. Press Connect below to choose a serial port.'**
+  String get webSerialHint;
+
+  /// No description provided for @webSerialConnectDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect via Web Serial'**
+  String get webSerialConnectDialogTitle;
+
+  /// No description provided for @webSerialConnectDialogHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the device auth key, then choose the serial port when prompted.'**
+  String get webSerialConnectDialogHint;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @deviceActionsDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deviceActionsDelete;
+
+  /// No description provided for @deviceActionsDisconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get deviceActionsDisconnect;
+
+  /// No description provided for @deviceActionsShareQR.
+  ///
+  /// In en, this message translates to:
+  /// **'Share QR'**
+  String get deviceActionsShareQR;
+
+  /// No description provided for @installTapToSelectFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to select file'**
+  String get installTapToSelectFile;
+
+  /// No description provided for @installPackageName.
+  ///
+  /// In en, this message translates to:
+  /// **'Package name'**
+  String get installPackageName;
+
+  /// No description provided for @installWatchfaceId.
+  ///
+  /// In en, this message translates to:
+  /// **'Watchface ID'**
+  String get installWatchfaceId;
+
+  /// No description provided for @deviceInfoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Device info'**
+  String get deviceInfoTitle;
+
+  /// No description provided for @deviceInfoNotRealtime.
+  ///
+  /// In en, this message translates to:
+  /// **'Data may not be real-time'**
+  String get deviceInfoNotRealtime;
+
+  /// No description provided for @deviceInfoGroupDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Device'**
+  String get deviceInfoGroupDevice;
+
+  /// No description provided for @deviceInfoGroupSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get deviceInfoGroupSystem;
+
+  /// No description provided for @deviceInfoGroupStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get deviceInfoGroupStatus;
+
+  /// No description provided for @fieldName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get fieldName;
+
+  /// No description provided for @fieldAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get fieldAddress;
+
+  /// No description provided for @fieldAuthkey.
+  ///
+  /// In en, this message translates to:
+  /// **'Auth key'**
+  String get fieldAuthkey;
+
+  /// No description provided for @fieldConnectionType.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection type'**
+  String get fieldConnectionType;
+
+  /// No description provided for @fieldCodename.
+  ///
+  /// In en, this message translates to:
+  /// **'Codename'**
+  String get fieldCodename;
+
+  /// No description provided for @fieldModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get fieldModel;
+
+  /// No description provided for @fieldImei.
+  ///
+  /// In en, this message translates to:
+  /// **'IMEI'**
+  String get fieldImei;
+
+  /// No description provided for @fieldFirmware.
+  ///
+  /// In en, this message translates to:
+  /// **'Firmware'**
+  String get fieldFirmware;
+
+  /// No description provided for @fieldSerial.
+  ///
+  /// In en, this message translates to:
+  /// **'Serial'**
+  String get fieldSerial;
+
+  /// No description provided for @fieldBattery.
+  ///
+  /// In en, this message translates to:
+  /// **'Battery'**
+  String get fieldBattery;
+
+  /// No description provided for @fieldChargeStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Charge status'**
+  String get fieldChargeStatus;
+
+  /// No description provided for @fieldLastCharge.
+  ///
+  /// In en, this message translates to:
+  /// **'Last charge'**
+  String get fieldLastCharge;
+
+  /// No description provided for @appManagementTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App management'**
+  String get appManagementTitle;
+
+  /// No description provided for @appManagementNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No installed apps'**
+  String get appManagementNone;
+
+  /// No description provided for @appManagementShowSystemApps.
+  ///
+  /// In en, this message translates to:
+  /// **'Show system apps'**
+  String get appManagementShowSystemApps;
+
+  /// No description provided for @watchfaceManagementTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Watchface management'**
+  String get watchfaceManagementTitle;
+
+  /// No description provided for @watchfaceManagementNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No installed watchfaces'**
+  String get watchfaceManagementNone;
+
+  /// No description provided for @open.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get open;
+
+  /// No description provided for @uninstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Uninstall'**
+  String get uninstall;
+
+  /// No description provided for @enable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable'**
+  String get enable;
+
+  /// No description provided for @fail.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get fail;
+
+  /// No description provided for @show.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get show;
+
+  /// No description provided for @hide.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get hide;
+
+  /// No description provided for @copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @multiDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Multi-device'**
+  String get multiDevice;
+
+  /// No description provided for @quickApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick App'**
+  String get quickApp;
+
+  /// No description provided for @watchface.
+  ///
+  /// In en, this message translates to:
+  /// **'Watchface'**
+  String get watchface;
+
+  /// No description provided for @firmwareTool.
+  ///
+  /// In en, this message translates to:
+  /// **'Firmware / Tool'**
+  String get firmwareTool;
+
+  /// No description provided for @fontPack.
+  ///
+  /// In en, this message translates to:
+  /// **'Font Pack'**
+  String get fontPack;
+
+  /// No description provided for @iconPack.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon Pack'**
+  String get iconPack;
+
+  /// No description provided for @free.
+  ///
+  /// In en, this message translates to:
+  /// **'Free'**
+  String get free;
+
+  /// No description provided for @paid.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get paid;
+
+  /// No description provided for @forcePaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Force Paid'**
+  String get forcePaid;
+
+  /// No description provided for @version.
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get version;
+
+  /// No description provided for @noDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'No description'**
+  String get noDescription;
+
+  /// No description provided for @preview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get preview;
+
+  /// No description provided for @productAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get productAbout;
+
+  /// No description provided for @productDeviceRequirements.
+  ///
+  /// In en, this message translates to:
+  /// **'Device requirements'**
+  String get productDeviceRequirements;
+
+  /// No description provided for @productOtherVersions.
+  ///
+  /// In en, this message translates to:
+  /// **'Other versions'**
+  String get productOtherVersions;
+
+  /// No description provided for @productInQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'In queue'**
+  String get productInQueue;
+
+  /// No description provided for @productShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get productShare;
+
+  /// No description provided for @productViewOnBandBBS.
+  ///
+  /// In en, this message translates to:
+  /// **'View on BandBBS'**
+  String get productViewOnBandBBS;
+
+  /// No description provided for @changeCdn.
+  ///
+  /// In en, this message translates to:
+  /// **'Change CDN'**
+  String get changeCdn;
+
+  /// No description provided for @cdnErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AstroBox data failed to load'**
+  String get cdnErrorTitle;
+
+  /// No description provided for @cdnErrorMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Current CDN ({cdn}) could not fetch {path}. Would you like to switch CDN?'**
+  String cdnErrorMessage(Object cdn, Object path);
+
+  /// No description provided for @cdnErrorContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch CDN'**
+  String get cdnErrorContinue;
+
+  /// No description provided for @cdnErrorCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cdnErrorCancel;
+
+  /// No description provided for @settingsAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get settingsAccount;
+
+  /// No description provided for @settingsGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get settingsGeneral;
+
+  /// No description provided for @settingsSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads'**
+  String get settingsSource;
+
+  /// No description provided for @settingsSourceRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart required'**
+  String get settingsSourceRestart;
+
+  /// No description provided for @settingsQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue'**
+  String get settingsQueue;
+
+  /// No description provided for @settingsInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Installation'**
+  String get settingsInstall;
+
+  /// No description provided for @settingsTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Mysterious Tools'**
+  String get settingsTools;
+
+  /// No description provided for @settingsAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settingsAbout;
+
+  /// No description provided for @settingsAccountLoginBBS.
+  ///
+  /// In en, this message translates to:
+  /// **'Login to BandBBS'**
+  String get settingsAccountLoginBBS;
+
+  /// No description provided for @settingsAccountLoginBBSDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to sync purchased resources'**
+  String get settingsAccountLoginBBSDesc;
+
+  /// No description provided for @settingsAccountBBSAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'BandBBS account'**
+  String get settingsAccountBBSAccount;
+
+  /// No description provided for @settingsAccountSyncDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync devices'**
+  String get settingsAccountSyncDevices;
+
+  /// No description provided for @settingsAccountSyncDevicesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Log in to Mi Account to sync paired devices'**
+  String get settingsAccountSyncDevicesDesc;
+
+  /// No description provided for @settingsGeneralLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get settingsGeneralLanguage;
+
+  /// No description provided for @settingsGeneralLanguageDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Change app display language'**
+  String get settingsGeneralLanguageDesc;
+
+  /// No description provided for @settingsGeneralTranslateTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation contributors'**
+  String get settingsGeneralTranslateTeam;
+
+  /// No description provided for @settingsAutoReconnectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto reconnect'**
+  String get settingsAutoReconnectTitle;
+
+  /// No description provided for @settingsAutoReconnectDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically reconnect to the last paired device on startup'**
+  String get settingsAutoReconnectDesc;
+
+  /// No description provided for @settingsGeneralDebugWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug window'**
+  String get settingsGeneralDebugWindow;
+
+  /// No description provided for @settingsGeneralDebugWindowDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Show a floating debug panel'**
+  String get settingsGeneralDebugWindowDesc;
+
+  /// No description provided for @settingsSourceOfficialCdn.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub source CDN'**
+  String get settingsSourceOfficialCdn;
+
+  /// No description provided for @settingsSourceOfficialCdnDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'CDN used to fetch the GitHub-hosted community index'**
+  String get settingsSourceOfficialCdnDesc;
+
+  /// No description provided for @settingsQueueAutoInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto install'**
+  String get settingsQueueAutoInstall;
+
+  /// No description provided for @settingsQueueAutoInstallDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Start installation automatically after download'**
+  String get settingsQueueAutoInstallDesc;
+
+  /// No description provided for @settingsQueueDontClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t clear install queue'**
+  String get settingsQueueDontClear;
+
+  /// No description provided for @settingsQueueDontClearDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep completed items in the install queue'**
+  String get settingsQueueDontClearDesc;
+
+  /// No description provided for @settingsInstallSendInterval.
+  ///
+  /// In en, this message translates to:
+  /// **'Packet interval'**
+  String get settingsInstallSendInterval;
+
+  /// No description provided for @settingsInstallSendIntervalDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Delay between Bluetooth fragments during install'**
+  String get settingsInstallSendIntervalDesc;
+
+  /// No description provided for @settingsToolsUnlockCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculate unlock code'**
+  String get settingsToolsUnlockCode;
+
+  /// No description provided for @settingsToolsUnlockCodeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate a Mi Wear unlock code from MAC and SN'**
+  String get settingsToolsUnlockCodeDesc;
+
+  /// No description provided for @settingsToolsDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock code'**
+  String get settingsToolsDialogTitle;
+
+  /// No description provided for @settingsToolsMac.
+  ///
+  /// In en, this message translates to:
+  /// **'MAC address'**
+  String get settingsToolsMac;
+
+  /// No description provided for @settingsToolsSn.
+  ///
+  /// In en, this message translates to:
+  /// **'Serial number'**
+  String get settingsToolsSn;
+
+  /// No description provided for @settingsToolsNoticeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning'**
+  String get settingsToolsNoticeTitle;
+
+  /// No description provided for @settingsToolsNoticeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlocking may void your warranty or cause data loss. Use at your own risk.'**
+  String get settingsToolsNoticeBody;
+
+  /// No description provided for @settingsToolsAgree.
+  ///
+  /// In en, this message translates to:
+  /// **'I understand the risks'**
+  String get settingsToolsAgree;
+
+  /// No description provided for @settingsToolsCalculate.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculate'**
+  String get settingsToolsCalculate;
+
+  /// No description provided for @settingsToolsResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Result'**
+  String get settingsToolsResult;
+
+  /// No description provided for @settingsToolsDialogUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage'**
+  String get settingsToolsDialogUsage;
+
+  /// No description provided for @settingsToolsDialogUsageInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the MAC address and serial number shown on the device.'**
+  String get settingsToolsDialogUsageInfo;
+
+  /// No description provided for @settingsAboutAboutAstrobox.
+  ///
+  /// In en, this message translates to:
+  /// **'About ZeroBox'**
+  String get settingsAboutAboutAstrobox;
+
+  /// No description provided for @settingsAboutAboutAstroboxDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Version, changelog and team'**
+  String get settingsAboutAboutAstroboxDesc;
+
+  /// No description provided for @settingsAboutDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Disclaimer'**
+  String get settingsAboutDisclaimer;
+
+  /// No description provided for @settingsAboutDisclaimerDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'User agreement and liability statement'**
+  String get settingsAboutDisclaimerDesc;
+
+  /// No description provided for @settingsAboutOpenlog.
+  ///
+  /// In en, this message translates to:
+  /// **'Log folder'**
+  String get settingsAboutOpenlog;
+
+  /// No description provided for @settingsAboutOpenlogDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the log directory in file manager'**
+  String get settingsAboutOpenlogDesc;
+
+  /// No description provided for @settingsAboutWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'Official website'**
+  String get settingsAboutWebsite;
+
+  /// No description provided for @settingsAboutWebsiteDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit zerobox.zxor.org'**
+  String get settingsAboutWebsiteDesc;
+
+  /// No description provided for @settingsAboutQQ.
+  ///
+  /// In en, this message translates to:
+  /// **'QQ group'**
+  String get settingsAboutQQ;
+
+  /// No description provided for @settingsAboutQQDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Join the community chat'**
+  String get settingsAboutQQDesc;
+
+  /// No description provided for @settingsAboutLicences.
+  ///
+  /// In en, this message translates to:
+  /// **'Open source licenses'**
+  String get settingsAboutLicences;
+
+  /// No description provided for @settingsAboutLicencesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Licenses of third-party software'**
+  String get settingsAboutLicencesDesc;
+
+  /// No description provided for @settingsGuest.
+  ///
+  /// In en, this message translates to:
+  /// **'Guest'**
+  String get settingsGuest;
+
+  /// No description provided for @settingsTapToSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to sign in'**
+  String get settingsTapToSignIn;
+
+  /// No description provided for @settingsNotConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected'**
+  String get settingsNotConnected;
+
+  /// No description provided for @settingsNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get settingsNotSet;
+
+  /// No description provided for @settingsOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get settingsOn;
+
+  /// No description provided for @settingsOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get settingsOff;
+
+  /// No description provided for @settingsSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get settingsSystem;
+
+  /// No description provided for @settingsLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get settingsLight;
+
+  /// No description provided for @settingsDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get settingsDark;
+
+  /// No description provided for @settingsOledDark.
+  ///
+  /// In en, this message translates to:
+  /// **'OLED dark'**
+  String get settingsOledDark;
+
+  /// No description provided for @settingsThemeMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme mode'**
+  String get settingsThemeMode;
+
+  /// No description provided for @settingsDynamicColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Dynamic color'**
+  String get settingsDynamicColor;
+
+  /// No description provided for @settingsCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get settingsCancel;
+
+  /// No description provided for @settingsConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get settingsConfirm;
+
+  /// No description provided for @settingsOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get settingsOpen;
+
+  /// No description provided for @settingsVisit.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit'**
+  String get settingsVisit;
+
+  /// No description provided for @settingsTeamSlogan.
+  ///
+  /// In en, this message translates to:
+  /// **'A pretty fast wearable management tool for VelaOS and ZeppOS.'**
+  String get settingsTeamSlogan;
+
+  /// No description provided for @settingsTeamGitHub.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub Repository'**
+  String get settingsTeamGitHub;
+
+  /// No description provided for @settingsTeamMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Team Members'**
+  String get settingsTeamMembers;
+
+  /// No description provided for @settingsTeamRoleMain.
+  ///
+  /// In en, this message translates to:
+  /// **'Main Developer / Designer'**
+  String get settingsTeamRoleMain;
+
+  /// No description provided for @acknowledgementsKazumi.
+  ///
+  /// In en, this message translates to:
+  /// **'Material Design components and UI patterns'**
+  String get acknowledgementsKazumi;
+
+  /// No description provided for @acknowledgementsAstroBoxPublic.
+  ///
+  /// In en, this message translates to:
+  /// **'UI layout and UX design patterns'**
+  String get acknowledgementsAstroBoxPublic;
+
+  /// No description provided for @acknowledgementsAstroBoxNgCore.
+  ///
+  /// In en, this message translates to:
+  /// **'Core protocol implementation'**
+  String get acknowledgementsAstroBoxNgCore;
+
+  /// No description provided for @acknowledgementsAstroBoxNgBluetooth.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth connection module'**
+  String get acknowledgementsAstroBoxNgBluetooth;
+
+  /// No description provided for @acknowledgementsAstroBoxNgAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account and authentication module'**
+  String get acknowledgementsAstroBoxNgAccount;
+
+  /// No description provided for @acknowledgementsAstroBoxNgProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Community resource provider module'**
+  String get acknowledgementsAstroBoxNgProvider;
+
+  /// No description provided for @acknowledgementsAstroBoxNgAppWasm.
+  ///
+  /// In en, this message translates to:
+  /// **'Web Serial implementation logic'**
+  String get acknowledgementsAstroBoxNgAppWasm;
+
+  /// No description provided for @acknowledgementsGadgetbridge.
+  ///
+  /// In en, this message translates to:
+  /// **'ZeppOS protocol implementation reference'**
+  String get acknowledgementsGadgetbridge;
+}
+
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
+  const _AppLocalizationsDelegate();
+
+  @override
+  Future<AppLocalizations> load(Locale locale) {
+    return SynchronousFuture<AppLocalizations>(lookupAppLocalizations(locale));
+  }
+
+  @override
+  bool isSupported(Locale locale) =>
+      <String>['en', 'zh'].contains(locale.languageCode);
+
+  @override
+  bool shouldReload(_AppLocalizationsDelegate old) => false;
+}
+
+AppLocalizations lookupAppLocalizations(Locale locale) {
+  // Lookup logic when only language code is specified.
+  switch (locale.languageCode) {
+    case 'en':
+      return AppLocalizationsEn();
+    case 'zh':
+      return AppLocalizationsZh();
+  }
+
+  throw FlutterError(
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
+}

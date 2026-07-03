@@ -1,0 +1,774 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for Chinese (`zh`).
+class AppLocalizationsZh extends AppLocalizations {
+  AppLocalizationsZh([String locale = 'zh']) : super(locale);
+
+  @override
+  String get appTitle => 'ZeroBox';
+
+  @override
+  String get homeTab => '首页';
+
+  @override
+  String get resourcesTab => '资源';
+
+  @override
+  String get devicesTab => '设备';
+
+  @override
+  String get settingsTab => '设置';
+
+  @override
+  String get search => '搜索';
+
+  @override
+  String get refresh => '刷新';
+
+  @override
+  String get notifications => '通知';
+
+  @override
+  String get pendingTasks => '待处理任务';
+
+  @override
+  String get manageDevice => '管理设备';
+
+  @override
+  String get installLocalResource => '安装本地资源';
+
+  @override
+  String get recentUpdates => '最近更新';
+
+  @override
+  String get newlyPublished => '最新发布';
+
+  @override
+  String get news => '资讯';
+
+  @override
+  String get zeroBoxNews => 'ZeroBox 资讯';
+
+  @override
+  String get bandbbsNews => 'BandBBS 资讯';
+
+  @override
+  String get astroBoxNews => 'AstroBox 资讯';
+
+  @override
+  String get resourceLibrary => '资源库';
+
+  @override
+  String get creatorCenter => '创作者中心';
+
+  @override
+  String get filter => '筛选';
+
+  @override
+  String get importLocalResource => '导入本地资源';
+
+  @override
+  String get allDevices => '全部设备';
+
+  @override
+  String get currentDevice => '当前设备';
+
+  @override
+  String get all => '全部';
+
+  @override
+  String get watchfaces => '表盘';
+
+  @override
+  String get quickApps => '快应用';
+
+  @override
+  String get firmwareTools => '固件 / 工具';
+
+  @override
+  String get localResources => '本地资源';
+
+  @override
+  String get zeroBox => 'ZeroBox';
+
+  @override
+  String get bandbbs => 'BandBBS';
+
+  @override
+  String get astroBox => 'AstroBox';
+
+  @override
+  String get local => '本地';
+
+  @override
+  String get install => '安装';
+
+  @override
+  String get update => '更新';
+
+  @override
+  String get manage => '管理';
+
+  @override
+  String get description => '描述';
+
+  @override
+  String get supportedDevices => '支持的设备';
+
+  @override
+  String get downloads => '下载包';
+
+  @override
+  String get changelog => '更新日志';
+
+  @override
+  String get notFound => '未找到';
+
+  @override
+  String get downloadStarted => '开始下载';
+
+  @override
+  String get compatible => '兼容';
+
+  @override
+  String get incompatible => '不兼容';
+
+  @override
+  String get incompatibleSuffix => '，可能无法正常使用';
+
+  @override
+  String get openSourcePage => '开源页面';
+
+  @override
+  String get creatorDashboard => '创作者仪表盘';
+
+  @override
+  String get myResources => '我的资源';
+
+  @override
+  String get drafts => '草稿';
+
+  @override
+  String get pendingReview => '审核中';
+
+  @override
+  String get published => '已发布';
+
+  @override
+  String get failed => '失败 / 需处理';
+
+  @override
+  String get newResource => '新建资源';
+
+  @override
+  String get basicInfo => '基本信息';
+
+  @override
+  String get packageFiles => '包文件';
+
+  @override
+  String get deviceSelection => '选择设备';
+
+  @override
+  String get deviceFileMapping => '设备-文件映射';
+
+  @override
+  String get publishTargets => '发布目标';
+
+  @override
+  String get publishPreview => '发布预览';
+
+  @override
+  String get reviewStatus => '审核状态';
+
+  @override
+  String get scan => '扫描';
+
+  @override
+  String get logs => '日志';
+
+  @override
+  String get connectedDevices => '已连接设备';
+
+  @override
+  String get pairedDevices => '已配对设备';
+
+  @override
+  String get discoveredDevices => '发现设备';
+
+  @override
+  String get overview => '概览';
+
+  @override
+  String get apps => '应用';
+
+  @override
+  String get connection => '连接';
+
+  @override
+  String get protocol => '协议';
+
+  @override
+  String get error => '错误';
+
+  @override
+  String get copyLogs => '复制日志';
+
+  @override
+  String get exportLogs => '导出日志';
+
+  @override
+  String get clearLogs => '清空日志';
+
+  @override
+  String get personalCenter => '个人中心';
+
+  @override
+  String get accountAndPublishing => '账号与发布';
+
+  @override
+  String get appearance => '外观';
+
+  @override
+  String get resources => '资源';
+
+  @override
+  String get devices => '设备';
+
+  @override
+  String get advanced => '高级';
+
+  @override
+  String get aboutZeroBox => '关于 ZeroBox';
+
+  @override
+  String get openSourceLicenses => '开放源代码许可';
+
+  @override
+  String get acknowledgements => '特别鸣谢';
+
+  @override
+  String get developmentTeam => '开发团队';
+
+  @override
+  String get deviceNotConnected => '未连接';
+
+  @override
+  String get deviceConnected => '已连接';
+
+  @override
+  String get deviceDisconnected => '已断开';
+
+  @override
+  String get deviceReconnect => '重新连接';
+
+  @override
+  String get deviceConnect => '连接设备';
+
+  @override
+  String get deviceSwitch => '切换设备';
+
+  @override
+  String get deviceCharging => '充电中';
+
+  @override
+  String get deviceFeaturesInstallApp => '安装应用';
+
+  @override
+  String get deviceFeaturesInstallAppDesc => '从本地文件安装第三方应用';
+
+  @override
+  String get deviceFeaturesInstallWatchface => '安装表盘';
+
+  @override
+  String get deviceFeaturesInstallWatchfaceDesc => '从本地文件安装表盘';
+
+  @override
+  String get deviceFeaturesInstallFirmware => '安装固件';
+
+  @override
+  String get deviceFeaturesInstallFirmwareDesc => '刷写固件或工具包';
+
+  @override
+  String get deviceFeaturesManageApps => '管理应用';
+
+  @override
+  String get deviceFeaturesManageAppsDesc => '查看并卸载已安装的应用';
+
+  @override
+  String get deviceFeaturesManageWatchfaces => '管理表盘';
+
+  @override
+  String get deviceFeaturesManageWatchfacesDesc => '查看、删除并设置当前表盘';
+
+  @override
+  String get deviceFeaturesDeviceInfo => '设备信息';
+
+  @override
+  String get deviceFeaturesDeviceInfoDesc => '固件、存储空间与详情';
+
+  @override
+  String get switchDeviceTitle => '切换设备';
+
+  @override
+  String get savedDevices => '已配对设备';
+
+  @override
+  String get scanAndAdd => '扫描并添加';
+
+  @override
+  String get scanNotFound => '未发现设备';
+
+  @override
+  String get noSavedDevices => '没有已配对设备';
+
+  @override
+  String get authkey => '认证密钥';
+
+  @override
+  String get authkeyPrompt => '输入设备认证密钥';
+
+  @override
+  String get authkeyPlaceholder => '认证密钥';
+
+  @override
+  String get connectFailed => '连接失败';
+
+  @override
+  String get webSerialTitle => 'Web Serial';
+
+  @override
+  String get webSerialHint => '在网页端，ZeroBox 通过 Web Serial 连接设备。点击下方连接以选择串口。';
+
+  @override
+  String get webSerialConnectDialogTitle => '通过 Web Serial 连接';
+
+  @override
+  String get webSerialConnectDialogHint => '输入设备认证密钥，然后在弹出的选择器中选择串口。';
+
+  @override
+  String get cancel => '取消';
+
+  @override
+  String get deviceActionsDelete => '删除';
+
+  @override
+  String get deviceActionsDisconnect => '断开连接';
+
+  @override
+  String get deviceActionsShareQR => '分享二维码';
+
+  @override
+  String get installTapToSelectFile => '点击选择文件';
+
+  @override
+  String get installPackageName => '包名';
+
+  @override
+  String get installWatchfaceId => '表盘 ID';
+
+  @override
+  String get deviceInfoTitle => '设备信息';
+
+  @override
+  String get deviceInfoNotRealtime => '数据可能不是实时的';
+
+  @override
+  String get deviceInfoGroupDevice => '设备';
+
+  @override
+  String get deviceInfoGroupSystem => '系统';
+
+  @override
+  String get deviceInfoGroupStatus => '状态';
+
+  @override
+  String get fieldName => '名称';
+
+  @override
+  String get fieldAddress => '地址';
+
+  @override
+  String get fieldAuthkey => '认证密钥';
+
+  @override
+  String get fieldConnectionType => '连接类型';
+
+  @override
+  String get fieldCodename => '代号';
+
+  @override
+  String get fieldModel => '型号';
+
+  @override
+  String get fieldImei => 'IMEI';
+
+  @override
+  String get fieldFirmware => '固件';
+
+  @override
+  String get fieldSerial => '序列号';
+
+  @override
+  String get fieldBattery => '电量';
+
+  @override
+  String get fieldChargeStatus => '充电状态';
+
+  @override
+  String get fieldLastCharge => '上次充电';
+
+  @override
+  String get appManagementTitle => '应用管理';
+
+  @override
+  String get appManagementNone => '没有已安装的应用';
+
+  @override
+  String get appManagementShowSystemApps => '显示系统应用';
+
+  @override
+  String get watchfaceManagementTitle => '表盘管理';
+
+  @override
+  String get watchfaceManagementNone => '没有已安装的表盘';
+
+  @override
+  String get open => '打开';
+
+  @override
+  String get uninstall => '卸载';
+
+  @override
+  String get enable => '设为当前';
+
+  @override
+  String get fail => '失败';
+
+  @override
+  String get show => '显示';
+
+  @override
+  String get hide => '隐藏';
+
+  @override
+  String get copy => '复制';
+
+  @override
+  String get close => '关闭';
+
+  @override
+  String get multiDevice => '多设备';
+
+  @override
+  String get quickApp => '快应用';
+
+  @override
+  String get watchface => '表盘';
+
+  @override
+  String get firmwareTool => '固件 / 工具';
+
+  @override
+  String get fontPack => '字体包';
+
+  @override
+  String get iconPack => '图标包';
+
+  @override
+  String get free => '免费';
+
+  @override
+  String get paid => '付费';
+
+  @override
+  String get forcePaid => '强制付费';
+
+  @override
+  String get version => '版本';
+
+  @override
+  String get noDescription => '暂无描述';
+
+  @override
+  String get preview => '预览';
+
+  @override
+  String get productAbout => '关于';
+
+  @override
+  String get productDeviceRequirements => '系统要求';
+
+  @override
+  String get productOtherVersions => '其他版本';
+
+  @override
+  String get productInQueue => '已在队列';
+
+  @override
+  String get productShare => '分享';
+
+  @override
+  String get productViewOnBandBBS => '在米坛查看';
+
+  @override
+  String get changeCdn => '切换 CDN';
+
+  @override
+  String get cdnErrorTitle => 'AstroBox 数据加载失败';
+
+  @override
+  String cdnErrorMessage(Object cdn, Object path) {
+    return '当前 CDN（$cdn）无法获取 $path。是否切换 CDN？';
+  }
+
+  @override
+  String get cdnErrorContinue => '切换 CDN';
+
+  @override
+  String get cdnErrorCancel => '取消';
+
+  @override
+  String get settingsAccount => '账号';
+
+  @override
+  String get settingsGeneral => '通用';
+
+  @override
+  String get settingsSource => '下载';
+
+  @override
+  String get settingsSourceRestart => '重启后生效';
+
+  @override
+  String get settingsQueue => '队列';
+
+  @override
+  String get settingsInstall => '安装';
+
+  @override
+  String get settingsTools => '神秘工具';
+
+  @override
+  String get settingsAbout => '关于';
+
+  @override
+  String get settingsAccountLoginBBS => '登录 BandBBS';
+
+  @override
+  String get settingsAccountLoginBBSDesc => '登录以同步已购资源';
+
+  @override
+  String get settingsAccountBBSAccount => 'BandBBS 账号';
+
+  @override
+  String get settingsAccountSyncDevices => '同步设备';
+
+  @override
+  String get settingsAccountSyncDevicesDesc => '登录小米账号同步配对设备';
+
+  @override
+  String get settingsGeneralLanguage => '语言';
+
+  @override
+  String get settingsGeneralLanguageDesc => '更改应用显示语言';
+
+  @override
+  String get settingsGeneralTranslateTeam => '翻译贡献者';
+
+  @override
+  String get settingsAutoReconnectTitle => '自动回连';
+
+  @override
+  String get settingsAutoReconnectDesc => '启动时自动连接上次配对的设备';
+
+  @override
+  String get settingsGeneralDebugWindow => '调试窗口';
+
+  @override
+  String get settingsGeneralDebugWindowDesc => '显示悬浮调试面板';
+
+  @override
+  String get settingsSourceOfficialCdn => 'GitHub 源 CDN';
+
+  @override
+  String get settingsSourceOfficialCdnDesc => '获取托管在 GitHub 上的社区索引使用的 CDN';
+
+  @override
+  String get settingsQueueAutoInstall => '自动安装';
+
+  @override
+  String get settingsQueueAutoInstallDesc => '下载完成后自动开始安装';
+
+  @override
+  String get settingsQueueDontClear => '不清除安装队列';
+
+  @override
+  String get settingsQueueDontClearDesc => '保留已完成的安装队列项';
+
+  @override
+  String get settingsInstallSendInterval => '分包间隔';
+
+  @override
+  String get settingsInstallSendIntervalDesc => '安装时蓝牙分包发送延迟';
+
+  @override
+  String get settingsToolsUnlockCode => '计算解锁码';
+
+  @override
+  String get settingsToolsUnlockCodeDesc => '通过 MAC 和 SN 生成小米穿戴解锁码';
+
+  @override
+  String get settingsToolsDialogTitle => '解锁码';
+
+  @override
+  String get settingsToolsMac => 'MAC 地址';
+
+  @override
+  String get settingsToolsSn => '序列号';
+
+  @override
+  String get settingsToolsNoticeTitle => '警告';
+
+  @override
+  String get settingsToolsNoticeBody => '解锁可能导致保修失效或数据丢失，请自行承担风险。';
+
+  @override
+  String get settingsToolsAgree => '我已了解风险';
+
+  @override
+  String get settingsToolsCalculate => '计算';
+
+  @override
+  String get settingsToolsResult => '结果';
+
+  @override
+  String get settingsToolsDialogUsage => '用法';
+
+  @override
+  String get settingsToolsDialogUsageInfo => '输入设备上显示的 MAC 地址和序列号。';
+
+  @override
+  String get settingsAboutAboutAstrobox => '关于 ZeroBox';
+
+  @override
+  String get settingsAboutAboutAstroboxDesc => '版本、更新日志和团队';
+
+  @override
+  String get settingsAboutDisclaimer => '免责声明';
+
+  @override
+  String get settingsAboutDisclaimerDesc => '用户协议与责任声明';
+
+  @override
+  String get settingsAboutOpenlog => '日志文件夹';
+
+  @override
+  String get settingsAboutOpenlogDesc => '在文件管理器中打开日志目录';
+
+  @override
+  String get settingsAboutWebsite => '官方网站';
+
+  @override
+  String get settingsAboutWebsiteDesc => '访问 zerobox.zxor.org';
+
+  @override
+  String get settingsAboutQQ => 'QQ 群';
+
+  @override
+  String get settingsAboutQQDesc => '加入社区群聊';
+
+  @override
+  String get settingsAboutLicences => '开放源代码许可';
+
+  @override
+  String get settingsAboutLicencesDesc => '第三方软件许可证';
+
+  @override
+  String get settingsGuest => '访客';
+
+  @override
+  String get settingsTapToSignIn => '点击登录';
+
+  @override
+  String get settingsNotConnected => '未连接';
+
+  @override
+  String get settingsNotSet => '未设置';
+
+  @override
+  String get settingsOn => '开启';
+
+  @override
+  String get settingsOff => '关闭';
+
+  @override
+  String get settingsSystem => '跟随系统';
+
+  @override
+  String get settingsLight => '浅色';
+
+  @override
+  String get settingsDark => '深色';
+
+  @override
+  String get settingsOledDark => 'OLED 深色';
+
+  @override
+  String get settingsThemeMode => '主题模式';
+
+  @override
+  String get settingsDynamicColor => '动态取色';
+
+  @override
+  String get settingsCancel => '取消';
+
+  @override
+  String get settingsConfirm => '确认';
+
+  @override
+  String get settingsOpen => '打开';
+
+  @override
+  String get settingsVisit => '访问';
+
+  @override
+  String get settingsTeamSlogan => '一款面向 VelaOS 与 ZeppOS 的可穿戴设备管理工具。';
+
+  @override
+  String get settingsTeamGitHub => 'GitHub 仓库';
+
+  @override
+  String get settingsTeamMembers => '团队成员';
+
+  @override
+  String get settingsTeamRoleMain => '主开发 / 设计';
+
+  @override
+  String get acknowledgementsKazumi => 'Material Design 组件与界面设计参考';
+
+  @override
+  String get acknowledgementsAstroBoxPublic => 'UI 布局与交互设计参考';
+
+  @override
+  String get acknowledgementsAstroBoxNgCore => '核心协议实现';
+
+  @override
+  String get acknowledgementsAstroBoxNgBluetooth => '蓝牙连接模块';
+
+  @override
+  String get acknowledgementsAstroBoxNgAccount => '账号与认证模块';
+
+  @override
+  String get acknowledgementsAstroBoxNgProvider => '社区资源提供模块';
+
+  @override
+  String get acknowledgementsAstroBoxNgAppWasm => 'Web Serial 实现逻辑参考';
+
+  @override
+  String get acknowledgementsGadgetbridge => 'ZeppOS 协议实现参考';
+}
