@@ -8,11 +8,20 @@ import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
 import 'package:zerobox/src/core/constants/style_constants.dart';
 import 'package:zerobox/src/core/providers/app_settings_providers.dart';
 import 'package:zerobox/src/core/providers/theme_locale_providers.dart';
+import 'package:zerobox/src/core/services/shared_prefs_service.dart';
 import 'package:zerobox/src/data/astrobox/astrobox_cdn.dart';
 import 'package:zerobox/src/data/astrobox/astrobox_providers.dart';
+import 'package:zerobox/src/features/accounts/models/mi_account_models.dart';
+import 'package:zerobox/src/features/accounts/services/mi_account_service.dart';
+import 'package:zerobox/src/features/accounts/services/mi_account_two_factor_resolver.dart';
+import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
+
+  static const _keyMiAccountRemember = 'mi_account.remember_credentials';
+  static const _keyMiAccountUsername = 'mi_account.username';
+  static const _keyMiAccountPassword = 'mi_account.password';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,10 +41,10 @@ class SettingsPage extends ConsumerWidget {
             title: l10n.settingsAccount,
             tiles: [
               SettingsTile.navigation(
-                onPressed: (_) => _showNotImplemented(context),
+                onPressed: (_) => _showMiAccountLogin(context, ref),
                 leading: const Icon(Icons.account_circle_outlined),
-                title: Text(l10n.settingsGuest),
-                description: Text(l10n.settingsTapToSignIn),
+                title: const Text('小米账号'),
+                description: const Text('登录并同步已绑定设备 authkey'),
               ),
               SettingsTile.navigation(
                 onPressed: (_) => _showNotImplemented(context),
@@ -140,7 +149,8 @@ class SettingsPage extends ConsumerWidget {
                 title: Text(l10n.acknowledgements),
               ),
               SettingsTile.navigation(
-                onPressed: (_) => _launchUrl(context, 'https://zerobox.zxor.org'),
+                onPressed: (_) =>
+                    _launchUrl(context, 'https://zerobox.zxor.org'),
                 leading: const Icon(Icons.language_outlined),
                 title: Text(l10n.settingsAboutWebsite),
                 description: Text(l10n.settingsAboutWebsiteDesc),
@@ -172,8 +182,9 @@ class SettingsPage extends ConsumerWidget {
     final current = ref.read(appSettingsProvider).cdn;
     final tileContext = context;
     final renderBox = tileContext.findRenderObject() as RenderBox?;
-    final overlay = Navigator.of(tileContext).overlay?.context.findRenderObject()
-        as RenderBox?;
+    final overlay =
+        Navigator.of(tileContext).overlay?.context.findRenderObject()
+            as RenderBox?;
     if (renderBox == null || overlay == null) return;
 
     final tileTopLeft = renderBox.localToGlobal(Offset.zero, ancestor: overlay);
@@ -203,7 +214,228 @@ class SettingsPage extends ConsumerWidget {
     }
   }
 
-  Future<void> _showLanguageSelector(BuildContext context, WidgetRef ref) async {
+  Future<void> _showMiAccountLogin(BuildContext context, WidgetRef ref) async {
+    final rootContext = context;
+    final prefs = SharedPrefsService.instance;
+    var rememberCredentials = prefs.getBool(_keyMiAccountRemember) ?? false;
+    final usernameController = TextEditingController(
+      text: rememberCredentials ? prefs.getString(_keyMiAccountUsername) : null,
+    );
+    final passwordController = TextEditingController(
+      text: rememberCredentials ? prefs.getString(_keyMiAccountPassword) : null,
+    );
+    var running = false;
+    var obscurePassword = true;
+    String? error;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            Future<void> submit() async {
+              final username = usernameController.text.trim();
+              final password = passwordController.text;
+              if (username.isEmpty || password.isEmpty) {
+                setState(() {
+                  error = '请输入小米账号和密码';
+                });
+                return;
+              }
+              setState(() {
+                running = true;
+                error = null;
+              });
+              final accountService = ref.read(miAccountServiceProvider);
+              try {
+                final token = await accountService.login(
+                  username: username,
+                  password: password,
+                );
+                final devices = await accountService.fetchBoundDevices(
+                  token: token,
+                );
+                final imported = await ref
+                    .read(deviceManagerProvider.notifier)
+                    .importMiCloudDevices(devices);
+                await _persistMiAccountCredentials(
+                  remember: rememberCredentials,
+                  username: username,
+                  password: password,
+                );
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
+                if (rootContext.mounted) {
+                  ScaffoldMessenger.of(rootContext).showSnackBar(
+                    SnackBar(content: Text('已同步 $imported 台小米设备')),
+                  );
+                }
+              } on MiAccountTwoFactorRequired catch (e) {
+                try {
+                  setState(() {
+                    error = '请在弹出的验证页面完成小米账号二次验证';
+                  });
+                  if (!rootContext.mounted) {
+                    throw StateError('登录窗口已关闭');
+                  }
+                  final cookieHeader = await createMiAccountTwoFactorResolver()
+                      .resolve(rootContext, Uri.parse(e.url));
+                  final token = await accountService.completeTwoFactorLogin(
+                    challenge: e,
+                    cookieHeader: cookieHeader,
+                  );
+                  final devices = await accountService.fetchBoundDevices(
+                    token: token,
+                  );
+                  final imported = await ref
+                      .read(deviceManagerProvider.notifier)
+                      .importMiCloudDevices(devices);
+                  await _persistMiAccountCredentials(
+                    remember: rememberCredentials,
+                    username: username,
+                    password: password,
+                  );
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                  if (rootContext.mounted) {
+                    ScaffoldMessenger.of(rootContext).showSnackBar(
+                      SnackBar(content: Text('已同步 $imported 台小米设备')),
+                    );
+                  }
+                } catch (twoFactorError) {
+                  setState(() {
+                    running = false;
+                    error = twoFactorError.toString();
+                  });
+                }
+              } catch (e) {
+                setState(() {
+                  running = false;
+                  error = e.toString();
+                });
+              }
+            }
+
+            return AlertDialog(
+              title: const Text('小米账号登录'),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: usernameController,
+                      enabled: !running,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: '账号',
+                        prefixIcon: Icon(Icons.account_circle_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: passwordController,
+                      enabled: !running,
+                      obscureText: obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: '密码',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          onPressed: running
+                              ? null
+                              : () {
+                                  setState(() {
+                                    obscurePassword = !obscurePassword;
+                                  });
+                                },
+                          icon: Icon(
+                            obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
+                        ),
+                      ),
+                      onSubmitted: (_) {
+                        if (!running) submit();
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      value: rememberCredentials,
+                      onChanged: running
+                          ? null
+                          : (value) {
+                              setState(() {
+                                rememberCredentials = value ?? false;
+                              });
+                            },
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: const Text('记住账号密码'),
+                      dense: true,
+                    ),
+                    if (running) ...[
+                      const SizedBox(height: 20),
+                      const LinearProgressIndicator(),
+                    ],
+                    if (error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        error!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: running
+                      ? null
+                      : () {
+                          Navigator.of(dialogContext).pop();
+                        },
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  onPressed: running ? null : submit,
+                  child: const Text('登录并同步'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    usernameController.dispose();
+    passwordController.dispose();
+  }
+
+  Future<void> _persistMiAccountCredentials({
+    required bool remember,
+    required String username,
+    required String password,
+  }) async {
+    final prefs = SharedPrefsService.instance;
+    await prefs.setBool(_keyMiAccountRemember, remember);
+    if (!remember) {
+      await prefs.remove(_keyMiAccountUsername);
+      await prefs.remove(_keyMiAccountPassword);
+      return;
+    }
+    await prefs.setString(_keyMiAccountUsername, username);
+    await prefs.setString(_keyMiAccountPassword, password);
+  }
+
+  Future<void> _showLanguageSelector(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final current = ref.read(localeSettingsProvider).locale;
     final selected = await showModalBottomSheet<AppLocale>(
       context: context,
@@ -265,4 +497,3 @@ class SettingsPage extends ConsumerWidget {
     }
   }
 }
-

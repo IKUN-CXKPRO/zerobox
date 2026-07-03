@@ -246,12 +246,12 @@
   "settingsTeamGitHub": "GitHub Repository",
   "settingsTeamMembers": "Team Members",
   "settingsTeamRoleMain": "Main Developer / Designer",
-  "acknowledgementsKazumi": "Material Design components and UI patterns",
-  "acknowledgementsAstroBoxPublic": "UI layout and UX design patterns",
-  "acknowledgementsAstroBoxNgCore": "Core protocol implementation",
-  "acknowledgementsAstroBoxNgBluetooth": "Bluetooth connection module",
-  "acknowledgementsAstroBoxNgAccount": "Account and authentication module",
-  "acknowledgementsAstroBoxNgProvider": "Community resource provider module",
-  "acknowledgementsAstroBoxNgAppWasm": "Web Serial implementation logic",
-  "acknowledgementsGadgetbridge": "ZeppOS protocol implementation reference"
+  "acknowledgementsKazumi": "Reference for Material Design components and UI patterns.",
+  "acknowledgementsAstroBoxPublic": "Reference for UI structure, resource workflows, and interaction design.",
+  "acknowledgementsAstroBoxNgCore": "Reference for Xiaomi device protocols, install flows, and transfer behavior.",
+  "acknowledgementsAstroBoxNgBluetooth": "Reference for Bluetooth connection behavior.",
+  "acknowledgementsAstroBoxNgAccount": "Reference for Xiaomi account login, device sync, and authkey retrieval flows.",
+  "acknowledgementsAstroBoxNgProvider": "Reference for community resource indexes, CDN handling, and manifest parsing flows.",
+  "acknowledgementsAstroBoxNgAppWasm": "Reference for Web Serial and browser-side connection flows.",
+  "acknowledgementsGadgetbridge": "Reference for ZeppOS and wearable protocol research."
 }

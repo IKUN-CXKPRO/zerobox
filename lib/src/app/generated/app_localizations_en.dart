@@ -770,32 +770,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get acknowledgementsKazumi =>
-      'Material Design components and UI patterns';
+      'Reference for Material Design components and UI patterns.';
 
   @override
   String get acknowledgementsAstroBoxPublic =>
-      'UI layout and UX design patterns';
+      'Reference for UI structure, resource workflows, and interaction design.';
 
   @override
-  String get acknowledgementsAstroBoxNgCore => 'Core protocol implementation';
+  String get acknowledgementsAstroBoxNgCore =>
+      'Reference for Xiaomi device protocols, install flows, and transfer behavior.';
 
   @override
   String get acknowledgementsAstroBoxNgBluetooth =>
-      'Bluetooth connection module';
+      'Reference for Bluetooth connection behavior.';
 
   @override
   String get acknowledgementsAstroBoxNgAccount =>
-      'Account and authentication module';
+      'Reference for Xiaomi account login, device sync, and authkey retrieval flows.';
 
   @override
   String get acknowledgementsAstroBoxNgProvider =>
-      'Community resource provider module';
+      'Reference for community resource indexes, CDN handling, and manifest parsing flows.';
 
   @override
   String get acknowledgementsAstroBoxNgAppWasm =>
-      'Web Serial implementation logic';
+      'Reference for Web Serial and browser-side connection flows.';
 
   @override
   String get acknowledgementsGadgetbridge =>
-      'ZeppOS protocol implementation reference';
+      'Reference for ZeppOS and wearable protocol research.';
 }

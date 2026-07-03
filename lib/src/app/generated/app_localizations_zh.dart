@@ -752,23 +752,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get acknowledgementsKazumi => 'Material Design 组件与界面设计参考';
 
   @override
-  String get acknowledgementsAstroBoxPublic => 'UI 布局与交互设计参考';
+  String get acknowledgementsAstroBoxPublic => '界面结构、资源流程与交互设计参考';
 
   @override
-  String get acknowledgementsAstroBoxNgCore => '核心协议实现';
+  String get acknowledgementsAstroBoxNgCore => '小米设备协议、安装流程与传输行为参考';
 
   @override
-  String get acknowledgementsAstroBoxNgBluetooth => '蓝牙连接模块';
+  String get acknowledgementsAstroBoxNgBluetooth => '蓝牙连接行为参考';
 
   @override
-  String get acknowledgementsAstroBoxNgAccount => '账号与认证模块';
+  String get acknowledgementsAstroBoxNgAccount => '小米账号登录、设备同步与 authkey 获取流程参考';
 
   @override
-  String get acknowledgementsAstroBoxNgProvider => '社区资源提供模块';
+  String get acknowledgementsAstroBoxNgProvider => '社区资源索引、CDN 与清单解析流程参考';
 
   @override
-  String get acknowledgementsAstroBoxNgAppWasm => 'Web Serial 实现逻辑参考';
+  String get acknowledgementsAstroBoxNgAppWasm => 'Web Serial 与浏览器端连接流程参考';
 
   @override
-  String get acknowledgementsGadgetbridge => 'ZeppOS 协议实现参考';
+  String get acknowledgementsGadgetbridge => 'ZeppOS 与可穿戴设备协议研究参考';
 }

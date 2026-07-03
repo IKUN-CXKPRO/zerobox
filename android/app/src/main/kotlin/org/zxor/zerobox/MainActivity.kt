@@ -5,14 +5,24 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
+import android.app.Dialog
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.view.ViewGroup
+import android.view.Window
+import android.webkit.CookieManager
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -66,7 +76,156 @@ class MainActivity : FlutterActivity() {
             }
         })
 
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "zerobox/mi_account_2fa",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "resolve" -> resolveMiAccountTwoFactor(call, result)
+                else -> result.notImplemented()
+            }
+        }
+
         requestBluetoothPermissionsIfNeeded()
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun resolveMiAccountTwoFactor(call: MethodCall, result: MethodChannel.Result) {
+        val url = call.argument<String>("url")
+        if (url.isNullOrBlank()) {
+            result.error("INVALID_ARGUMENT", "url is required", null)
+            return
+        }
+
+        mainHandler.post {
+            val dialog = Dialog(this)
+            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+            val webView = WebView(this)
+            var completed = false
+            val cookieManager = CookieManager.getInstance()
+            cookieManager.setAcceptCookie(true)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                cookieManager.setAcceptThirdPartyCookies(webView, true)
+            }
+
+            fun cookieHeaderFor(currentUrl: String?): String {
+                val values = linkedMapOf<String, String>()
+                listOf(
+                    currentUrl,
+                    "https://account.xiaomi.com",
+                    "https://mi.com",
+                    "https://xiaomi.com",
+                ).filterNotNull().forEach { cookieUrl ->
+                    cookieManager.getCookie(cookieUrl)
+                        ?.split(";")
+                        ?.map { it.trim() }
+                        ?.filter { it.contains("=") }
+                        ?.forEach { pair ->
+                            val index = pair.indexOf("=")
+                            val name = pair.substring(0, index).trim()
+                            val value = pair.substring(index + 1).trim()
+                            if (name.isNotEmpty() && value.isNotEmpty()) {
+                                values[name] = value
+                            }
+                        }
+                }
+                return values.entries.joinToString("; ") { "${it.key}=${it.value}" }
+            }
+
+            fun hasSessionCookie(header: String): Boolean {
+                val names = header.split(";")
+                    .mapNotNull { pair ->
+                        val index = pair.indexOf("=")
+                        if (index <= 0) null else pair.substring(0, index).trim()
+                    }
+                    .toSet()
+                return names.contains("passToken") ||
+                    names.contains("cUserId") ||
+                    names.contains("userId")
+            }
+
+            fun completeIfReady(currentUrl: String?) {
+                if (completed) return
+                val header = cookieHeaderFor(currentUrl)
+                if (!hasSessionCookie(header)) return
+                completed = true
+                cookieManager.flush()
+                dialog.dismiss()
+                result.success(header)
+            }
+
+            fun failIfOpen(code: String, message: String) {
+                if (completed) return
+                completed = true
+                dialog.dismiss()
+                result.error(code, message, null)
+            }
+
+            val poller = object : Runnable {
+                override fun run() {
+                    if (completed) return
+                    completeIfReady(webView.url)
+                    mainHandler.postDelayed(this, 750)
+                }
+            }
+
+            webView.settings.javaScriptEnabled = true
+            webView.settings.domStorageEnabled = true
+            webView.webChromeClient = WebChromeClient()
+            webView.webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView?, finishedUrl: String?) {
+                    super.onPageFinished(view, finishedUrl)
+                    val currentUrl = finishedUrl ?: view?.url
+                    completeIfReady(currentUrl)
+                    view?.evaluateJavascript(
+                        "(document.body && document.body.innerText || '').trim()",
+                        ValueCallback { body ->
+                            val text = body
+                                ?.trim()
+                                ?.trim('"')
+                                ?.replace("\\n", "\n")
+                                ?.trim()
+                                ?.lowercase()
+                            if (text == "ok" || text?.endsWith("\nok") == true) {
+                                completeIfReady(currentUrl)
+                            }
+                        },
+                    )
+                }
+            }
+
+            dialog.setContentView(
+                webView,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                ),
+            )
+            dialog.window?.setLayout(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            )
+            dialog.setOnCancelListener {
+                failIfOpen("CANCELLED", "Xiaomi 2FA WebView was cancelled")
+            }
+            dialog.setOnDismissListener {
+                mainHandler.removeCallbacks(poller)
+                webView.stopLoading()
+                webView.destroy()
+                if (!completed) {
+                    completed = true
+                    result.error("CANCELLED", "Xiaomi 2FA WebView was closed", null)
+                }
+            }
+            dialog.show()
+            dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            dialog.window?.setLayout(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            )
+            webView.loadUrl(url)
+            mainHandler.postDelayed(poller, 750)
+        }
     }
 
     @SuppressLint("MissingPermission")

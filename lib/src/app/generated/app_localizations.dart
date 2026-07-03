@@ -1577,49 +1577,49 @@ abstract class AppLocalizations {
   /// No description provided for @acknowledgementsKazumi.
   ///
   /// In en, this message translates to:
-  /// **'Material Design components and UI patterns'**
+  /// **'Reference for Material Design components and UI patterns.'**
   String get acknowledgementsKazumi;
 
   /// No description provided for @acknowledgementsAstroBoxPublic.
   ///
   /// In en, this message translates to:
-  /// **'UI layout and UX design patterns'**
+  /// **'Reference for UI structure, resource workflows, and interaction design.'**
   String get acknowledgementsAstroBoxPublic;
 
   /// No description provided for @acknowledgementsAstroBoxNgCore.
   ///
   /// In en, this message translates to:
-  /// **'Core protocol implementation'**
+  /// **'Reference for Xiaomi device protocols, install flows, and transfer behavior.'**
   String get acknowledgementsAstroBoxNgCore;
 
   /// No description provided for @acknowledgementsAstroBoxNgBluetooth.
   ///
   /// In en, this message translates to:
-  /// **'Bluetooth connection module'**
+  /// **'Reference for Bluetooth connection behavior.'**
   String get acknowledgementsAstroBoxNgBluetooth;
 
   /// No description provided for @acknowledgementsAstroBoxNgAccount.
   ///
   /// In en, this message translates to:
-  /// **'Account and authentication module'**
+  /// **'Reference for Xiaomi account login, device sync, and authkey retrieval flows.'**
   String get acknowledgementsAstroBoxNgAccount;
 
   /// No description provided for @acknowledgementsAstroBoxNgProvider.
   ///
   /// In en, this message translates to:
-  /// **'Community resource provider module'**
+  /// **'Reference for community resource indexes, CDN handling, and manifest parsing flows.'**
   String get acknowledgementsAstroBoxNgProvider;
 
   /// No description provided for @acknowledgementsAstroBoxNgAppWasm.
   ///
   /// In en, this message translates to:
-  /// **'Web Serial implementation logic'**
+  /// **'Reference for Web Serial and browser-side connection flows.'**
   String get acknowledgementsAstroBoxNgAppWasm;
 
   /// No description provided for @acknowledgementsGadgetbridge.
   ///
   /// In en, this message translates to:
-  /// **'ZeppOS protocol implementation reference'**
+  /// **'Reference for ZeppOS and wearable protocol research.'**
   String get acknowledgementsGadgetbridge;
 }
 

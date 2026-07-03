@@ -21,6 +21,7 @@ import 'package:zerobox/src/device/xiaomi/components/info_system.dart';
 import 'package:zerobox/src/device/xiaomi/components/install_system.dart';
 import 'package:zerobox/src/device/xiaomi/components/xiaomi_device_component.dart';
 import 'package:zerobox/src/device/xiaomi/xiaomi_device_factory.dart';
+import 'package:zerobox/src/features/accounts/models/mi_account_models.dart';
 import 'package:zerobox/src/protocols/common/device_protocol.dart'
     hide ChargeStatus, BatteryInfo, DeviceInfo;
 import 'package:zerobox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
@@ -269,9 +270,7 @@ class DeviceManager extends Notifier<DeviceManagerState> {
     for (var attempt = 1; attempt <= maxAttempts; attempt++) {
       _log.info('SPP connect attempt $attempt/$maxAttempts to $addr');
       try {
-        final connection = await _spp
-            .connect(addr, name)
-            .timeout(timeout);
+        final connection = await _spp.connect(addr, name).timeout(timeout);
         _log.info('SPP connected on attempt $attempt');
         return connection;
       } on TimeoutException catch (e) {
@@ -287,7 +286,8 @@ class DeviceManager extends Notifier<DeviceManagerState> {
       }
     }
 
-    throw lastError ?? Exception('SPP connect failed after $maxAttempts attempts');
+    throw lastError ??
+        Exception('SPP connect failed after $maxAttempts attempts');
   }
 
   String _preferredConnectTypeFor(ScannedBTDevice device) {
@@ -350,9 +350,9 @@ class DeviceManager extends Notifier<DeviceManagerState> {
 
       final authSystem = entity.system<XiaomiAuthSystem>()!;
       _log.info('starting authentication');
-      await authSystem.authenticate(authKey).timeout(
-            const Duration(seconds: 10),
-          );
+      await authSystem
+          .authenticate(authKey)
+          .timeout(const Duration(seconds: 10));
       _log.info('authentication succeeded');
 
       final connected = MiWearState(
@@ -431,7 +431,9 @@ class DeviceManager extends Notifier<DeviceManagerState> {
         _log.info('event: device info ${info.model}');
         state = state.copyWith(systemInfo: info);
         final current = state.currentDevice;
-        if (current != null && info.model.isNotEmpty && current.name != info.model) {
+        if (current != null &&
+            info.model.isNotEmpty &&
+            current.name != info.model) {
           final renamed = current.copyWith(name: info.model);
           final updatedPaired = state.pairedDevices.map((d) {
             return d.addr == current.addr ? renamed : d;
@@ -517,14 +519,18 @@ class DeviceManager extends Notifier<DeviceManagerState> {
 
     final futures = <Future<void>>[];
     if (ble != null) {
-      futures.add(ble.dispose().catchError((Object e, StackTrace st) {
-        _log.warning('BLE dispose failed', e, st);
-      }));
+      futures.add(
+        ble.dispose().catchError((Object e, StackTrace st) {
+          _log.warning('BLE dispose failed', e, st);
+        }),
+      );
     }
     if (spp != null) {
-      futures.add(spp.dispose().catchError((Object e, StackTrace st) {
-        _log.warning('SPP dispose failed', e, st);
-      }));
+      futures.add(
+        spp.dispose().catchError((Object e, StackTrace st) {
+          _log.warning('SPP dispose failed', e, st);
+        }),
+      );
     }
     await Future.wait(futures);
   }
@@ -721,6 +727,47 @@ class DeviceManager extends Notifier<DeviceManagerState> {
       clearError: true,
     );
     await _savePairedDevices();
+  }
+
+  Future<int> importMiCloudDevices(List<MiCloudDevice> devices) async {
+    final importable = devices.where((device) => device.hasAuthKey).toList();
+    if (importable.isEmpty) return 0;
+
+    final updatedPaired = List<MiWearState>.from(state.pairedDevices);
+    for (final device in importable) {
+      final imported = MiWearState(
+        name: device.name.trim().isNotEmpty ? device.name.trim() : device.model,
+        addr: device.mac.trim(),
+        connectType: ConnectType.spp.name,
+        authkey: device.authKey.trim(),
+        codename: device.model.trim().isEmpty ? null : device.model.trim(),
+        disconnected: true,
+      );
+      final existingIndex = updatedPaired.indexWhere(
+        (d) => d.addr == imported.addr,
+      );
+      if (existingIndex >= 0) {
+        updatedPaired[existingIndex] = imported;
+      } else {
+        updatedPaired.add(imported);
+      }
+    }
+
+    final current = state.currentDevice;
+    state = state.copyWith(
+      currentDevice: current == null
+          ? updatedPaired.firstWhere(
+              (d) => d.addr == importable.first.mac.trim(),
+            )
+          : updatedPaired.firstWhere(
+              (d) => d.addr == current.addr,
+              orElse: () => current,
+            ),
+      pairedDevices: updatedPaired,
+      clearError: true,
+    );
+    await _savePairedDevices();
+    return importable.length;
   }
 }
 
