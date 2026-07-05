@@ -42,6 +42,7 @@ get_git_hash() {
 }
 
 is_git_dirty() {
+  git -C "${PROJECT_ROOT}" update-index --refresh >/dev/null 2>&1 || true
   ! git -C "${PROJECT_ROOT}" diff-index --quiet HEAD -- 2>/dev/null || \
     [ -n "$(git -C "${PROJECT_ROOT}" ls-files --others --exclude-standard)" ]
 }
