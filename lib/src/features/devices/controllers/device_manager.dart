@@ -203,9 +203,13 @@ class DeviceManager extends Notifier<DeviceManagerState> {
     final jsonList = state.pairedDevices
         .map((d) => jsonEncode(d.toJson()))
         .toList();
-    await SharedPrefsService.instance.setStringList(
+    final saved = await SharedPrefsService.instance.setStringList(
       _keyPairedDevices,
       jsonList,
+    );
+    _log.info(
+      'saved ${jsonList.length} paired devices '
+      'to $_keyPairedDevices result=$saved',
     );
   }
 

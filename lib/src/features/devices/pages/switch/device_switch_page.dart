@@ -11,6 +11,7 @@ import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
 import 'package:zerobox/src/core/constants/style_constants.dart';
 import 'package:zerobox/src/core/models/bt_models.dart';
 import 'package:zerobox/src/core/models/device.dart';
+import 'package:zerobox/src/device/core/connect_type.dart';
 import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
 import 'package:zerobox/src/features/devices/services/device_share_link.dart';
 import 'package:zerobox/src/features/devices/providers/pending_shared_device_provider.dart';
@@ -112,7 +113,7 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
       appBar: SysAppBar(title: Text(l10n.switchDeviceTitle)),
       body: !kIsWeb
           ? _buildLayout(context, ref, state, currentAddr)
-          : const _WebSerialHint(),
+          : _buildWebLayout(context, state, currentAddr),
     );
   }
 
@@ -183,6 +184,91 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
       },
     );
   }
+
+  Widget _buildWebLayout(
+    BuildContext context,
+    DeviceManagerState state,
+    String? currentAddr,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 840;
+        final savedList = _SavedDeviceList(
+          selectedAddr: currentAddr,
+          onComplete: () => setState(() {}),
+        );
+
+        return PageContainer(
+          padding: const EdgeInsets.symmetric(
+            horizontal: StyleConstants.pagePadding,
+          ),
+          child: isWide
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _ListWrapper(isFirst: true, child: savedList),
+                    ),
+                    Container(
+                      width: 1,
+                      margin: const EdgeInsets.symmetric(vertical: 12),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                    const Expanded(
+                      child: _ListWrapper(
+                        isFirst: false,
+                        child: _WebSerialHint(),
+                      ),
+                    ),
+                  ],
+                )
+              : CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _SectionHeader(
+                        title: AppLocalizations.of(context)!.savedDevices,
+                      ),
+                    ),
+                    if (state.pairedDevices.isEmpty)
+                      const SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: 96,
+                          child: _EmptyState(message: ''),
+                        ),
+                      )
+                    else
+                      SliverList.builder(
+                        itemCount: state.pairedDevices.length,
+                        itemBuilder: (context, index) {
+                          final device = state.pairedDevices[index];
+                          return _DeviceCard(
+                            key: ValueKey('web-saved-${device.addr}'),
+                            device: device,
+                            connected:
+                                device.addr == currentAddr &&
+                                !device.disconnected,
+                            saved: true,
+                          );
+                        },
+                      ),
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(height: 1),
+                      ),
+                    ),
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _WebSerialHint(),
+                    ),
+                  ],
+                ),
+        );
+      },
+    );
+  }
 }
 
 class _ListWrapper extends StatelessWidget {
@@ -218,86 +304,111 @@ class _WebSerialHint extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    return PageContainer(
-      padding: const EdgeInsets.symmetric(
-        horizontal: StyleConstants.pagePadding,
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.cable, size: 64, color: colorScheme.onSurfaceVariant),
-            const SizedBox(height: 16),
-            Text(
-              l10n.webSerialTitle,
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.webSerialHint,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: colorScheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: () => _showWebSerialConnectDialog(context),
-              icon: const Icon(Icons.link),
-              label: Text(l10n.deviceConnect),
-            ),
-          ],
-        ),
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.cable, size: 64, color: colorScheme.onSurfaceVariant),
+          const SizedBox(height: 16),
+          Text(
+            l10n.webSerialTitle,
+            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.webSerialHint,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: () => _showWebSerialConnectDialog(context),
+            icon: const Icon(Icons.link),
+            label: Text(l10n.deviceConnect),
+          ),
+        ],
       ),
     );
   }
 
   Future<void> _showWebSerialConnectDialog(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
+    final container = ProviderScope.containerOf(context, listen: false);
     final authController = TextEditingController();
     await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.webSerialConnectDialogTitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              l10n.webSerialConnectDialogHint,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+      builder: (context) {
+        return AlertDialog(
+          title: Text(l10n.webSerialConnectDialogTitle),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  l10n.webSerialConnectDialogHint,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: authController,
+                  decoration: InputDecoration(
+                    labelText: l10n.authkeyPrompt,
+                    hintText: l10n.authkeyPlaceholder,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: authController,
-              decoration: InputDecoration(
-                labelText: l10n.authkeyPrompt,
-                hintText: l10n.authkeyPlaceholder,
-              ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final authKey = authController.text.trim();
+                if (authKey.isEmpty) {
+                  return;
+                }
+                final saved = _buildWebSerialSavedDevice(authKey: authKey);
+                Navigator.of(context).pop();
+                final manager = container.read(deviceManagerProvider.notifier);
+                await manager.connect(
+                  saved.addr,
+                  saved.name,
+                  authKey,
+                  connectType: saved.connectType,
+                );
+              },
+              child: Text(l10n.deviceConnect),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final authKey = authController.text;
-              Navigator.of(context).pop();
-              final manager = ProviderScope.containerOf(
-                context,
-                listen: false,
-              ).read(deviceManagerProvider.notifier);
-              await manager.connect('web-serial', 'Web Serial', authKey);
-            },
-            child: Text(l10n.deviceConnect),
-          ),
-        ],
-      ),
+        );
+      },
     );
+    authController.dispose();
+  }
+
+  MiWearState _buildWebSerialSavedDevice({required String authKey}) {
+    final addr = _webSerialStorageId(authKey);
+    return MiWearState(
+      name: 'Web Serial',
+      addr: addr,
+      connectType: ConnectType.spp.name,
+      authkey: authKey,
+      disconnected: true,
+    );
+  }
+
+  String _webSerialStorageId(String authKey) {
+    final normalized = authKey.trim().toLowerCase();
+    final suffix = normalized.length <= 8
+        ? normalized
+        : normalized.substring(0, 8);
+    return 'web-serial:$suffix';
   }
 }
 
@@ -648,7 +759,7 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
       margin: const EdgeInsets.only(bottom: 5),
       color: widget.connected
           ? colorScheme.primaryContainer.withValues(alpha: 0.3)
-          : colorScheme.surfaceContainerLow,
+          : colorScheme.surfaceContainerHigh,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(StyleConstants.cardRadius),
       ),

@@ -22,13 +22,17 @@ class AppDelegate: FlutterAppDelegate {
   }
 }
 
-final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOMMChannelDelegate {
+final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOMMChannelDelegate, IOBluetoothDeviceInquiryDelegate {
   private let methodChannel: FlutterMethodChannel
   private let eventChannel: FlutterEventChannel
   private let scanEventChannel: FlutterEventChannel
   private var eventSink: FlutterEventSink?
   private var scanEventSink: FlutterEventSink?
   private var rfcommChannel: IOBluetoothRFCOMMChannel?
+  private var inquiry: IOBluetoothDeviceInquiry?
+  private var scanResults: [String: [String: Any]] = [:]
+  private var connectGeneration: UInt64 = 0
+  private let stateQueue = DispatchQueue(label: "org.zxor.zerobox.rfcomm.state")
   private var readClosed = false
 
   init(messenger: FlutterBinaryMessenger) {
@@ -76,7 +80,7 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
     case "startScan":
       startScan(result: result)
     case "stopScan":
-      result(pairedDevices())
+      stopScan(result: result)
     case "connect":
       connect(call, result: result)
     case "send":
@@ -90,24 +94,58 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
   }
 
   private func startScan(result: @escaping FlutterResult) {
-    let devices = pairedDevices()
-    for item in devices {
-      scanEventSink?(item)
+    stopInquiry()
+    scanResults.removeAll()
+
+    for item in pairedDevices() {
+      rememberScanDevice(item)
     }
-    result(nil)
+
+    let inquiry = IOBluetoothDeviceInquiry(delegate: self)
+    inquiry?.updateNewDeviceNames = true
+    self.inquiry = inquiry
+    let status = inquiry?.start() ?? kIOReturnError
+    if status == kIOReturnSuccess {
+      result(nil)
+    } else {
+      self.inquiry = nil
+      result(FlutterError(code: "SCAN_FAILED", message: "Bluetooth inquiry failed: \(status)", details: nil))
+    }
+  }
+
+  private func stopScan(result: @escaping FlutterResult) {
+    stopInquiry()
+    result(Array(scanResults.values))
+  }
+
+  private func stopInquiry() {
+    inquiry?.stop()
+    inquiry = nil
   }
 
   private func pairedDevices() -> [[String: Any]] {
     let devices = (IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice]) ?? []
-    return devices.compactMap { device in
-      guard let address = device.addressString, !address.isEmpty else {
-        return nil
-      }
-      return [
-        "addr": address,
-        "name": device.nameOrAddress ?? "Unknown device",
-        "connectType": "spp",
-      ]
+    return devices.compactMap(scanDeviceMap)
+  }
+
+  private func scanDeviceMap(_ device: IOBluetoothDevice) -> [String: Any]? {
+    guard let address = device.addressString, !address.isEmpty else {
+      return nil
+    }
+    return [
+      "addr": address,
+      "name": device.nameOrAddress ?? "Unknown device",
+      "connectType": "spp",
+    ]
+  }
+
+  private func rememberScanDevice(_ item: [String: Any]) {
+    guard let address = item["addr"] as? String, !address.isEmpty else {
+      return
+    }
+    scanResults[address] = item
+    DispatchQueue.main.async {
+      self.scanEventSink?(item)
     }
   }
 
@@ -125,19 +163,45 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
       return
     }
 
+    let generation = stateQueue.sync { () -> UInt64 in
+      connectGeneration += 1
+      return connectGeneration
+    }
+    disconnect(cancelConnect: false, emitEvent: false)
+
     DispatchQueue.global(qos: .userInitiated).async {
-      self.disconnect()
       var lastError = "No RFCOMM channel available"
       for channelNumber in fallbackChannels where (1...30).contains(channelNumber) {
+        if !self.isCurrentGeneration(generation) {
+          DispatchQueue.main.async {
+            result(FlutterError(code: "CONNECT_CANCELLED", message: "SPP connect was cancelled", details: nil))
+          }
+          return
+        }
+
         var channel: IOBluetoothRFCOMMChannel?
-        let status = device.openRFCOMMChannelSync(
-          &channel,
-          withChannelID: BluetoothRFCOMMChannelID(channelNumber),
-          delegate: self
+        let status = self.openRfcommChannel(
+          device: device,
+          channelNumber: channelNumber,
+          generation: generation,
+          channel: &channel
         )
         if status == kIOReturnSuccess, let channel {
-          self.rfcommChannel = channel
-          self.readClosed = false
+          let accepted = self.stateQueue.sync { () -> Bool in
+            guard self.connectGeneration == generation else {
+              return false
+            }
+            self.rfcommChannel = channel
+            self.readClosed = false
+            return true
+          }
+          if !accepted {
+            channel.close()
+            DispatchQueue.main.async {
+              result(FlutterError(code: "CONNECT_CANCELLED", message: "SPP connect was cancelled", details: nil))
+            }
+            return
+          }
           DispatchQueue.main.async {
             result(["channel": channelNumber])
           }
@@ -159,7 +223,7 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
       result(FlutterError(code: "INVALID_ARGUMENT", message: "data is required", details: nil))
       return
     }
-    guard let channel = rfcommChannel else {
+    guard let channel = stateQueue.sync(execute: { rfcommChannel }) else {
       result(FlutterError(code: "NOT_CONNECTED", message: "SPP socket is not connected", details: nil))
       return
     }
@@ -185,11 +249,70 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
     }
   }
 
-  private func disconnect() {
-    rfcommChannel?.close()
-    rfcommChannel = nil
-    if !readClosed {
+  private func disconnect(cancelConnect: Bool = true, emitEvent: Bool = true) {
+    let channel = stateQueue.sync { () -> IOBluetoothRFCOMMChannel? in
+      if cancelConnect {
+        connectGeneration += 1
+      }
+      let channel = rfcommChannel
+      rfcommChannel = nil
       readClosed = true
+      return channel
+    }
+    channel?.close()
+    if emitEvent {
+      emitDisconnected()
+    }
+  }
+
+  private func isCurrentGeneration(_ generation: UInt64) -> Bool {
+    stateQueue.sync { connectGeneration == generation }
+  }
+
+  private func openRfcommChannel(
+    device: IOBluetoothDevice,
+    channelNumber: Int,
+    generation: UInt64,
+    channel: inout IOBluetoothRFCOMMChannel?
+  ) -> IOReturn {
+    let semaphore = DispatchSemaphore(value: 0)
+    let state = RfcommOpenState()
+    let deadline = Date().addingTimeInterval(10)
+
+    DispatchQueue.global(qos: .userInitiated).async {
+      var localChannel: IOBluetoothRFCOMMChannel?
+      let status = device.openRFCOMMChannelSync(
+        &localChannel,
+        withChannelID: BluetoothRFCOMMChannelID(channelNumber),
+        delegate: self
+      )
+      state.finish(status: status, channel: localChannel)
+      semaphore.signal()
+    }
+
+    while semaphore.wait(timeout: .now() + 0.25) == .timedOut {
+      if !isCurrentGeneration(generation) {
+        state.cancel()?.close()
+        return kIOReturnAborted
+      }
+      if Date() >= deadline {
+        state.cancel()?.close()
+        return kIOReturnTimeout
+      }
+    }
+
+    let snapshot = state.snapshot()
+    if !isCurrentGeneration(generation) {
+      snapshot.channel?.close()
+      return kIOReturnAborted
+    }
+    channel = snapshot.channel
+    return snapshot.status
+  }
+
+  private func emitDisconnected() {
+    DispatchQueue.main.async {
+      self.eventSink?(["event": "disconnected"])
     }
   }
 
@@ -208,8 +331,64 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
   }
 
   func rfcommChannelClosed(_ rfcommChannel: IOBluetoothRFCOMMChannel!) {
-    readClosed = true
-    self.rfcommChannel = nil
+    let shouldEmit = stateQueue.sync { () -> Bool in
+      guard self.rfcommChannel === rfcommChannel else {
+        return false
+      }
+      readClosed = true
+      self.rfcommChannel = nil
+      return true
+    }
+    if shouldEmit {
+      emitDisconnected()
+    }
+  }
+
+  func deviceInquiryDeviceFound(_ sender: IOBluetoothDeviceInquiry!, device: IOBluetoothDevice!) {
+    guard sender === inquiry, let item = scanDeviceMap(device) else {
+      return
+    }
+    rememberScanDevice(item)
+  }
+
+  func deviceInquiryComplete(_ sender: IOBluetoothDeviceInquiry!, error: IOReturn, aborted: Bool) {
+    guard sender === inquiry else {
+      return
+    }
+    inquiry = nil
+  }
+}
+
+private final class RfcommOpenState {
+  private let lock = NSLock()
+  private var status: IOReturn = kIOReturnTimeout
+  private var channel: IOBluetoothRFCOMMChannel?
+  private var cancelled = false
+
+  func finish(status: IOReturn, channel: IOBluetoothRFCOMMChannel?) {
+    lock.lock()
+    defer { lock.unlock() }
+    if cancelled {
+      channel?.close()
+      return
+    }
+    self.status = status
+    self.channel = channel
+  }
+
+  func cancel() -> IOBluetoothRFCOMMChannel? {
+    lock.lock()
+    defer { lock.unlock() }
+    cancelled = true
+    let channel = self.channel
+    self.channel = nil
+    return channel
+  }
+
+  func snapshot() -> (status: IOReturn, channel: IOBluetoothRFCOMMChannel?) {
+    lock.lock()
+    defer { lock.unlock() }
+    return (status, channel)
   }
 }
 

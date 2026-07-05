@@ -60,7 +60,6 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
                   _InfoRow(
                     label: l10n.fieldAuthkey,
                     value: device.authkey ?? '-',
-                    secret: true,
                   ),
                   _InfoRow(
                     label: l10n.fieldConnectionType,
@@ -83,7 +82,6 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
                   _InfoRow(
                     label: l10n.fieldImei,
                     value: state.systemInfo!.imei,
-                    secret: true,
                   ),
                   _InfoRow(
                     label: l10n.fieldFirmware,
@@ -92,7 +90,6 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
                   _InfoRow(
                     label: l10n.fieldSerial,
                     value: state.systemInfo!.serialNumber,
-                    secret: true,
                   ),
                 ],
               ),
@@ -144,62 +141,33 @@ class _InfoGroup extends StatelessWidget {
   }
 }
 
-class _InfoRow extends StatefulWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-    this.secret = false,
-  });
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.label, required this.value});
 
   final String label;
   final String value;
-  final bool secret;
-
-  @override
-  State<_InfoRow> createState() => _InfoRowState();
-}
-
-class _InfoRowState extends State<_InfoRow> {
-  bool _visible = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _visible = !widget.secret;
-  }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final displayValue = _visible
-        ? widget.value
-        : String.fromCharCodes(List.filled(widget.value.length, 0x2a));
 
     return InkWell(
-      onTap: () {
-        if (widget.secret) {
-          setState(() => _visible = !_visible);
-        }
-      },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
-            Text(
-              widget.label,
-              style: TextStyle(color: colorScheme.onSurfaceVariant),
-            ),
+            Text(label, style: TextStyle(color: colorScheme.onSurfaceVariant)),
             const Spacer(),
             Flexible(
               child: GestureDetector(
                 onTap: () {
-                  Clipboard.setData(ClipboardData(text: widget.value));
+                  Clipboard.setData(ClipboardData(text: value));
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(AppLocalizations.of(context)!.copy)),
                   );
                 },
                 child: Text(
-                  displayValue,
+                  value,
                   textAlign: TextAlign.end,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

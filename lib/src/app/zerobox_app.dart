@@ -8,9 +8,14 @@ import 'package:zerobox/src/app/generated/app_localizations.dart';
 import 'package:zerobox/src/core/providers/theme_locale_providers.dart';
 import 'package:zerobox/src/features/devices/widgets/device_deep_link_handler.dart';
 
-final _desktopAccentColorProvider = FutureProvider<Color?>(
-  (ref) => loadDesktopAccentColor(),
-);
+final _desktopAccentColorProvider = FutureProvider<Color?>((ref) {
+  final source = ref.watch(
+    themeSettingsProvider.select((settings) {
+      return settings.desktopAccentColorSource;
+    }),
+  );
+  return loadDesktopAccentColor(source);
+});
 
 class ZeroBoxApp extends ConsumerWidget {
   const ZeroBoxApp({super.key});

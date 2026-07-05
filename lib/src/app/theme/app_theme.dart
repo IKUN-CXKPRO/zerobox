@@ -76,7 +76,7 @@ abstract final class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: effectiveColorScheme.surfaceContainerLow,
+        color: effectiveColorScheme.surfaceContainerHigh,
       ),
       chipTheme: ChipThemeData(
         elevation: 0,
@@ -85,6 +85,8 @@ abstract final class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
+          backgroundColor: effectiveColorScheme.primaryContainer,
+          foregroundColor: effectiveColorScheme.onPrimaryContainer,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),

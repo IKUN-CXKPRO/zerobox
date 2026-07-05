@@ -1,14 +1,31 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:zerobox/src/core/providers/theme_locale_providers.dart';
 
-Future<Color?> loadDesktopAccentColor() async {
-  if (!Platform.isLinux) {
-    return null;
+Future<Color?> loadDesktopAccentColor(DesktopAccentColorSource source) async {
+  if (Platform.isLinux) {
+    return switch (source) {
+      DesktopAccentColorSource.gtk => _loadGnomeAccentColor(),
+      DesktopAccentColorSource.qt => _loadKdeAccentColorChain(),
+      DesktopAccentColorSource.system =>
+        await _loadGnomeAccentColor() ?? await _loadKdeAccentColorChain(),
+    };
   }
 
-  return await _loadGnomeAccentColor() ??
-      await _loadKdeAccentColor('kreadconfig6') ??
+  if (Platform.isWindows) {
+    return _loadWindowsAccentColor();
+  }
+
+  if (Platform.isMacOS) {
+    return _loadMacOsAccentColor();
+  }
+
+  return null;
+}
+
+Future<Color?> _loadKdeAccentColorChain() async {
+  return await _loadKdeAccentColor('kreadconfig6') ??
       await _loadKdeAccentColor('kreadconfig5');
 }
 
@@ -38,6 +55,53 @@ Future<Color?> _loadKdeAccentColor(String executable) async {
     return null;
   }
   return _parseColor(result.trim());
+}
+
+Future<Color?> _loadWindowsAccentColor() async {
+  return await _loadWindowsRegistryColor(
+        r'HKCU\Software\Microsoft\Windows\DWM',
+        'AccentColor',
+      ) ??
+      await _loadWindowsRegistryColor(
+        r'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent',
+        'AccentColorMenu',
+      );
+}
+
+Future<Color?> _loadWindowsRegistryColor(String key, String valueName) async {
+  final result = await _run('reg', ['query', key, '/v', valueName]);
+  if (result == null) {
+    return null;
+  }
+  final match = RegExp(
+    '$valueName\\s+REG_DWORD\\s+0x([0-9a-fA-F]+)',
+    caseSensitive: false,
+  ).firstMatch(result);
+  if (match == null) {
+    return null;
+  }
+  final value = int.tryParse(match.group(1)!, radix: 16);
+  if (value == null) {
+    return null;
+  }
+
+  // Windows stores accent DWORDs as ABGR/COLORREF-style values.
+  final r = value & 0xFF;
+  final g = (value >> 8) & 0xFF;
+  final b = (value >> 16) & 0xFF;
+  return Color.fromARGB(255, r, g, b);
+}
+
+Future<Color?> _loadMacOsAccentColor() async {
+  final result = await _run('defaults', ['read', '-g', 'AppleAccentColor']);
+  if (result == null) {
+    return null;
+  }
+  final value = int.tryParse(result.trim());
+  if (value == null) {
+    return null;
+  }
+  return _macOsAccentColors[value];
 }
 
 Future<String?> _run(String executable, List<String> arguments) async {
@@ -84,4 +148,15 @@ const _gnomeAccentColors = <String, Color>{
   'pink': Color(0xFFD56199),
   'purple': Color(0xFF9141AC),
   'slate': Color(0xFF6F8396),
+};
+
+const _macOsAccentColors = <int, Color>{
+  -1: Color(0xFF8E8E93),
+  0: Color(0xFFFF3B30),
+  1: Color(0xFFFF9500),
+  2: Color(0xFFFFCC00),
+  3: Color(0xFF34C759),
+  4: Color(0xFF007AFF),
+  5: Color(0xFFAF52DE),
+  6: Color(0xFFFF2D55),
 };

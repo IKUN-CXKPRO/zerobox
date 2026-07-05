@@ -1,4 +1,5 @@
 import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,6 +27,8 @@ class SettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final showDesktopAccentSource =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.linux;
 
     return Scaffold(
       appBar: SysAppBar(title: Text(l10n.settingsTab)),
@@ -70,6 +73,36 @@ class SettingsPage extends ConsumerWidget {
                   },
                 ),
               ),
+              if (!kIsWeb)
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    await ref
+                        .read(themeSettingsProvider.notifier)
+                        .setDynamicColor(value ?? true);
+                  },
+                  initialValue: ref
+                      .watch(themeSettingsProvider)
+                      .useDynamicColor,
+                  leading: const Icon(Icons.palette_outlined),
+                  title: Text(l10n.settingsDynamicColor),
+                  description: Text(l10n.settingsDynamicColorDesc),
+                ),
+              if (showDesktopAccentSource)
+                SettingsTile.navigation(
+                  onPressed: (context) =>
+                      _showDesktopAccentSourceSelector(context, ref),
+                  leading: const Icon(Icons.color_lens_outlined),
+                  title: Text(l10n.settingsDesktopAccentSource),
+                  description: Text(l10n.settingsDesktopAccentSourceDesc),
+                  value: Consumer(
+                    builder: (context, ref, _) {
+                      final source = ref
+                          .watch(themeSettingsProvider)
+                          .desktopAccentColorSource;
+                      return Text(_desktopAccentSourceLabel(l10n, source));
+                    },
+                  ),
+                ),
               SettingsTile.switchTile(
                 onToggle: (value) async {
                   await ref
@@ -178,6 +211,17 @@ class SettingsPage extends ConsumerWidget {
       AppLocale.en => 'English',
       AppLocale.zh => '中文',
       _ => l10n.settingsSystem,
+    };
+  }
+
+  String _desktopAccentSourceLabel(
+    AppLocalizations l10n,
+    DesktopAccentColorSource source,
+  ) {
+    return switch (source) {
+      DesktopAccentColorSource.gtk => l10n.settingsDesktopAccentSourceGtk,
+      DesktopAccentColorSource.qt => l10n.settingsDesktopAccentSourceQt,
+      _ => l10n.settingsDesktopAccentSourceSystem,
     };
   }
 
@@ -491,6 +535,55 @@ class SettingsPage extends ConsumerWidget {
     );
     if (selected != null && selected != current) {
       await ref.read(localeSettingsProvider.notifier).setLocale(selected);
+    }
+  }
+
+  Future<void> _showDesktopAccentSourceSelector(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final current = ref.read(themeSettingsProvider).desktopAccentColorSource;
+    final l10n = AppLocalizations.of(context)!;
+    final tileContext = context;
+    final renderBox = tileContext.findRenderObject() as RenderBox?;
+    final overlay =
+        Navigator.of(tileContext).overlay?.context.findRenderObject()
+            as RenderBox?;
+    if (renderBox == null || overlay == null) return;
+
+    final tileTopLeft = renderBox.localToGlobal(Offset.zero, ancestor: overlay);
+    final tileBottomRight = renderBox.localToGlobal(
+      renderBox.size.bottomRight(Offset.zero),
+      ancestor: overlay,
+    );
+    final anchor = Rect.fromLTWH(
+      tileBottomRight.dx - 48,
+      tileTopLeft.dy,
+      48,
+      renderBox.size.height,
+    );
+
+    final selected = await showMenu<DesktopAccentColorSource>(
+      context: tileContext,
+      position: RelativeRect.fromRect(anchor, Offset.zero & overlay.size),
+      initialValue: current,
+      items: DesktopAccentColorSource.values.map((source) {
+        final selected = source == current;
+        return PopupMenuItem<DesktopAccentColorSource>(
+          value: source,
+          child: Row(
+            children: [
+              Expanded(child: Text(_desktopAccentSourceLabel(l10n, source))),
+              if (selected) const Icon(Icons.check),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+    if (selected != null && selected != current) {
+      await ref
+          .read(themeSettingsProvider.notifier)
+          .setDesktopAccentColorSource(selected);
     }
   }
 

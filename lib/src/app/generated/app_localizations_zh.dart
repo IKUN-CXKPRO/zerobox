@@ -345,13 +345,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get webSerialTitle => 'Web Serial';
 
   @override
-  String get webSerialHint => '在网页端，ZeroBox 通过 Web Serial 连接设备。点击下方连接以选择串口。';
+  String get webSerialHint =>
+      '在网页端，ZeroBox 通过 Web Serial 连接设备。已保存的设备会保留在当前浏览器中。';
 
   @override
   String get webSerialConnectDialogTitle => '通过 Web Serial 连接';
 
   @override
-  String get webSerialConnectDialogHint => '输入设备认证密钥，然后在弹出的选择器中选择串口。';
+  String get webSerialConnectDialogHint =>
+      '输入设备认证密钥，然后在浏览器弹窗中选择串口。认证密钥会保存在当前浏览器中。';
 
   @override
   String get cancel => '取消';
@@ -761,6 +763,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsDynamicColor => '动态取色';
+
+  @override
+  String get settingsDynamicColorDesc => '使用系统主题色调整应用配色';
+
+  @override
+  String get settingsDesktopAccentSource => 'Linux 主题色来源';
+
+  @override
+  String get settingsDesktopAccentSourceDesc => '选择从 GTK 或 Qt 读取主题色';
+
+  @override
+  String get settingsDesktopAccentSourceSystem => '自动';
+
+  @override
+  String get settingsDesktopAccentSourceGtk => 'GTK';
+
+  @override
+  String get settingsDesktopAccentSourceQt => 'Qt';
 
   @override
   String get settingsCancel => '取消';

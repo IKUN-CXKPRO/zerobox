@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <chrono>
 #include <iomanip>
 #include <memory>
 #include <mutex>
@@ -28,9 +29,13 @@ using flutter::EncodableMap;
 using flutter::EncodableValue;
 
 SOCKET g_socket = INVALID_SOCKET;
+SOCKET g_connect_socket = INVALID_SOCKET;
 std::mutex g_socket_mutex;
 std::thread g_read_thread;
 std::atomic_bool g_read_running(false);
+std::atomic_bool g_emit_disconnect_on_read_close(true);
+std::atomic_uint64_t g_connect_generation(0);
+std::atomic_uint64_t g_scan_generation(0);
 std::unique_ptr<flutter::EventSink<EncodableValue>> g_event_sink;
 std::unique_ptr<flutter::EventSink<EncodableValue>> g_scan_event_sink;
 
@@ -88,16 +93,33 @@ EncodableMap DeviceToMap(const BLUETOOTH_DEVICE_INFO& info) {
   };
 }
 
-EncodableList PairedDevices() {
+int ArgInt(const EncodableMap& args, const char* key, int fallback) {
+  auto it = args.find(EncodableValue(key));
+  if (it == args.end()) {
+    return fallback;
+  }
+  if (std::holds_alternative<int>(it->second)) {
+    return std::get<int>(it->second);
+  }
+  if (std::holds_alternative<int64_t>(it->second)) {
+    return static_cast<int>(std::get<int64_t>(it->second));
+  }
+  return fallback;
+}
+
+EncodableList BluetoothDevices(bool issue_inquiry = false,
+                               int timeout_ms = 15000,
+                               uint64_t scan_generation = 0) {
   EncodableList devices;
   BLUETOOTH_DEVICE_SEARCH_PARAMS params = {};
   params.dwSize = sizeof(params);
   params.fReturnAuthenticated = TRUE;
   params.fReturnRemembered = TRUE;
-  params.fReturnUnknown = FALSE;
+  params.fReturnUnknown = issue_inquiry ? TRUE : FALSE;
   params.fReturnConnected = TRUE;
-  params.fIssueInquiry = FALSE;
-  params.cTimeoutMultiplier = 2;
+  params.fIssueInquiry = issue_inquiry ? TRUE : FALSE;
+  params.cTimeoutMultiplier = static_cast<UCHAR>(
+      std::clamp((timeout_ms + 1279) / 1280, 1, 48));
 
   BLUETOOTH_DEVICE_INFO info = {};
   info.dwSize = sizeof(info);
@@ -106,6 +128,9 @@ EncodableList PairedDevices() {
     return devices;
   }
   do {
+    if (scan_generation != 0 && scan_generation != g_scan_generation.load()) {
+      break;
+    }
     auto item = DeviceToMap(info);
     devices.emplace_back(item);
     if (g_scan_event_sink) {
@@ -118,12 +143,31 @@ EncodableList PairedDevices() {
   return devices;
 }
 
+EncodableList PairedDevices() {
+  return BluetoothDevices(false);
+}
+
+void SendDisconnectedEvent() {
+  if (g_event_sink) {
+    g_event_sink->Success(EncodableValue(EncodableMap{
+        {EncodableValue("event"), EncodableValue("disconnected")},
+    }));
+  }
+}
+
 void CloseSocket() {
   SOCKET socket = INVALID_SOCKET;
+  SOCKET connect_socket = INVALID_SOCKET;
   {
     std::lock_guard<std::mutex> lock(g_socket_mutex);
     socket = g_socket;
     g_socket = INVALID_SOCKET;
+    connect_socket = g_connect_socket;
+    g_connect_socket = INVALID_SOCKET;
+  }
+  if (connect_socket != INVALID_SOCKET) {
+    shutdown(connect_socket, SD_BOTH);
+    closesocket(connect_socket);
   }
   if (socket != INVALID_SOCKET) {
     shutdown(socket, SD_BOTH);
@@ -131,16 +175,33 @@ void CloseSocket() {
   }
 }
 
+void CloseConnectSocketIfOwned(SOCKET socket) {
+  bool should_close = false;
+  {
+    std::lock_guard<std::mutex> lock(g_socket_mutex);
+    if (g_connect_socket == socket) {
+      g_connect_socket = INVALID_SOCKET;
+      should_close = true;
+    }
+  }
+  if (should_close) {
+    closesocket(socket);
+  }
+}
+
 void StopReadThread() {
   g_read_running = false;
+  g_emit_disconnect_on_read_close = false;
   CloseSocket();
   if (g_read_thread.joinable()) {
     g_read_thread.join();
   }
+  g_emit_disconnect_on_read_close = true;
 }
 
 void StartReadThread() {
   g_read_running = true;
+  g_emit_disconnect_on_read_close = true;
   g_read_thread = std::thread([] {
     std::vector<uint8_t> buffer(4096);
     while (g_read_running) {
@@ -163,21 +224,101 @@ void StartReadThread() {
       }
     }
     g_read_running = false;
+    CloseSocket();
+    if (g_emit_disconnect_on_read_close) {
+      SendDisconnectedEvent();
+    }
   });
 }
 
-SOCKET ConnectRfcomm(BTH_ADDR address, int channel) {
+SOCKET ConnectRfcomm(BTH_ADDR address, int channel, uint64_t generation,
+                     int timeout_ms) {
   SOCKET socket = ::socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
   if (socket == INVALID_SOCKET) {
     return INVALID_SOCKET;
   }
+  {
+    std::lock_guard<std::mutex> lock(g_socket_mutex);
+    if (generation != g_connect_generation.load()) {
+      g_connect_socket = INVALID_SOCKET;
+      closesocket(socket);
+      return INVALID_SOCKET;
+    }
+    g_connect_socket = socket;
+  }
+
   SOCKADDR_BTH remote = {};
   remote.addressFamily = AF_BTH;
   remote.btAddr = address;
   remote.port = static_cast<ULONG>(channel);
-  if (connect(socket, reinterpret_cast<sockaddr*>(&remote), sizeof(remote)) == SOCKET_ERROR) {
-    closesocket(socket);
-    return INVALID_SOCKET;
+
+  u_long non_blocking = 1;
+  ioctlsocket(socket, FIONBIO, &non_blocking);
+
+  int rc = connect(socket, reinterpret_cast<sockaddr*>(&remote), sizeof(remote));
+  if (rc == SOCKET_ERROR) {
+    const int error = WSAGetLastError();
+    if (error != WSAEWOULDBLOCK && error != WSAEINPROGRESS &&
+        error != WSAEINVAL) {
+      CloseConnectSocketIfOwned(socket);
+      return INVALID_SOCKET;
+    }
+
+    const auto deadline =
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
+    while (true) {
+      if (generation != g_connect_generation.load()) {
+        CloseConnectSocketIfOwned(socket);
+        return INVALID_SOCKET;
+      }
+      const auto now = std::chrono::steady_clock::now();
+      if (now >= deadline) {
+        CloseConnectSocketIfOwned(socket);
+        return INVALID_SOCKET;
+      }
+
+      const auto wait = std::min(
+          std::chrono::milliseconds(250),
+          std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now));
+      fd_set write_fds;
+      FD_ZERO(&write_fds);
+      FD_SET(socket, &write_fds);
+      timeval tv = {};
+      tv.tv_sec = static_cast<long>(wait.count() / 1000);
+      tv.tv_usec = static_cast<long>((wait.count() % 1000) * 1000);
+      rc = select(0, nullptr, &write_fds, nullptr, &tv);
+      if (rc == SOCKET_ERROR) {
+        CloseConnectSocketIfOwned(socket);
+        return INVALID_SOCKET;
+      }
+      if (rc == 0) {
+        continue;
+      }
+
+      int socket_error = 0;
+      int len = sizeof(socket_error);
+      if (getsockopt(socket, SOL_SOCKET, SO_ERROR,
+                     reinterpret_cast<char*>(&socket_error), &len) ==
+              SOCKET_ERROR ||
+          socket_error != 0) {
+        CloseConnectSocketIfOwned(socket);
+        return INVALID_SOCKET;
+      }
+      break;
+    }
+  }
+
+  non_blocking = 0;
+  ioctlsocket(socket, FIONBIO, &non_blocking);
+  {
+    std::lock_guard<std::mutex> lock(g_socket_mutex);
+    if (g_connect_socket == socket) {
+      g_connect_socket = INVALID_SOCKET;
+    }
+    if (generation != g_connect_generation.load()) {
+      closesocket(socket);
+      return INVALID_SOCKET;
+    }
   }
   return socket;
 }
@@ -212,15 +353,26 @@ void HandleMethodCall(
     return;
   }
   if (call.method_name() == "startScan") {
+    int timeout_ms = 15000;
+    if (call.arguments() && std::holds_alternative<EncodableMap>(*call.arguments())) {
+      const auto& args = std::get<EncodableMap>(*call.arguments());
+      timeout_ms = ArgInt(args, "timeoutMs", timeout_ms);
+    }
+    timeout_ms = std::clamp(timeout_ms, 1280, 60000);
+    const uint64_t scan_generation = g_scan_generation.fetch_add(1) + 1;
     result->Success();
-    PairedDevices();
+    std::thread([scan_generation, timeout_ms] {
+      BluetoothDevices(true, timeout_ms, scan_generation);
+    }).detach();
     return;
   }
   if (call.method_name() == "stopScan") {
+    g_scan_generation.fetch_add(1);
     result->Success(EncodableValue(PairedDevices()));
     return;
   }
   if (call.method_name() == "disconnect") {
+    g_connect_generation.fetch_add(1);
     StopReadThread();
     result->Success();
     return;
@@ -242,28 +394,45 @@ void HandleMethodCall(
       result->Error("INVALID_ARGUMENT", "addr is invalid");
       return;
     }
+    const auto channels = FallbackChannels(args);
+    const uint64_t generation = g_connect_generation.fetch_add(1) + 1;
     StopReadThread();
-    SOCKET connected = INVALID_SOCKET;
-    int connected_channel = 0;
-    for (int channel : FallbackChannels(args)) {
-      connected = ConnectRfcomm(address, channel);
-      if (connected != INVALID_SOCKET) {
-        connected_channel = channel;
-        break;
+    std::thread([address, channels, generation,
+                 result = std::move(result)]() mutable {
+      SOCKET connected = INVALID_SOCKET;
+      int connected_channel = 0;
+      for (int channel : channels) {
+        if (generation != g_connect_generation.load()) {
+          break;
+        }
+        connected = ConnectRfcomm(address, channel, generation, 10000);
+        if (connected != INVALID_SOCKET) {
+          connected_channel = channel;
+          break;
+        }
       }
-    }
-    if (connected == INVALID_SOCKET) {
-      result->Error("CONNECT_FAILED", "No RFCOMM channel available");
-      return;
-    }
-    {
-      std::lock_guard<std::mutex> lock(g_socket_mutex);
-      g_socket = connected;
-    }
-    StartReadThread();
-    result->Success(EncodableValue(EncodableMap{
-        {EncodableValue("channel"), EncodableValue(connected_channel)},
-    }));
+      if (connected == INVALID_SOCKET ||
+          generation != g_connect_generation.load()) {
+        if (connected != INVALID_SOCKET) {
+          closesocket(connected);
+        }
+        result->Error(
+            generation == g_connect_generation.load() ? "CONNECT_FAILED"
+                                                      : "CONNECT_CANCELLED",
+            generation == g_connect_generation.load()
+                ? "No RFCOMM channel available"
+                : "SPP connect was cancelled");
+        return;
+      }
+      {
+        std::lock_guard<std::mutex> lock(g_socket_mutex);
+        g_socket = connected;
+      }
+      StartReadThread();
+      result->Success(EncodableValue(EncodableMap{
+          {EncodableValue("channel"), EncodableValue(connected_channel)},
+      }));
+    }).detach();
     return;
   }
 

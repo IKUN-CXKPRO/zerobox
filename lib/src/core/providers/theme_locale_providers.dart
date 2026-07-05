@@ -4,31 +4,53 @@ import 'package:zerobox/src/core/services/shared_prefs_service.dart';
 
 enum AppThemeMode { system, light, dark, oledDark }
 
+enum DesktopAccentColorSource { system, gtk, qt }
+
 class ThemeSettings {
   const ThemeSettings({
     required this.themeMode,
     required this.useDynamicColor,
+    required this.desktopAccentColorSource,
   });
 
   final AppThemeMode themeMode;
   final bool useDynamicColor;
+  final DesktopAccentColorSource desktopAccentColorSource;
 
-  ThemeSettings copyWith({AppThemeMode? themeMode, bool? useDynamicColor}) {
+  ThemeSettings copyWith({
+    AppThemeMode? themeMode,
+    bool? useDynamicColor,
+    DesktopAccentColorSource? desktopAccentColorSource,
+  }) {
     return ThemeSettings(
       themeMode: themeMode ?? this.themeMode,
       useDynamicColor: useDynamicColor ?? this.useDynamicColor,
+      desktopAccentColorSource:
+          desktopAccentColorSource ?? this.desktopAccentColorSource,
     );
   }
 
   static const String _keyThemeMode = 'app_theme_mode';
   static const String _keyDynamicColor = 'app_dynamic_color';
+  static const String _keyDesktopAccentColorSource =
+      'app_desktop_accent_color_source';
 
   static ThemeSettings load() {
     final prefs = SharedPrefsService.instance;
-    final raw = prefs.getString(_keyThemeMode);
+    final rawThemeMode = prefs.getString(_keyThemeMode);
+    final rawDesktopAccentColorSource = prefs.getString(
+      _keyDesktopAccentColorSource,
+    );
     return ThemeSettings(
-      themeMode: AppThemeMode.values.byName(
-        raw ?? AppThemeMode.system.name,
+      themeMode: _enumByName(
+        AppThemeMode.values,
+        rawThemeMode,
+        AppThemeMode.system,
+      ),
+      desktopAccentColorSource: _enumByName(
+        DesktopAccentColorSource.values,
+        rawDesktopAccentColorSource,
+        DesktopAccentColorSource.system,
       ),
       useDynamicColor: prefs.getBool(_keyDynamicColor) ?? true,
     );
@@ -38,6 +60,10 @@ class ThemeSettings {
     final prefs = SharedPrefsService.instance;
     await prefs.setString(_keyThemeMode, themeMode.name);
     await prefs.setBool(_keyDynamicColor, useDynamicColor);
+    await prefs.setString(
+      _keyDesktopAccentColorSource,
+      desktopAccentColorSource.name,
+    );
   }
 
   ThemeMode get materialThemeMode {
@@ -49,6 +75,22 @@ class ThemeSettings {
   }
 
   bool get isOledDark => themeMode == AppThemeMode.oledDark;
+
+  static T _enumByName<T extends Enum>(
+    Iterable<T> values,
+    String? name,
+    T fallback,
+  ) {
+    if (name == null) {
+      return fallback;
+    }
+    for (final value in values) {
+      if (value.name == name) {
+        return value;
+      }
+    }
+    return fallback;
+  }
 }
 
 class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
@@ -64,10 +106,19 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     state = state.copyWith(useDynamicColor: value);
     await state.save();
   }
+
+  Future<void> setDesktopAccentColorSource(
+    DesktopAccentColorSource source,
+  ) async {
+    state = state.copyWith(desktopAccentColorSource: source);
+    await state.save();
+  }
 }
 
 final themeSettingsProvider =
-    NotifierProvider<ThemeSettingsNotifier, ThemeSettings>(ThemeSettingsNotifier.new);
+    NotifierProvider<ThemeSettingsNotifier, ThemeSettings>(
+      ThemeSettingsNotifier.new,
+    );
 
 enum AppLocale { system, en, zh }
 
@@ -114,4 +165,6 @@ class LocaleSettingsNotifier extends Notifier<LocaleSettings> {
 }
 
 final localeSettingsProvider =
-    NotifierProvider<LocaleSettingsNotifier, LocaleSettings>(LocaleSettingsNotifier.new);
+    NotifierProvider<LocaleSettingsNotifier, LocaleSettings>(
+      LocaleSettingsNotifier.new,
+    );

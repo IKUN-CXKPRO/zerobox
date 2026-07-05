@@ -22,7 +22,9 @@ class ResourceCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       margin: EdgeInsets.zero,
       child: InkWell(
-        onTap: canTap ? () => context.push('/resources/detail/${resource.id}') : null,
+        onTap: canTap
+            ? () => context.push('/resources/detail/${resource.id}')
+            : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -119,7 +121,7 @@ class ResourceListTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       clipBehavior: Clip.antiAlias,
-      color: colorScheme.surfaceContainerLow,
+      color: colorScheme.surfaceContainerHigh,
       child: InkWell(
         borderRadius: BorderRadius.circular(borderRadius),
         onTap: onTap ?? () => context.push('/resources/detail/${resource.id}'),
@@ -135,9 +137,7 @@ class ResourceListTile extends StatelessWidget {
               children: [
                 _buildImage(context, imageWidth, contentHeight),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: _buildInfo(context, textScaler),
-                ),
+                Expanded(child: _buildInfo(context, textScaler)),
               ],
             ),
           ),

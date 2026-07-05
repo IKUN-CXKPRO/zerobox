@@ -54,7 +54,7 @@ class SectionCard extends StatelessWidget {
     return Card(
       elevation: 0,
       margin: margin,
-      color: color ?? Theme.of(context).colorScheme.surfaceContainerLow,
+      color: color ?? Theme.of(context).colorScheme.surfaceContainerHigh,
       shape: RoundedRectangleBorder(borderRadius: borderRadius),
       clipBehavior: Clip.antiAlias,
       child: Padding(padding: padding, child: child),

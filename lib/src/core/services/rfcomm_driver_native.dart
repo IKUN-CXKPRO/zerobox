@@ -20,18 +20,17 @@ class NativeRfcommConnection implements RfcommConnection {
   final String deviceName;
 
   final NativeRfcommDriver _service;
-  final _connectionController = StreamController<bool>.broadcast();
   bool _disposed = false;
 
   @override
   Stream<Uint8List> get incomingData => _service.incomingData;
 
   @override
-  Stream<bool> get connectionState => _connectionController.stream;
+  Stream<bool> get connectionState => _service.connectionState;
 
   @override
   Future<void> start() async {
-    _connectionController.add(true);
+    _service._markConnected();
   }
 
   @override
@@ -42,9 +41,6 @@ class NativeRfcommConnection implements RfcommConnection {
     if (_disposed) return;
     _disposed = true;
     await _service.disconnect();
-    if (!_connectionController.isClosed) {
-      await _connectionController.close();
-    }
   }
 }
 
@@ -56,16 +52,73 @@ class NativeRfcommDriver implements RfcommDriver {
   static const _scanEvents = EventChannel('zerobox/classic_spp/scan_events');
 
   final Logger _log;
-  Stream<Uint8List>? _incomingData;
   Stream<BluetoothEndpoint>? _scanData;
+  StreamSubscription<Object?>? _eventSubscription;
+  final _incomingController = StreamController<Uint8List>.broadcast();
+  final _connectionController = StreamController<bool>.broadcast();
   final _scanResults = <String, BluetoothEndpoint>{};
 
   Stream<Uint8List> get incomingData {
-    return _incomingData ??= _events.receiveBroadcastStream().map((event) {
-      if (event is Uint8List) return event;
-      if (event is List<int>) return Uint8List.fromList(event);
-      throw StateError('Unexpected SPP event: ${event.runtimeType}');
-    });
+    _ensureEventSubscription();
+    return _incomingController.stream;
+  }
+
+  Stream<bool> get connectionState {
+    _ensureEventSubscription();
+    return _connectionController.stream;
+  }
+
+  void _ensureEventSubscription() {
+    _eventSubscription ??= _events.receiveBroadcastStream().listen(
+      _onNativeEvent,
+      onError: (Object e, StackTrace st) {
+        _log.warning('SPP event stream error', e, st);
+        _markDisconnected();
+      },
+    );
+  }
+
+  void _onNativeEvent(Object? event) {
+    if (event is Uint8List) {
+      _incomingController.add(event);
+      return;
+    }
+    if (event is List<int>) {
+      _incomingController.add(Uint8List.fromList(event));
+      return;
+    }
+    if (event is Map) {
+      final kind = event['event'] as String?;
+      if (kind == 'disconnected') {
+        _log.info('SPP native event: disconnected');
+        _markDisconnected();
+        return;
+      }
+      if (kind == 'data') {
+        final data = event['data'];
+        if (data is Uint8List) {
+          _incomingController.add(data);
+          return;
+        }
+        if (data is List<int>) {
+          _incomingController.add(Uint8List.fromList(data));
+          return;
+        }
+      }
+    }
+    throw StateError('Unexpected SPP event: ${event.runtimeType}');
+  }
+
+  void _markConnected() {
+    if (!_connectionController.isClosed) {
+      _connectionController.add(true);
+    }
+  }
+
+  void _markDisconnected() {
+    if (!_connectionController.isClosed) {
+      _connectionController.add(false);
+    }
   }
 
   @override
@@ -143,6 +196,7 @@ class NativeRfcommDriver implements RfcommDriver {
     String? serviceUuid,
     List<int> fallbackChannels = const [5, 1],
   }) async {
+    _ensureEventSubscription();
     _log.info('[$deviceId] initiating SPP connection');
     final result = await _method.invokeMapMethod<String, Object?>('connect', {
       'addr': deviceId,
@@ -167,6 +221,7 @@ class NativeRfcommDriver implements RfcommDriver {
   @override
   Future<void> disconnect() async {
     await _method.invokeMethod<void>('disconnect');
+    _markDisconnected();
   }
 }
 

@@ -773,7 +773,7 @@ abstract class AppLocalizations {
   /// No description provided for @webSerialHint.
   ///
   /// In en, this message translates to:
-  /// **'On the web, ZeroBox connects to devices via Web Serial. Press Connect below to choose a serial port.'**
+  /// **'On the web, ZeroBox connects to devices via Web Serial. Saved devices stay in this browser.'**
   String get webSerialHint;
 
   /// No description provided for @webSerialConnectDialogTitle.
@@ -785,7 +785,7 @@ abstract class AppLocalizations {
   /// No description provided for @webSerialConnectDialogHint.
   ///
   /// In en, this message translates to:
-  /// **'Enter the device auth key, then choose the serial port when prompted.'**
+  /// **'Enter the device auth key, then select the serial port in the browser prompt. The auth key is saved in this browser.'**
   String get webSerialConnectDialogHint;
 
   /// No description provided for @cancel.
@@ -1597,6 +1597,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dynamic color'**
   String get settingsDynamicColor;
+
+  /// No description provided for @settingsDynamicColorDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Use system accent colors for the app theme'**
+  String get settingsDynamicColorDesc;
+
+  /// No description provided for @settingsDesktopAccentSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Linux accent source'**
+  String get settingsDesktopAccentSource;
+
+  /// No description provided for @settingsDesktopAccentSourceDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose whether to read accent colors from GTK or Qt'**
+  String get settingsDesktopAccentSourceDesc;
+
+  /// No description provided for @settingsDesktopAccentSourceSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get settingsDesktopAccentSourceSystem;
+
+  /// No description provided for @settingsDesktopAccentSourceGtk.
+  ///
+  /// In en, this message translates to:
+  /// **'GTK'**
+  String get settingsDesktopAccentSourceGtk;
+
+  /// No description provided for @settingsDesktopAccentSourceQt.
+  ///
+  /// In en, this message translates to:
+  /// **'Qt'**
+  String get settingsDesktopAccentSourceQt;
 
   /// No description provided for @settingsCancel.
   ///

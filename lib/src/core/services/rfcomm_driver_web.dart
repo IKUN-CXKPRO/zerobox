@@ -38,7 +38,7 @@ extension type WebSerialReadableStream._(JSObject _) implements JSObject {
 extension type ReadableStreamDefaultReader._(JSObject _) implements JSObject {
   external JSPromise<ReadableStreamReadResult> read();
   external JSPromise<JSAny?> cancel([JSAny? reason]);
-  external JSPromise<JSAny?> releaseLock();
+  external void releaseLock();
 }
 
 extension type ReadableStreamReadResult._(JSObject _) implements JSObject {
@@ -130,7 +130,7 @@ class WebSerialRfcommConnection implements RfcommConnection {
         _onDisconnected();
       } finally {
         try {
-          await reader.releaseLock().toDart;
+          reader.releaseLock();
         } catch (e) {
           _log.fine('[$deviceId] releaseLock in read loop: $e');
         }

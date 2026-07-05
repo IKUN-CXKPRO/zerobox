@@ -352,14 +352,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get webSerialHint =>
-      'On the web, ZeroBox connects to devices via Web Serial. Press Connect below to choose a serial port.';
+      'On the web, ZeroBox connects to devices via Web Serial. Saved devices stay in this browser.';
 
   @override
   String get webSerialConnectDialogTitle => 'Connect via Web Serial';
 
   @override
   String get webSerialConnectDialogHint =>
-      'Enter the device auth key, then choose the serial port when prompted.';
+      'Enter the device auth key, then select the serial port in the browser prompt. The auth key is saved in this browser.';
 
   @override
   String get cancel => 'Cancel';
@@ -787,6 +787,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDynamicColor => 'Dynamic color';
+
+  @override
+  String get settingsDynamicColorDesc =>
+      'Use system accent colors for the app theme';
+
+  @override
+  String get settingsDesktopAccentSource => 'Linux accent source';
+
+  @override
+  String get settingsDesktopAccentSourceDesc =>
+      'Choose whether to read accent colors from GTK or Qt';
+
+  @override
+  String get settingsDesktopAccentSourceSystem => 'Auto';
+
+  @override
+  String get settingsDesktopAccentSourceGtk => 'GTK';
+
+  @override
+  String get settingsDesktopAccentSourceQt => 'Qt';
 
   @override
   String get settingsCancel => 'Cancel';
