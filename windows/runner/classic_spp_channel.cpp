@@ -1,5 +1,8 @@
 #include "classic_spp_channel.h"
 
+#include <initguid.h>
+#include <winsock2.h>
+#include <ws2bth.h>
 #include <bluetoothapis.h>
 #include <flutter/encodable_value.h>
 #include <flutter/event_channel.h>
@@ -7,8 +10,6 @@
 #include <flutter/event_stream_handler_functions.h>
 #include <flutter/method_channel.h>
 #include <flutter/standard_method_codec.h>
-#include <winsock2.h>
-#include <ws2bth.h>
 
 #include <algorithm>
 #include <atomic>
