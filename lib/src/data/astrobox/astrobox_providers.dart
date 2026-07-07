@@ -14,9 +14,13 @@ final communityRepositoryProvider = Provider<CommunityResourceRepository>((
   ref,
 ) {
   final source = ref.watch(communitySourceProvider);
+  final cdn = ref.watch(appSettingsProvider.select((settings) => settings.cdn));
   final dio = ref.watch(appDioProvider);
   return switch (source) {
-    CommunitySourceId.astroboxRepo => AstroBoxRepoCommunityRepository(dio: dio),
+    CommunitySourceId.astroboxRepo => AstroBoxRepoCommunityRepository(
+      dio: dio,
+      cdn: cdn,
+    ),
   };
 });
 

@@ -21,14 +21,14 @@ import 'package:zerobox/src/device/core/xiaomi_wearable_catalog.dart';
 import 'package:zerobox/src/device/xiaomi/components/auth_system.dart';
 import 'package:zerobox/src/device/xiaomi/components/info_system.dart';
 import 'package:zerobox/src/device/xiaomi/components/install_system.dart';
+import 'package:zerobox/src/device/xiaomi/components/resource_system.dart';
+import 'package:zerobox/src/device/xiaomi/components/thirdparty_app_system.dart';
 import 'package:zerobox/src/device/xiaomi/components/xiaomi_device_component.dart';
 import 'package:zerobox/src/device/xiaomi/xiaomi_device_factory.dart';
 import 'package:zerobox/src/features/accounts/models/mi_account_models.dart';
 import 'package:zerobox/src/protocols/common/device_protocol.dart'
     hide ChargeStatus, BatteryInfo, DeviceInfo;
 import 'package:zerobox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_thirdparty_app.pb.dart'
-    as pb_thirdparty;
 import 'package:zerobox/src/protocols/generated/xiaomi/wear_watch_face.pb.dart'
     as pb_watchface;
 
@@ -99,6 +99,8 @@ class DeviceManagerState {
 }
 
 class DeviceManager extends Notifier<DeviceManagerState> {
+  static const errorBluetoothUnavailable = 'bluetooth_unavailable';
+
   @override
   DeviceManagerState build() {
     final bluetooth = ref.watch(bluetoothPlatformProvider);
@@ -151,6 +153,14 @@ class DeviceManager extends Notifier<DeviceManagerState> {
   }
 
   static final _log = getLogger('DeviceManager');
+  static const _connectMaxAttempts = 2;
+  static const _connectAttemptTimeout = Duration(seconds: 5);
+  static const _connectRetryDelay = Duration(milliseconds: 300);
+  static const _sppFailedConnectSettleDelay = Duration(milliseconds: 500);
+  static const _connectionProbeInterval = Duration(seconds: 10);
+  static const _connectionProbeTimeout = Duration(seconds: 8);
+  static const _connectionProbeFailureLimit = 3;
+
   late BluetoothPlatform _bluetooth;
   late DeviceRuntime _runtime;
   StreamSubscription<BluetoothEndpoint>? _scanSubscription;
@@ -226,10 +236,7 @@ class DeviceManager extends Notifier<DeviceManagerState> {
     final available = await _bluetooth.isAvailable();
     if (!available) {
       _log.warning('bluetooth not available');
-      state = state.copyWith(
-        scanning: false,
-        error: 'Bluetooth is not available',
-      );
+      state = state.copyWith(scanning: false, error: errorBluetoothUnavailable);
       return;
     }
 
@@ -303,16 +310,12 @@ class DeviceManager extends Notifier<DeviceManagerState> {
     DeviceProfile profile,
     ConnectType connectType,
   ) async {
-    final maxAttempts = connectType == ConnectType.spp ? 2 : 3;
-    final timeout = connectType == ConnectType.spp
-        ? const Duration(seconds: 12)
-        : const Duration(seconds: 10);
     Exception? lastError;
 
-    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+    for (var attempt = 1; attempt <= _connectMaxAttempts; attempt++) {
       _log.info(
         '${connectType.name.toUpperCase()} connect attempt '
-        '$attempt/$maxAttempts to $addr',
+        '$attempt/$_connectMaxAttempts to $addr',
       );
       try {
         final connection = await _bluetooth
@@ -327,7 +330,7 @@ class DeviceManager extends Notifier<DeviceManagerState> {
                 sppFallbackChannels: profile.classicFallbackChannels,
               ),
             )
-            .timeout(timeout);
+            .timeout(_connectAttemptTimeout);
         _log.info(
           '${connectType.name.toUpperCase()} connected on attempt $attempt',
         );
@@ -346,14 +349,14 @@ class DeviceManager extends Notifier<DeviceManagerState> {
         await _resetBluetoothAfterFailedConnect(connectType);
       }
 
-      if (attempt < maxAttempts) {
-        await Future.delayed(const Duration(milliseconds: 500));
+      if (attempt < _connectMaxAttempts) {
+        await Future.delayed(_connectRetryDelay);
       }
     }
 
     throw lastError ??
         Exception(
-          '${connectType.name} connect failed after $maxAttempts attempts',
+          '${connectType.name} connect failed after $_connectMaxAttempts attempts',
         );
   }
 
@@ -369,7 +372,7 @@ class DeviceManager extends Notifier<DeviceManagerState> {
     }
 
     if (connectType == ConnectType.spp) {
-      await Future.delayed(const Duration(milliseconds: 300));
+      await Future.delayed(_sppFailedConnectSettleDelay);
     }
   }
 
@@ -522,16 +525,63 @@ class DeviceManager extends Notifier<DeviceManagerState> {
       _log.warning('initial battery fetch failed', e, st);
     }
     try {
-      await infoSystem.fetchDeviceInfo();
+      await _fetchDeviceInfoWithEuiccFallback(infoSystem);
     } catch (e, st) {
       _log.warning('initial device info fetch failed', e, st);
     }
   }
 
+  Future<void> _fetchDeviceInfoWithEuiccFallback(
+    XiaomiInfoSystem infoSystem,
+  ) async {
+    final info = await infoSystem.fetchDeviceInfo();
+    if (!_shouldFetchEuiccImei(state.currentDevice, info)) {
+      return;
+    }
+
+    try {
+      final imei = await infoSystem.fetchEuiccImei();
+      if (imei == null) {
+        _log.info(
+          'eUICC IMEI unavailable for ${state.currentDevice?.addr ?? info.model}',
+        );
+        return;
+      }
+      final updatedInfo = info.copyWith(imei: imei);
+      state = state.copyWith(systemInfo: updatedInfo);
+      _log.info(
+        'device info ${state.currentDevice?.addr ?? info.model}: '
+        'eUICC IMEI loaded',
+      );
+    } catch (e, st) {
+      _log.warning('eUICC info fetch failed', e, st);
+    }
+  }
+
+  bool _shouldFetchEuiccImei(MiWearState? device, SystemInfo info) {
+    if (info.imei.trim().isNotEmpty) return false;
+
+    final identity =
+        xiaomiWearableIdentityForCodename(device?.codename) ??
+        normalizeXiaomiWearableIdentity(info.model) ??
+        normalizeXiaomiWearableIdentity(device?.name ?? '');
+    final tokens = [
+      device?.name,
+      device?.codename,
+      info.model,
+      identity?.codename,
+      identity?.displayName,
+    ].whereType<String>().map((value) => value.toLowerCase()).join(' ');
+
+    return tokens.contains('esim') ||
+        tokens.contains('lte') ||
+        tokens.contains('o65m');
+  }
+
   void _startConnectionWatchdog(String deviceId) {
     _stopConnectionWatchdog();
     _connectionProbeFailures = 0;
-    _connectionWatchdogTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+    _connectionWatchdogTimer = Timer.periodic(_connectionProbeInterval, (_) {
       unawaited(_probeConnection(deviceId));
     });
   }
@@ -559,16 +609,16 @@ class DeviceManager extends Notifier<DeviceManagerState> {
 
     _connectionProbeRunning = true;
     try {
-      await infoSystem.fetchBatteryInfo().timeout(const Duration(seconds: 4));
+      await infoSystem.fetchBatteryInfo().timeout(_connectionProbeTimeout);
       _connectionProbeFailures = 0;
     } catch (e, st) {
       _connectionProbeFailures += 1;
       _log.warning(
-        'connection probe failed ($_connectionProbeFailures/2) for $deviceId',
+        'connection probe failed ($_connectionProbeFailures/$_connectionProbeFailureLimit) for $deviceId',
         e,
         st,
       );
-      if (_connectionProbeFailures >= 2 &&
+      if (_connectionProbeFailures >= _connectionProbeFailureLimit &&
           _currentEntity?.id == deviceId &&
           state.currentDevice?.addr == deviceId &&
           state.protocolState == ProtocolState.ready) {
@@ -788,7 +838,7 @@ class DeviceManager extends Notifier<DeviceManagerState> {
       throw ProtocolException('Device not ready');
     }
     final infoSystem = entity.system<XiaomiInfoSystem>()!;
-    await infoSystem.fetchDeviceInfo();
+    await _fetchDeviceInfoWithEuiccFallback(infoSystem);
   }
 
   Future<void> fetchStorageInfo() async {
@@ -805,8 +855,21 @@ class DeviceManager extends Notifier<DeviceManagerState> {
     if (entity == null || state.protocolState != ProtocolState.ready) {
       throw ProtocolException('Device not ready');
     }
-    final infoSystem = entity.system<XiaomiInfoSystem>()!;
-    await infoSystem.fetchInstalledApps();
+    final resourceSystem = entity.system<XiaomiResourceSystem>()!;
+    final items = await resourceSystem.fetchInstalledQuickApps();
+    final apps = items
+        .map(
+          (item) => AppInfo(
+            packageName: item.packageName,
+            fingerprint: item.fingerprint,
+            versionCode: item.versionCode,
+            canRemove: item.canRemove,
+            appName: item.appName,
+          ),
+        )
+        .toList();
+    _log.info('event: quick app list ${apps.length}');
+    state = state.copyWith(apps: apps);
   }
 
   Future<void> fetchWatchfaces() async {
@@ -819,22 +882,33 @@ class DeviceManager extends Notifier<DeviceManagerState> {
     state = state.copyWith(watchfaces: watchfaces);
   }
 
+  Future<void> openApp(AppInfo app, {String page = ''}) async {
+    final entity = _currentEntity;
+    if (entity == null || state.protocolState != ProtocolState.ready) {
+      throw ProtocolException('Device not ready');
+    }
+    _log.info('opening app ${app.packageName} page="$page"');
+    final thirdpartySystem = entity.system<XiaomiThirdpartyAppSystem>()!;
+    await thirdpartySystem.launchApp(_thirdpartyAppInfo(app), page);
+  }
+
   Future<void> uninstallApp(AppInfo app) async {
     final entity = _currentEntity;
     if (entity == null || state.protocolState != ProtocolState.ready) {
       throw ProtocolException('Device not ready');
     }
     _log.info('uninstalling app ${app.packageName}');
-    final packet = pb.WearPacket(
-      type: pb.WearPacket_Type.THIRDPARTY_APP,
-      id: pb_thirdparty.ThirdpartyApp_ThirdpartyAppID.REMOVE_APP.value,
-      thirdpartyApp: pb_thirdparty.ThirdpartyApp(
-        basicInfo: pb_thirdparty.BasicInfo(packageName: app.packageName),
-      ),
-    );
-    await entity.get<XiaomiDeviceComponent>()!.sendPbPacket(packet);
+    final thirdpartySystem = entity.system<XiaomiThirdpartyAppSystem>()!;
+    await thirdpartySystem.uninstallApp(_thirdpartyAppInfo(app));
     state = state.copyWith(
       apps: state.apps.where((a) => a.packageName != app.packageName).toList(),
+    );
+  }
+
+  ThirdpartyAppInfo _thirdpartyAppInfo(AppInfo app) {
+    return ThirdpartyAppInfo(
+      packageName: app.packageName,
+      fingerprint: Uint8List.fromList(app.fingerprint),
     );
   }
 

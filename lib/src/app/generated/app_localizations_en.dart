@@ -15,7 +15,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeTab => 'Home';
 
   @override
-  String get resourcesTab => 'Resources';
+  String get exploreTab => 'Explore';
 
   @override
   String get devicesTab => 'Devices';
@@ -216,6 +216,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get error => 'Error';
 
   @override
+  String get errorBluetoothUnavailable =>
+      'Bluetooth is not available. Check that Bluetooth is enabled and ZeroBox has permission to use it';
+
+  @override
+  String get errorBluetoothConnectFailed =>
+      'Bluetooth connection failed. Make sure the device is nearby, not occupied by another app, and try restarting Bluetooth';
+
+  @override
+  String get errorBluetoothDisconnected =>
+      'Bluetooth disconnected. Reconnect the device and try again';
+
+  @override
+  String get errorOperationTimeout =>
+      'Operation timed out. Make sure the device is still nearby and try again';
+
+  @override
+  String get errorDeviceNotReady =>
+      'Device is not ready. Connect and authenticate the device first';
+
+  @override
+  String get errorBleCharacteristicsMissing =>
+      'Required BLE channels were not found. Reconnect the device or check whether it supports this feature';
+
+  @override
+  String get errorWebSerialUnavailable =>
+      'This browser does not support Web Serial. Use Chrome, Edge, or another Web Serial compatible browser';
+
+  @override
+  String get errorAccountPasswordIncorrect =>
+      'Xiaomi account username or password is incorrect';
+
+  @override
+  String get errorAccountTwoFactorIncomplete =>
+      'Xiaomi account two-factor verification was not completed. Sign in again';
+
+  @override
+  String get errorUnsupportedFileType =>
+      'Unsupported or unrecognized file type';
+
+  @override
+  String errorUnknownWithDetail(Object detail) {
+    return 'Operation failed: $detail';
+  }
+
+  @override
   String get copyLogs => 'Copy logs';
 
   @override
@@ -374,6 +419,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceActionsShareQR => 'Share QR';
 
   @override
+  String get deviceShareZeroBoxCode => 'Switch to ZeroBox code';
+
+  @override
+  String get deviceShareAstroBoxCompatibleCode =>
+      'Switch to AstroBox compatible code';
+
+  @override
   String get installTapToSelectFile => 'Tap to select file';
 
   @override
@@ -384,9 +436,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deviceInfoTitle => 'Device info';
-
-  @override
-  String get deviceInfoNotRealtime => 'Data may not be real-time';
 
   @override
   String get deviceInfoGroupDevice => 'Device';
@@ -471,6 +520,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get copy => 'Copy';
+
+  @override
+  String get copied => 'Copied';
 
   @override
   String get close => 'Close';
@@ -632,6 +684,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralLanguageDesc => 'Change app display language';
+
+  @override
+  String get settingsWideNavigationPosition => 'Navigation position';
+
+  @override
+  String get settingsWideNavigationPositionDesc =>
+      'Adjust side tab placement in the wide-screen state';
+
+  @override
+  String get settingsWideNavigationPositionBottom => 'Bottom';
+
+  @override
+  String get settingsWideNavigationPositionCenter => 'Center';
+
+  @override
+  String get settingsWideNavigationPositionSplit => 'Split';
 
   @override
   String get settingsGeneralTranslateTeam => 'Translation contributors';
@@ -796,6 +864,30 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use system accent colors for the app theme';
 
   @override
+  String get settingsColorScheme => 'Color scheme';
+
+  @override
+  String get settingsColorSchemeDesc => 'Choose the app accent color';
+
+  @override
+  String get settingsColorSchemePink => 'Pink';
+
+  @override
+  String get settingsColorSchemePurple => 'Purple';
+
+  @override
+  String get settingsColorSchemeTeal => 'Teal';
+
+  @override
+  String get settingsColorSchemeGreen => 'Green';
+
+  @override
+  String get settingsColorSchemeRed => 'Red';
+
+  @override
+  String get settingsColorSchemeAmber => 'Amber';
+
+  @override
   String get settingsDesktopAccentSource => 'Linux accent source';
 
   @override
@@ -835,6 +927,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsTeamRoleMain => 'Main Developer / Designer';
+
+  @override
+  String get settingsTeamRoleZeppOS => 'ZeppOS implementation';
 
   @override
   String get settingsAboutSoftware => 'About software';
@@ -917,4 +1012,67 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get openResourceLibrary => 'Open resource library';
+
+  @override
+  String get downloadQueueTitle => 'Download queue';
+
+  @override
+  String get installQueueTitle => 'Install queue';
+
+  @override
+  String get queueClear => 'Clear';
+
+  @override
+  String get queueStart => 'Start';
+
+  @override
+  String get queuePause => 'Pause';
+
+  @override
+  String get downloadQueueEmpty => 'No download tasks';
+
+  @override
+  String get installQueueEmpty => 'No install tasks';
+
+  @override
+  String get localAppInstall => 'Local app install';
+
+  @override
+  String get localWatchfaceInstall => 'Local watchface install';
+
+  @override
+  String get localFirmwareInstall => 'Local firmware install';
+
+  @override
+  String get queueStatusPending => 'Waiting';
+
+  @override
+  String queueStatusDownloading(String percent) {
+    return 'Downloading $percent%';
+  }
+
+  @override
+  String queueStatusInstalling(String percent) {
+    return 'Installing $percent%';
+  }
+
+  @override
+  String get queueStatusCompleted => 'Completed';
+
+  @override
+  String get queueStatusFailed => 'Failed';
+
+  @override
+  String get queueDragToInstall => 'Release to add to install queue';
+
+  @override
+  String queueAddedFiles(int count) {
+    return 'Added $count files to install queue';
+  }
+
+  @override
+  String get installQueueReadFailed => 'Read failed';
+
+  @override
+  String get installQueueUnsupportedFile => 'Unsupported file';
 }

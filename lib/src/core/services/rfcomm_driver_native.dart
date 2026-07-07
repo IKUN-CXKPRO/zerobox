@@ -139,10 +139,17 @@ class NativeRfcommDriver implements RfcommDriver {
         address: addr,
         connectType: ConnectType.spp,
       );
-      _log.info(
-        'device_identity platform.spp_scan '
-        'addr=$addr sppName="$rawName" displayName="${endpoint.name}"',
-      );
+      final previous = _scanResults[endpoint.address];
+      final shouldLog =
+          previous == null ||
+          previous.name != endpoint.name ||
+          previous.connectType != endpoint.connectType;
+      if (shouldLog) {
+        _log.info(
+          'device_identity platform.spp_scan '
+          'addr=$addr sppName="$rawName" displayName="${endpoint.name}"',
+        );
+      }
       _scanResults[endpoint.address] = endpoint;
       return endpoint;
     });

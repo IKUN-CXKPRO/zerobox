@@ -2,7 +2,7 @@
   "@@locale": "en",
   "appTitle": "ZeroBox",
   "homeTab": "Home",
-  "resourcesTab": "Resources",
+  "exploreTab": "Explore",
   "devicesTab": "Devices",
   "settingsTab": "Settings",
   "search": "Search",
@@ -69,6 +69,22 @@
   "connection": "Connection",
   "protocol": "Protocol",
   "error": "Error",
+  "errorBluetoothUnavailable": "Bluetooth is not available. Check that Bluetooth is enabled and ZeroBox has permission to use it",
+  "errorBluetoothConnectFailed": "Bluetooth connection failed. Make sure the device is nearby, not occupied by another app, and try restarting Bluetooth",
+  "errorBluetoothDisconnected": "Bluetooth disconnected. Reconnect the device and try again",
+  "errorOperationTimeout": "Operation timed out. Make sure the device is still nearby and try again",
+  "errorDeviceNotReady": "Device is not ready. Connect and authenticate the device first",
+  "errorBleCharacteristicsMissing": "Required BLE channels were not found. Reconnect the device or check whether it supports this feature",
+  "errorWebSerialUnavailable": "This browser does not support Web Serial. Use Chrome, Edge, or another Web Serial compatible browser",
+  "errorAccountPasswordIncorrect": "Xiaomi account username or password is incorrect",
+  "errorAccountTwoFactorIncomplete": "Xiaomi account two-factor verification was not completed. Sign in again",
+  "errorUnsupportedFileType": "Unsupported or unrecognized file type",
+  "errorUnknownWithDetail": "Operation failed: {detail}",
+  "@errorUnknownWithDetail": {
+    "placeholders": {
+      "detail": {}
+    }
+  },
   "copyLogs": "Copy logs",
   "exportLogs": "Export logs",
   "clearLogs": "Clear logs",
@@ -119,11 +135,12 @@
   "deviceActionsDelete": "Delete",
   "deviceActionsDisconnect": "Disconnect",
   "deviceActionsShareQR": "Share QR",
+  "deviceShareZeroBoxCode": "Switch to ZeroBox code",
+  "deviceShareAstroBoxCompatibleCode": "Switch to AstroBox compatible code",
   "installTapToSelectFile": "Tap to select file",
   "installPackageName": "Package name",
   "installWatchfaceId": "Watchface ID",
   "deviceInfoTitle": "Device info",
-  "deviceInfoNotRealtime": "Data may not be real-time",
   "deviceInfoGroupDevice": "Device",
   "deviceInfoGroupSystem": "System",
   "deviceInfoGroupStatus": "Status",
@@ -152,6 +169,7 @@
   "show": "Show",
   "hide": "Hide",
   "copy": "Copy",
+  "copied": "Copied",
   "close": "Close",
   "multiDevice": "Multi-device",
   "quickApp": "Quick App",
@@ -209,6 +227,11 @@
   },
   "settingsGeneralLanguage": "Language",
   "settingsGeneralLanguageDesc": "Change app display language",
+  "settingsWideNavigationPosition": "Navigation position",
+  "settingsWideNavigationPositionDesc": "Adjust side tab placement in the wide-screen state",
+  "settingsWideNavigationPositionBottom": "Bottom",
+  "settingsWideNavigationPositionCenter": "Center",
+  "settingsWideNavigationPositionSplit": "Split",
   "settingsGeneralTranslateTeam": "Translation contributors",
   "settingsAutoReconnectTitle": "Auto reconnect",
   "settingsAutoReconnectDesc": "Automatically reconnect to the last paired device on startup",
@@ -259,6 +282,14 @@
   "settingsThemeMode": "Theme mode",
   "settingsDynamicColor": "Dynamic color",
   "settingsDynamicColorDesc": "Use system accent colors for the app theme",
+  "settingsColorScheme": "Color scheme",
+  "settingsColorSchemeDesc": "Choose the app accent color",
+  "settingsColorSchemePink": "Pink",
+  "settingsColorSchemePurple": "Purple",
+  "settingsColorSchemeTeal": "Teal",
+  "settingsColorSchemeGreen": "Green",
+  "settingsColorSchemeRed": "Red",
+  "settingsColorSchemeAmber": "Amber",
   "settingsDesktopAccentSource": "Linux accent source",
   "settingsDesktopAccentSourceDesc": "Choose whether to read accent colors from GTK or Qt",
   "settingsDesktopAccentSourceSystem": "Auto",
@@ -272,6 +303,7 @@
   "settingsTeamGitHub": "GitHub Repository",
   "settingsTeamMembers": "Team Members",
   "settingsTeamRoleMain": "Main Developer / Designer",
+  "settingsTeamRoleZeppOS": "ZeppOS implementation",
   "settingsAboutSoftware": "About software",
   "settingsAboutSoftwareDesc": "Version, changelog and development team",
   "settingsAboutSoftwareTagline": "A pretty fast wearable management tool for VelaOS and ZeppOS, built with Flutter",
@@ -293,5 +325,45 @@
   "resourceHomeEmptySubtitle": "You can get resources from the library",
   "resourceCreatorEmptyTitle": "Creator center is under construction",
   "resourceCreatorEmptySubtitle": "You can manage acquired resources in the library",
-  "openResourceLibrary": "Open resource library"
+  "openResourceLibrary": "Open resource library",
+  "downloadQueueTitle": "Download queue",
+  "installQueueTitle": "Install queue",
+  "queueClear": "Clear",
+  "queueStart": "Start",
+  "queuePause": "Pause",
+  "downloadQueueEmpty": "No download tasks",
+  "installQueueEmpty": "No install tasks",
+  "localAppInstall": "Local app install",
+  "localWatchfaceInstall": "Local watchface install",
+  "localFirmwareInstall": "Local firmware install",
+  "queueStatusPending": "Waiting",
+  "queueStatusDownloading": "Downloading {percent}%",
+  "@queueStatusDownloading": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "queueStatusInstalling": "Installing {percent}%",
+  "@queueStatusInstalling": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "queueStatusCompleted": "Completed",
+  "queueStatusFailed": "Failed",
+  "queueDragToInstall": "Release to add to install queue",
+  "queueAddedFiles": "Added {count} files to install queue",
+  "@queueAddedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "installQueueReadFailed": "Read failed",
+  "installQueueUnsupportedFile": "Unsupported file"
 }

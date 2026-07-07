@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:zerobox/src/app/generated/app_localizations.dart';
+import 'package:zerobox/src/app/utils/error_localization.dart';
 import 'package:zerobox/src/app/widgets/page_container.dart';
 import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
 import 'package:zerobox/src/core/constants/style_constants.dart';
@@ -103,9 +104,9 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
           context.pop();
         }
       } else if (next.error != null && next.error != previous?.error) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(next.error!)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(localizedErrorMessage(l10n, next.error))),
+        );
       }
     });
 
@@ -432,10 +433,7 @@ class _SavedDeviceList extends ConsumerWidget {
         _SectionHeader(title: l10n.savedDevices, hiddenOnMobile: true),
         if (state.pairedDevices.isEmpty)
           const Flexible(
-            child: SizedBox(
-              height: 240,
-              child: _EmptyState(message: ''),
-            ),
+            child: SizedBox(height: 240, child: _EmptyState(message: '')),
           )
         else
           Expanded(
@@ -501,10 +499,7 @@ class _ScanDeviceListState extends ConsumerState<_ScanDeviceList> {
         ),
         if (!state.scanning && state.scannedDevices.isEmpty)
           const Flexible(
-            child: SizedBox(
-              height: 240,
-              child: _EmptyState(message: ''),
-            ),
+            child: SizedBox(height: 240, child: _EmptyState(message: '')),
           )
         else if (state.scanning && state.scannedDevices.isEmpty)
           const Flexible(
@@ -554,10 +549,7 @@ class _SliverSavedDeviceList extends ConsumerWidget {
 
     if (state.pairedDevices.isEmpty) {
       return const SliverToBoxAdapter(
-        child: SizedBox(
-          height: 240,
-          child: _EmptyState(message: ''),
-        ),
+        child: SizedBox(height: 240, child: _EmptyState(message: '')),
       );
     }
     return SliverList.builder(
@@ -631,10 +623,7 @@ class _SliverScanDeviceListState extends ConsumerState<_SliverScanDeviceList> {
 
     if (!state.scanning && state.scannedDevices.isEmpty) {
       return const SliverToBoxAdapter(
-        child: SizedBox(
-          height: 240,
-          child: _EmptyState(message: ''),
-        ),
+        child: SizedBox(height: 240, child: _EmptyState(message: '')),
       );
     }
     if (state.scanning && state.scannedDevices.isEmpty) {
@@ -965,7 +954,9 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
                     },
                     icon: Icon(compatibleMode ? Icons.link : Icons.swap_horiz),
                     label: Text(
-                      compatibleMode ? '切换为 ZeroBox 码' : '切换 AstroBox 兼容码',
+                      compatibleMode
+                          ? l10n.deviceShareZeroBoxCode
+                          : l10n.deviceShareAstroBoxCompatibleCode,
                     ),
                   ),
                 ],
@@ -977,7 +968,7 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
                   Clipboard.setData(ClipboardData(text: link));
                   ScaffoldMessenger.of(
                     context,
-                  ).showSnackBar(SnackBar(content: Text(l10n.copy)));
+                  ).showSnackBar(SnackBar(content: Text(l10n.copied)));
                 },
                 child: Text(l10n.copy),
               ),

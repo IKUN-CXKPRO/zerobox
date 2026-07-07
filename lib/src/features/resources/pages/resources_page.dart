@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zerobox/src/app/generated/app_localizations.dart';
+import 'package:zerobox/src/app/utils/error_localization.dart';
 import 'package:zerobox/src/app/widgets/network_img_layer.dart';
 import 'package:zerobox/src/app/widgets/page_container.dart';
 import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
@@ -13,8 +14,6 @@ import 'package:zerobox/src/data/community/community_source.dart';
 import 'package:zerobox/src/device/core/xiaomi_wearable_catalog.dart';
 import 'package:zerobox/src/features/resources/controllers/resource_filter_controller.dart';
 
-
-
 class ResourcesPage extends ConsumerWidget {
   const ResourcesPage({super.key});
 
@@ -25,7 +24,7 @@ class ResourcesPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: SysAppBar(
-        title: Text(l10n.resourcesTab),
+        title: Text(l10n.exploreTab),
         actions: [
           if (mode == ResourceMode.library) const _CommunitySourceMenu(),
           IconButton(
@@ -112,7 +111,9 @@ class _ResourceHomePlaceholder extends ConsumerWidget {
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: StyleConstants.pageMaxWidth),
+        constraints: const BoxConstraints(
+          maxWidth: StyleConstants.pageMaxWidth,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(StyleConstants.pagePadding),
           child: Column(
@@ -127,15 +128,15 @@ class _ResourceHomePlaceholder extends ConsumerWidget {
               Text(
                 l10n.resourceHomeEmptyTitle,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 l10n.resourceHomeEmptySubtitle,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 24),
               FilledButton.icon(
@@ -165,7 +166,9 @@ class _ResourceCreatorPlaceholder extends ConsumerWidget {
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: StyleConstants.pageMaxWidth),
+        constraints: const BoxConstraints(
+          maxWidth: StyleConstants.pageMaxWidth,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(StyleConstants.pagePadding),
           child: Column(
@@ -180,15 +183,15 @@ class _ResourceCreatorPlaceholder extends ConsumerWidget {
               Text(
                 l10n.resourceCreatorEmptyTitle,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 l10n.resourceCreatorEmptySubtitle,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 24),
               FilledButton.icon(
@@ -265,18 +268,18 @@ class _ResourceLibraryView extends ConsumerWidget {
           ),
           indexAsync.when(
             data: (items) => SliverToBoxAdapter(
-            child: PageContainer(
-              padding: const EdgeInsets.symmetric(
-                horizontal: StyleConstants.pagePadding,
+              child: PageContainer(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: StyleConstants.pagePadding,
+                ),
+                child: _ResourceGrid(items: items),
               ),
-              child: _ResourceGrid(items: items),
-            ),
             ),
             loading: () => const SliverFillRemaining(
               child: Center(child: CircularProgressIndicator()),
             ),
             error: (err, _) => SliverFillRemaining(
-              child: Center(child: Text('${l10n.error}: $err')),
+              child: Center(child: Text(localizedErrorMessage(l10n, err))),
             ),
           ),
           const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
@@ -312,7 +315,7 @@ class _CommunitySourceMenu extends ConsumerWidget {
         );
       }).toList(),
       builder: (context, controller, child) {
-        return TextButton.icon(
+        return TextButton(
           onPressed: () {
             if (controller.isOpen) {
               controller.close();
@@ -320,8 +323,7 @@ class _CommunitySourceMenu extends ConsumerWidget {
               controller.open();
             }
           },
-          icon: const Icon(Icons.public_outlined, size: 18),
-          label: Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(source.displayName),

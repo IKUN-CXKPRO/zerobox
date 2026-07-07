@@ -186,19 +186,26 @@ class BleGattDriver {
         );
         if (!matches) return;
       }
-      _log.fine(
-        'scanned device: $name @ ${device.deviceId} rssi=${device.rssi}',
-      );
-      _log.info(
-        'device_identity platform.ble_scan '
-        'addr=${device.deviceId} bleName="$name" rssi=${device.rssi}',
-      );
       final scanned = BluetoothEndpoint(
         name: name.isEmpty ? 'Unknown device' : name,
         address: device.deviceId,
         connectType: ConnectType.ble,
         rssi: device.rssi,
       );
+      final previous = _scanResults[device.deviceId];
+      final shouldLog =
+          previous == null ||
+          previous.name != scanned.name ||
+          previous.connectType != scanned.connectType;
+      if (shouldLog) {
+        _log.fine(
+          'scanned device: $name @ ${device.deviceId} rssi=${device.rssi}',
+        );
+        _log.info(
+          'device_identity platform.ble_scan '
+          'addr=${device.deviceId} bleName="$name" rssi=${device.rssi}',
+        );
+      }
       _scanResults[device.deviceId] = scanned;
       _scanController.add(scanned);
     }, onError: (Object e) => _log.warning('scan stream error', e));

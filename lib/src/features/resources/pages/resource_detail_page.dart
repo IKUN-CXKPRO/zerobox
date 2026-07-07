@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:zerobox/src/app/generated/app_localizations.dart';
+import 'package:zerobox/src/app/utils/error_localization.dart';
 import 'package:zerobox/src/app/widgets/network_img_layer.dart';
 import 'package:zerobox/src/app/widgets/page_container.dart';
 import 'package:zerobox/src/app/widgets/status_chips.dart';
@@ -34,7 +35,8 @@ class ResourceDetailPage extends ConsumerWidget {
           return _ResourceDetailContent(item: item, manifest: manifest);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('${l10n.error}: $err')),
+        error: (err, _) =>
+            Center(child: Text(localizedErrorMessage(l10n, err))),
       ),
     );
   }

@@ -35,11 +35,11 @@ class ZeroBoxApp extends ConsumerWidget {
         final lightColorScheme = useDynamicColor
             ? lightDynamic ??
                   _desktopColorScheme(desktopAccentColor, Brightness.light)
-            : null;
+            : _seedColorScheme(themeSettings.customSeedColor, Brightness.light);
         final darkColorScheme = useDynamicColor
             ? darkDynamic ??
                   _desktopColorScheme(desktopAccentColor, Brightness.dark)
-            : null;
+            : _seedColorScheme(themeSettings.customSeedColor, Brightness.dark);
 
         return MaterialApp.router(
           title: 'ZeroBox',
@@ -64,6 +64,10 @@ class ZeroBoxApp extends ConsumerWidget {
     if (accentColor == null) {
       return null;
     }
-    return ColorScheme.fromSeed(seedColor: accentColor, brightness: brightness);
+    return _seedColorScheme(accentColor, brightness);
+  }
+
+  ColorScheme _seedColorScheme(Color seedColor, Brightness brightness) {
+    return ColorScheme.fromSeed(seedColor: seedColor, brightness: brightness);
   }
 }

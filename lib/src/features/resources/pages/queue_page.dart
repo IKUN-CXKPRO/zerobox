@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zerobox/src/app/generated/app_localizations.dart';
+import 'package:zerobox/src/app/utils/error_localization.dart';
 import 'package:zerobox/src/app/widgets/page_container.dart';
 import 'package:zerobox/src/app/widgets/smooth_linear_progress_indicator.dart';
 import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
@@ -42,14 +43,14 @@ class QueuePage extends ConsumerWidget {
                       Expanded(child: _PanelWrapper(child: installList)),
                     ],
                   )
-                : ListView(
+                : Column(
                     children: [
-                      SizedBox(height: 420, child: downloadList),
+                      Expanded(child: downloadList),
                       const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
+                        padding: EdgeInsets.symmetric(vertical: 8),
                         child: Divider(height: 1),
                       ),
-                      SizedBox(height: 520, child: installList),
+                      Expanded(child: installList),
                     ],
                   ),
           );
@@ -78,11 +79,12 @@ class _DownloadQueuePanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final tasks = ref.watch(downloadQueueProvider);
     final notifier = ref.read(downloadQueueProvider.notifier);
 
     return _QueuePanel(
-      title: '下载队列',
+      title: l10n.downloadQueueTitle,
       action: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -90,11 +92,11 @@ class _DownloadQueuePanel extends ConsumerWidget {
             IconButton(
               onPressed: notifier.clear,
               icon: const Icon(Icons.delete_outline),
-              tooltip: '清空',
+              tooltip: l10n.queueClear,
             ),
         ],
       ),
-      emptyText: '暂无下载任务',
+      emptyText: l10n.downloadQueueEmpty,
       children: [
         for (final task in tasks)
           _QueueTile(
@@ -118,6 +120,7 @@ class _InstallQueuePanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(installQueueProvider);
     final notifier = ref.read(installQueueProvider.notifier);
     final running = state.runStatus == QueueRunStatus.running;
@@ -125,7 +128,7 @@ class _InstallQueuePanel extends ConsumerWidget {
     final canStart = state.hasRunnableTasks && !running && !stopping;
 
     return _QueuePanel(
-      title: '安装队列',
+      title: l10n.installQueueTitle,
       action: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -133,7 +136,7 @@ class _InstallQueuePanel extends ConsumerWidget {
             IconButton(
               onPressed: notifier.clear,
               icon: const Icon(Icons.delete_outline),
-              tooltip: '清空',
+              tooltip: l10n.queueClear,
             ),
           const SizedBox(width: 8),
           IconButton(
@@ -143,18 +146,18 @@ class _InstallQueuePanel extends ConsumerWidget {
                 ? notifier.start
                 : null,
             icon: Icon(running ? Icons.pause : Icons.play_arrow),
-            tooltip: running ? '暂停' : '开始',
+            tooltip: running ? l10n.queuePause : l10n.queueStart,
           ),
         ],
       ),
-      emptyText: '暂无安装任务',
+      emptyText: l10n.installQueueEmpty,
       children: [
         for (final task in state.tasks)
           _QueueTile(
             key: ValueKey('install-${task.id}'),
             icon: _installIcon(task.type),
             title: task.name,
-            subtitle: task.description,
+            subtitle: _installTaskDescription(l10n, task),
             status: task.status,
             progress: task.progress,
             error: task.error,
@@ -237,6 +240,7 @@ class _QueueTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final active =
@@ -265,12 +269,15 @@ class _QueueTile extends StatelessWidget {
                 value: progress > 0 ? progress : null,
               ),
               const SizedBox(height: 2),
-              Text(_statusLabel(status, progress), style: textTheme.bodySmall),
+              Text(
+                _statusLabel(l10n, status, progress),
+                style: textTheme.bodySmall,
+              ),
             ],
             if (error != null && error!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
-                error!,
+                localizedErrorMessage(l10n, error),
                 style: textTheme.bodySmall?.copyWith(color: colorScheme.error),
               ),
             ],
@@ -302,13 +309,30 @@ IconData _statusIcon(ResourceTaskStatus status, IconData fallback) {
   };
 }
 
-String _statusLabel(ResourceTaskStatus status, double progress) {
+String _installTaskDescription(AppLocalizations l10n, InstallTask task) {
+  if (task.item != null) return task.description;
+  return switch (task.description) {
+    'Read failed' => l10n.installQueueReadFailed,
+    'Unsupported file' => l10n.installQueueUnsupportedFile,
+    _ => switch (task.type) {
+      LocalDeviceInstallType.app => l10n.localAppInstall,
+      LocalDeviceInstallType.watchface => l10n.localWatchfaceInstall,
+      LocalDeviceInstallType.firmware => l10n.localFirmwareInstall,
+    },
+  };
+}
+
+String _statusLabel(
+  AppLocalizations l10n,
+  ResourceTaskStatus status,
+  double progress,
+) {
   final percent = (progress * 100).toStringAsFixed(0);
   return switch (status) {
-    ResourceTaskStatus.pending => '等待中',
-    ResourceTaskStatus.downloading => '下载中 $percent%',
-    ResourceTaskStatus.installing => '安装中 $percent%',
-    ResourceTaskStatus.completed => '已完成',
-    ResourceTaskStatus.failed => '失败',
+    ResourceTaskStatus.pending => l10n.queueStatusPending,
+    ResourceTaskStatus.downloading => l10n.queueStatusDownloading(percent),
+    ResourceTaskStatus.installing => l10n.queueStatusInstalling(percent),
+    ResourceTaskStatus.completed => l10n.queueStatusCompleted,
+    ResourceTaskStatus.failed => l10n.queueStatusFailed,
   };
 }

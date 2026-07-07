@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zerobox/src/app/generated/app_localizations.dart';
+import 'package:zerobox/src/app/utils/error_localization.dart';
 import 'package:zerobox/src/app/widgets/page_container.dart';
 import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
 import 'package:zerobox/src/core/constants/style_constants.dart';
@@ -83,7 +84,7 @@ class _DeviceAppsPageState extends ConsumerState<DeviceAppsPage> {
             : _loading
             ? const Center(child: CircularProgressIndicator())
             : _error != null
-            ? Center(child: Text('${l10n.error}: $_error'))
+            ? Center(child: Text(localizedErrorMessage(l10n, _error)))
             : displayedApps.isEmpty
             ? Center(child: Text(l10n.appManagementNone))
             : ListView.builder(
@@ -121,12 +122,32 @@ class _AppActions extends StatelessWidget {
         return PopupMenuButton<String>(
           onSelected: (value) async {
             final manager = ref.read(deviceManagerProvider.notifier);
-            if (value == 'uninstall') {
-              await manager.uninstallApp(app);
-              onRefresh();
+            try {
+              switch (value) {
+                case 'open':
+                  await manager.openApp(app);
+                case 'uninstall':
+                  await manager.uninstallApp(app);
+                  onRefresh();
+              }
+            } catch (e) {
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(localizedErrorMessage(l10n, e))),
+              );
             }
           },
           itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'open',
+              child: Row(
+                children: [
+                  const Icon(Icons.open_in_new),
+                  const SizedBox(width: 8),
+                  Text(l10n.open),
+                ],
+              ),
+            ),
             PopupMenuItem(
               value: 'uninstall',
               child: Row(

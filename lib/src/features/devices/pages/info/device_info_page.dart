@@ -36,85 +36,66 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(deviceManagerProvider);
     final device = state.currentDevice;
+    final items = <Widget>[
+      if (device != null)
+        _InfoGroup(
+          title: l10n.deviceInfoGroupDevice,
+          children: [
+            _InfoRow(label: l10n.fieldName, value: device.name),
+            _InfoRow(label: l10n.fieldAddress, value: device.addr),
+            _InfoRow(label: l10n.fieldAuthkey, value: device.authkey ?? '-'),
+            _InfoRow(label: l10n.fieldConnectionType, value: device.connectType),
+            _InfoRow(label: l10n.fieldCodename, value: device.codename ?? '-'),
+          ],
+        ),
+      if (state.systemInfo != null)
+        _InfoGroup(
+          title: l10n.deviceInfoGroupSystem,
+          children: [
+            _InfoRow(label: l10n.fieldModel, value: state.systemInfo!.model),
+            _InfoRow(label: l10n.fieldImei, value: state.systemInfo!.imei),
+            _InfoRow(
+              label: l10n.fieldFirmware,
+              value: state.systemInfo!.firmwareVersion,
+            ),
+            _InfoRow(
+              label: l10n.fieldSerial,
+              value: state.systemInfo!.serialNumber,
+            ),
+            if (state.systemInfo!.storageInfo != null)
+              _InfoRow(
+                label: l10n.fieldStorage,
+                value: _formatStorage(state.systemInfo!.storageInfo!),
+              ),
+          ],
+        ),
+      if (state.battery != null)
+        _InfoGroup(
+          title: l10n.deviceInfoGroupStatus,
+          children: [
+            _InfoRow(
+              label: l10n.fieldBattery,
+              value: '${state.battery!.capacity}%',
+            ),
+            _InfoRow(
+              label: l10n.fieldChargeStatus,
+              value: state.battery!.chargeStatus.name,
+            ),
+          ],
+        ),
+    ];
 
     return Scaffold(
       appBar: SysAppBar(title: Text(l10n.deviceInfoTitle)),
       body: PageContainer(
-        child: ListView(
+        padding: EdgeInsets.zero,
+        child: ListView.separated(
           padding: const EdgeInsets.symmetric(
             horizontal: StyleConstants.pagePadding,
-            vertical: StyleConstants.pagePadding,
           ),
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Text(
-                l10n.deviceInfoNotRealtime,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ),
-            if (device != null)
-              _InfoGroup(
-                title: l10n.deviceInfoGroupDevice,
-                children: [
-                  _InfoRow(label: l10n.fieldName, value: device.name),
-                  _InfoRow(label: l10n.fieldAddress, value: device.addr),
-                  _InfoRow(
-                    label: l10n.fieldAuthkey,
-                    value: device.authkey ?? '-',
-                  ),
-                  _InfoRow(
-                    label: l10n.fieldConnectionType,
-                    value: device.connectType,
-                  ),
-                  _InfoRow(
-                    label: l10n.fieldCodename,
-                    value: device.codename ?? '-',
-                  ),
-                ],
-              ),
-            if (state.systemInfo != null)
-              _InfoGroup(
-                title: l10n.deviceInfoGroupSystem,
-                children: [
-                  _InfoRow(
-                    label: l10n.fieldModel,
-                    value: state.systemInfo!.model,
-                  ),
-                  _InfoRow(
-                    label: l10n.fieldImei,
-                    value: state.systemInfo!.imei,
-                  ),
-                  _InfoRow(
-                    label: l10n.fieldFirmware,
-                    value: state.systemInfo!.firmwareVersion,
-                  ),
-                  _InfoRow(
-                    label: l10n.fieldSerial,
-                    value: state.systemInfo!.serialNumber,
-                  ),
-                  if (state.systemInfo!.storageInfo != null)
-                    _InfoRow(
-                      label: l10n.fieldStorage,
-                      value: _formatStorage(state.systemInfo!.storageInfo!),
-                    ),
-                ],
-              ),
-            if (state.battery != null)
-              _InfoGroup(
-                title: l10n.deviceInfoGroupStatus,
-                children: [
-                  _InfoRow(
-                    label: l10n.fieldBattery,
-                    value: '${state.battery!.capacity}%',
-                  ),
-                  _InfoRow(
-                    label: l10n.fieldChargeStatus,
-                    value: state.battery!.chargeStatus.name,
-                  ),
-                ],
-              ),
-          ],
+          itemCount: items.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) => items[index],
         ),
       ),
     );
@@ -130,7 +111,7 @@ class _InfoGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SectionCard(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -271,9 +271,10 @@ class SettingsTile<T> extends AbstractSettingsTile {
   }
 
   Widget buildTileContent(BuildContext context) {
+    final theme = Theme.of(context);
     // You need to wrap Ink widgets with Material to clip it properly.
     return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+      color: theme.cardTheme.color ?? theme.colorScheme.surfaceContainerHighest,
       child: InkWell(
         onTap: (enabled)
             ? () {

@@ -4,15 +4,18 @@ import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:zerobox/src/data/astrobox/astrobox_cdn.dart';
 import 'package:zerobox/src/data/astrobox/models/astrobox_models.dart';
 import 'package:zerobox/src/data/community/community_resource_repository.dart';
 import 'package:zerobox/src/data/community/community_source.dart';
 import 'package:zerobox/src/device/core/xiaomi_wearable_catalog.dart';
 
 class AstroBoxRepoCommunityRepository implements CommunityResourceRepository {
-  AstroBoxRepoCommunityRepository({Dio? dio}) : _dio = dio ?? Dio();
+  AstroBoxRepoCommunityRepository({Dio? dio, this.cdn = AstroBoxCdn.raw})
+    : _dio = dio ?? Dio();
 
   final Dio _dio;
+  final AstroBoxCdn cdn;
 
   static const String _repoBase =
       'https://raw.githubusercontent.com/AstralSightStudios/AstroBox-Repo/refs/heads/main';
@@ -270,16 +273,18 @@ class AstroBoxRepoCommunityRepository implements CommunityResourceRepository {
 
   @override
   String resolveImageUrl(AstroBoxIndexItem item, String path) {
-    if (path.startsWith('http://') ||
-        path.startsWith('https://') ||
-        path.startsWith('data:') ||
-        path.startsWith('blob:') ||
-        path.startsWith('tauri:') ||
-        path.startsWith('/')) {
-      return path;
+    final trimmed = path.trim();
+    if (trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('data:') ||
+        trimmed.startsWith('blob:') ||
+        trimmed.startsWith('tauri:') ||
+        trimmed.startsWith('/')) {
+      return rewriteGithubCdnUrl(trimmed, cdn);
     }
     final base = _buildRepoRawUrl(item);
-    return '$base/${Uri.encodeComponent(path.trimStartMatches('/'))}';
+    final url = '$base/${Uri.encodeComponent(trimmed.trimStartMatches('/'))}';
+    return rewriteGithubCdnUrl(url, cdn);
   }
 
   String buildRepoRawUrl(AstroBoxIndexItem item) => _buildRepoRawUrl(item);
@@ -293,7 +298,9 @@ class AstroBoxRepoCommunityRepository implements CommunityResourceRepository {
       return resolveImageUrl(item, download.url!);
     }
     final base = _buildRepoRawUrl(item).replaceAll(RegExp(r'/+$'), '');
-    return '$base/${Uri.encodeComponent(download.fileName.trimStartMatches('/'))}';
+    final url =
+        '$base/${Uri.encodeComponent(download.fileName.trimStartMatches('/'))}';
+    return rewriteGithubCdnUrl(url, cdn);
   }
 
   String _buildRepoRawUrl(AstroBoxIndexItem item) {

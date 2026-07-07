@@ -21,7 +21,6 @@ abstract final class AppTheme {
 
   static const pageTransitionsTheme = PageTransitionsTheme(
     builders: {
-      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
       TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
       TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
       TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
@@ -45,23 +44,24 @@ abstract final class AppTheme {
     Brightness brightness, {
     ColorScheme? colorScheme,
   }) {
-    final effectiveColorScheme =
-        colorScheme ??
-        ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6750A4),
-          brightness: brightness,
-        );
+    final effectiveColorScheme = _withLayeredSurfaces(
+      colorScheme ??
+          ColorScheme.fromSeed(
+            seedColor: const Color(0xFF6750A4),
+            brightness: brightness,
+          ),
+    );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: effectiveColorScheme,
       brightness: brightness,
       pageTransitionsTheme: pageTransitionsTheme,
-      scaffoldBackgroundColor: effectiveColorScheme.surface,
+      scaffoldBackgroundColor: effectiveColorScheme.surfaceContainerLowest,
       appBarTheme: AppBarTheme(
         centerTitle: false,
         scrolledUnderElevation: 0,
-        backgroundColor: effectiveColorScheme.surface,
+        backgroundColor: effectiveColorScheme.surfaceContainerLowest,
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           systemNavigationBarColor: Colors.transparent,
@@ -110,7 +110,7 @@ abstract final class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: effectiveColorScheme.surfaceContainerHighest,
+        fillColor: effectiveColorScheme.surfaceContainerHigh,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
           borderSide: BorderSide.none,
@@ -157,5 +157,26 @@ abstract final class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
+  }
+
+  static ColorScheme _withLayeredSurfaces(ColorScheme colorScheme) {
+    final light = colorScheme.brightness == Brightness.light;
+    final base = colorScheme.surface;
+    final tint = colorScheme.primary;
+    final container = _tintedSurface(base, tint, light ? 0.035 : 0.08);
+    final containerHigh = _tintedSurface(base, tint, light ? 0.065 : 0.12);
+    final containerHighest = _tintedSurface(base, tint, light ? 0.095 : 0.16);
+
+    return colorScheme.copyWith(
+      surfaceContainerLowest: base,
+      surfaceContainerLow: _tintedSurface(base, tint, light ? 0.02 : 0.055),
+      surfaceContainer: container,
+      surfaceContainerHigh: containerHigh,
+      surfaceContainerHighest: containerHighest,
+    );
+  }
+
+  static Color _tintedSurface(Color base, Color tint, double alpha) {
+    return Color.alphaBlend(tint.withValues(alpha: alpha), base);
   }
 }

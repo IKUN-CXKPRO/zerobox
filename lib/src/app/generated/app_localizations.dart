@@ -110,11 +110,11 @@ abstract class AppLocalizations {
   /// **'Home'**
   String get homeTab;
 
-  /// No description provided for @resourcesTab.
+  /// No description provided for @exploreTab.
   ///
   /// In en, this message translates to:
-  /// **'Resources'**
-  String get resourcesTab;
+  /// **'Explore'**
+  String get exploreTab;
 
   /// No description provided for @devicesTab.
   ///
@@ -512,6 +512,72 @@ abstract class AppLocalizations {
   /// **'Error'**
   String get error;
 
+  /// No description provided for @errorBluetoothUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth is not available. Check that Bluetooth is enabled and ZeroBox has permission to use it'**
+  String get errorBluetoothUnavailable;
+
+  /// No description provided for @errorBluetoothConnectFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth connection failed. Make sure the device is nearby, not occupied by another app, and try restarting Bluetooth'**
+  String get errorBluetoothConnectFailed;
+
+  /// No description provided for @errorBluetoothDisconnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth disconnected. Reconnect the device and try again'**
+  String get errorBluetoothDisconnected;
+
+  /// No description provided for @errorOperationTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation timed out. Make sure the device is still nearby and try again'**
+  String get errorOperationTimeout;
+
+  /// No description provided for @errorDeviceNotReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Device is not ready. Connect and authenticate the device first'**
+  String get errorDeviceNotReady;
+
+  /// No description provided for @errorBleCharacteristicsMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Required BLE channels were not found. Reconnect the device or check whether it supports this feature'**
+  String get errorBleCharacteristicsMissing;
+
+  /// No description provided for @errorWebSerialUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This browser does not support Web Serial. Use Chrome, Edge, or another Web Serial compatible browser'**
+  String get errorWebSerialUnavailable;
+
+  /// No description provided for @errorAccountPasswordIncorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'Xiaomi account username or password is incorrect'**
+  String get errorAccountPasswordIncorrect;
+
+  /// No description provided for @errorAccountTwoFactorIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Xiaomi account two-factor verification was not completed. Sign in again'**
+  String get errorAccountTwoFactorIncomplete;
+
+  /// No description provided for @errorUnsupportedFileType.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported or unrecognized file type'**
+  String get errorUnsupportedFileType;
+
+  /// No description provided for @errorUnknownWithDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation failed: {detail}'**
+  String errorUnknownWithDetail(Object detail);
+
   /// No description provided for @copyLogs.
   ///
   /// In en, this message translates to:
@@ -812,6 +878,18 @@ abstract class AppLocalizations {
   /// **'Share QR'**
   String get deviceActionsShareQR;
 
+  /// No description provided for @deviceShareZeroBoxCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to ZeroBox code'**
+  String get deviceShareZeroBoxCode;
+
+  /// No description provided for @deviceShareAstroBoxCompatibleCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to AstroBox compatible code'**
+  String get deviceShareAstroBoxCompatibleCode;
+
   /// No description provided for @installTapToSelectFile.
   ///
   /// In en, this message translates to:
@@ -835,12 +913,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Device info'**
   String get deviceInfoTitle;
-
-  /// No description provided for @deviceInfoNotRealtime.
-  ///
-  /// In en, this message translates to:
-  /// **'Data may not be real-time'**
-  String get deviceInfoNotRealtime;
 
   /// No description provided for @deviceInfoGroupDevice.
   ///
@@ -1009,6 +1081,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copy'**
   String get copy;
+
+  /// No description provided for @copied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get copied;
 
   /// No description provided for @close.
   ///
@@ -1310,6 +1388,36 @@ abstract class AppLocalizations {
   /// **'Change app display language'**
   String get settingsGeneralLanguageDesc;
 
+  /// No description provided for @settingsWideNavigationPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Navigation position'**
+  String get settingsWideNavigationPosition;
+
+  /// No description provided for @settingsWideNavigationPositionDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust side tab placement in the wide-screen state'**
+  String get settingsWideNavigationPositionDesc;
+
+  /// No description provided for @settingsWideNavigationPositionBottom.
+  ///
+  /// In en, this message translates to:
+  /// **'Bottom'**
+  String get settingsWideNavigationPositionBottom;
+
+  /// No description provided for @settingsWideNavigationPositionCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Center'**
+  String get settingsWideNavigationPositionCenter;
+
+  /// No description provided for @settingsWideNavigationPositionSplit.
+  ///
+  /// In en, this message translates to:
+  /// **'Split'**
+  String get settingsWideNavigationPositionSplit;
+
   /// No description provided for @settingsGeneralTranslateTeam.
   ///
   /// In en, this message translates to:
@@ -1610,6 +1718,54 @@ abstract class AppLocalizations {
   /// **'Use system accent colors for the app theme'**
   String get settingsDynamicColorDesc;
 
+  /// No description provided for @settingsColorScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Color scheme'**
+  String get settingsColorScheme;
+
+  /// No description provided for @settingsColorSchemeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the app accent color'**
+  String get settingsColorSchemeDesc;
+
+  /// No description provided for @settingsColorSchemePink.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get settingsColorSchemePink;
+
+  /// No description provided for @settingsColorSchemePurple.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get settingsColorSchemePurple;
+
+  /// No description provided for @settingsColorSchemeTeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Teal'**
+  String get settingsColorSchemeTeal;
+
+  /// No description provided for @settingsColorSchemeGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get settingsColorSchemeGreen;
+
+  /// No description provided for @settingsColorSchemeRed.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get settingsColorSchemeRed;
+
+  /// No description provided for @settingsColorSchemeAmber.
+  ///
+  /// In en, this message translates to:
+  /// **'Amber'**
+  String get settingsColorSchemeAmber;
+
   /// No description provided for @settingsDesktopAccentSource.
   ///
   /// In en, this message translates to:
@@ -1687,6 +1843,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Main Developer / Designer'**
   String get settingsTeamRoleMain;
+
+  /// No description provided for @settingsTeamRoleZeppOS.
+  ///
+  /// In en, this message translates to:
+  /// **'ZeppOS implementation'**
+  String get settingsTeamRoleZeppOS;
 
   /// No description provided for @settingsAboutSoftware.
   ///
@@ -1819,6 +1981,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open resource library'**
   String get openResourceLibrary;
+
+  /// No description provided for @downloadQueueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download queue'**
+  String get downloadQueueTitle;
+
+  /// No description provided for @installQueueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Install queue'**
+  String get installQueueTitle;
+
+  /// No description provided for @queueClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get queueClear;
+
+  /// No description provided for @queueStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get queueStart;
+
+  /// No description provided for @queuePause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get queuePause;
+
+  /// No description provided for @downloadQueueEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No download tasks'**
+  String get downloadQueueEmpty;
+
+  /// No description provided for @installQueueEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No install tasks'**
+  String get installQueueEmpty;
+
+  /// No description provided for @localAppInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Local app install'**
+  String get localAppInstall;
+
+  /// No description provided for @localWatchfaceInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Local watchface install'**
+  String get localWatchfaceInstall;
+
+  /// No description provided for @localFirmwareInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Local firmware install'**
+  String get localFirmwareInstall;
+
+  /// No description provided for @queueStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting'**
+  String get queueStatusPending;
+
+  /// No description provided for @queueStatusDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {percent}%'**
+  String queueStatusDownloading(String percent);
+
+  /// No description provided for @queueStatusInstalling.
+  ///
+  /// In en, this message translates to:
+  /// **'Installing {percent}%'**
+  String queueStatusInstalling(String percent);
+
+  /// No description provided for @queueStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get queueStatusCompleted;
+
+  /// No description provided for @queueStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get queueStatusFailed;
+
+  /// No description provided for @queueDragToInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Release to add to install queue'**
+  String get queueDragToInstall;
+
+  /// No description provided for @queueAddedFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {count} files to install queue'**
+  String queueAddedFiles(int count);
+
+  /// No description provided for @installQueueReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Read failed'**
+  String get installQueueReadFailed;
+
+  /// No description provided for @installQueueUnsupportedFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported file'**
+  String get installQueueUnsupportedFile;
 }
 
 class _AppLocalizationsDelegate

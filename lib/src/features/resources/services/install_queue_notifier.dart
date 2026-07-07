@@ -154,7 +154,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
         final task = InstallTask(
           id: file.path,
           name: fileName,
-          description: '读取失败',
+          description: 'Read failed',
           type: LocalDeviceInstallType.app,
           filePath: file.path,
           status: ResourceTaskStatus.failed,
@@ -168,12 +168,12 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
         final task = InstallTask(
           id: file.path,
           name: fileName,
-          description: '不支持的文件',
+          description: 'Unsupported file',
           type: LocalDeviceInstallType.app,
           filePath: file.path,
           bytes: bytes,
           status: ResourceTaskStatus.failed,
-          error: '不支持或无法识别的文件类型',
+          error: 'Unsupported or unrecognized file type',
         );
         _addTask(task);
         return;
@@ -324,7 +324,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     if (deviceState.protocolState != proto.ProtocolState.ready ||
         deviceState.currentDevice == null ||
         deviceState.currentDevice!.disconnected) {
-      _updateTask(task.id, ResourceTaskStatus.failed, 0, '未连接设备');
+      _updateTask(task.id, ResourceTaskStatus.failed, 0, 'Device not ready');
       return;
     }
     final deviceManager = ref.read(deviceManagerProvider.notifier);
@@ -390,9 +390,9 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
 
 String _localTypeDescription(LocalDeviceInstallType type) {
   return switch (type) {
-    LocalDeviceInstallType.app => '本地应用安装',
-    LocalDeviceInstallType.watchface => '本地表盘安装',
-    LocalDeviceInstallType.firmware => '本地固件安装',
+    LocalDeviceInstallType.app => 'Local app install',
+    LocalDeviceInstallType.watchface => 'Local watchface install',
+    LocalDeviceInstallType.firmware => 'Local firmware install',
   };
 }
 

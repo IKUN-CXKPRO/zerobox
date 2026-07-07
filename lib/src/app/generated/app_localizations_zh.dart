@@ -15,7 +15,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeTab => '首页';
 
   @override
-  String get resourcesTab => '资源';
+  String get exploreTab => '探索';
 
   @override
   String get devicesTab => '设备';
@@ -216,6 +216,45 @@ class AppLocalizationsZh extends AppLocalizations {
   String get error => '错误';
 
   @override
+  String get errorBluetoothUnavailable =>
+      '蓝牙不可用，请检查蓝牙是否已开启，并确认系统权限已允许 ZeroBox 使用蓝牙';
+
+  @override
+  String get errorBluetoothConnectFailed =>
+      '蓝牙连接失败，请确认设备在附近、未被其他程序占用，并尝试重新开启蓝牙';
+
+  @override
+  String get errorBluetoothDisconnected => '蓝牙连接已断开，请重新连接设备';
+
+  @override
+  String get errorOperationTimeout => '操作超时，请确认设备仍在附近并重试';
+
+  @override
+  String get errorDeviceNotReady => '设备尚未准备好，请先连接并完成认证';
+
+  @override
+  String get errorBleCharacteristicsMissing =>
+      '未找到需要的 BLE 通道，请重新连接设备或检查设备是否支持该功能';
+
+  @override
+  String get errorWebSerialUnavailable =>
+      '当前浏览器不支持 Web Serial，请使用 Chrome / Edge 等支持 Web Serial 的浏览器';
+
+  @override
+  String get errorAccountPasswordIncorrect => '小米账号或密码错误';
+
+  @override
+  String get errorAccountTwoFactorIncomplete => '小米账号二次验证未完成，请重新登录';
+
+  @override
+  String get errorUnsupportedFileType => '不支持或无法识别的文件类型';
+
+  @override
+  String errorUnknownWithDetail(Object detail) {
+    return '操作失败：$detail';
+  }
+
+  @override
   String get copyLogs => '复制日志';
 
   @override
@@ -368,6 +407,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceActionsShareQR => '分享二维码';
 
   @override
+  String get deviceShareZeroBoxCode => '切换为 ZeroBox 码';
+
+  @override
+  String get deviceShareAstroBoxCompatibleCode => '切换 AstroBox 兼容码';
+
+  @override
   String get installTapToSelectFile => '点击选择文件';
 
   @override
@@ -378,9 +423,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deviceInfoTitle => '设备信息';
-
-  @override
-  String get deviceInfoNotRealtime => '数据可能不是实时的';
 
   @override
   String get deviceInfoGroupDevice => '设备';
@@ -465,6 +507,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get copy => '复制';
+
+  @override
+  String get copied => '已复制';
 
   @override
   String get close => '关闭';
@@ -621,6 +666,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsGeneralLanguageDesc => '更改应用显示语言';
 
   @override
+  String get settingsWideNavigationPosition => '导航位置';
+
+  @override
+  String get settingsWideNavigationPositionDesc => '调整宽屏状态下侧边标签的位置';
+
+  @override
+  String get settingsWideNavigationPositionBottom => '置底';
+
+  @override
+  String get settingsWideNavigationPositionCenter => '居中';
+
+  @override
+  String get settingsWideNavigationPositionSplit => '分离';
+
+  @override
   String get settingsGeneralTranslateTeam => '翻译贡献者';
 
   @override
@@ -771,6 +831,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsDynamicColorDesc => '使用系统主题色调整应用配色';
 
   @override
+  String get settingsColorScheme => '配色方案';
+
+  @override
+  String get settingsColorSchemeDesc => '选择应用主题色';
+
+  @override
+  String get settingsColorSchemePink => '粉色';
+
+  @override
+  String get settingsColorSchemePurple => '紫色';
+
+  @override
+  String get settingsColorSchemeTeal => '青色';
+
+  @override
+  String get settingsColorSchemeGreen => '绿色';
+
+  @override
+  String get settingsColorSchemeRed => '红色';
+
+  @override
+  String get settingsColorSchemeAmber => '琥珀色';
+
+  @override
   String get settingsDesktopAccentSource => 'Linux 主题色来源';
 
   @override
@@ -808,6 +892,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsTeamRoleMain => '主开发 / 设计';
+
+  @override
+  String get settingsTeamRoleZeppOS => 'ZeppOS 实现';
 
   @override
   String get settingsAboutSoftware => '关于软件';
@@ -877,4 +964,67 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get openResourceLibrary => '打开资源库';
+
+  @override
+  String get downloadQueueTitle => '下载队列';
+
+  @override
+  String get installQueueTitle => '安装队列';
+
+  @override
+  String get queueClear => '清空';
+
+  @override
+  String get queueStart => '开始';
+
+  @override
+  String get queuePause => '暂停';
+
+  @override
+  String get downloadQueueEmpty => '暂无下载任务';
+
+  @override
+  String get installQueueEmpty => '暂无安装任务';
+
+  @override
+  String get localAppInstall => '本地应用安装';
+
+  @override
+  String get localWatchfaceInstall => '本地表盘安装';
+
+  @override
+  String get localFirmwareInstall => '本地固件安装';
+
+  @override
+  String get queueStatusPending => '等待中';
+
+  @override
+  String queueStatusDownloading(String percent) {
+    return '下载中 $percent%';
+  }
+
+  @override
+  String queueStatusInstalling(String percent) {
+    return '安装中 $percent%';
+  }
+
+  @override
+  String get queueStatusCompleted => '已完成';
+
+  @override
+  String get queueStatusFailed => '失败';
+
+  @override
+  String get queueDragToInstall => '松开以加入安装队列';
+
+  @override
+  String queueAddedFiles(int count) {
+    return '已加入安装队列：$count 个文件';
+  }
+
+  @override
+  String get installQueueReadFailed => '读取失败';
+
+  @override
+  String get installQueueUnsupportedFile => '不支持的文件';
 }

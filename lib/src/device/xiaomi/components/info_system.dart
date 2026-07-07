@@ -5,6 +5,8 @@ import 'package:zerobox/src/core/models/bt_models.dart' as models;
 import 'package:zerobox/src/device/core/event_bus.dart';
 import 'package:zerobox/src/device/xiaomi/system/xiaomi_system.dart';
 import 'package:zerobox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
+import 'package:zerobox/src/protocols/generated/xiaomi/wear_lpa.pb.dart'
+    as pb_lpa;
 import 'package:zerobox/src/protocols/generated/xiaomi/wear_system.pb.dart'
     as pb_system;
 import 'package:zerobox/src/protocols/generated/xiaomi/wear_watch_face.pb.dart'
@@ -64,6 +66,29 @@ class XiaomiInfoSystem extends XiaomiPbSystem {
     );
     entity.emit(DeviceInfoUpdated(deviceId: entity.id, info: info));
     return info;
+  }
+
+  Future<String?> fetchEuiccImei() async {
+    _log.info('[${entity.id}] fetching eUICC info');
+    final response = await component.requestPool.request<pb_lpa.EuiccInfo>(
+      packet: pb.WearPacket(
+        type: pb.WearPacket_Type.LPA,
+        id: pb_lpa.Lpa_LpaID.GET_EUICC_INFO.value,
+        lpa: pb_lpa.Lpa(),
+      ),
+      typeMatcher: (p) =>
+          p.whichPayload() == pb.WearPacket_Payload.lpa &&
+          p.id == pb_lpa.Lpa_LpaID.GET_EUICC_INFO.value &&
+          p.lpa.hasEuiccInfo(),
+      responseMapper: (p) => p.lpa.euiccInfo,
+      timeout: const Duration(seconds: 3),
+    );
+    final imei = response.hasImei() ? response.imei.trim() : '';
+    final eidLength = response.hasEid() ? response.eid.length : 0;
+    _log.info(
+      '[${entity.id}] eUICC info: imei_present=${imei.isNotEmpty}, eid_bytes=$eidLength',
+    );
+    return imei.isEmpty ? null : imei;
   }
 
   Future<models.StorageInfo> fetchStorageInfo() async {

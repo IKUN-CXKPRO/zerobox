@@ -6,18 +6,10 @@ import 'package:zerobox/src/app/widgets/page_container.dart';
 import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
 import 'package:zerobox/src/core/constants/app_constants.dart';
 import 'package:zerobox/src/core/constants/style_constants.dart';
+import 'package:zerobox/src/core/services/build_info_service.dart';
 
 class AboutSoftwarePage extends StatelessWidget {
   const AboutSoftwarePage({super.key});
-
-  static const _appVersion = String.fromEnvironment(
-    'APP_VERSION',
-    defaultValue: '1.0.0+1',
-  );
-  static const _buildCommit = String.fromEnvironment(
-    'GIT_COMMIT_HASH',
-    defaultValue: 'local',
-  );
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +57,7 @@ class AboutSoftwarePage extends StatelessWidget {
                         final member = AppConstants.teamMembers[index];
                         return _TeamMemberTile(
                           name: member.name,
-                          role: member.role,
+                          role: _roleLabel(l10n, member.role),
                           avatarAsset: member.avatarAsset,
                           onTap: () => _openUrl(member.githubUrl),
                         );
@@ -100,13 +92,19 @@ class AboutSoftwarePage extends StatelessWidget {
               _Section(
                 icon: Icons.terminal_outlined,
                 title: l10n.settingsAboutSoftwareBuildInfo,
-                child: SelectableText(
-                  'APP_VERSION: $_appVersion\n'
-                  'GIT_COMMIT_HASH: $_buildCommit',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontFamily: 'monospace',
-                  ),
+                child: FutureBuilder<String>(
+                  future: BuildInfoService.resolveCommitHash(),
+                  builder: (context, snapshot) {
+                    final commit = snapshot.data ?? 'local';
+                    return SelectableText(
+                      'APP_VERSION: ${BuildInfoService.appVersion}\n'
+                      'GIT_COMMIT_HASH: $commit',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontFamily: 'monospace',
+                      ),
+                    );
+                  },
                 ),
               ),
               Text(
@@ -128,6 +126,13 @@ class AboutSoftwarePage extends StatelessWidget {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
+  }
+
+  String _roleLabel(AppLocalizations l10n, TeamRole role) {
+    return switch (role) {
+      TeamRole.mainDeveloperDesigner => l10n.settingsTeamRoleMain,
+      TeamRole.zeppOSImplementation => l10n.settingsTeamRoleZeppOS,
+    };
   }
 }
 
@@ -157,13 +162,23 @@ class _AboutHeader extends StatelessWidget {
         final logo = Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: Image.asset(
-                'assets/images/app_icon.png',
-                width: 64,
-                height: 64,
-                fit: BoxFit.cover,
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(2),
+                child: SizedBox(
+                  width: 60,
+                  height: 60,
+                  child: SvgPicture.asset(
+                    'assets/images/app_icon.svg',
+                    width: 60,
+                    height: 60,
+                    colorMapper: _AppIconColorMapper(colorScheme),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 16),
@@ -272,6 +287,36 @@ class _Section extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AppIconColorMapper extends ColorMapper {
+  const _AppIconColorMapper(this.colorScheme);
+
+  final ColorScheme colorScheme;
+
+  @override
+  Color substitute(
+    String? id,
+    String elementName,
+    String attributeName,
+    Color color,
+  ) {
+    return switch (color) {
+      const Color(0xFF211A1B) => colorScheme.surface,
+      const Color(0xFF744550) => colorScheme.primaryContainer,
+      const Color(0xFFF4B6C3) => colorScheme.primary,
+      const Color(0xFFFFD8EF) => colorScheme.onPrimaryContainer,
+      _ => color,
+    };
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is _AppIconColorMapper && other.colorScheme == colorScheme;
+  }
+
+  @override
+  int get hashCode => colorScheme.hashCode;
 }
 
 class _TeamMemberTile extends StatelessWidget {

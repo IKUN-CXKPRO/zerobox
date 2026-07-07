@@ -11,22 +11,26 @@ class ThemeSettings {
     required this.themeMode,
     required this.useDynamicColor,
     required this.desktopAccentColorSource,
+    required this.customSeedColor,
   });
 
   final AppThemeMode themeMode;
   final bool useDynamicColor;
   final DesktopAccentColorSource desktopAccentColorSource;
+  final Color customSeedColor;
 
   ThemeSettings copyWith({
     AppThemeMode? themeMode,
     bool? useDynamicColor,
     DesktopAccentColorSource? desktopAccentColorSource,
+    Color? customSeedColor,
   }) {
     return ThemeSettings(
       themeMode: themeMode ?? this.themeMode,
       useDynamicColor: useDynamicColor ?? this.useDynamicColor,
       desktopAccentColorSource:
           desktopAccentColorSource ?? this.desktopAccentColorSource,
+      customSeedColor: customSeedColor ?? this.customSeedColor,
     );
   }
 
@@ -34,6 +38,8 @@ class ThemeSettings {
   static const String _keyDynamicColor = 'app_dynamic_color';
   static const String _keyDesktopAccentColorSource =
       'app_desktop_accent_color_source';
+  static const String _keyCustomSeedColor = 'app_custom_seed_color';
+  static const Color _defaultSeedColor = Color(0xFF6750A4);
 
   static ThemeSettings load() {
     final prefs = SharedPrefsService.instance;
@@ -53,6 +59,9 @@ class ThemeSettings {
         DesktopAccentColorSource.system,
       ),
       useDynamicColor: prefs.getBool(_keyDynamicColor) ?? true,
+      customSeedColor: Color(
+        prefs.getInt(_keyCustomSeedColor) ?? _defaultSeedColor.toARGB32(),
+      ),
     );
   }
 
@@ -64,6 +73,7 @@ class ThemeSettings {
       _keyDesktopAccentColorSource,
       desktopAccentColorSource.name,
     );
+    await prefs.setInt(_keyCustomSeedColor, customSeedColor.toARGB32());
   }
 
   ThemeMode get materialThemeMode {
@@ -111,6 +121,11 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     DesktopAccentColorSource source,
   ) async {
     state = state.copyWith(desktopAccentColorSource: source);
+    await state.save();
+  }
+
+  Future<void> setCustomSeedColor(Color color) async {
+    state = state.copyWith(customSeedColor: color);
     await state.save();
   }
 }

@@ -623,6 +623,7 @@ void handle_connect_async(std::string addr, std::vector<uint8_t> channels,
                           FlMethodCall* method_call, uint64_t generation) {
   std::thread([addr, channels, method_call, generation]() {
     std::string last_error;
+    std::vector<std::string> errors;
     int connected_fd = -1;
     uint8_t connected_channel = 0;
 
@@ -636,21 +637,7 @@ void handle_connect_async(std::string addr, std::vector<uint8_t> channels,
         connected_channel = channel;
         break;
       }
-    }
-
-    if (connected_fd < 0) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(300));
-      for (uint8_t channel : channels) {
-        if (generation != g_connect_generation.load()) {
-          last_error = "connect cancelled";
-          break;
-        }
-        if (connect_rfcomm(addr, channel, 10, generation, &last_error,
-                           &connected_fd)) {
-          connected_channel = channel;
-          break;
-        }
-      }
+      errors.push_back(last_error);
     }
 
     auto* result = new ConnectResult();
@@ -662,7 +649,18 @@ void handle_connect_async(std::string addr, std::vector<uint8_t> channels,
       result->channel = connected_channel;
     } else {
       result->success = false;
-      result->error = last_error;
+      if (!errors.empty()) {
+        std::string combined;
+        for (size_t i = 0; i < errors.size(); i++) {
+          if (i > 0) {
+            combined += "; ";
+          }
+          combined += errors[i];
+        }
+        result->error = combined;
+      } else {
+        result->error = last_error;
+      }
     }
     g_main_context_invoke(
         nullptr, [](gpointer data) -> gboolean {

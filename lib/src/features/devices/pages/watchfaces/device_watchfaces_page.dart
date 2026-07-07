@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zerobox/src/app/generated/app_localizations.dart';
+import 'package:zerobox/src/app/utils/error_localization.dart';
 import 'package:zerobox/src/app/widgets/page_container.dart';
 import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
 import 'package:zerobox/src/core/constants/style_constants.dart';
@@ -66,7 +67,7 @@ class _DeviceWatchfacesPageState extends ConsumerState<DeviceWatchfacesPage> {
             : _loading
             ? const Center(child: CircularProgressIndicator())
             : _error != null
-            ? Center(child: Text('${l10n.error}: $_error'))
+            ? Center(child: Text(localizedErrorMessage(l10n, _error)))
             : state.watchfaces.isEmpty
             ? Center(child: Text(l10n.watchfaceManagementNone))
             : ListView.builder(

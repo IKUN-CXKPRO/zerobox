@@ -2,7 +2,7 @@
   "@@locale": "zh",
   "appTitle": "ZeroBox",
   "homeTab": "首页",
-  "resourcesTab": "资源",
+  "exploreTab": "探索",
   "devicesTab": "设备",
   "settingsTab": "设置",
   "search": "搜索",
@@ -70,6 +70,22 @@
   "connection": "连接",
   "protocol": "协议",
   "error": "错误",
+  "errorBluetoothUnavailable": "蓝牙不可用，请检查蓝牙是否已开启，并确认系统权限已允许 ZeroBox 使用蓝牙",
+  "errorBluetoothConnectFailed": "蓝牙连接失败，请确认设备在附近、未被其他程序占用，并尝试重新开启蓝牙",
+  "errorBluetoothDisconnected": "蓝牙连接已断开，请重新连接设备",
+  "errorOperationTimeout": "操作超时，请确认设备仍在附近并重试",
+  "errorDeviceNotReady": "设备尚未准备好，请先连接并完成认证",
+  "errorBleCharacteristicsMissing": "未找到需要的 BLE 通道，请重新连接设备或检查设备是否支持该功能",
+  "errorWebSerialUnavailable": "当前浏览器不支持 Web Serial，请使用 Chrome / Edge 等支持 Web Serial 的浏览器",
+  "errorAccountPasswordIncorrect": "小米账号或密码错误",
+  "errorAccountTwoFactorIncomplete": "小米账号二次验证未完成，请重新登录",
+  "errorUnsupportedFileType": "不支持或无法识别的文件类型",
+  "errorUnknownWithDetail": "操作失败：{detail}",
+  "@errorUnknownWithDetail": {
+    "placeholders": {
+      "detail": {}
+    }
+  },
   "copyLogs": "复制日志",
   "exportLogs": "导出日志",
   "clearLogs": "清空日志",
@@ -120,11 +136,12 @@
   "deviceActionsDelete": "删除",
   "deviceActionsDisconnect": "断开连接",
   "deviceActionsShareQR": "分享二维码",
+  "deviceShareZeroBoxCode": "切换为 ZeroBox 码",
+  "deviceShareAstroBoxCompatibleCode": "切换 AstroBox 兼容码",
   "installTapToSelectFile": "点击选择文件",
   "installPackageName": "包名",
   "installWatchfaceId": "表盘 ID",
   "deviceInfoTitle": "设备信息",
-  "deviceInfoNotRealtime": "数据可能不是实时的",
   "deviceInfoGroupDevice": "设备",
   "deviceInfoGroupSystem": "系统",
   "deviceInfoGroupStatus": "状态",
@@ -153,6 +170,7 @@
   "show": "显示",
   "hide": "隐藏",
   "copy": "复制",
+  "copied": "已复制",
   "close": "关闭",
   "multiDevice": "多设备",
   "quickApp": "快应用",
@@ -210,6 +228,11 @@
   },
   "settingsGeneralLanguage": "语言",
   "settingsGeneralLanguageDesc": "更改应用显示语言",
+  "settingsWideNavigationPosition": "导航位置",
+  "settingsWideNavigationPositionDesc": "调整宽屏状态下侧边标签的位置",
+  "settingsWideNavigationPositionBottom": "置底",
+  "settingsWideNavigationPositionCenter": "居中",
+  "settingsWideNavigationPositionSplit": "分离",
   "settingsGeneralTranslateTeam": "翻译贡献者",
   "settingsAutoReconnectTitle": "自动回连",
   "settingsAutoReconnectDesc": "启动时自动连接上次配对的设备",
@@ -260,6 +283,14 @@
   "settingsThemeMode": "主题模式",
   "settingsDynamicColor": "动态取色",
   "settingsDynamicColorDesc": "使用系统主题色调整应用配色",
+  "settingsColorScheme": "配色方案",
+  "settingsColorSchemeDesc": "选择应用主题色",
+  "settingsColorSchemePink": "粉色",
+  "settingsColorSchemePurple": "紫色",
+  "settingsColorSchemeTeal": "青色",
+  "settingsColorSchemeGreen": "绿色",
+  "settingsColorSchemeRed": "红色",
+  "settingsColorSchemeAmber": "琥珀色",
   "settingsDesktopAccentSource": "Linux 主题色来源",
   "settingsDesktopAccentSourceDesc": "选择从 GTK 或 Qt 读取主题色",
   "settingsDesktopAccentSourceSystem": "自动",
@@ -273,6 +304,7 @@
   "settingsTeamGitHub": "GitHub 仓库",
   "settingsTeamMembers": "团队成员",
   "settingsTeamRoleMain": "主开发 / 设计",
+  "settingsTeamRoleZeppOS": "ZeppOS 实现",
   "settingsAboutSoftware": "关于软件",
   "settingsAboutSoftwareDesc": "版本、更新日志与开发团队",
   "settingsAboutSoftwareTagline": "一个又好看又快的 VelaOS / ZeppOS 可穿戴设备管理软件，使用 Flutter 构建",
@@ -294,5 +326,45 @@
   "resourceHomeEmptySubtitle": "您可以在资源库获取资源",
   "resourceCreatorEmptyTitle": "创作者中心未完成",
   "resourceCreatorEmptySubtitle": "您可以在资源库管理已获取资源",
-  "openResourceLibrary": "打开资源库"
+  "openResourceLibrary": "打开资源库",
+  "downloadQueueTitle": "下载队列",
+  "installQueueTitle": "安装队列",
+  "queueClear": "清空",
+  "queueStart": "开始",
+  "queuePause": "暂停",
+  "downloadQueueEmpty": "暂无下载任务",
+  "installQueueEmpty": "暂无安装任务",
+  "localAppInstall": "本地应用安装",
+  "localWatchfaceInstall": "本地表盘安装",
+  "localFirmwareInstall": "本地固件安装",
+  "queueStatusPending": "等待中",
+  "queueStatusDownloading": "下载中 {percent}%",
+  "@queueStatusDownloading": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "queueStatusInstalling": "安装中 {percent}%",
+  "@queueStatusInstalling": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "queueStatusCompleted": "已完成",
+  "queueStatusFailed": "失败",
+  "queueDragToInstall": "松开以加入安装队列",
+  "queueAddedFiles": "已加入安装队列：{count} 个文件",
+  "@queueAddedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "installQueueReadFailed": "读取失败",
+  "installQueueUnsupportedFile": "不支持的文件"
 }

@@ -5,11 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:zerobox/src/app/generated/app_localizations.dart';
+import 'package:zerobox/src/app/utils/error_localization.dart';
 import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
 import 'package:zerobox/src/core/constants/style_constants.dart';
 import 'package:zerobox/src/core/providers/app_settings_providers.dart';
 import 'package:zerobox/src/core/providers/theme_locale_providers.dart';
 import 'package:zerobox/src/core/services/shared_prefs_service.dart';
+import 'package:zerobox/src/core/utils/layout.dart';
 import 'package:zerobox/src/data/astrobox/astrobox_cdn.dart';
 import 'package:zerobox/src/data/astrobox/astrobox_providers.dart';
 import 'package:zerobox/src/features/accounts/models/mi_account_models.dart';
@@ -24,12 +26,23 @@ class SettingsPage extends ConsumerWidget {
   static const _keyMiAccountRemember = 'mi_account.remember_credentials';
   static const _keyMiAccountUsername = 'mi_account.username';
   static const _keyMiAccountPassword = 'mi_account.password';
+  static const _colorSchemes = <Color>[
+    Color(0xFFE91E63),
+    Color(0xFF6750A4),
+    Color(0xFF006A6A),
+    Color(0xFF006D3F),
+    Color(0xFFB3261E),
+    Color(0xFF755B00),
+  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final showDesktopAccentSource =
         !kIsWeb && defaultTargetPlatform == TargetPlatform.linux;
+    final showWideNavigationPosition =
+        MediaQuery.sizeOf(context).width >= LayoutBreakpoint.medium;
+    final themeSettings = ref.watch(themeSettingsProvider);
 
     return Scaffold(
       appBar: SysAppBar(title: Text(l10n.settingsTab)),
@@ -74,6 +87,12 @@ class SettingsPage extends ConsumerWidget {
                   },
                 ),
               ),
+              SettingsTile.navigation(
+                onPressed: (context) => _showThemeModeSelector(context, ref),
+                leading: const Icon(Icons.dark_mode_outlined),
+                title: Text(l10n.settingsThemeMode),
+                value: Text(_themeModeLabel(l10n, themeSettings.themeMode)),
+              ),
               if (!kIsWeb)
                 SettingsTile.switchTile(
                   onToggle: (value) async {
@@ -81,14 +100,21 @@ class SettingsPage extends ConsumerWidget {
                         .read(themeSettingsProvider.notifier)
                         .setDynamicColor(value ?? true);
                   },
-                  initialValue: ref
-                      .watch(themeSettingsProvider)
-                      .useDynamicColor,
+                  initialValue: themeSettings.useDynamicColor,
                   leading: const Icon(Icons.palette_outlined),
                   title: Text(l10n.settingsDynamicColor),
                   description: Text(l10n.settingsDynamicColorDesc),
                 ),
-              if (showDesktopAccentSource)
+              if (!kIsWeb && !themeSettings.useDynamicColor)
+                SettingsTile.navigation(
+                  onPressed: (context) =>
+                      _showColorSchemeSelector(context, ref),
+                  leading: const Icon(Icons.color_lens_outlined),
+                  title: Text(l10n.settingsColorScheme),
+                  description: Text(l10n.settingsColorSchemeDesc),
+                  value: _ColorDot(color: themeSettings.customSeedColor),
+                ),
+              if (showDesktopAccentSource && themeSettings.useDynamicColor)
                 SettingsTile.navigation(
                   onPressed: (context) =>
                       _showDesktopAccentSourceSelector(context, ref),
@@ -101,6 +127,22 @@ class SettingsPage extends ConsumerWidget {
                           .watch(themeSettingsProvider)
                           .desktopAccentColorSource;
                       return Text(_desktopAccentSourceLabel(l10n, source));
+                    },
+                  ),
+                ),
+              if (showWideNavigationPosition)
+                SettingsTile.navigation(
+                  onPressed: (context) =>
+                      _showWideNavigationPositionSelector(context, ref),
+                  leading: const Icon(Icons.vertical_split_outlined),
+                  title: Text(l10n.settingsWideNavigationPosition),
+                  description: Text(l10n.settingsWideNavigationPositionDesc),
+                  value: Consumer(
+                    builder: (context, ref, _) {
+                      final position = ref
+                          .watch(appSettingsProvider)
+                          .wideNavigationRailPosition;
+                      return Text(_wideNavigationPositionLabel(l10n, position));
                     },
                   ),
                 ),
@@ -215,6 +257,15 @@ class SettingsPage extends ConsumerWidget {
     };
   }
 
+  String _themeModeLabel(AppLocalizations l10n, AppThemeMode mode) {
+    return switch (mode) {
+      AppThemeMode.light => l10n.settingsLight,
+      AppThemeMode.dark => l10n.settingsDark,
+      AppThemeMode.oledDark => l10n.settingsOledDark,
+      _ => l10n.settingsSystem,
+    };
+  }
+
   String _desktopAccentSourceLabel(
     AppLocalizations l10n,
     DesktopAccentColorSource source,
@@ -223,6 +274,19 @@ class SettingsPage extends ConsumerWidget {
       DesktopAccentColorSource.gtk => l10n.settingsDesktopAccentSourceGtk,
       DesktopAccentColorSource.qt => l10n.settingsDesktopAccentSourceQt,
       _ => l10n.settingsDesktopAccentSourceSystem,
+    };
+  }
+
+  String _wideNavigationPositionLabel(
+    AppLocalizations l10n,
+    WideNavigationRailPosition position,
+  ) {
+    return switch (position) {
+      WideNavigationRailPosition.center =>
+        l10n.settingsWideNavigationPositionCenter,
+      WideNavigationRailPosition.split =>
+        l10n.settingsWideNavigationPositionSplit,
+      _ => l10n.settingsWideNavigationPositionBottom,
     };
   }
 
@@ -368,13 +432,13 @@ class SettingsPage extends ConsumerWidget {
                 } catch (twoFactorError) {
                   setState(() {
                     running = false;
-                    error = twoFactorError.toString();
+                    error = localizedErrorMessage(l10n, twoFactorError);
                   });
                 }
               } catch (e) {
                 setState(() {
                   running = false;
-                  error = e.toString();
+                  error = localizedErrorMessage(l10n, e);
                 });
               }
             }
@@ -589,6 +653,168 @@ class SettingsPage extends ConsumerWidget {
     }
   }
 
+  Future<void> _showThemeModeSelector(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final current = ref.read(themeSettingsProvider).themeMode;
+    final l10n = AppLocalizations.of(context)!;
+    final tileContext = context;
+    final renderBox = tileContext.findRenderObject() as RenderBox?;
+    final overlay =
+        Navigator.of(tileContext).overlay?.context.findRenderObject()
+            as RenderBox?;
+    if (renderBox == null || overlay == null) return;
+
+    final tileTopLeft = renderBox.localToGlobal(Offset.zero, ancestor: overlay);
+    final tileBottomRight = renderBox.localToGlobal(
+      renderBox.size.bottomRight(Offset.zero),
+      ancestor: overlay,
+    );
+    final anchor = Rect.fromLTWH(
+      tileBottomRight.dx - 48,
+      tileTopLeft.dy,
+      48,
+      renderBox.size.height,
+    );
+
+    final selected = await showMenu<AppThemeMode>(
+      context: tileContext,
+      position: RelativeRect.fromRect(anchor, Offset.zero & overlay.size),
+      initialValue: current,
+      items: AppThemeMode.values.map((mode) {
+        final selected = mode == current;
+        return PopupMenuItem<AppThemeMode>(
+          value: mode,
+          child: Row(
+            children: [
+              Expanded(child: Text(_themeModeLabel(l10n, mode))),
+              if (selected) const Icon(Icons.check),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+    if (selected != null && selected != current) {
+      await ref.read(themeSettingsProvider.notifier).setThemeMode(selected);
+    }
+  }
+
+  Future<void> _showColorSchemeSelector(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final current = ref.read(themeSettingsProvider).customSeedColor;
+    final l10n = AppLocalizations.of(context)!;
+    final tileContext = context;
+    final renderBox = tileContext.findRenderObject() as RenderBox?;
+    final overlay =
+        Navigator.of(tileContext).overlay?.context.findRenderObject()
+            as RenderBox?;
+    if (renderBox == null || overlay == null) return;
+
+    final tileTopLeft = renderBox.localToGlobal(Offset.zero, ancestor: overlay);
+    final tileBottomRight = renderBox.localToGlobal(
+      renderBox.size.bottomRight(Offset.zero),
+      ancestor: overlay,
+    );
+    final anchor = Rect.fromLTWH(
+      tileBottomRight.dx - 48,
+      tileTopLeft.dy,
+      48,
+      renderBox.size.height,
+    );
+
+    final selected = await showMenu<Color>(
+      context: tileContext,
+      position: RelativeRect.fromRect(anchor, Offset.zero & overlay.size),
+      initialValue: current,
+      items: _colorSchemes.map((color) {
+        final selected = color.toARGB32() == current.toARGB32();
+        return PopupMenuItem<Color>(
+          value: color,
+          child: Row(
+            children: [
+              _ColorDot(color: color),
+              const SizedBox(width: 12),
+              Expanded(child: Text(_colorSchemeLabel(l10n, color))),
+              if (selected) const Icon(Icons.check),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+    if (selected != null && selected.toARGB32() != current.toARGB32()) {
+      await ref
+          .read(themeSettingsProvider.notifier)
+          .setCustomSeedColor(selected);
+    }
+  }
+
+  String _colorSchemeLabel(AppLocalizations l10n, Color color) {
+    return switch (color.toARGB32()) {
+      0xFFE91E63 => l10n.settingsColorSchemePink,
+      0xFF6750A4 => l10n.settingsColorSchemePurple,
+      0xFF006A6A => l10n.settingsColorSchemeTeal,
+      0xFF006D3F => l10n.settingsColorSchemeGreen,
+      0xFFB3261E => l10n.settingsColorSchemeRed,
+      0xFF755B00 => l10n.settingsColorSchemeAmber,
+      _ =>
+        '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
+    };
+  }
+
+  Future<void> _showWideNavigationPositionSelector(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final current = ref.read(appSettingsProvider).wideNavigationRailPosition;
+    final l10n = AppLocalizations.of(context)!;
+    final tileContext = context;
+    final renderBox = tileContext.findRenderObject() as RenderBox?;
+    final overlay =
+        Navigator.of(tileContext).overlay?.context.findRenderObject()
+            as RenderBox?;
+    if (renderBox == null || overlay == null) return;
+
+    final tileTopLeft = renderBox.localToGlobal(Offset.zero, ancestor: overlay);
+    final tileBottomRight = renderBox.localToGlobal(
+      renderBox.size.bottomRight(Offset.zero),
+      ancestor: overlay,
+    );
+    final anchor = Rect.fromLTWH(
+      tileBottomRight.dx - 48,
+      tileTopLeft.dy,
+      48,
+      renderBox.size.height,
+    );
+
+    final selected = await showMenu<WideNavigationRailPosition>(
+      context: tileContext,
+      position: RelativeRect.fromRect(anchor, Offset.zero & overlay.size),
+      initialValue: current,
+      items: WideNavigationRailPosition.values.map((position) {
+        final selected = position == current;
+        return PopupMenuItem<WideNavigationRailPosition>(
+          value: position,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(_wideNavigationPositionLabel(l10n, position)),
+              ),
+              if (selected) const Icon(Icons.check),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+    if (selected != null && selected != current) {
+      await ref
+          .read(appSettingsProvider.notifier)
+          .setWideNavigationRailPosition(selected);
+    }
+  }
+
   void _showNotImplemented(BuildContext context) {
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
@@ -605,5 +831,23 @@ class SettingsPage extends ConsumerWidget {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
+  }
+}
+
+class _ColorDot extends StatelessWidget {
+  const _ColorDot({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+      child: const SizedBox.square(dimension: 22),
+    );
   }
 }

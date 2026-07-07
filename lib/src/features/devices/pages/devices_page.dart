@@ -71,9 +71,9 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
         for (final file in files) {
           queue.enqueueLocalFile(file);
         }
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('已加入安装队列：${files.length} 个文件')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.queueAddedFiles(files.length))),
+        );
       },
       child: Scaffold(
         appBar: SysAppBar(
@@ -166,7 +166,7 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(width: 12),
-                              const Text('松开以加入安装队列'),
+                              Text(l10n.queueDragToInstall),
                             ],
                           ),
                         ),
