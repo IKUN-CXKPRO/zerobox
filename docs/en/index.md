@@ -106,9 +106,10 @@ not depend on desktop IPC.
 - Device operations are serialized to prevent overlapping protocol requests.
 - Detached and GUI installation tasks are persisted by the daemon, including
   status and progress.
-- Unix sockets live under `$XDG_RUNTIME_DIR/zerobox` on Linux and the user
-  Application Support directory on macOS, with a compatibility fallback for
-  the former `/tmp` endpoint during upgrades.
+- Unix sockets live under `$XDG_RUNTIME_DIR/zerobox` on Linux. macOS uses its
+  per-user or sandbox temporary directory to stay within the Unix socket path
+  limit, with a compatibility fallback for the former `/tmp` endpoint during
+  upgrades.
 - Windows publishes a random loopback port and per-run authentication token in
   the user's local application-data directory. Clients verify the daemon and
   protocol version with an authenticated handshake before issuing commands.
