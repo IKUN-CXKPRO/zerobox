@@ -114,6 +114,8 @@ class HuamiAuthNotifier extends Notifier<HuamiAuthState> {
 
   final Dio _dio;
 
+  HuamiTokenInfo? get currentToken => state.token;
+
   @override
   HuamiAuthState build() {
     final prefs = SharedPrefsService.instance;
@@ -236,9 +238,7 @@ class HuamiAuthNotifier extends Notifier<HuamiAuthState> {
     return data;
   }
 
-  Future<HuamiTokenInfo> _requestAppToken(
-    Map<String, Object?> access,
-  ) async {
+  Future<HuamiTokenInfo> _requestAppToken(Map<String, Object?> access) async {
     final accessCode = access['access']?.toString() ?? '';
     final response = await _dio.post<Object?>(
       'https://account.huami.com/v2/client/login',
@@ -285,10 +285,11 @@ class HuamiAuthNotifier extends Notifier<HuamiAuthState> {
   }
 }
 
-final huamiAuthProvider =
-    NotifierProvider<HuamiAuthNotifier, HuamiAuthState>(() {
-      return HuamiAuthNotifier();
-    });
+final huamiAuthProvider = NotifierProvider<HuamiAuthNotifier, HuamiAuthState>(
+  () {
+    return HuamiAuthNotifier();
+  },
+);
 
 final huamiStoreHeadersProvider = Provider<Map<String, String>?>((ref) {
   final auth = ref.watch(huamiAuthProvider);

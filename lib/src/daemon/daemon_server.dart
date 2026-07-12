@@ -1,0 +1,242 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zerobox/src/command_bus/local_command_bus.dart';
+import 'package:zerobox/src/commands/command_protocol.dart';
+import 'package:zerobox/src/daemon/daemon_endpoint.dart';
+import 'package:zerobox/src/daemon/daemon_task_queue.dart';
+
+class ZeroBoxDaemonServer {
+  ZeroBoxDaemonServer(this.container) : bus = LocalCommandBus(container) {
+    tasks = DaemonTaskQueue(bus, onCancelRunning: bus.cancelActiveOperation);
+  }
+
+  final ProviderContainer container;
+  final LocalCommandBus bus;
+  late final DaemonTaskQueue tasks;
+  ServerSocket? _server;
+  final _clients = <Socket>{};
+  StreamSubscription<CommandEvent>? _eventSubscription;
+  StreamSubscription<CommandEvent>? _taskEventSubscription;
+  String? _windowsToken;
+  final DateTime startedAt = DateTime.now();
+  Socket? _activeOperationClient;
+
+  Future<void> run() async {
+    final runtimeDirectory = Directory(daemonRuntimeDirectory);
+    await runtimeDirectory.create(recursive: true);
+    if (!Platform.isWindows) {
+      await Process.run('chmod', ['700', runtimeDirectory.path]);
+    }
+    if (Platform.isWindows) {
+      _server = await ServerSocket.bind(
+        InternetAddress.loopbackIPv4,
+        daemonWindowsPort,
+        shared: false,
+      );
+      _windowsToken = base64Url.encode(
+        List<int>.generate(32, (_) => Random.secure().nextInt(256)),
+      );
+      await File(
+        daemonWindowsTokenPath,
+      ).writeAsString(_windowsToken!, flush: true);
+    } else {
+      final socketFile = File(daemonSocketPath);
+      if (await socketFile.exists()) {
+        try {
+          final probe = await Socket.connect(
+            InternetAddress(daemonSocketPath, type: InternetAddressType.unix),
+            0,
+            timeout: const Duration(milliseconds: 250),
+          );
+          await probe.close();
+          throw StateError('ZeroBox daemon is already running');
+        } catch (error) {
+          if (error is StateError) rethrow;
+          await socketFile.delete();
+        }
+      }
+      _server = await ServerSocket.bind(
+        InternetAddress(daemonSocketPath, type: InternetAddressType.unix),
+        0,
+      );
+      await Process.run('chmod', ['600', daemonSocketPath]);
+    }
+    _eventSubscription = bus.events.listen(_broadcastEvent);
+    _taskEventSubscription = tasks.events.listen(_broadcastEvent);
+    await for (final client in _server!) {
+      _clients.add(client);
+      unawaited(_serve(client));
+    }
+  }
+
+  Future<void> _serve(Socket client) async {
+    try {
+      await for (final line
+          in client
+              .cast<List<int>>()
+              .transform(utf8.decoder)
+              .transform(const LineSplitter())) {
+        final decoded = jsonDecode(line);
+        if (decoded is! Map) {
+          _write(
+            client,
+            const CommandResult.failure(
+              CommandError('invalid_request', 'Request must be a JSON object'),
+            ).toJson(),
+          );
+          continue;
+        }
+        final request = decoded.cast<String, dynamic>();
+        final id = request['id']?.toString() ?? '';
+        if (Platform.isWindows && request['token'] != _windowsToken) {
+          _write(client, {
+            'id': id,
+            ...const CommandResult.failure(
+              CommandError('unauthorized', 'Invalid daemon token'),
+            ).toJson(),
+          });
+          continue;
+        }
+        final command = ZeroBoxCommand.fromJson(
+          request.cast<String, Object?>(),
+        );
+        if (command.method == 'daemon.stop') {
+          _write(client, {
+            'id': id,
+            ...const CommandResult.success({'stopping': true}).toJson(),
+          });
+          unawaited(
+            Future<void>.delayed(const Duration(milliseconds: 50), close),
+          );
+          continue;
+        }
+        final result = switch (command.method) {
+          'daemon.info' => CommandResult.success(_daemonInfo()),
+          'task.enqueue' => CommandResult.success({
+            'taskId': tasks.enqueue(
+              ZeroBoxCommand.fromJson(
+                (command.params['command'] as Map).cast<String, Object?>(),
+              ),
+            ),
+          }),
+          'queue.list' => CommandResult.success(tasks.list()),
+          'queue.get' => () {
+            final task = tasks.get(command.params['id']?.toString() ?? '');
+            return task == null
+                ? const CommandResult.failure(
+                    CommandError('not_found', 'Task not found'),
+                  )
+                : CommandResult.success(task.toJson());
+          }(),
+          'queue.wait' => await (() async {
+            final task = await tasks.wait(
+              command.params['id']?.toString() ?? '',
+            );
+            return task == null
+                ? const CommandResult.failure(
+                    CommandError('not_found', 'Task not found'),
+                  )
+                : CommandResult.success(task.toJson());
+          })(),
+          'queue.cancel' => CommandResult.success({
+            'cancelled': tasks.cancel(command.params['id']?.toString() ?? ''),
+          }),
+          'queue.clear' => () {
+            tasks.clear();
+            return const CommandResult.success({'cleared': true});
+          }(),
+          'queue.remove' => CommandResult.success({
+            'removed': tasks.remove(command.params['id']?.toString() ?? ''),
+          }),
+          _ => await _executeForClient(client, command),
+        };
+        _write(client, {'id': id, ...result.toJson()});
+      }
+    } catch (_) {
+      // A disconnected CLI client is expected and does not stop the daemon.
+    } finally {
+      _clients.remove(client);
+      await client.close();
+    }
+  }
+
+  Future<CommandResult> _executeForClient(
+    Socket client,
+    ZeroBoxCommand command,
+  ) async {
+    _activeOperationClient = client;
+    try {
+      return await bus.execute(command);
+    } finally {
+      if (identical(_activeOperationClient, client)) {
+        _activeOperationClient = null;
+      }
+    }
+  }
+
+  Map<String, Object?> _daemonInfo() => {
+    'running': true,
+    'pid': pid,
+    'protocolVersion': zeroBoxProtocolVersion,
+    'startedAt': startedAt.toIso8601String(),
+    'uptimeSeconds': DateTime.now().difference(startedAt).inSeconds,
+    'platform': Platform.operatingSystem,
+    'endpoint': Platform.isWindows
+        ? '127.0.0.1:$daemonWindowsPort'
+        : daemonSocketPath,
+    'capabilities': zeroBoxDaemonCapabilities,
+    'tasks': {
+      'total': tasks.list().length,
+      'running': tasks
+          .list()
+          .where((task) => task['status'] == 'running')
+          .length,
+      'pending': tasks
+          .list()
+          .where((task) => task['status'] == 'pending')
+          .length,
+    },
+  };
+
+  void _broadcastEvent(CommandEvent event) {
+    final message = {'type': 'event', ...event.toJson()};
+    final broadcast =
+        event.event == 'device.state' ||
+        event.event == 'log' ||
+        event.event == 'task';
+    if (!broadcast && _activeOperationClient != null) {
+      _write(_activeOperationClient!, message);
+      return;
+    }
+    for (final client in _clients.toList()) {
+      _write(client, message);
+    }
+  }
+
+  void _write(Socket client, Map<String, Object?> value) {
+    client.writeln(jsonEncode(value));
+  }
+
+  Future<void> close() async {
+    await _eventSubscription?.cancel();
+    await _taskEventSubscription?.cancel();
+    await _server?.close();
+    for (final client in _clients.toList()) {
+      await client.close();
+    }
+    await bus.close();
+    await tasks.close();
+    container.dispose();
+    if (!Platform.isWindows) {
+      final socketFile = File(daemonSocketPath);
+      if (await socketFile.exists()) await socketFile.delete();
+    } else {
+      final tokenFile = File(daemonWindowsTokenPath);
+      if (await tokenFile.exists()) await tokenFile.delete();
+    }
+  }
+}

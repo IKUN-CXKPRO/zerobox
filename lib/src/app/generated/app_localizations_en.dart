@@ -1270,4 +1270,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bandBbsResourceQueryTitle => 'Install purchased resources';
+
+  @override
+  String get settingsAboutLogs => 'Logs';
+
+  @override
+  String get settingsAboutLogsDescription =>
+      'Runtime logs from the last 7 days. On Android, they can be viewed and copied in the Files app.';
+
+  @override
+  String get settingsAboutLogsOpen => 'Open logs folder';
+
+  @override
+  String get settingsAboutLogsOpenFailed => 'Unable to open the logs folder';
 }

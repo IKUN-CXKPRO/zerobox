@@ -169,33 +169,47 @@ class ResourceInstallService {
     }
 
     try {
-      switch (type) {
-        case LocalDeviceInstallType.app:
-          await deviceManager.installApp(
-            payload,
-            packageName:
-                _extractAppPackageName(payload) ?? _guessPackageName(fileName),
-            onProgress: (progress) =>
-                onUpdate(ResourceTaskStatus.installing, progress, null),
-          );
-        case LocalDeviceInstallType.watchface:
-          await deviceManager.installWatchface(
-            payload,
-            watchfaceId:
-                _extractWatchfaceId(payload) ?? _guessWatchfaceId(fileName),
-            onProgress: (progress) =>
-                onUpdate(ResourceTaskStatus.installing, progress, null),
-          );
-        case LocalDeviceInstallType.firmware:
-          await deviceManager.installFirmware(
-            payload,
-            onProgress: (progress) =>
-                onUpdate(ResourceTaskStatus.installing, progress, null),
-          );
-      }
+      await installLocalPayload(
+        type: type,
+        fileName: fileName,
+        bytes: payload,
+        deviceManager: deviceManager,
+        onProgress: (progress) =>
+            onUpdate(ResourceTaskStatus.installing, progress, null),
+      );
       onUpdate(ResourceTaskStatus.completed, 1, null);
     } catch (e) {
       onUpdate(ResourceTaskStatus.failed, 0, 'Install failed: $e');
+    }
+  }
+
+  /// Installs an already loaded local payload and propagates failures to the
+  /// caller. GUI queue code wraps this method to update task state, while CLI
+  /// callers use the thrown error to produce a reliable process exit code.
+  Future<void> installLocalPayload({
+    required LocalDeviceInstallType type,
+    required String fileName,
+    required Uint8List bytes,
+    required DeviceManager deviceManager,
+    required void Function(double progress) onProgress,
+  }) async {
+    switch (type) {
+      case LocalDeviceInstallType.app:
+        await deviceManager.installApp(
+          bytes,
+          packageName:
+              _extractAppPackageName(bytes) ?? _guessPackageName(fileName),
+          onProgress: onProgress,
+        );
+      case LocalDeviceInstallType.watchface:
+        await deviceManager.installWatchface(
+          bytes,
+          watchfaceId:
+              _extractWatchfaceId(bytes) ?? _guessWatchfaceId(fileName),
+          onProgress: onProgress,
+        );
+      case LocalDeviceInstallType.firmware:
+        await deviceManager.installFirmware(bytes, onProgress: onProgress);
     }
   }
 

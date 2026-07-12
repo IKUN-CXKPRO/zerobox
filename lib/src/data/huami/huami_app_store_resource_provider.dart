@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -354,7 +353,8 @@ class HuamiAppStoreCatalog implements CommunityResourceCatalog {
     return null;
   }
 
-  String _normalizePublisher(String? value) => (value ?? '').trim().toLowerCase();
+  String _normalizePublisher(String? value) =>
+      (value ?? '').trim().toLowerCase();
 
   DateTime? _dateFromUnix(Object? value) {
     final seconds = _intValue(value);

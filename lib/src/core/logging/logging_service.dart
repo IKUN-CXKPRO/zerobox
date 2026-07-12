@@ -1,10 +1,19 @@
+import 'dart:async';
+
 import 'package:logging/logging.dart';
+import 'package:zerobox/src/core/logging/file_log_sink.dart';
 
 export 'package:logging/logging.dart';
 
 Logger getLogger(String name) => Logger('zerobox.$name');
 
-void initLogging() {
+final _logLines = StreamController<String>.broadcast();
+final _recentLogLines = <String>[];
+Stream<String> get zeroBoxLogStream => _logLines.stream;
+List<String> get recentZeroBoxLogs => List.unmodifiable(_recentLogLines);
+
+Future<void> initLogging() async {
+  await initializeFileLogSink();
   Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) {
     final time = record.time.toIso8601String();
@@ -18,7 +27,12 @@ void initLogging() {
     if (record.stackTrace != null) {
       buffer.write('\n${record.stackTrace}');
     }
+    final line = buffer.toString();
+    _recentLogLines.add(line);
+    if (_recentLogLines.length > 500) _recentLogLines.removeAt(0);
+    _logLines.add(line);
+    writeFileLogLine(line);
     // ignore: avoid_print
-    print(buffer.toString());
+    print(line);
   });
 }

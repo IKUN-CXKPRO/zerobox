@@ -5,6 +5,13 @@ import WebKit
 
 @main
 class AppDelegate: FlutterAppDelegate {
+  override func applicationDidFinishLaunching(_ notification: Notification) {
+    if ProcessInfo.processInfo.arguments.contains("--nogui") {
+      NSApp.setActivationPolicy(.prohibited)
+    }
+    super.applicationDidFinishLaunching(notification)
+  }
+
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     return true
   }

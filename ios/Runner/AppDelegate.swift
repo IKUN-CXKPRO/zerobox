@@ -3,6 +3,8 @@ import UIKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+  private var backgroundTasks: [Int: UIBackgroundTaskIdentifier] = [:]
+  private var nextBackgroundTaskId = 0
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -12,5 +14,40 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    let registrar = engineBridge.pluginRegistry.registrar(
+      forPlugin: "ZeroBoxBackgroundTasks"
+    )
+    let channel = FlutterMethodChannel(
+      name: "zerobox/background_tasks",
+      binaryMessenger: registrar.messenger()
+    )
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self else { return }
+      switch call.method {
+      case "begin":
+        self.nextBackgroundTaskId += 1
+        let id = self.nextBackgroundTaskId
+        let task = UIApplication.shared.beginBackgroundTask(
+          withName: (call.arguments as? [String: Any])?["label"] as? String
+        ) { [weak self] in
+          self?.endBackgroundTask(id)
+        }
+        self.backgroundTasks[id] = task
+        result(id)
+      case "end":
+        if let id = (call.arguments as? [String: Any])?["id"] as? Int {
+          self.endBackgroundTask(id)
+        }
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  private func endBackgroundTask(_ id: Int) {
+    guard let task = backgroundTasks.removeValue(forKey: id),
+          task != .invalid else { return }
+    UIApplication.shared.endBackgroundTask(task)
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zerobox/src/app/generated/app_localizations.dart';
@@ -6,6 +8,9 @@ import 'package:zerobox/src/app/widgets/page_container.dart';
 import 'package:zerobox/src/app/widgets/smooth_linear_progress_indicator.dart';
 import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
 import 'package:zerobox/src/core/constants/style_constants.dart';
+import 'package:zerobox/src/daemon/daemon_task_models.dart';
+import 'package:zerobox/src/daemon/daemon_task_monitor.dart';
+import 'package:zerobox/src/daemon/daemon_task_monitor_impl.dart';
 import 'package:zerobox/src/features/resources/services/download_queue_notifier.dart';
 import 'package:zerobox/src/features/resources/services/install_queue_notifier.dart';
 
@@ -123,6 +128,14 @@ class _InstallQueuePanel extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(installQueueProvider);
     final notifier = ref.read(installQueueProvider.notifier);
+    final daemonTasks = ref.watch(daemonTasksProvider).value ?? const [];
+    final daemonPaths = daemonTasks
+        .map((task) => task.path)
+        .whereType<String>()
+        .toSet();
+    final localTasks = state.tasks
+        .where((task) => !daemonPaths.contains(task.filePath))
+        .toList();
     final running = state.runStatus == QueueRunStatus.running;
     final stopping = state.runStatus == QueueRunStatus.stopping;
     final canStart = state.hasRunnableTasks && !running && !stopping;
@@ -132,9 +145,12 @@ class _InstallQueuePanel extends ConsumerWidget {
       action: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (state.tasks.isNotEmpty)
+          if (state.tasks.isNotEmpty || daemonTasks.isNotEmpty)
             IconButton(
-              onPressed: notifier.clearTerminal,
+              onPressed: () {
+                notifier.clearTerminal();
+                unawaited(clearDaemonTasks());
+              },
               icon: const Icon(Icons.delete_outline),
               tooltip: l10n.queueClear,
             ),
@@ -152,7 +168,22 @@ class _InstallQueuePanel extends ConsumerWidget {
       ),
       emptyText: l10n.installQueueEmpty,
       children: [
-        for (final task in state.tasks)
+        for (final task in daemonTasks)
+          _QueueTile(
+            key: ValueKey('daemon-${task.id}'),
+            icon: Icons.dns_outlined,
+            title: _daemonTaskTitle(task),
+            subtitle: 'Daemon · ${task.method}',
+            status: _daemonTaskStatus(task),
+            progress: task.progress,
+            error: task.error,
+            onRemove: () => unawaited(
+              task.isTerminal
+                  ? removeDaemonTask(task.id)
+                  : cancelDaemonTask(task.id),
+            ),
+          ),
+        for (final task in localTasks)
           _QueueTile(
             key: ValueKey('install-${task.id}'),
             icon: _installIcon(task.type),
@@ -226,7 +257,7 @@ class _QueueTile extends StatelessWidget {
     required this.progress,
     this.error,
     required this.onRemove,
-    required this.onRetry,
+    this.onRetry,
   });
 
   final IconData icon;
@@ -236,7 +267,7 @@ class _QueueTile extends StatelessWidget {
   final double progress;
   final String? error;
   final VoidCallback onRemove;
-  final VoidCallback onRetry;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -283,13 +314,27 @@ class _QueueTile extends StatelessWidget {
             ],
           ],
         ),
-        trailing: status == ResourceTaskStatus.failed
+        trailing: status == ResourceTaskStatus.failed && onRetry != null
             ? IconButton(icon: const Icon(Icons.refresh), onPressed: onRetry)
             : IconButton(icon: const Icon(Icons.close), onPressed: onRemove),
       ),
     );
   }
 }
+
+String _daemonTaskTitle(DaemonTaskView task) {
+  final path = task.path;
+  if (path == null || path.isEmpty) return task.method;
+  return path.split(RegExp(r'[/\\]')).last;
+}
+
+ResourceTaskStatus _daemonTaskStatus(DaemonTaskView task) =>
+    switch (task.status) {
+      'pending' => ResourceTaskStatus.pending,
+      'running' => ResourceTaskStatus.installing,
+      'completed' => ResourceTaskStatus.completed,
+      _ => ResourceTaskStatus.failed,
+    };
 
 IconData _installIcon(LocalDeviceInstallType type) {
   return switch (type) {

@@ -444,5 +444,9 @@
     }
   },
   "settingsAccountBandBbsAccount": "BandBBS Account",
-  "bandBbsResourceQueryTitle": "Install purchased resources"
+  "bandBbsResourceQueryTitle": "Install purchased resources",
+  "settingsAboutLogs": "Logs",
+  "settingsAboutLogsDescription": "Runtime logs from the last 7 days. On Android, they can be viewed and copied in the Files app.",
+  "settingsAboutLogsOpen": "Open logs folder",
+  "settingsAboutLogsOpenFailed": "Unable to open the logs folder"
 }
