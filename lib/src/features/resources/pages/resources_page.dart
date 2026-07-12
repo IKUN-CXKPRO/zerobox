@@ -331,7 +331,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView> {
       (_, _) => _reset(),
     );
     final capabilities = ref.watch(communityCatalogProvider).capabilities;
-    if (_searchController.text != filters.query) {
+    if (!_searchFocus.hasFocus && _searchController.text != filters.query) {
       _searchController.text = filters.query;
       _searchText = filters.query;
     }

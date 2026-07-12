@@ -2449,6 +2449,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Install purchased resources'**
   String get bandBbsResourceQueryTitle;
+
+  /// No description provided for @settingsAboutLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Logs'**
+  String get settingsAboutLogs;
+
+  /// No description provided for @settingsAboutLogsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Runtime logs from the last 7 days. On Android, they can be viewed and copied in the Files app.'**
+  String get settingsAboutLogsDescription;
+
+  /// No description provided for @settingsAboutLogsOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open logs folder'**
+  String get settingsAboutLogsOpen;
+
+  /// No description provided for @settingsAboutLogsOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to open the logs folder'**
+  String get settingsAboutLogsOpenFailed;
 }
 
 class _AppLocalizationsDelegate

@@ -35,6 +35,10 @@ ZeroBox 是一款跨平台可穿戴设备管理工具，无需官方客户端，
 | 创作者中心，一键发布资源到 米坛 / AstroBox-Repo | 🚧 WIP |
 | 首页完善 | 🚧 WIP |
 
+## CLI 使用
+
+ZeroBox 提供功能完整且可脚本化的命令行界面，可在无 GUI 模式下管理设备、安装资源、访问社区源以及控制后台任务，详细用法参见 [ZeroBox CLI 与守护进程文档](docs/zh/index.md)
+
 ## 从源码构建
 
 ~~需要先安装 [Flutter](https://docs.flutter.dev/get-started/install)~~

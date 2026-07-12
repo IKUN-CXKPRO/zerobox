@@ -257,7 +257,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get errorCertificateVerificationFailed =>
-      '证书校验失败。如果正在使用代理，请关闭对本应用的 HTTPS 接管，或确认 Flutter/Dart 能信任其证书';
+      '证书校验失败，如果正在使用代理，请关闭对本应用的 HTTPS 接管，或确认 Flutter/Dart 能信任其证书';
 
   @override
   String errorUnknownWithDetail(Object detail) {
@@ -407,14 +407,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get webSerialHint =>
-      '在网页端，ZeroBox 通过 Web Serial 连接设备。已保存的设备会保留在当前浏览器中。';
+      '在网页端，ZeroBox 通过 Web Serial 连接设备，已保存的设备会保留在当前浏览器中';
 
   @override
   String get webSerialConnectDialogTitle => '通过 Web Serial 连接';
 
   @override
   String get webSerialConnectDialogHint =>
-      '输入设备认证密钥，然后在浏览器弹窗中选择串口。认证密钥会保存在当前浏览器中。';
+      '输入设备认证密钥，并在浏览器弹窗中选择串口，认证密钥会保存在当前浏览器中';
 
   @override
   String get cancel => '取消';
@@ -640,7 +640,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String cdnErrorMessage(Object cdn, Object path) {
-    return '当前 CDN（$cdn）无法获取 $path。是否切换 CDN？';
+    return '当前 CDN（$cdn）无法获取 $path，是否切换 CDN？';
   }
 
   @override
@@ -819,7 +819,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get unsupportedDeviceResourceMessage =>
-      'ZeroBox 暂不支持此设备或资源类型，请勿尝试安装该分区中的资源，以免出现不可预期的问题。';
+      'ZeroBox 暂不支持此设备或资源类型，请勿尝试安装该分区中的资源，以免出现不可预期的问题';
 
   @override
   String get understood => '我知道了';
@@ -903,7 +903,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsToolsNoticeTitle => '警告';
 
   @override
-  String get settingsToolsNoticeBody => '解锁可能导致保修失效或数据丢失，请自行承担风险。';
+  String get settingsToolsNoticeBody => '解锁可能导致保修失效或数据丢失，请自行承担风险';
 
   @override
   String get settingsToolsAgree => '我已了解风险';
@@ -918,7 +918,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsToolsDialogUsage => '用法';
 
   @override
-  String get settingsToolsDialogUsageInfo => '输入设备上显示的 MAC 地址和序列号。';
+  String get settingsToolsDialogUsageInfo => '输入设备上显示的 MAC 地址和序列号';
 
   @override
   String get settingsAboutAboutAstrobox => '关于 ZeroBox';
@@ -1053,7 +1053,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsVisit => '访问';
 
   @override
-  String get settingsTeamSlogan => '一款面向 VelaOS 与 ZeppOS 的可穿戴设备管理工具。';
+  String get settingsTeamSlogan => '一款面向 VelaOS 与 ZeppOS 的可穿戴设备管理工具';
 
   @override
   String get settingsTeamGitHub => 'GitHub 仓库';
@@ -1214,4 +1214,17 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get bandBbsResourceQueryTitle => '安装已购付费资源';
+
+  @override
+  String get settingsAboutLogs => '日志';
+
+  @override
+  String get settingsAboutLogsDescription =>
+      '保留最近 7 天的运行日志，Android 可在系统“文件”应用中查看和复制';
+
+  @override
+  String get settingsAboutLogsOpen => '打开日志文件夹';
+
+  @override
+  String get settingsAboutLogsOpenFailed => '无法打开日志文件夹';
 }

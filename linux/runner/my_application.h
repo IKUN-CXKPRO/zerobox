@@ -16,6 +16,6 @@ G_DECLARE_FINAL_TYPE(MyApplication,
  *
  * Returns: a new #MyApplication.
  */
-MyApplication* my_application_new();
+MyApplication* my_application_new(gboolean non_unique);
 
 #endif  // FLUTTER_MY_APPLICATION_H_

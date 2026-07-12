@@ -1,8 +1,12 @@
-import 'dart:typed_data';
+import 'dart:async';
+import 'dart:convert';
 
 import 'package:cross_file/cross_file.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zerobox/src/core/providers/app_settings_providers.dart';
+import 'package:zerobox/src/core/services/background_task_guard.dart';
+import 'package:zerobox/src/core/services/shared_prefs_service.dart';
 import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
 import 'package:zerobox/src/features/resources/domain/community_resource.dart';
 import 'package:zerobox/src/features/resources/services/resource_install_service.dart';
@@ -78,6 +82,45 @@ class InstallTask {
   final double progress;
   final String? error;
 
+  Map<String, Object?> toPersistenceJson() => {
+    'id': id,
+    'name': name,
+    'description': description,
+    'type': type.name,
+    'filePath': filePath,
+    'deleteAfterInstall': deleteAfterInstall,
+    'status': status.name,
+    'progress': progress,
+    if (error != null) 'error': error,
+  };
+
+  factory InstallTask.fromPersistenceJson(Map<String, Object?> json) {
+    final storedStatus = ResourceTaskStatus.values.firstWhere(
+      (value) => value.name == json['status']?.toString(),
+      orElse: () => ResourceTaskStatus.pending,
+    );
+    return InstallTask(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'Recovered task',
+      description: json['description']?.toString() ?? '',
+      type: LocalDeviceInstallType.values.firstWhere(
+        (value) => value.name == json['type']?.toString(),
+        orElse: () => LocalDeviceInstallType.app,
+      ),
+      filePath: json['filePath']?.toString() ?? '',
+      deleteAfterInstall: json['deleteAfterInstall'] == true,
+      status:
+          storedStatus == ResourceTaskStatus.downloading ||
+              storedStatus == ResourceTaskStatus.installing
+          ? ResourceTaskStatus.pending
+          : storedStatus,
+      progress: storedStatus == ResourceTaskStatus.completed
+          ? 1
+          : (json['progress'] as num?)?.toDouble() ?? 0,
+      error: json['error']?.toString(),
+    );
+  }
+
   InstallTask copyWith({
     ResourceTaskStatus? status,
     double? progress,
@@ -134,8 +177,42 @@ class InstallQueueState {
 }
 
 class InstallQueueNotifier extends Notifier<InstallQueueState> {
+  static const _mobileStorageKey = 'mobile.install.tasks';
+
   @override
-  InstallQueueState build() => const InstallQueueState();
+  InstallQueueState build() {
+    ref.listen(deviceManagerProvider, (_, _) {});
+    if (!_isMobile) return const InstallQueueState();
+    listenSelf((_, next) => unawaited(_persistMobile(next)));
+    final rows =
+        SharedPrefsService.instance.getStringList(_mobileStorageKey) ??
+        const [];
+    final tasks = rows
+        .map((row) {
+          try {
+            return InstallTask.fromPersistenceJson(
+              (jsonDecode(row) as Map).cast<String, Object?>(),
+            );
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<InstallTask>()
+        .where((task) => task.filePath.isNotEmpty)
+        .toList();
+    return InstallQueueState(tasks: tasks);
+  }
+
+  bool get _isMobile =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
+  Future<void> _persistMobile(InstallQueueState next) =>
+      SharedPrefsService.instance.setStringList(
+        _mobileStorageKey,
+        next.tasks.map((task) => jsonEncode(task.toPersistenceJson())).toList(),
+      );
 
   void enqueueLocalFile(XFile file) {
     final service = ResourceInstallService();
@@ -290,32 +367,37 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
   }
 
   Future<void> _run() async {
-    while (state.runStatus == QueueRunStatus.running) {
-      final next = state.tasks.cast<InstallTask?>().firstWhere(
-        (task) => task?.status == ResourceTaskStatus.pending,
-        orElse: () => null,
-      );
-      if (next == null) break;
+    final backgroundTask = await beginBackgroundTask('Installing resources');
+    try {
+      while (state.runStatus == QueueRunStatus.running) {
+        final next = state.tasks.cast<InstallTask?>().firstWhere(
+          (task) => task?.status == ResourceTaskStatus.pending,
+          orElse: () => null,
+        );
+        if (next == null) break;
 
-      await _runTask(next);
+        await _runTask(next);
 
-      if (state.runStatus == QueueRunStatus.stopping) {
-        state = state.copyWith(runStatus: QueueRunStatus.pending);
+        if (state.runStatus == QueueRunStatus.stopping) {
+          state = state.copyWith(runStatus: QueueRunStatus.pending);
+          return;
+        }
+      }
+
+      final settings = ref.read(appSettingsProvider);
+      if (!settings.disableAutoClean) {
+        state = state.copyWith(
+          tasks: state.tasks
+              .where((task) => task.status != ResourceTaskStatus.completed)
+              .toList(),
+          runStatus: QueueRunStatus.pending,
+        );
         return;
       }
+      state = state.copyWith(runStatus: QueueRunStatus.pending);
+    } finally {
+      await backgroundTask.end();
     }
-
-    final settings = ref.read(appSettingsProvider);
-    if (!settings.disableAutoClean) {
-      state = state.copyWith(
-        tasks: state.tasks
-            .where((task) => task.status != ResourceTaskStatus.completed)
-            .toList(),
-        runStatus: QueueRunStatus.pending,
-      );
-      return;
-    }
-    state = state.copyWith(runStatus: QueueRunStatus.pending);
   }
 
   Future<void> _runTask(InstallTask task) async {

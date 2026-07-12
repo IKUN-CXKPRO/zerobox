@@ -595,12 +595,12 @@ class DeviceManager extends Notifier<DeviceManagerState> {
     }
   }
 
-  Future<void> _fetchDeviceInfoWithEuiccFallback(
+  Future<SystemInfo> _fetchDeviceInfoWithEuiccFallback(
     XiaomiInfoSystem infoSystem,
   ) async {
     final info = await infoSystem.fetchDeviceInfo();
     if (!_shouldFetchEuiccImei(state.currentDevice, info)) {
-      return;
+      return info;
     }
 
     try {
@@ -609,7 +609,7 @@ class DeviceManager extends Notifier<DeviceManagerState> {
         _log.info(
           'eUICC IMEI unavailable for ${state.currentDevice?.addr ?? info.model}',
         );
-        return;
+        return info;
       }
       final updatedInfo = info.copyWith(imei: imei);
       state = state.copyWith(systemInfo: updatedInfo);
@@ -617,8 +617,10 @@ class DeviceManager extends Notifier<DeviceManagerState> {
         'device info ${state.currentDevice?.addr ?? info.model}: '
         'eUICC IMEI loaded',
       );
+      return updatedInfo;
     } catch (e, st) {
       _log.warning('eUICC info fetch failed', e, st);
+      return info;
     }
   }
 
@@ -893,7 +895,8 @@ class DeviceManager extends Notifier<DeviceManagerState> {
       throw ProtocolException('Device not ready');
     }
     final infoSystem = entity.system<XiaomiInfoSystem>()!;
-    await infoSystem.fetchBatteryInfo();
+    final battery = await infoSystem.fetchBatteryInfo();
+    state = state.copyWith(battery: battery);
   }
 
   Future<void> fetchSystemInfo() async {
@@ -902,7 +905,8 @@ class DeviceManager extends Notifier<DeviceManagerState> {
       throw ProtocolException('Device not ready');
     }
     final infoSystem = entity.system<XiaomiInfoSystem>()!;
-    await _fetchDeviceInfoWithEuiccFallback(infoSystem);
+    final info = await _fetchDeviceInfoWithEuiccFallback(infoSystem);
+    state = state.copyWith(systemInfo: info);
   }
 
   Future<void> fetchStorageInfo() async {
@@ -911,7 +915,19 @@ class DeviceManager extends Notifier<DeviceManagerState> {
       throw ProtocolException('Device not ready');
     }
     final infoSystem = entity.system<XiaomiInfoSystem>()!;
-    await infoSystem.fetchStorageInfo();
+    final info = await infoSystem.fetchStorageInfo();
+    final currentInfo = state.systemInfo;
+    state = state.copyWith(
+      systemInfo:
+          currentInfo?.copyWith(storageInfo: info) ??
+          SystemInfo(
+            serialNumber: '',
+            firmwareVersion: '',
+            imei: '',
+            model: '',
+            storageInfo: info,
+          ),
+    );
   }
 
   Future<void> fetchApps() async {

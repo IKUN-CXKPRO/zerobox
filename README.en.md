@@ -35,6 +35,10 @@ ZeroBox is a cross-platform wearable device management tool that lets you connec
 | Creator center, one-click publish resources to BandBBS / AstroBox-Repo | 🚧 WIP |
 | Home page improvements | 🚧 WIP |
 
+## CLI usage
+
+ZeroBox provides a powerful, scriptable command-line interface for managing devices, installing resources, accessing community sources and controlling background tasks without the GUI. See the [ZeroBox CLI and daemon documentation](docs/en/index.md) for usage details.
+
 ## Build from source
 
 ~~You need [Flutter](https://docs.flutter.dev/get-started/install) installed~~

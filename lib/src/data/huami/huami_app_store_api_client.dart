@@ -2,12 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:zerobox/src/features/accounts/services/huami_auth_service.dart';
 
 class HuamiAppStoreApiClient {
-  HuamiAppStoreApiClient({required Dio dio, required HuamiAuthNotifier auth})
-    : _dio = dio,
-      _auth = auth;
+  HuamiAppStoreApiClient({required this.dio, required this.auth});
 
-  final Dio _dio;
-  final HuamiAuthNotifier _auth;
+  final Dio dio;
+  final HuamiAuthNotifier auth;
 
   static const _baseUrl = 'https://api.amazfit.com';
   static const _devicesUrl =
@@ -15,7 +13,7 @@ class HuamiAppStoreApiClient {
   static const _entryType = 'lightapp';
 
   Future<List<HuamiStoreDevice>> getDevices() async {
-    final response = await _dio.get<Object?>(_devicesUrl);
+    final response = await dio.get<Object?>(_devicesUrl);
     final rows = response.data is List ? response.data as List : const [];
     return rows
         .whereType<Map>()
@@ -29,13 +27,13 @@ class HuamiAppStoreApiClient {
     required int perPage,
   }) async {
     final token = _requireToken();
-    final response = await _dio.get<Object?>(
+    final response = await dio.get<Object?>(
       '$_baseUrl/market/devices/$deviceSource/$_entryType/apps',
       queryParameters: {
         'page': page,
-        ..._auth.storeQuery(token, perPage: perPage),
+        ...auth.storeQuery(token, perPage: perPage),
       },
-      options: Options(headers: _auth.storeHeaders(token)),
+      options: Options(headers: auth.storeHeaders(token)),
     );
     final root = _objectMap(response.data);
     final data = root['data'];
@@ -51,10 +49,10 @@ class HuamiAppStoreApiClient {
     required String appId,
   }) async {
     final token = _requireToken();
-    final response = await _dio.get<Object?>(
+    final response = await dio.get<Object?>(
       '$_baseUrl/market/devices/$deviceSource/$_entryType/apps/$appId',
-      queryParameters: _auth.storeQuery(token)..remove('per_page'),
-      options: Options(headers: _auth.storeHeaders(token)),
+      queryParameters: auth.storeQuery(token)..remove('per_page'),
+      options: Options(headers: auth.storeHeaders(token)),
     );
     return _objectMap(response.data);
   }
@@ -64,19 +62,19 @@ class HuamiAppStoreApiClient {
     void Function(int received, int total)? onReceiveProgress,
   }) async {
     final token = _requireToken();
-    return _dio.get<List<int>>(
+    return dio.get<List<int>>(
       url,
       options: Options(
         responseType: ResponseType.bytes,
         followRedirects: true,
-        headers: _auth.storeHeaders(token),
+        headers: auth.storeHeaders(token),
       ),
       onReceiveProgress: onReceiveProgress,
     );
   }
 
   HuamiTokenInfo _requireToken() {
-    final token = _auth.state.token;
+    final token = auth.currentToken;
     if (token == null || !token.isValid) {
       throw StateError('Huami account is not signed in');
     }
@@ -116,7 +114,8 @@ class HuamiStoreDevice {
         json['deviceName']?.toString() ??
         '';
     final osVersion = json['osVersion']?.toString() ?? '';
-    final appName = json['application']?.toString() ?? HuamiAuthNotifier.zeppAppName;
+    final appName =
+        json['application']?.toString() ?? HuamiAuthNotifier.zeppAppName;
     return [
       for (final source in sources)
         if (source is int || int.tryParse(source.toString()) != null)

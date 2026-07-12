@@ -6,6 +6,7 @@ import 'package:zerobox/src/app/widgets/page_container.dart';
 import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
 import 'package:zerobox/src/core/constants/app_constants.dart';
 import 'package:zerobox/src/core/constants/style_constants.dart';
+import 'package:zerobox/src/core/logging/file_log_sink.dart';
 import 'package:zerobox/src/core/services/build_info_service.dart';
 
 class AboutSoftwarePage extends StatelessWidget {
@@ -105,6 +106,37 @@ class AboutSoftwarePage extends StatelessWidget {
                       ),
                     );
                   },
+                ),
+              ),
+              _Section(
+                icon: Icons.folder_outlined,
+                title: l10n.settingsAboutLogs,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.settingsAboutLogsDescription,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    FilledButton.tonalIcon(
+                      onPressed: () async {
+                        final opened = await openLogDirectory();
+                        if (!opened && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(l10n.settingsAboutLogsOpenFailed),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.folder_open_outlined),
+                      label: Text(l10n.settingsAboutLogsOpen),
+                    ),
+                  ],
                 ),
               ),
               Text(

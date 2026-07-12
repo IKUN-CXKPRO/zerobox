@@ -6,6 +6,7 @@ class MainFlutterWindow: NSWindow {
   private var miAccountTwoFactorChannel: MacOSMiAccountTwoFactorChannel?
 
   override func awakeFromNib() {
+    let noGui = ProcessInfo.processInfo.arguments.contains("--nogui")
     let flutterViewController = FlutterViewController()
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
@@ -21,5 +22,8 @@ class MainFlutterWindow: NSWindow {
     )
 
     super.awakeFromNib()
+    if noGui {
+      orderOut(nil)
+    }
   }
 }

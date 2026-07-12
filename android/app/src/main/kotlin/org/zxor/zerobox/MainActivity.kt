@@ -54,9 +54,63 @@ class MainActivity : FlutterActivity() {
     private val sendLock = Object()
     private val sendExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private val connectGeneration = AtomicLong(0)
+    private val backgroundTaskIds = mutableSetOf<Int>()
+    private var nextBackgroundTaskId = 0
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "zerobox/background_tasks",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "begin" -> {
+                    val id = ++nextBackgroundTaskId
+                    backgroundTaskIds.add(id)
+                    val intent = Intent(this, BackgroundTaskService::class.java).apply {
+                        putExtra(
+                            BackgroundTaskService.EXTRA_LABEL,
+                            call.argument<String>("label") ?: "Installing resources",
+                        )
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(intent)
+                    } else {
+                        startService(intent)
+                    }
+                    result.success(id)
+                }
+                "end" -> {
+                    call.argument<Int>("id")?.let(backgroundTaskIds::remove)
+                    if (backgroundTaskIds.isEmpty()) {
+                        stopService(Intent(this, BackgroundTaskService::class.java))
+                    }
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "zerobox/logs",
+        ).setMethodCallHandler { call, result ->
+            if (call.method == "open") {
+                try {
+                    val intent = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                        putExtra(
+                            "android.provider.extra.INITIAL_URI",
+                            android.net.Uri.parse("content://${applicationContext.packageName}.logs/root/logs"),
+                        )
+                    }
+                    startActivity(intent)
+                    result.success(true)
+                } catch (error: Exception) {
+                    result.error("OPEN_LOGS_FAILED", error.message, null)
+                }
+            } else {
+                result.notImplemented()
+            }
+        }
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             "zerobox/classic_spp",
