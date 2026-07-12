@@ -4,7 +4,7 @@ A pretty fast wearable management tool for VelaOS and ZeppOS, built with Flutter
 
 [简体中文](README.md) · English
 
-> ⚠️ This project is under active development and is not yet fully usable
+> ⚠️ This project is under active development and is not yet production-ready
 
 ## What is ZeroBox?
 
@@ -16,12 +16,12 @@ ZeroBox is a cross-platform wearable device management tool that lets you connec
 |----------|--------|-------|
 | Android | ✅ Supported | Tested on CrDroid 12.11 (Android 16) |
 | Linux | ✅ Supported | Tested on Arch Linux x86_64 |
-| Web | ✅ Supported | Requires a browser with Web Serial / Bluetooth support |
-| macOS | ❔ Not tested | Not tested yet |
-| Windows | ❔ Not tested | Not tested yet |
+| Web | ✅ Supported | Tested on Chromium 150; requires a browser with Web Serial / Bluetooth support |
+| macOS | ✅ Supported | Tested on macOS 27 (Beta 3) |
+| Windows | ✅ Supported | Tested on Windows 11 25H2 |
 | iOS | ❌ Not supported | No plans yet |
 
-## Features
+## Features status
 
 | Feature | Status |
 |---------|--------|
@@ -29,15 +29,26 @@ ZeroBox is a cross-platform wearable device management tool that lets you connec
 | Install watch faces, mini apps and firmware packages | ✅ Done |
 | Xiaomi account login with 2FA | ✅ Done |
 | AstroBox-Repo community source integration | ✅ Done |
-| Optimize resource installation flow | 🚧 WIP |
-| Optimize device connection experience | 🚧 WIP |
-| Integrate BandBBS OAuth login for BandBBS community resources | 🚧 WIP |
+| Optimize resource installation flow | ✅ Done |
+| Optimize device connection experience | ✅ Done |
+| Integrate BandBBS OAuth login for BandBBS community resources | ✅ Done |
 | Creator center, one-click publish resources to BandBBS / AstroBox-Repo | 🚧 WIP |
 | Home page improvements | 🚧 WIP |
 
 ## Build from source
 
 ~~You need [Flutter](https://docs.flutter.dev/get-started/install) installed~~
+
+## AI development disclosure
+
+This project was developed with the help of AI agent tools
+
+Usage:
+
+| Model | Areas assisted |
+|-------|----------------|
+| ChatGPT 5.5/5.6-Sol | Dart Bluetooth connection behavior/protocol, backend rewrite, parts of the frontend |
+| Kimi K2.6 | Parts of the frontend, UI/UX, initial backend |
 
 ## Acknowledgements
 

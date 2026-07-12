@@ -74,58 +74,56 @@ class _BandBbsAccountPageState extends ConsumerState<BandBbsAccountPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Card(
-                child: ListTile(
-                  leading: account.avatarUrl != null
-                      ? NetworkImgLayer(
-                          src: account.avatarUrl!,
-                          width: 40,
-                          height: 40,
-                          type: 'avatar',
-                        )
-                      : CircleAvatar(
-                          child: Text(
-                            (account.username ?? account.userId ?? 'B')
-                                .characters
-                                .first,
+              SettingsSection(
+                tiles: [
+                  SettingsTile(
+                    leading: account.avatarUrl != null
+                        ? NetworkImgLayer(
+                            src: account.avatarUrl!,
+                            width: 32,
+                            height: 32,
+                            type: 'avatar',
+                          )
+                        : CircleAvatar(
+                            radius: 16,
+                            child: Text(
+                              (account.username ?? account.userId ?? 'B')
+                                  .characters
+                                  .first,
+                            ),
                           ),
-                        ),
-                  title: Text(
-                    account.username ?? l10n.settingsAccountBBSAccount,
+                    title: Text(
+                      account.username ?? l10n.settingsAccountBBSAccount,
+                    ),
+                    description: Text(
+                      account.userId == null
+                          ? l10n.settingsConnected
+                          : '${l10n.settingsAccountBandBbsAccount} · ${account.userId}',
+                    ),
+                    trailing: TextButton(
+                      onPressed: () async {
+                        await ref.read(bandBbsAuthProvider.notifier).signOut();
+                        if (!context.mounted) return;
+                        ZeroBoxDialog.showToast(
+                          message: l10n.bandBbsLoggedOut,
+                          context: context,
+                        );
+                        context.pop();
+                      },
+                      child: Text(l10n.bandBbsLogout),
+                    ),
                   ),
-                  subtitle: Text(
-                    account.userId == null
-                        ? l10n.settingsConnected
-                        : '${l10n.settingsAccountBandBbsAccount} · ${account.userId}',
-                  ),
-                  trailing: TextButton(
-                    onPressed: () async {
-                      await ref.read(bandBbsAuthProvider.notifier).signOut();
-                      if (!context.mounted) return;
-                      ZeroBoxDialog.showToast(
-                        message: l10n.bandBbsLoggedOut,
-                        context: context,
-                      );
-                      context.pop();
-                    },
-                    child: Text(l10n.bandBbsLogout),
-                  ),
-                ),
+                ],
               ),
-              const SizedBox(height: 16),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.bandBbsResourceQueryTitle,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
+              SettingsSection(
+                title: Text(l10n.bandBbsResourceQueryTitle),
+                tiles: [
+                  SettingsTile(
+                    leading: const Icon(Icons.tag),
+                    title: Text(l10n.bandBbsResourceId),
+                    description: Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Row(
                         children: [
                           Expanded(
                             child: TextField(
@@ -133,7 +131,6 @@ class _BandBbsAccountPageState extends ConsumerState<BandBbsAccountPage> {
                               keyboardType: TextInputType.number,
                               onSubmitted: (_) => _query(),
                               decoration: InputDecoration(
-                                labelText: l10n.bandBbsResourceId,
                                 hintText: l10n.bandBbsResourceIdHint,
                               ),
                             ),
@@ -153,11 +150,10 @@ class _BandBbsAccountPageState extends ConsumerState<BandBbsAccountPage> {
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 16),
               SettingsSection(
                 title: Text(l10n.settingsGeneral),
                 tiles: [
