@@ -2,27 +2,28 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zerobox/src/daemon/daemon_endpoint.dart';
 
 void main() {
-  test('uses the writable macOS sandbox container data directory', () {
-    expect(
-      resolveDaemonRuntimeDirectory(
-        operatingSystem: 'macos',
-        environment: const {'HOME': '/Users/orpudding'},
-        systemTemporaryDirectory:
-            '/Users/orpudding/Library/Containers/org.zxor.zerobox/Data/tmp',
-      ),
-      '/Users/orpudding/Library/Containers/org.zxor.zerobox/Data/Library/'
-      'Application Support/ZeroBox/run',
+  test('uses a short writable macOS sandbox endpoint', () {
+    final directory = resolveDaemonRuntimeDirectory(
+      operatingSystem: 'macos',
+      environment: const {'HOME': '/Users/orpudding'},
+      systemTemporaryDirectory:
+          '/Users/orpudding/Library/Containers/org.zxor.zerobox/Data/tmp',
     );
+    expect(
+      directory,
+      '/Users/orpudding/Library/Containers/org.zxor.zerobox/Data/tmp/zerobox',
+    );
+    expect('$directory/daemon.sock'.length, lessThan(104));
   });
 
-  test('uses Application Support for an unsandboxed macOS process', () {
+  test('uses the per-user temporary directory on unsandboxed macOS', () {
     expect(
       resolveDaemonRuntimeDirectory(
         operatingSystem: 'macos',
         environment: const {'HOME': '/Users/orpudding'},
         systemTemporaryDirectory: '/var/folders/example/T',
       ),
-      '/Users/orpudding/Library/Application Support/ZeroBox/run',
+      '/var/folders/example/T/zerobox',
     );
   });
 

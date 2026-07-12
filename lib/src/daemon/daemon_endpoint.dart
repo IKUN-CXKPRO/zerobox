@@ -19,19 +19,11 @@ String resolveDaemonRuntimeDirectory({
     return '$base\\ZeroBox\\run';
   }
   if (operatingSystem == 'macos') {
-    // Sandboxed macOS apps keep HOME pointed at the real user home while their
-    // writable data lives below Library/Containers/<bundle-id>/Data. The
-    // system temporary directory is already container-aware, so use its Data
-    // parent when available. The GUI and its daemon child then resolve the
-    // exact same writable endpoint.
-    final temporaryDirectory = systemTemporaryDirectory;
-    if (temporaryDirectory.contains('/Library/Containers/') &&
-        temporaryDirectory.endsWith('/tmp')) {
-      final containerData = Directory(temporaryDirectory).parent.path;
-      return '$containerData/Library/Application Support/ZeroBox/run';
-    }
-    final home = environment['HOME'] ?? systemTemporaryDirectory;
-    return '$home/Library/Application Support/ZeroBox/run';
+    // Darwin's sockaddr_un.sun_path is limited to roughly 104 bytes. A
+    // sandbox container's Application Support path can exceed that before the
+    // socket filename is appended. systemTemp is writable, per-user and
+    // container-aware, while remaining short enough for a Unix socket.
+    return '$systemTemporaryDirectory/zerobox';
   }
   final runtime = environment['XDG_RUNTIME_DIR'];
   if (runtime?.isNotEmpty == true) return '$runtime/zerobox';
