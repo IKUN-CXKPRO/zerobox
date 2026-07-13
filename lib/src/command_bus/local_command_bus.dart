@@ -69,6 +69,11 @@ class LocalCommandBus implements ZeroBoxCommandBus {
         CommandError(error.code, error.message, details: error.details),
       );
     } catch (error, stackTrace) {
+      getLogger('LocalCommandBus').severe(
+        'Command ${command.method} failed',
+        error,
+        stackTrace,
+      );
       return CommandResult.failure(
         CommandError('internal', error.toString(), details: '$stackTrace'),
       );

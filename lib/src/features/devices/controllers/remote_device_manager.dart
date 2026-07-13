@@ -116,7 +116,15 @@ class RemoteDeviceManager extends DeviceManager {
       result = await client.execute(command);
     }
     if (!result.ok) {
-      throw StateError('${result.error!.code}: ${result.error!.message}');
+      final error = result.error;
+      if (error == null) {
+        throw StateError('Daemon command failed without error details');
+      }
+      final details = error.details;
+      throw StateError(
+        '${error.code}: ${error.message}'
+        '${details == null || details.toString().isEmpty ? '' : '\n$details'}',
+      );
     }
     return result;
   }
