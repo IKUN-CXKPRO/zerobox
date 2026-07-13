@@ -269,6 +269,16 @@ class RemoteDeviceManager extends DeviceManager {
   }
 
   @override
+  Future<void> setFindingZeppOsDevice(bool finding) async {
+    await _execute(
+      ZeroBoxCommand(
+        method: 'device.zeppos.find',
+        params: {'finding': finding},
+      ),
+    );
+  }
+
+  @override
   Future<void> fetchSystemInfo() async {
     await _executeState('device.refresh.system');
   }

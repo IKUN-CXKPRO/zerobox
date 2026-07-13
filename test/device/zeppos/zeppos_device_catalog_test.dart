@@ -28,4 +28,21 @@ void main() {
       ZeppOsConnectionCapability.both,
     );
   });
+
+  test('uses the configured artwork for both ZeppOS band models', () {
+    expect(
+      DeviceRegistry.resolveIdentity(
+        name: 'Xiaomi Smart Band 7',
+        codename: 'zepp:mi-band-7',
+      ).illustrationAsset,
+      'assets/images/devices/xiaomi-band.svg',
+    );
+    expect(
+      DeviceRegistry.resolveIdentity(
+        name: 'Amazfit Band 7',
+        codename: 'zepp:band-7',
+      ).illustrationAsset,
+      'assets/images/devices/xiaomi-band-pro.svg',
+    );
+  });
 }

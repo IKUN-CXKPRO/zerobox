@@ -113,6 +113,7 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
                 final featuresPanel = _DeviceFeaturesPanel(
                   enabled: isReady,
                   hasDevice: device != null,
+                  isZeppOs: device?.codename?.startsWith('zepp:') ?? false,
                 );
 
                 return PageContainer(
@@ -235,7 +236,7 @@ class _DeviceInfoPanel extends StatelessWidget {
               ),
               if (_isConnected && battery != null) ...[
                 _VerticalDivider(),
-                _BatteryIndicator(capacity: battery!.capacity),
+                _BatteryIndicator(battery: battery!),
               ],
             ],
           ),
@@ -319,10 +320,15 @@ class _DeviceInfoPanel extends StatelessWidget {
 }
 
 class _DeviceFeaturesPanel extends ConsumerWidget {
-  const _DeviceFeaturesPanel({required this.enabled, required this.hasDevice});
+  const _DeviceFeaturesPanel({
+    required this.enabled,
+    required this.hasDevice,
+    required this.isZeppOs,
+  });
 
   final bool enabled;
   final bool hasDevice;
+  final bool isZeppOs;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -392,6 +398,14 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
                   title: Text(l10n.deviceFeaturesManageWatchfaces),
                   description: Text(l10n.deviceFeaturesManageWatchfacesDesc),
                 ),
+                if (isZeppOs)
+                  SettingsTile.navigation(
+                    onPressed: (_) => context.push('/devices/zeppos-more'),
+                    enabled: enabled,
+                    leading: const Icon(Icons.functions),
+                    title: Text(l10n.zeppOsMoreFeatures),
+                    description: Text(l10n.zeppOsMoreFeaturesDescription),
+                  ),
                 SettingsTile.navigation(
                   onPressed: (_) => context.push('/devices/info'),
                   enabled: hasDevice,
@@ -444,13 +458,17 @@ class _VerticalDivider extends StatelessWidget {
 }
 
 class _BatteryIndicator extends StatelessWidget {
-  const _BatteryIndicator({required this.capacity});
+  const _BatteryIndicator({required this.battery});
 
-  final int capacity;
+  final BatteryStatus battery;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final charging = battery.chargeStatus == ChargeStatus.charging;
+    final indicatorColor = charging
+        ? colorScheme.primary
+        : colorScheme.onSurfaceVariant;
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -466,7 +484,7 @@ class _BatteryIndicator extends StatelessWidget {
                 height: 10,
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: colorScheme.onSurfaceVariant,
+                    color: indicatorColor,
                     width: 1.5,
                   ),
                   borderRadius: BorderRadius.circular(2),
@@ -477,9 +495,12 @@ class _BatteryIndicator extends StatelessWidget {
                 top: 1.5,
                 bottom: 1.5,
                 child: Container(
-                  width: ((20 - 3) * (capacity / 100)).clamp(0.0, 20.0 - 3),
+                  width: ((20 - 3) * (battery.capacity / 100)).clamp(
+                    0.0,
+                    20.0 - 3,
+                  ),
                   decoration: BoxDecoration(
-                    color: colorScheme.onSurfaceVariant,
+                    color: indicatorColor,
                     borderRadius: BorderRadius.circular(1),
                   ),
                 ),
@@ -488,10 +509,14 @@ class _BatteryIndicator extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 4),
+        if (charging) ...[
+          Icon(Icons.bolt, size: 15, color: colorScheme.primary),
+          const SizedBox(width: 2),
+        ],
         Text(
-          '$capacity%',
+          '${battery.capacity}%',
           style: TextStyle(
-            color: colorScheme.onSurfaceVariant,
+            color: indicatorColor,
             fontSize: 13,
             height: 1,
           ),

@@ -37,6 +37,7 @@ class ZeppOsDeviceComponent {
   void Function(Object error, StackTrace stackTrace)? onTransportFailure;
 
   int _writeHandle = 0;
+  int? _encryptedSequenceNumber;
   int? _currentHandle;
   int? _currentEndpoint;
   int? _currentLength;
@@ -48,26 +49,26 @@ class ZeppOsDeviceComponent {
     Uint8List payload, {
     bool encrypted = false,
   }) async {
-    if (encrypted) {
-      throw UnsupportedError('Encrypted ZeppOS payloads are not wired yet');
-    }
     _writeHandle = (_writeHandle + 1) & 0xff;
     final handle = _writeHandle;
+    final wirePayload = encrypted ? _encryptPayload(payload, handle) : payload;
     var offset = 0;
     var count = 0;
-    while (offset < payload.length || (payload.isEmpty && count == 0)) {
+    while (offset < wirePayload.length ||
+        (wirePayload.isEmpty && count == 0)) {
       final first = count == 0;
       final maxPayload = _maxChunkPayload(first: first);
-      final remaining = payload.length - offset;
-      final take = payload.isEmpty
+      final remaining = wirePayload.length - offset;
+      final take = wirePayload.isEmpty
           ? 0
           : (remaining < maxPayload ? remaining : maxPayload);
-      final last = offset + take >= payload.length;
+      final last = offset + take >= wirePayload.length;
       final headerSize = first ? 11 : 5;
       final chunk = Uint8List(headerSize + take);
       var flags = 0;
       if (first) flags |= _flagFirst;
       if (last) flags |= _flagLast | _flagNeedsAck;
+      if (encrypted) flags |= _flagEncrypted;
       chunk[0] = _chunkPacket;
       chunk[1] = flags;
       chunk[2] = 0x00;
@@ -81,12 +82,12 @@ class ZeppOsDeviceComponent {
         cursor += 2;
       }
       if (take > 0) {
-        chunk.setRange(cursor, cursor + take, payload, offset);
+        chunk.setRange(cursor, cursor + take, wirePayload, offset);
       }
       await _safeSend(chunk);
       offset += take;
       count += 1;
-      if (payload.isEmpty) break;
+      if (wirePayload.isEmpty) break;
     }
   }
 
@@ -122,12 +123,6 @@ class ZeppOsDeviceComponent {
         '${first ? 0 : _expectedCount}',
       );
     }
-    if (encrypted) {
-      throw UnsupportedError(
-        'Encrypted ZeppOS inbound payloads are not wired yet',
-      );
-    }
-
     if (first) {
       if (data.length < cursor + 6) {
         throw StateError('ZeppOS first chunk is too short: ${data.length}');
@@ -161,11 +156,14 @@ class ZeppOsDeviceComponent {
     }
     if (!last) return;
 
-    final bytes = _reassembly?.takeBytes() ?? Uint8List(0);
+    var bytes = _reassembly?.takeBytes() ?? Uint8List(0);
     final length = _currentLength ?? bytes.length;
     final endpoint = _currentEndpoint;
     _resetReassembly();
     if (endpoint == null) return;
+    if (encrypted) {
+      bytes = _decryptPayload(bytes, handle, length);
+    }
     if (bytes.length < length) {
       throw StateError(
         'Truncated ZeppOS payload: expected $length, got ${bytes.length}',
@@ -223,6 +221,56 @@ class ZeppOsDeviceComponent {
 
   int _maxChunkPayload({required bool first}) {
     return 20 - (first ? 11 : 5);
+  }
+
+  Uint8List _encryptPayload(Uint8List payload, int handle) {
+    final keys = authKeys;
+    if (keys == null) {
+      throw StateError('Cannot encrypt ZeppOS payload before authentication');
+    }
+    final sequence = _encryptedSequenceNumber ?? keys.encryptedSequenceNumber;
+    _encryptedSequenceNumber = (sequence + 1) & 0xffffffff;
+    final clearLength = payload.length + 8;
+    final paddedLength = ((clearLength + 15) ~/ 16) * 16;
+    final clear = Uint8List(paddedLength);
+    clear.setRange(0, payload.length, payload);
+    _writeUint32Le(clear, payload.length, sequence);
+    _writeUint32Le(clear, payload.length + 4, _crc32(clear, payload.length + 4));
+    return zeppOsAesEcbEncrypt(_messageKey(keys.sessionKey, handle), clear);
+  }
+
+  Uint8List _decryptPayload(Uint8List payload, int handle, int clearLength) {
+    final keys = authKeys;
+    if (keys == null) {
+      throw StateError('Encrypted ZeppOS payload received before authentication');
+    }
+    if (payload.length % 16 != 0) {
+      throw StateError('Encrypted ZeppOS payload is not block aligned');
+    }
+    final clear = zeppOsAesEcbDecrypt(
+      _messageKey(keys.sessionKey, handle),
+      payload,
+    );
+    if (clearLength > clear.length) {
+      throw StateError('Encrypted ZeppOS payload is truncated');
+    }
+    return Uint8List.sublistView(clear, 0, clearLength);
+  }
+
+  Uint8List _messageKey(Uint8List sessionKey, int handle) =>
+      Uint8List.fromList(sessionKey.map((byte) => byte ^ handle).toList());
+
+  int _crc32(Uint8List data, int length) {
+    var crc = 0xffffffff;
+    for (var i = 0; i < length; i += 1) {
+      crc ^= data[i];
+      for (var bit = 0; bit < 8; bit += 1) {
+        crc = (crc & 1) != 0
+            ? (crc >> 1) ^ 0xedb88320
+            : crc >> 1;
+      }
+    }
+    return (crc ^ 0xffffffff) & 0xffffffff;
   }
 
   void _resetReassembly() {

@@ -36,6 +36,9 @@ class DeviceRegistry {
   const DeviceRegistry._();
 
   static const _xiaomiWatchAsset = 'assets/images/devices/xiaomi-watch.svg';
+  static const _xiaomiBandAsset = 'assets/images/devices/xiaomi-band.svg';
+  static const _xiaomiBandProAsset =
+      'assets/images/devices/xiaomi-band-pro.svg';
 
   static final List<DeviceProfile> profiles = [
     DeviceProfile(
@@ -124,15 +127,15 @@ class DeviceRegistry {
     required String name,
     String? codename,
   }) {
-    if (codename?.startsWith('zepp:') == true) {
-      return _profileById('zeppos');
-    }
     // Some ZeppOS devices use Xiaomi/Mi product names (notably Mi Band 7).
     // The Xiaomi wearable catalog also recognizes those names, so consulting
     // it first incorrectly routes a ZeppOS device into the Xiaomi/Vela session.
     // Explicit ZeppOS model matching must take precedence.
     final zeppDevice = zeppOsDeviceForBluetoothName(name);
     if (zeppDevice != null) {
+      return _zeppOsProfile(zeppDevice);
+    }
+    if (codename?.startsWith('zepp:') == true) {
       return _profileById('zeppos');
     }
 
@@ -156,6 +159,26 @@ class DeviceRegistry {
       XiaomiWearableFamily.xiaomiWatch => _profileById('xiaomi-watch-s'),
       XiaomiWearableFamily.unknown => unknown,
     };
+  }
+
+  static DeviceProfile _zeppOsProfile(ZeppOsDeviceCatalogEntry device) {
+    final base = _profileById('zeppos');
+    return DeviceProfile(
+      id: base.id,
+      kind: base.kind,
+      namePattern: base.namePattern,
+      illustrationAsset: switch (device.illustration) {
+        ZeppOsDeviceIllustration.watch => _xiaomiWatchAsset,
+        ZeppOsDeviceIllustration.band => _xiaomiBandAsset,
+        ZeppOsDeviceIllustration.bandPro => _xiaomiBandProAsset,
+      },
+      preferredConnectType: base.preferredConnectType,
+      bleRequiredCharacteristics: base.bleRequiredCharacteristics,
+      bleDesiredMtu: base.bleDesiredMtu,
+      bleAttemptPair: base.bleAttemptPair,
+      classicServiceUuid: base.classicServiceUuid,
+      classicFallbackChannels: base.classicFallbackChannels,
+    );
   }
 
   static DeviceProfile _profileById(String id) {

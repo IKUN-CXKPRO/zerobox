@@ -806,6 +806,42 @@ abstract class AppLocalizations {
   /// **'View, delete and set current watchface'**
   String get deviceFeaturesManageWatchfacesDesc;
 
+  /// No description provided for @zeppOsMoreFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Zepp OS Hub'**
+  String get zeppOsMoreFeatures;
+
+  /// No description provided for @zeppOsMoreFeaturesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore your Zepp OS device'**
+  String get zeppOsMoreFeaturesDescription;
+
+  /// No description provided for @zeppOsFindDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Find device'**
+  String get zeppOsFindDevice;
+
+  /// No description provided for @zeppOsFindDeviceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Make the device vibrate or ring so you can locate it nearby.'**
+  String get zeppOsFindDeviceDescription;
+
+  /// No description provided for @zeppOsFindDeviceStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start finding'**
+  String get zeppOsFindDeviceStart;
+
+  /// No description provided for @zeppOsFindDeviceStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop finding'**
+  String get zeppOsFindDeviceStop;
+
   /// No description provided for @deviceFeaturesDeviceInfo.
   ///
   /// In en, this message translates to:
