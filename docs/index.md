@@ -1,4 +1,4 @@
 # ZeroBox Documentation
 
-- [简体中文](zh/index.md)
-- [English](en/index.md)
+- [ZeroBox CLI 与守护进程](zh/CLI.md)
+- [ZeroBox CLI and daemon](en/CLI.md)

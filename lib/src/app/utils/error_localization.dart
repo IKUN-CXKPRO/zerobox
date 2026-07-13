@@ -76,6 +76,14 @@ String localizedErrorMessage(AppLocalizations l10n, Object? error) {
     return l10n.errorAccountPasswordIncorrect;
   }
 
+  if (normalized.contains('bandbbs account is not signed in')) {
+    return l10n.settingsBandBbsAccountRequired;
+  }
+
+  if (normalized.contains('huami account is not signed in')) {
+    return l10n.settingsHuamiAccountRequired;
+  }
+
   if (normalized.contains('2fa') ||
       normalized.contains('two-factor') ||
       normalized.contains('did not return account cookies')) {

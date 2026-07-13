@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +13,7 @@ import 'package:zerobox/src/core/providers/app_settings_providers.dart';
 import 'package:zerobox/src/data/community/community_source.dart';
 import 'package:zerobox/src/data/bandbbs/bandbbs_resource_provider.dart';
 import 'package:zerobox/src/device/core/xiaomi_wearable_catalog.dart';
+import 'package:zerobox/src/features/accounts/services/bandbbs_auth_service.dart';
 import 'package:zerobox/src/features/accounts/services/huami_auth_service.dart';
 import 'package:zerobox/src/features/resources/application/resource_catalog_providers.dart';
 import 'package:zerobox/src/features/resources/controllers/resource_filter_controller.dart';
@@ -35,7 +38,15 @@ class ResourcesPage extends ConsumerWidget {
           IconButton(
             tooltip: l10n.refresh,
             icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(communityCatalogDevicesProvider),
+            onPressed: () {
+              final catalog = ref.read(communityCatalogProvider);
+              if (catalog is BandBbsCatalog) {
+                catalog.clearCategoryCache();
+                ref.invalidate(bandbbsCategoryTreeProvider);
+              }
+              ref.invalidate(communityCatalogDevicesProvider);
+              ref.read(resourceRefreshProvider.notifier).refresh();
+            },
           ),
         ],
       ),
@@ -229,6 +240,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView> {
   var _hasMore = true;
   var _loading = true;
   var _loadingMore = false;
+  var _waitingForSidebarLoad = false;
   Object? _error;
   var _generation = 0;
 
@@ -278,6 +290,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView> {
 
   Future<void> _load(int generation) async {
     if (!_hasMore || _loadingMore) return;
+    _ensureBandBbsSidebarLoaded();
     setState(() => _loadingMore = true);
     try {
       final filters = ref.read(resourceFiltersProvider);
@@ -317,6 +330,44 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView> {
     }
   }
 
+  void _ensureBandBbsSidebarLoaded() {
+    if (ref.read(selectedCommunitySourceProvider) !=
+        CommunitySourceId.bandbbs) {
+      return;
+    }
+    final tree = ref.read(bandbbsCategoryTreeProvider);
+    if (tree.isLoading) {
+      if (_waitingForSidebarLoad) return;
+      _waitingForSidebarLoad = true;
+      unawaited(
+        _retryBandBbsSidebarAfter(ref.read(bandbbsCategoryTreeProvider.future)),
+      );
+      return;
+    }
+    final roots = tree.value;
+    if (roots == null || roots.isEmpty) {
+      ref.invalidate(bandbbsCategoryTreeProvider);
+    }
+  }
+
+  Future<void> _retryBandBbsSidebarAfter(
+    Future<List<BandBbsCategoryNode>> request,
+  ) async {
+    var hasCategories = false;
+    try {
+      hasCategories = (await request).isNotEmpty;
+    } catch (_) {
+      // The resource list remains usable when category loading fails
+    } finally {
+      _waitingForSidebarLoad = false;
+    }
+    if (!mounted || hasCategories) return;
+    if (ref.read(selectedCommunitySourceProvider) ==
+        CommunitySourceId.bandbbs) {
+      ref.invalidate(bandbbsCategoryTreeProvider);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -324,6 +375,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView> {
     final source = ref.watch(selectedCommunitySourceProvider);
     ref.listen(resourceFiltersProvider, (_, _) => _reset());
     ref.listen(selectedCommunitySourceProvider, (_, _) => _reset());
+    ref.listen(resourceRefreshProvider, (_, _) => _reset());
     ref.listen(
       appSettingsProvider.select(
         (settings) => settings.bandbbsShowAllCategories,
@@ -521,6 +573,15 @@ class _CommunitySourceMenu extends ConsumerWidget {
               onPressed: candidate == source
                   ? null
                   : () async {
+                      if (candidate == CommunitySourceId.bandbbs &&
+                          !ref.read(bandBbsAuthProvider).isSignedIn) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(l10n.settingsBandBbsAccountRequired),
+                          ),
+                        );
+                        return;
+                      }
                       if (candidate == CommunitySourceId.huamiAppStore &&
                           !ref.read(huamiAuthProvider).isSignedIn) {
                         ScaffoldMessenger.of(context).showSnackBar(

@@ -235,6 +235,7 @@
   "settingsAccountBandBbsOpenedBrowser": "Browser opened. Complete BandBBS authorization there",
   "settingsAccountBandBbsSignedIn": "BandBBS signed in",
   "settingsAccountBandBbsLoginFailed": "BandBBS sign-in failed",
+  "settingsBandBbsAccountRequired": "Sign in to your BandBBS account in Settings first",
   "settingsAccountBandBbsUser": "User ID: {userId}",
   "@settingsAccountBandBbsUser": {
     "placeholders": {

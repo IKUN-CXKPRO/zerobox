@@ -235,6 +235,7 @@
   "settingsAccountBandBbsOpenedBrowser": "已打开浏览器，请完成 BandBBS 授权",
   "settingsAccountBandBbsSignedIn": "BandBBS 登录成功",
   "settingsAccountBandBbsLoginFailed": "BandBBS 登录失败",
+  "settingsBandBbsAccountRequired": "请先在设置中登录米坛账号",
   "settingsAccountBandBbsUser": "用户 ID：{userId}",
   "@settingsAccountBandBbsUser": {
     "placeholders": {

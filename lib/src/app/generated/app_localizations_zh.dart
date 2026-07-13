@@ -710,6 +710,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAccountBandBbsLoginFailed => 'BandBBS 登录失败';
 
   @override
+  String get settingsBandBbsAccountRequired => '请先在设置中登录米坛账号';
+
+  @override
   String settingsAccountBandBbsUser(Object userId) {
     return '用户 ID：$userId';
   }

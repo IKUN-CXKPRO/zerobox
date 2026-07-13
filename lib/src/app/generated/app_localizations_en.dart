@@ -727,6 +727,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAccountBandBbsLoginFailed => 'BandBBS sign-in failed';
 
   @override
+  String get settingsBandBbsAccountRequired =>
+      'Sign in to your BandBBS account in Settings first';
+
+  @override
   String settingsAccountBandBbsUser(Object userId) {
     return 'User ID: $userId';
   }
