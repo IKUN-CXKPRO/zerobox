@@ -4,6 +4,7 @@ import 'package:zerobox/src/device/core/runtime.dart';
 import 'package:zerobox/src/device/core/system.dart';
 import 'package:zerobox/src/device/core/transport.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_auth_system.dart';
+import 'package:zerobox/src/device/zeppos/systems/zeppos_apps_system.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_battery_system.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_find_device_system.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_services_system.dart';
@@ -33,12 +34,15 @@ class ZeppOsDeviceFactory implements DeviceEntityFactory {
     entity.setDispatcher(ZeppOsDispatcher());
 
     final authSystem = ZeppOsAuthSystem();
+    final appsSystem = ZeppOsAppsSystem();
     final batterySystem = ZeppOsBatterySystem();
     final servicesSystem = ZeppOsServicesSystem();
     final findDeviceSystem = ZeppOsFindDeviceSystem();
     component.onPayload = (payload) {
       if (payload.endpoint == ZeppOsDeviceComponent.endpointAuthentication) {
         authSystem.handlePayload(payload.payload);
+      } else if (payload.endpoint == ZeppOsAppsSystem.endpoint) {
+        appsSystem.handlePayload(payload.payload);
       } else if (payload.endpoint == ZeppOsBatterySystem.endpoint) {
         batterySystem.handlePayload(payload.payload);
       } else if (payload.endpoint == ZeppOsServicesSystem.endpoint) {
@@ -46,6 +50,7 @@ class ZeppOsDeviceFactory implements DeviceEntityFactory {
       }
     };
     entity.registerSystem(authSystem);
+    entity.registerSystem(appsSystem);
     entity.registerSystem(batterySystem);
     entity.registerSystem(servicesSystem);
     entity.registerSystem(findDeviceSystem);

@@ -27,6 +27,7 @@ import 'package:zerobox/src/device/xiaomi/components/thirdparty_app_system.dart'
 import 'package:zerobox/src/device/xiaomi/components/xiaomi_device_component.dart';
 import 'package:zerobox/src/device/xiaomi/xiaomi_device_factory.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_auth_system.dart';
+import 'package:zerobox/src/device/zeppos/systems/zeppos_apps_system.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_battery_system.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_find_device_system.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_services_system.dart';
@@ -1026,7 +1027,21 @@ class DeviceManager extends Notifier<DeviceManagerState> {
     if (entity == null || state.protocolState != ProtocolState.ready) {
       throw ProtocolException('Device not ready');
     }
-    final resourceSystem = entity.system<XiaomiResourceSystem>()!;
+    final zeppAppsSystem = entity.system<ZeppOsAppsSystem>();
+    if (zeppAppsSystem != null) {
+      await _configureZeppOsAppsSystem(entity, zeppAppsSystem);
+      final apps = await zeppAppsSystem.fetchApps();
+      _log.info('event: ZeppOS app list ${apps.length}');
+      state = state.copyWith(apps: apps);
+      return;
+    }
+    final resourceSystem = entity.system<XiaomiResourceSystem>();
+    if (resourceSystem == null) {
+      throw StateError(
+        'Zepp OS app management was added after this device session started. '
+        'Reconnect the device once to load it.',
+      );
+    }
     final items = await resourceSystem.fetchInstalledQuickApps();
     final apps = items
         .map(
@@ -1058,8 +1073,25 @@ class DeviceManager extends Notifier<DeviceManagerState> {
     if (entity == null || state.protocolState != ProtocolState.ready) {
       throw ProtocolException('Device not ready');
     }
+    final zeppAppsSystem = entity.system<ZeppOsAppsSystem>();
+    if (zeppAppsSystem != null) {
+      await _configureZeppOsAppsSystem(
+        entity,
+        zeppAppsSystem,
+        requireLaunch: true,
+      );
+      _log.info('opening ZeppOS app ${app.packageName}');
+      await zeppAppsSystem.launchApp(app.packageName);
+      return;
+    }
     _log.info('opening app ${app.packageName} page="$page"');
-    final thirdpartySystem = entity.system<XiaomiThirdpartyAppSystem>()!;
+    final thirdpartySystem = entity.system<XiaomiThirdpartyAppSystem>();
+    if (thirdpartySystem == null) {
+      throw StateError(
+        'Zepp OS app management was added after this device session started. '
+        'Reconnect the device once to load it.',
+      );
+    }
     await thirdpartySystem.launchApp(_thirdpartyAppInfo(app), page);
   }
 
@@ -1068,8 +1100,26 @@ class DeviceManager extends Notifier<DeviceManagerState> {
     if (entity == null || state.protocolState != ProtocolState.ready) {
       throw ProtocolException('Device not ready');
     }
+    final zeppAppsSystem = entity.system<ZeppOsAppsSystem>();
+    if (zeppAppsSystem != null) {
+      await _configureZeppOsAppsSystem(entity, zeppAppsSystem);
+      _log.info('uninstalling ZeppOS app ${app.packageName}');
+      await zeppAppsSystem.uninstallApp(app.packageName);
+      state = state.copyWith(
+        apps: state.apps
+            .where((candidate) => candidate.packageName != app.packageName)
+            .toList(),
+      );
+      return;
+    }
     _log.info('uninstalling app ${app.packageName}');
-    final thirdpartySystem = entity.system<XiaomiThirdpartyAppSystem>()!;
+    final thirdpartySystem = entity.system<XiaomiThirdpartyAppSystem>();
+    if (thirdpartySystem == null) {
+      throw StateError(
+        'Zepp OS app management was added after this device session started. '
+        'Reconnect the device once to load it.',
+      );
+    }
     await thirdpartySystem.uninstallApp(_thirdpartyAppInfo(app));
     state = state.copyWith(
       apps: state.apps.where((a) => a.packageName != app.packageName).toList(),
@@ -1081,6 +1131,37 @@ class DeviceManager extends Notifier<DeviceManagerState> {
       packageName: app.packageName,
       fingerprint: Uint8List.fromList(app.fingerprint),
     );
+  }
+
+  Future<void> _configureZeppOsAppsSystem(
+    DeviceEntity entity,
+    ZeppOsAppsSystem appsSystem, {
+    bool requireLaunch = false,
+  }) async {
+    final servicesSystem = entity.system<ZeppOsServicesSystem>();
+    if (servicesSystem == null) {
+      throw StateError(
+        'Zepp OS services discovery is unavailable in this device session. '
+        'Reconnect the device once to reload its protocol systems.',
+      );
+    }
+    final services = await servicesSystem.fetchSupportedServices();
+    if (!services.containsKey(ZeppOsAppsSystem.endpoint)) {
+      throw UnsupportedError(
+        'This Zepp OS device does not support app management',
+      );
+    }
+    appsSystem.encrypted = services[ZeppOsAppsSystem.endpoint] ?? false;
+    if (requireLaunch &&
+        !services.containsKey(ZeppOsAppsSystem.launchEndpoint)) {
+      throw UnsupportedError(
+        'This Zepp OS device does not support launching apps',
+      );
+    }
+    if (services.containsKey(ZeppOsAppsSystem.launchEndpoint)) {
+      appsSystem.launchEncrypted =
+          services[ZeppOsAppsSystem.launchEndpoint] ?? true;
+    }
   }
 
   Future<void> uninstallWatchface(WatchfaceInfo watchface) async {
@@ -1129,6 +1210,12 @@ class DeviceManager extends Notifier<DeviceManagerState> {
     final entity = _currentEntity;
     if (entity == null || state.protocolState != ProtocolState.ready) {
       throw ProtocolException('Device not ready');
+    }
+    if (entity.system<ZeppOsAppsSystem>() != null) {
+      throw UnsupportedError(
+        'Zepp OS app installation requires the firmware transfer channel, '
+        'which is not enabled in ZeroBox yet',
+      );
     }
     _log.info('installing app $packageName (${packageBytes.length} bytes)');
     final installSystem = entity.system<XiaomiInstallSystem>()!;
