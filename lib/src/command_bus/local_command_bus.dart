@@ -104,6 +104,9 @@ class LocalCommandBus implements ZeroBoxCommandBus {
     'device.refresh.battery' => _refreshBattery(),
     'device.refresh.system' => _refreshSystem(),
     'device.refresh.storage' => _refreshStorage(),
+    'device.zeppos.find' => _setFindingZeppOsDevice(
+      command.params['finding'] == true,
+    ),
     'device.remove' => _removeDevice(command.params['device']?.toString()),
     'device.import' => _importDevice(command.params),
     'app.list' => _listApps(),
@@ -335,6 +338,12 @@ class LocalCommandBus implements ZeroBoxCommandBus {
     await _ensureConnected(null);
     await _manager.fetchStorageInfo();
     return _deviceStateJson(_state);
+  }
+
+  Future<Object?> _setFindingZeppOsDevice(bool finding) async {
+    await _ensureConnected(null);
+    await _manager.setFindingZeppOsDevice(finding);
+    return {'finding': finding};
   }
 
   Future<Object?> _listApps() async {

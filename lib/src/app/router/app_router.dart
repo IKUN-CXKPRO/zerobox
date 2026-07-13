@@ -9,6 +9,7 @@ import 'package:zerobox/src/features/devices/pages/apps/device_apps_page.dart';
 import 'package:zerobox/src/features/devices/pages/devices_page.dart';
 import 'package:zerobox/src/features/devices/pages/info/device_info_page.dart';
 import 'package:zerobox/src/features/devices/pages/install/install_local_page.dart';
+import 'package:zerobox/src/features/devices/pages/more/zeppos_more_features_page.dart';
 import 'package:zerobox/src/features/devices/pages/switch/device_switch_page.dart';
 import 'package:zerobox/src/features/devices/pages/watchfaces/device_watchfaces_page.dart';
 import 'package:zerobox/src/features/devices/providers/pending_shared_device_provider.dart';
@@ -139,6 +140,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'watchfaces',
                     builder: (context, state) => const DeviceWatchfacesPage(),
+                  ),
+                  GoRoute(
+                    path: 'zeppos-more',
+                    builder: (context, state) =>
+                        const ZeppOsMoreFeaturesPage(),
                   ),
                 ],
               ),

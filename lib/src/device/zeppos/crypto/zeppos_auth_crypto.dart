@@ -98,12 +98,24 @@ Uint8List createZeppOsPublicKey(Uint8List privateKey) =>
     _generatePublicKey(privateKey);
 
 Uint8List zeppOsAesEcbEncrypt(Uint8List key, Uint8List value) {
+  return _zeppOsAesEcb(key, value, encrypt: true);
+}
+
+Uint8List zeppOsAesEcbDecrypt(Uint8List key, Uint8List value) {
+  return _zeppOsAesEcb(key, value, encrypt: false);
+}
+
+Uint8List _zeppOsAesEcb(
+  Uint8List key,
+  Uint8List value, {
+  required bool encrypt,
+}) {
   if (key.length != 16) throw ArgumentError('AES key must be 16 bytes');
   if (value.length % 16 != 0) {
     throw ArgumentError('AES/ECB/NoPadding input must be 16-byte aligned');
   }
   final cipher = ECBBlockCipher(AESEngine())
-    ..init(true, KeyParameter(Uint8List.fromList(key)));
+    ..init(encrypt, KeyParameter(Uint8List.fromList(key)));
   final output = Uint8List(value.length);
   for (var offset = 0; offset < value.length; offset += cipher.blockSize) {
     cipher.processBlock(value, offset, output, offset);

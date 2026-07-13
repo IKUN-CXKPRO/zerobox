@@ -382,6 +382,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'View, delete and set current watchface';
 
   @override
+  String get zeppOsMoreFeatures => 'Zepp OS Hub';
+
+  @override
+  String get zeppOsMoreFeaturesDescription => 'Explore your Zepp OS device';
+
+  @override
+  String get zeppOsFindDevice => 'Find device';
+
+  @override
+  String get zeppOsFindDeviceDescription =>
+      'Make the device vibrate or ring so you can locate it nearby.';
+
+  @override
+  String get zeppOsFindDeviceStart => 'Start finding';
+
+  @override
+  String get zeppOsFindDeviceStop => 'Stop finding';
+
+  @override
   String get deviceFeaturesDeviceInfo => 'Device info';
 
   @override

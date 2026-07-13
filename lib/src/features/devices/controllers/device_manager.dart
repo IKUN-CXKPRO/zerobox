@@ -27,6 +27,9 @@ import 'package:zerobox/src/device/xiaomi/components/thirdparty_app_system.dart'
 import 'package:zerobox/src/device/xiaomi/components/xiaomi_device_component.dart';
 import 'package:zerobox/src/device/xiaomi/xiaomi_device_factory.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_auth_system.dart';
+import 'package:zerobox/src/device/zeppos/systems/zeppos_battery_system.dart';
+import 'package:zerobox/src/device/zeppos/systems/zeppos_find_device_system.dart';
+import 'package:zerobox/src/device/zeppos/systems/zeppos_services_system.dart';
 import 'package:zerobox/src/device/zeppos/zeppos_device_catalog.dart';
 import 'package:zerobox/src/device/zeppos/zeppos_device_factory.dart';
 import 'package:zerobox/src/features/accounts/models/mi_account_models.dart';
@@ -633,6 +636,24 @@ class DeviceManager extends Notifier<DeviceManagerState> {
   }
 
   Future<void> _loadInitialDeviceData(DeviceEntity entity) async {
+    final zeppBatterySystem = entity.system<ZeppOsBatterySystem>();
+    if (zeppBatterySystem != null) {
+      try {
+        final services = await entity
+            .system<ZeppOsServicesSystem>()!
+            .fetchSupportedServices();
+        if (!services.containsKey(ZeppOsBatterySystem.endpoint)) {
+          _log.info('ZeppOS device does not advertise battery endpoint 0x0029');
+          return;
+        }
+        zeppBatterySystem.encrypted =
+            services[ZeppOsBatterySystem.endpoint] ?? true;
+        await zeppBatterySystem.fetchBatteryInfo();
+      } catch (e, st) {
+        _log.warning('initial ZeppOS battery fetch failed', e, st);
+      }
+      return;
+    }
     final infoSystem = entity.system<XiaomiInfoSystem>();
     if (infoSystem == null) return;
     try {
@@ -946,9 +967,27 @@ class DeviceManager extends Notifier<DeviceManagerState> {
     if (entity == null || state.protocolState != ProtocolState.ready) {
       throw ProtocolException('Device not ready');
     }
+    final zeppBatterySystem = entity.system<ZeppOsBatterySystem>();
+    if (zeppBatterySystem != null) {
+      final battery = await zeppBatterySystem.fetchBatteryInfo();
+      state = state.copyWith(battery: battery);
+      return;
+    }
     final infoSystem = entity.system<XiaomiInfoSystem>()!;
     final battery = await infoSystem.fetchBatteryInfo();
     state = state.copyWith(battery: battery);
+  }
+
+  Future<void> setFindingZeppOsDevice(bool finding) async {
+    final entity = _currentEntity;
+    if (entity == null || state.protocolState != ProtocolState.ready) {
+      throw ProtocolException('Device not ready');
+    }
+    final system = entity.system<ZeppOsFindDeviceSystem>();
+    if (system == null) {
+      throw UnsupportedError('Find device is only available for ZeppOS');
+    }
+    await system.setFinding(finding);
   }
 
   Future<void> fetchSystemInfo() async {

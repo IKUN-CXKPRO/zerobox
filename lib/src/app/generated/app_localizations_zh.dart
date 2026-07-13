@@ -370,6 +370,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceFeaturesManageWatchfacesDesc => '查看、删除并设置当前表盘';
 
   @override
+  String get zeppOsMoreFeatures => 'Zepp OS 专区';
+
+  @override
+  String get zeppOsMoreFeaturesDescription => '探索你的 Zepp OS 设备';
+
+  @override
+  String get zeppOsFindDevice => '查找设备';
+
+  @override
+  String get zeppOsFindDeviceDescription => '让设备持续振动或响铃，方便在附近快速找到它。';
+
+  @override
+  String get zeppOsFindDeviceStart => '开始查找';
+
+  @override
+  String get zeppOsFindDeviceStop => '停止查找';
+
+  @override
   String get deviceFeaturesDeviceInfo => '设备信息';
 
   @override

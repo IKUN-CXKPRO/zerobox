@@ -1,15 +1,19 @@
 enum ZeppOsConnectionCapability { ble, both, btbr }
 
+enum ZeppOsDeviceIllustration { watch, band, bandPro }
+
 class ZeppOsDeviceCatalogEntry {
   const ZeppOsDeviceCatalogEntry({
     required this.id,
     required this.bluetoothNames,
     this.connectionCapability = ZeppOsConnectionCapability.ble,
+    this.illustration = ZeppOsDeviceIllustration.watch,
   });
 
   final String id;
   final List<String> bluetoothNames;
   final ZeppOsConnectionCapability connectionCapability;
+  final ZeppOsDeviceIllustration illustration;
 
   bool matches(String name) {
     final normalized = name.trim();
@@ -53,8 +57,16 @@ const zeppOsDeviceCatalog = <ZeppOsDeviceCatalogEntry>[
   ZeppOsDeviceCatalogEntry(id: 'balance', bluetoothNames: ['Amazfit Balance']),
   ZeppOsDeviceCatalogEntry(id: 'balance-2', bluetoothNames: ['Amazfit Balance 2']),
   ZeppOsDeviceCatalogEntry(id: 'balance-2-xt', bluetoothNames: ['Amazfit Balance 2 XT']),
-  ZeppOsDeviceCatalogEntry(id: 'band-7', bluetoothNames: ['Amazfit Band 7']),
-  ZeppOsDeviceCatalogEntry(id: 'mi-band-7', bluetoothNames: ['Xiaomi Smart Band 7']),
+  ZeppOsDeviceCatalogEntry(
+    id: 'band-7',
+    bluetoothNames: ['Amazfit Band 7'],
+    illustration: ZeppOsDeviceIllustration.bandPro,
+  ),
+  ZeppOsDeviceCatalogEntry(
+    id: 'mi-band-7',
+    bluetoothNames: ['Xiaomi Smart Band 7'],
+    illustration: ZeppOsDeviceIllustration.band,
+  ),
   ZeppOsDeviceCatalogEntry(id: 'bip-5', bluetoothNames: ['Amazfit Bip 5']),
   ZeppOsDeviceCatalogEntry(id: 'bip-5-unity', bluetoothNames: ['Amazfit Bip 5 Unity']),
   ZeppOsDeviceCatalogEntry(id: 'bip-6', bluetoothNames: ['Amazfit Bip 6']),
