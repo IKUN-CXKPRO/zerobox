@@ -1478,6 +1478,12 @@ abstract class AppLocalizations {
   /// **'BandBBS sign-in failed'**
   String get settingsAccountBandBbsLoginFailed;
 
+  /// No description provided for @settingsBandBbsAccountRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to your BandBBS account in Settings first'**
+  String get settingsBandBbsAccountRequired;
+
   /// No description provided for @settingsAccountBandBbsUser.
   ///
   /// In en, this message translates to:

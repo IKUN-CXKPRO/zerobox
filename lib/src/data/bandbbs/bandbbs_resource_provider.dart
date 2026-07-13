@@ -215,9 +215,27 @@ class BandBbsCatalog implements CommunityResourceCatalog {
     );
   }
 
-  Future<List<_BandBbsCategory>> _categories() {
-    return _categoryRequest ??= _loadCategories();
+  Future<List<_BandBbsCategory>> _categories() async {
+    final existing = _categoryRequest;
+    if (existing != null) return existing;
+
+    final request = _loadCategories();
+    _categoryRequest = request;
+    try {
+      final categories = await request;
+      if (categories.isEmpty && identical(_categoryRequest, request)) {
+        _categoryRequest = null;
+      }
+      return categories;
+    } catch (_) {
+      if (identical(_categoryRequest, request)) {
+        _categoryRequest = null;
+      }
+      rethrow;
+    }
   }
+
+  void clearCategoryCache() => _categoryRequest = null;
 
   Future<List<_BandBbsCategory>> _loadCategories() async {
     final root = await _api.getFlattenedCategories();

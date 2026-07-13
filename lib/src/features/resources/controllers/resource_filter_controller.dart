@@ -61,6 +61,18 @@ final resourceFiltersProvider =
       ResourceFiltersNotifier.new,
     );
 
+class ResourceRefreshController extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void refresh() => state++;
+}
+
+final resourceRefreshProvider =
+    NotifierProvider<ResourceRefreshController, int>(
+      ResourceRefreshController.new,
+    );
+
 class ResourceFiltersNotifier extends Notifier<ResourceFilters> {
   @override
   ResourceFilters build() => const ResourceFilters();
