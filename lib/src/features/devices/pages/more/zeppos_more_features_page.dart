@@ -78,6 +78,28 @@ class _ZeppOsMoreFeaturesPageState
                           ? () => context.push('/devices/zeppos-more/xiao-ai')
                           : null,
                     ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.tune),
+                      title: const Text('应用设置'),
+                      subtitle: const Text('打开已缓存的 Zepp OS 应用设置页'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () =>
+                          context.push('/devices/zeppos-more/settings'),
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.code),
+                      title: const Text('App-side 调试'),
+                      subtitle: const Text(
+                        '按 appId 调试 QuickJS 与 PeerSocket 消息',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      enabled: ready,
+                      onTap: ready
+                          ? () => context.push('/devices/zeppos-more/app-side')
+                          : null,
+                    ),
                     const Divider(),
                     const SizedBox(height: 12),
                     Row(

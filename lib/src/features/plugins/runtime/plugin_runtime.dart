@@ -37,6 +37,7 @@ const abV1PluginBootstrap = r'''
 
   globalThis.console = {
     log: (...args) => host('console.log', args.map(String)),
+    debug: (...args) => host('console.log', args.map(String)),
     info: (...args) => host('console.info', args.map(String)),
     warn: (...args) => host('console.warn', args.map(String)),
     error: (...args) => host('console.error', args.map(String)),

@@ -8,6 +8,7 @@ import 'package:zerobox/src/core/logging/logging_service.dart';
 import 'package:zerobox/src/core/models/bt_models.dart';
 import 'package:zerobox/src/device/core/connect_type.dart';
 import 'package:zerobox/src/device/core/device_kind.dart';
+import 'package:zerobox/src/device/zeppos/systems/zeppos_app_side_system.dart';
 import 'package:zerobox/src/features/accounts/models/mi_account_models.dart';
 import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
 import 'package:zerobox/src/host/application_host_provider.dart';
@@ -347,6 +348,121 @@ class HostDeviceManager extends DeviceManager {
   }
 
   @override
+  Future<List<int>> listZeppOsAppSides() async {
+    final result = await _execute(
+      const ZeroBoxCommand(method: 'device.zeppos.appside.list'),
+    );
+    return (result.value as List)
+        .map((value) => (value as num).toInt())
+        .toList();
+  }
+
+  @override
+  Future<List<int>> observedZeppOsAppSideIds() async {
+    final result = await _execute(
+      const ZeroBoxCommand(method: 'device.zeppos.appside.observed'),
+    );
+    return (result.value as List)
+        .map((value) => (value as num).toInt())
+        .toList();
+  }
+
+  @override
+  Future<List<ZeppOsAppSideSessionInfo>> zeppOsAppSideSessions() async {
+    final result = await _execute(
+      const ZeroBoxCommand(method: 'device.zeppos.appside.sessions'),
+    );
+    return (result.value as List)
+        .whereType<Map>()
+        .map((raw) {
+          final value = raw.cast<String, Object?>();
+          return ZeppOsAppSideSessionInfo(
+            appId: (value['appId'] as num).toInt(),
+            version: (value['version'] as num).toInt(),
+            port1: (value['port1'] as num).toInt(),
+            port2: (value['port2'] as num).toInt(),
+            extra: (value['extra'] as num).toInt(),
+            watchSessionOpen: value['watchSessionOpen'] == true,
+          );
+        })
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<ZeppOsAppSideDebugEvent>> zeppOsAppSideEvents(int appId) async {
+    final result = await _execute(
+      ZeroBoxCommand(
+        method: 'device.zeppos.appside.events',
+        params: {'appId': appId},
+      ),
+    );
+    return (result.value as List)
+        .whereType<Map>()
+        .map((raw) {
+          final value = raw.cast<String, Object?>();
+          final payload = value['payload'];
+          return ZeppOsAppSideDebugEvent(
+            timestamp: DateTime.parse(value['timestamp'].toString()),
+            type: value['type'].toString(),
+            message: value['message'].toString(),
+            direction: value['direction']?.toString(),
+            source: value['source']?.toString(),
+            payload: payload is List
+                ? Uint8List.fromList(
+                    payload
+                        .whereType<num>()
+                        .map((byte) => byte.toInt())
+                        .toList(),
+                  )
+                : null,
+          );
+        })
+        .toList(growable: false);
+  }
+
+  @override
+  Future<void> clearZeppOsAppSideEvents(int appId) => _execute(
+    ZeroBoxCommand(
+      method: 'device.zeppos.appside.events.clear',
+      params: {'appId': appId},
+    ),
+  );
+
+  @override
+  Future<void> startZeppOsAppSide(int appId) => _execute(
+    ZeroBoxCommand(
+      method: 'device.zeppos.appside.start',
+      params: {'appId': appId},
+    ),
+  );
+
+  @override
+  Future<void> stopZeppOsAppSide(int appId) => _execute(
+    ZeroBoxCommand(
+      method: 'device.zeppos.appside.stop',
+      params: {'appId': appId},
+    ),
+  );
+
+  @override
+  Future<void> injectZeppOsAppSideMessage(int appId, Uint8List payload) =>
+      _execute(
+        ZeroBoxCommand(
+          method: 'device.zeppos.appside.inject',
+          params: {'appId': appId, 'payload': payload.toList()},
+        ),
+      );
+
+  @override
+  Future<void> sendZeppOsAppSideMessage(int appId, Uint8List payload) =>
+      _execute(
+        ZeroBoxCommand(
+          method: 'device.zeppos.appside.send',
+          params: {'appId': appId, 'payload': payload.toList()},
+        ),
+      );
+
+  @override
   Future<void> uninstallApp(AppInfo app) async {
     await _execute(
       ZeroBoxCommand(
@@ -458,6 +574,7 @@ class HostDeviceManager extends DeviceManager {
     Uint8List packageBytes, {
     required String packageName,
     void Function(double progress)? onProgress,
+    void Function()? onAppSideMissing,
   }) => _installBytes(packageBytes, 'quickapp', 'rpk', onProgress);
 
   @override

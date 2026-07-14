@@ -161,6 +161,21 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
       command.params['finding'] == true,
     ),
     'device.zeppos.messages.clear' => Future.value(_clearZeppOsMessages()),
+    'device.zeppos.appside.list' => _manager.listZeppOsAppSides(),
+    'device.zeppos.appside.observed' => _manager.observedZeppOsAppSideIds(),
+    'device.zeppos.appside.sessions' => _appSideSessions(),
+    'device.zeppos.appside.events' => _appSideEvents(command.params),
+    'device.zeppos.appside.events.clear' => _appSideEventsClear(command.params),
+    'device.zeppos.appside.start' => _appSideStart(command.params),
+    'device.zeppos.appside.stop' => _appSideStop(command.params),
+    'device.zeppos.appside.inject' => _appSideMessage(
+      command.params,
+      inject: true,
+    ),
+    'device.zeppos.appside.send' => _appSideMessage(
+      command.params,
+      inject: false,
+    ),
     'device.zeppos.xiaoai.reply' => _sendXiaoAiReply(
       command.params['text']?.toString(),
     ),
@@ -550,6 +565,92 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
   Object _clearZeppOsMessages() {
     _manager.clearZeppOsMessages();
     return const {'cleared': true};
+  }
+
+  int _appSideId(Map<String, Object?> params) {
+    final id = (params['appId'] as num?)?.toInt();
+    if (id == null) {
+      throw const CommandFailure('invalid_argument', 'appId is required');
+    }
+    return id;
+  }
+
+  Uint8List _appSidePayload(Map<String, Object?> params) {
+    final raw = params['payload'];
+    if (raw is! List) {
+      throw const CommandFailure('invalid_argument', 'payload is required');
+    }
+    return Uint8List.fromList(
+      raw.map((value) => (value as num).toInt()).toList(),
+    );
+  }
+
+  Future<Object?> _appSideSessions() async {
+    final sessions = await _manager.zeppOsAppSideSessions();
+    return sessions
+        .map(
+          (session) => {
+            'appId': session.appId,
+            'version': session.version,
+            'port1': session.port1,
+            'port2': session.port2,
+            'extra': session.extra,
+            'watchSessionOpen': session.watchSessionOpen,
+          },
+        )
+        .toList(growable: false);
+  }
+
+  Future<Object?> _appSideEvents(Map<String, Object?> params) async {
+    final events = await _manager.zeppOsAppSideEvents(_appSideId(params));
+    return events
+        .map(
+          (event) => {
+            'timestamp': event.timestamp.toIso8601String(),
+            'type': event.type,
+            'message': event.message,
+            if (event.direction != null) 'direction': event.direction,
+            if (event.source != null) 'source': event.source,
+            if (event.payload != null)
+              'payload': event.payload!.toList(growable: false),
+          },
+        )
+        .toList(growable: false);
+  }
+
+  Future<Object?> _appSideEventsClear(Map<String, Object?> params) async {
+    final id = _appSideId(params);
+    await _manager.clearZeppOsAppSideEvents(id);
+    return {'appId': id, 'cleared': true};
+  }
+
+  Future<Object?> _appSideStart(Map<String, Object?> params) async {
+    await _ensureConnected(null);
+    final id = _appSideId(params);
+    await _manager.startZeppOsAppSide(id);
+    return {'appId': id, 'running': true};
+  }
+
+  Future<Object?> _appSideStop(Map<String, Object?> params) async {
+    await _ensureConnected(null);
+    final id = _appSideId(params);
+    await _manager.stopZeppOsAppSide(id);
+    return {'appId': id, 'running': false};
+  }
+
+  Future<Object?> _appSideMessage(
+    Map<String, Object?> params, {
+    required bool inject,
+  }) async {
+    await _ensureConnected(null);
+    final id = _appSideId(params);
+    final payload = _appSidePayload(params);
+    if (inject) {
+      await _manager.injectZeppOsAppSideMessage(id, payload);
+    } else {
+      await _manager.sendZeppOsAppSideMessage(id, payload);
+    }
+    return {'appId': id, 'bytes': payload.length};
   }
 
   Future<Object?> _sendXiaoAiReply(String? text) async {

@@ -4,6 +4,7 @@ import FlutterMacOS
 class MainFlutterWindow: NSWindow {
   private var rfcommChannel: MacOSRfcommChannel?
   private var miAccountTwoFactorChannel: MacOSMiAccountTwoFactorChannel?
+  private var zeppSettingsChannel: MacOSZeppSettingsChannel?
 
   override func awakeFromNib() {
     let noGui = ProcessInfo.processInfo.arguments.contains("--nogui")
@@ -17,6 +18,10 @@ class MainFlutterWindow: NSWindow {
       messenger: flutterViewController.engine.binaryMessenger
     )
     miAccountTwoFactorChannel = MacOSMiAccountTwoFactorChannel(
+      messenger: flutterViewController.engine.binaryMessenger,
+      parentWindow: self
+    )
+    zeppSettingsChannel = MacOSZeppSettingsChannel(
       messenger: flutterViewController.engine.binaryMessenger,
       parentWindow: self
     )

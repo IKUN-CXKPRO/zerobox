@@ -11,6 +11,7 @@ add_executable(${BINARY_NAME} WIN32
   "flutter_window.cpp"
   "main.cpp"
   "mi_account_2fa_channel.cpp"
+  "zeppos_app_settings_channel.cpp"
   "utils.cpp"
   "win32_window.cpp"
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
@@ -32,6 +33,13 @@ target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_BUILD=${FLUTT
 # Disable Windows macros that collide with C++ standard library functions.
 target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
 
+# quickjs_engine 0.1.1 declares QuickjsEnginePlugin in its manifest but only
+# exports the C API registration symbol. Correct the generated registrant call
+# without editing Flutter-managed generated files or the global Pub cache.
+target_compile_definitions(${BINARY_NAME} PRIVATE
+  "QuickjsEnginePluginRegisterWithRegistrar=QuickjsEnginePluginCApiRegisterWithRegistrar"
+)
+
 # Add dependency libraries and include directories. Add any application-specific
 # dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
@@ -46,11 +54,16 @@ endif()
 if(NOT WEBVIEW2_SDK_DIR AND DEFINED ENV{USERPROFILE})
   file(TO_CMAKE_PATH "$ENV{USERPROFILE}/.nuget/packages/microsoft.web.webview2" WEBVIEW2_NUGET_ROOT)
   file(GLOB WEBVIEW2_NUGET_PACKAGES LIST_DIRECTORIES true "${WEBVIEW2_NUGET_ROOT}/*")
-  list(SORT WEBVIEW2_NUGET_PACKAGES)
-  list(REVERSE WEBVIEW2_NUGET_PACKAGES)
-  if(WEBVIEW2_NUGET_PACKAGES)
-    list(GET WEBVIEW2_NUGET_PACKAGES 0 WEBVIEW2_SDK_DIR)
-  endif()
+  set(WEBVIEW2_NUGET_VERSION "0")
+  foreach(WEBVIEW2_NUGET_PACKAGE IN LISTS WEBVIEW2_NUGET_PACKAGES)
+    if(IS_DIRECTORY "${WEBVIEW2_NUGET_PACKAGE}")
+      get_filename_component(WEBVIEW2_NUGET_PACKAGE_VERSION "${WEBVIEW2_NUGET_PACKAGE}" NAME)
+      if(WEBVIEW2_NUGET_PACKAGE_VERSION VERSION_GREATER WEBVIEW2_NUGET_VERSION)
+        set(WEBVIEW2_NUGET_VERSION "${WEBVIEW2_NUGET_PACKAGE_VERSION}")
+        set(WEBVIEW2_SDK_DIR "${WEBVIEW2_NUGET_PACKAGE}")
+      endif()
+    endif()
+  endforeach()
 endif()
 
 if(NOT WEBVIEW2_SDK_DIR)
@@ -58,11 +71,17 @@ if(NOT WEBVIEW2_SDK_DIR)
     "${CMAKE_SOURCE_DIR}/packages/Microsoft.Web.WebView2*"
     "${CMAKE_SOURCE_DIR}/packages/microsoft.web.webview2*"
   )
-  list(SORT WEBVIEW2_LOCAL_PACKAGES)
-  list(REVERSE WEBVIEW2_LOCAL_PACKAGES)
-  if(WEBVIEW2_LOCAL_PACKAGES)
-    list(GET WEBVIEW2_LOCAL_PACKAGES 0 WEBVIEW2_SDK_DIR)
-  endif()
+  set(WEBVIEW2_LOCAL_VERSION "0")
+  foreach(WEBVIEW2_LOCAL_PACKAGE IN LISTS WEBVIEW2_LOCAL_PACKAGES)
+    if(IS_DIRECTORY "${WEBVIEW2_LOCAL_PACKAGE}")
+      get_filename_component(WEBVIEW2_LOCAL_NAME "${WEBVIEW2_LOCAL_PACKAGE}" NAME)
+      string(REGEX REPLACE "^[Mm]icrosoft\\.[Ww]eb\\.[Ww]eb[Vv]iew2\\." "" WEBVIEW2_LOCAL_PACKAGE_VERSION "${WEBVIEW2_LOCAL_NAME}")
+      if(WEBVIEW2_LOCAL_PACKAGE_VERSION VERSION_GREATER WEBVIEW2_LOCAL_VERSION)
+        set(WEBVIEW2_LOCAL_VERSION "${WEBVIEW2_LOCAL_PACKAGE_VERSION}")
+        set(WEBVIEW2_SDK_DIR "${WEBVIEW2_LOCAL_PACKAGE}")
+      endif()
+    endif()
+  endforeach()
 endif()
 
 if(WEBVIEW2_SDK_DIR AND EXISTS "${WEBVIEW2_SDK_DIR}/build/native/include/WebView2.h")
@@ -88,7 +107,7 @@ if(WEBVIEW2_SDK_DIR AND EXISTS "${WEBVIEW2_SDK_DIR}/build/native/include/WebView
           "$<TARGET_FILE_DIR:${BINARY_NAME}>/WebView2Loader.dll")
     endif()
   else()
-    message(WARNING "WebView2 SDK found, but no loader library was found for ${WEBVIEW2_ARCH}. Windows Xiaomi 2FA will be unavailable.")
+    message(WARNING "WebView2 SDK found, but no loader library was found for ${WEBVIEW2_ARCH}. Windows Zepp app settings and Xiaomi 2FA will be unavailable.")
   endif()
 else()
   message(WARNING "Microsoft.Web.WebView2 SDK not found. Run windows\\scripts\\install_webview2_sdk.ps1 or set WEBVIEW2_SDK_DIR to enable Windows Xiaomi 2FA WebView.")

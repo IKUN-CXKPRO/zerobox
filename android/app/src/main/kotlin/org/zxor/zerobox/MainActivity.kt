@@ -19,6 +19,7 @@ import android.os.Looper
 import android.view.ViewGroup
 import android.view.Window
 import android.webkit.CookieManager
+import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -56,6 +57,10 @@ class MainActivity : FlutterActivity() {
     private val connectGeneration = AtomicLong(0)
     private val backgroundTaskIds = mutableSetOf<Int>()
     private var nextBackgroundTaskId = 0
+    private var zeppSettingsDialog: Dialog? = null
+    private var zeppSettingsWebView: WebView? = null
+    private var zeppSettingsAppId: Long? = null
+    private var zeppSettingsChannel: MethodChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -176,8 +181,87 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        zeppSettingsChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "zerobox/zeppos_app_settings",
+        ).also { channel ->
+            channel.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "open" -> openZeppSettings(call, result)
+                    "settingsChanged" -> {
+                        val appId = call.argument<Number>("appId")?.toLong()
+                        val settingsJson = call.argument<String>("settingsJson")
+                        if (appId == zeppSettingsAppId && settingsJson != null) {
+                            zeppSettingsWebView?.evaluateJavascript(
+                                "globalThis.__zeroboxSettingsChanged($settingsJson)",
+                                null,
+                            )
+                        }
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+        }
 
         requestBluetoothPermissionsIfNeeded()
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun openZeppSettings(call: MethodCall, result: MethodChannel.Result) {
+        val appId = call.argument<Number>("appId")?.toLong()
+        val html = call.argument<String>("html")
+        if (appId == null || html == null) {
+            result.error("INVALID_ARGUMENT", "appId and html are required", null)
+            return
+        }
+        mainHandler.post {
+            zeppSettingsDialog?.dismiss()
+            val dialog = Dialog(this)
+            dialog.setTitle(call.argument<String>("title") ?: "应用设置")
+            val webView = WebView(this)
+            webView.settings.javaScriptEnabled = true
+            webView.settings.domStorageEnabled = false
+            webView.settings.allowFileAccess = false
+            webView.settings.allowContentAccess = false
+            webView.webChromeClient = WebChromeClient()
+            webView.webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                    if (url == null || url == "about:blank") return false
+                    runCatching { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
+                    return true
+                }
+            }
+            webView.addJavascriptInterface(object {
+                @JavascriptInterface
+                fun postMessage(message: String) {
+                    val value = runCatching { org.json.JSONObject(message) }.getOrNull() ?: return
+                    val type = value.optString("type")
+                    val args = mutableMapOf<String, Any?>("appId" to appId)
+                    value.keys().forEach { key -> if (key != "type") args[key] = value.opt(key) }
+                    mainHandler.post { zeppSettingsChannel?.invokeMethod(type, args) }
+                }
+            }, "ZeppSettingsBridge")
+            dialog.setContentView(webView)
+            dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            dialog.setOnDismissListener {
+                zeppSettingsChannel?.invokeMethod("closed", mapOf("appId" to appId))
+                webView.removeJavascriptInterface("ZeppSettingsBridge")
+                webView.stopLoading()
+                webView.loadUrl("about:blank")
+                webView.destroy()
+                zeppSettingsDialog = null
+                zeppSettingsWebView = null
+                zeppSettingsAppId = null
+            }
+            zeppSettingsDialog = dialog
+            zeppSettingsWebView = webView
+            zeppSettingsAppId = appId
+            webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+            dialog.show()
+            dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            result.success(null)
+        }
     }
 
     @SuppressLint("MissingPermission")

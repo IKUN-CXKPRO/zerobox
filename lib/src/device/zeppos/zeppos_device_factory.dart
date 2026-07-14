@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:zerobox/src/device/core/entity.dart';
@@ -6,6 +7,8 @@ import 'package:zerobox/src/device/core/runtime.dart';
 import 'package:zerobox/src/device/core/system.dart';
 import 'package:zerobox/src/device/core/transport.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_auth_system.dart';
+import 'package:zerobox/src/device/zeppos/systems/zeppos_app_install_system.dart';
+import 'package:zerobox/src/device/zeppos/systems/zeppos_app_side_system.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_apps_system.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_battery_system.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_device_info_system.dart';
@@ -38,6 +41,8 @@ class ZeppOsDeviceFactory implements DeviceEntityFactory {
     entity.setDispatcher(ZeppOsDispatcher());
 
     final authSystem = ZeppOsAuthSystem();
+    final appInstallSystem = ZeppOsAppInstallSystem();
+    final appSideSystem = ZeppOsAppSideSystem();
     final appsSystem = ZeppOsAppsSystem();
     final batterySystem = ZeppOsBatterySystem();
     final deviceInfoSystem = ZeppOsDeviceInfoSystem();
@@ -56,6 +61,14 @@ class ZeppOsDeviceFactory implements DeviceEntityFactory {
         authSystem.handlePayload(payload.payload);
       } else if (payload.endpoint == ZeppOsAppsSystem.endpoint) {
         appsSystem.handlePayload(payload.payload);
+        unawaited(
+          appSideSystem.handlePayload(payload.payload).catchError((
+            Object error,
+            StackTrace stackTrace,
+          ) {
+            entity.emit(DeviceError(deviceId: id, error: error.toString()));
+          }),
+        );
       } else if (payload.endpoint == ZeppOsBatterySystem.endpoint) {
         batterySystem.handlePayload(payload.payload);
       } else if (payload.endpoint == ZeppOsDeviceInfoSystem.endpoint) {
@@ -68,6 +81,8 @@ class ZeppOsDeviceFactory implements DeviceEntityFactory {
       }
     };
     entity.registerSystem(authSystem);
+    entity.registerSystem(appInstallSystem);
+    entity.registerSystem(appSideSystem);
     entity.registerSystem(appsSystem);
     entity.registerSystem(batterySystem);
     entity.registerSystem(deviceInfoSystem);

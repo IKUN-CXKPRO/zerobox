@@ -220,7 +220,7 @@ class ResourceInstallService {
     final lower = fileName.toLowerCase();
     final extension = lower.contains('.') ? lower.split('.').last : '';
 
-    if (extension == 'rpk' || extension == 'zpk') {
+    if (extension == 'rpk' || extension == 'zpk' || extension == 'zab') {
       return LocalDeviceInstallType.app;
     }
     if (extension == 'face' || extension == 'mwz') {
@@ -365,7 +365,7 @@ final resourceInstallServiceProvider = Provider<ResourceInstallService>((ref) {
 extension ResourceTypeLabel on CommunityResourceType {
   String get fileExtensionHint {
     return switch (this) {
-      CommunityResourceType.quickApp => 'bin/rpk/zpk/zip',
+      CommunityResourceType.quickApp => 'bin/rpk/zpk/zab/zip',
       CommunityResourceType.watchface => 'bin/face/mwz/zip',
       CommunityResourceType.firmware => 'zip/bin',
       CommunityResourceType.fontpack => 'zip',

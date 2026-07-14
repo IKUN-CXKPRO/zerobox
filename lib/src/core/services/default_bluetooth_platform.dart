@@ -208,12 +208,14 @@ class _BleBluetoothConnection implements BluetoothConnection {
   Future<void> send(
     Uint8List data, {
     BleRequiredCharacteristic? characteristic,
+    bool withResponse = false,
   }) {
     final target = characteristic ?? xiaomiRequiredBleCharacteristics.last;
     return _connection.write(
       target.serviceUuid,
       target.characteristicUuid,
       data,
+      withResponse: withResponse,
     );
   }
 
@@ -276,6 +278,7 @@ class _SppBluetoothConnection implements BluetoothConnection {
   Future<void> send(
     Uint8List data, {
     BleRequiredCharacteristic? characteristic,
+    bool withResponse = false,
   }) {
     return _connection.send(data);
   }

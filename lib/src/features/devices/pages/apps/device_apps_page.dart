@@ -6,7 +6,9 @@ import 'package:zerobox/src/app/widgets/page_container.dart';
 import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
 import 'package:zerobox/src/core/constants/style_constants.dart';
 import 'package:zerobox/src/core/models/bt_models.dart';
+import 'package:zerobox/src/device/zeppos/app_side/zeppos_app_side_storage.dart';
 import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
+import 'package:zerobox/src/features/devices/services/zeppos_app_settings_service.dart';
 import 'package:zerobox/src/protocols/common/device_protocol.dart' as proto;
 
 class DeviceAppsPage extends ConsumerStatefulWidget {
@@ -113,52 +115,80 @@ class _AppActions extends StatelessWidget {
   final AppInfo app;
   final VoidCallback onRefresh;
 
+  int? get _zeppAppId {
+    final value = app.packageName.toLowerCase();
+    if (!value.startsWith('0x')) return null;
+    return int.tryParse(value.substring(2), radix: 16);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final appId = _zeppAppId;
 
     return Consumer(
       builder: (context, ref, child) {
-        return PopupMenuButton<String>(
-          onSelected: (value) async {
-            final manager = ref.read(deviceManagerProvider.notifier);
-            try {
-              switch (value) {
-                case 'open':
-                  await manager.openApp(app);
-                case 'uninstall':
-                  await manager.uninstallApp(app);
-                  onRefresh();
+        return FutureBuilder<bool>(
+          future: appId == null
+              ? Future.value(false)
+              : ZeppOsAppSideStorage().settingExists(appId),
+          builder: (context, snapshot) => PopupMenuButton<String>(
+            onSelected: (value) async {
+              final manager = ref.read(deviceManagerProvider.notifier);
+              try {
+                switch (value) {
+                  case 'open':
+                    await manager.openApp(app);
+                  case 'uninstall':
+                    await manager.uninstallApp(app);
+                    onRefresh();
+                  case 'settings':
+                    await ZeppOsAppSettingsService.instance.open(
+                      appId!,
+                      title: app.appName,
+                    );
+                }
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(localizedErrorMessage(l10n, e))),
+                );
               }
-            } catch (e) {
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(localizedErrorMessage(l10n, e))),
-              );
-            }
-          },
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: 'open',
-              child: Row(
-                children: [
-                  const Icon(Icons.open_in_new),
-                  const SizedBox(width: 8),
-                  Text(l10n.open),
-                ],
+            },
+            itemBuilder: (context) => [
+              if (snapshot.data == true)
+                const PopupMenuItem(
+                  value: 'settings',
+                  child: Row(
+                    children: [
+                      Icon(Icons.tune),
+                      SizedBox(width: 8),
+                      Text('设置'),
+                    ],
+                  ),
+                ),
+              PopupMenuItem(
+                value: 'open',
+                child: Row(
+                  children: [
+                    const Icon(Icons.open_in_new),
+                    const SizedBox(width: 8),
+                    Text(l10n.open),
+                  ],
+                ),
               ),
-            ),
-            PopupMenuItem(
-              value: 'uninstall',
-              child: Row(
-                children: [
-                  const Icon(Icons.delete_outline),
-                  const SizedBox(width: 8),
-                  Text(l10n.uninstall),
-                ],
+              PopupMenuItem(
+                value: 'uninstall',
+                child: Row(
+                  children: [
+                    const Icon(Icons.delete_outline),
+                    const SizedBox(width: 8),
+                    Text(l10n.uninstall),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );

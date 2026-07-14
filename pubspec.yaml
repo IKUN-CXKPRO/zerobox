@@ -91,6 +91,10 @@ dev_dependencies:
 # while its generated bindings remain compatible with the Freezed 3 runtime.
 dependency_overrides:
   freezed_annotation: ^3.1.0
+  # The published version extracts Windows binaries through Flutter's plugin
+  # symlink. Keep the CMake fix local so `pub get` cannot overwrite it.
+  wasm_run_flutter:
+    path: packages/wasm_run_flutter
 
 flutter:
   generate: true

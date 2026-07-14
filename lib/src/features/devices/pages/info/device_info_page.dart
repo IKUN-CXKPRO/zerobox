@@ -34,6 +34,10 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(deviceManagerProvider);
     final device = state.currentDevice;
+    final unavailable = Localizations.localeOf(context).languageCode == 'zh'
+        ? '未提供'
+        : 'Not provided';
+    String shown(String value) => value.trim().isEmpty ? unavailable : value;
     final items = <Widget>[
       if (device != null)
         _InfoGroup(
@@ -53,15 +57,15 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
         _InfoGroup(
           title: l10n.deviceInfoGroupSystem,
           children: [
-            _InfoRow(label: l10n.fieldModel, value: state.systemInfo!.model),
-            _InfoRow(label: l10n.fieldImei, value: state.systemInfo!.imei),
+            _InfoRow(label: l10n.fieldModel, value: shown(state.systemInfo!.model)),
+            _InfoRow(label: l10n.fieldImei, value: shown(state.systemInfo!.imei)),
             _InfoRow(
               label: l10n.fieldFirmware,
-              value: state.systemInfo!.firmwareVersion,
+              value: shown(state.systemInfo!.firmwareVersion),
             ),
             _InfoRow(
               label: l10n.fieldSerial,
-              value: state.systemInfo!.serialNumber,
+              value: shown(state.systemInfo!.serialNumber),
             ),
             if (state.systemInfo!.storageInfo != null)
               _InfoRow(
