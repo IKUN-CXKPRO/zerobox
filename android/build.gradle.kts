@@ -31,6 +31,10 @@ subprojects {
         afterEvaluate {
             extensions.findByType<com.android.build.api.dsl.LibraryExtension>()?.apply {
                 compileSdk = 34
+                // The published plugin pins NDK 21.4.7075529, which its old
+                // Android Gradle Plugin can no longer install reliably. Use
+                // the same complete NDK version required by this Flutter SDK.
+                ndkVersion = "28.2.13676358"
                 defaultConfig {
                     minSdk = 21
                 }

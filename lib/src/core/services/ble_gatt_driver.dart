@@ -137,12 +137,36 @@ class BleConnection {
       _log.severe('[$deviceId] characteristic $charUuid not found');
       throw StateError('Characteristic $charUuid not found');
     }
+    final supportsWrite = characteristic.properties.contains(
+      CharacteristicProperty.write,
+    );
+    final supportsWriteWithoutResponse = characteristic.properties.contains(
+      CharacteristicProperty.writeWithoutResponse,
+    );
+    final effectiveWithResponse = switch ((
+      withResponse,
+      supportsWrite,
+      supportsWriteWithoutResponse,
+    )) {
+      (true, true, _) => true,
+      (true, false, true) => false,
+      (false, _, true) => false,
+      (false, true, false) => true,
+      _ => throw StateError(
+        'Characteristic $charUuid does not support writing '
+        '(properties: ${characteristic.properties})',
+      ),
+    };
     final completer = Completer<void>();
     _writeTail = _writeTail.then((_) async {
       if (_disposed) throw StateError('BLE connection is disposed');
-      _log.fine('[$deviceId] writing ${data.length} bytes to $charUuid');
+      _log.fine(
+        '[$deviceId] writing ${data.length} bytes to $charUuid '
+        'withResponse=$effectiveWithResponse '
+        '(requested=$withResponse, properties=${characteristic.properties})',
+      );
       await characteristic
-          .write(data, withResponse: withResponse)
+          .write(data, withResponse: effectiveWithResponse)
           .timeout(
             const Duration(seconds: 5),
             onTimeout: () => throw TimeoutException(

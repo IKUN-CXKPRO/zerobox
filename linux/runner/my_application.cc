@@ -8,6 +8,7 @@
 #include "classic_spp_channel.h"
 #include "flutter/generated_plugin_registrant.h"
 #include "mi_account_2fa_channel.h"
+#include "zeppos_app_settings_channel.h"
 
 struct _MyApplication {
   GtkApplication parent_instance;
@@ -107,6 +108,8 @@ static void my_application_activate(GApplication* application) {
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
   classic_spp_channel_register(fl_engine_get_binary_messenger(fl_view_get_engine(view)));
   mi_account_2fa_channel_register(
+      fl_engine_get_binary_messenger(fl_view_get_engine(view)), overlay);
+  zeppos_app_settings_channel_register(
       fl_engine_get_binary_messenger(fl_view_get_engine(view)), overlay);
 
   gtk_widget_grab_focus(GTK_WIDGET(view));

@@ -5,6 +5,7 @@
 #include "classic_spp_channel.h"
 #include "flutter/generated_plugin_registrant.h"
 #include "mi_account_2fa_channel.h"
+#include "zeppos_app_settings_channel.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project,
                              bool show_on_first_frame)
@@ -31,6 +32,8 @@ bool FlutterWindow::OnCreate() {
   RegisterRfcommChannel(flutter_controller_->engine()->messenger());
   RegisterMiAccountTwoFactorChannel(flutter_controller_->engine()->messenger(),
                                     GetHandle());
+  RegisterZeppOsAppSettingsChannel(flutter_controller_->engine()->messenger(),
+                                   GetHandle());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   if (show_on_first_frame_) {

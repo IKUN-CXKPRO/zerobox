@@ -28,6 +28,10 @@ import 'package:zerobox/src/device/xiaomi/components/xiaomi_device_component.dar
 import 'package:zerobox/src/device/xiaomi/xiaomi_device_factory.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_auth_system.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_apps_system.dart';
+import 'package:zerobox/src/device/zeppos/systems/zeppos_app_install_system.dart';
+import 'package:zerobox/src/device/zeppos/systems/zeppos_app_side_system.dart';
+import 'package:zerobox/src/device/zeppos/install/zeppos_package_parser.dart';
+import 'package:zerobox/src/device/zeppos/app_side/zeppos_app_side_storage.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_battery_system.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_device_info_system.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_find_device_system.dart';
@@ -195,6 +199,15 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
   Future<void> setXiaoAiContinuousCapture(bool enabled);
   Future<void> setXiaoAiEndpoint(int endpoint);
   void clearZeppOsMessages();
+  Future<List<int>> listZeppOsAppSides();
+  Future<List<int>> observedZeppOsAppSideIds();
+  Future<List<ZeppOsAppSideSessionInfo>> zeppOsAppSideSessions();
+  Future<List<ZeppOsAppSideDebugEvent>> zeppOsAppSideEvents(int appId);
+  Future<void> clearZeppOsAppSideEvents(int appId);
+  Future<void> startZeppOsAppSide(int appId);
+  Future<void> stopZeppOsAppSide(int appId);
+  Future<void> injectZeppOsAppSideMessage(int appId, Uint8List payload);
+  Future<void> sendZeppOsAppSideMessage(int appId, Uint8List payload);
   Future<void> fetchSystemInfo();
   Future<void> fetchStorageInfo();
   Future<void> fetchApps();
@@ -209,6 +222,7 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
     Uint8List packageBytes, {
     required String packageName,
     void Function(double progress)? onProgress,
+    void Function()? onAppSideMissing,
   });
   Future<void> installWatchface(
     Uint8List watchfaceBytes, {
@@ -1176,6 +1190,50 @@ class LocalDeviceManager extends DeviceManager {
     state = state.copyWith(zeppOsMessages: const []);
   }
 
+  ZeppOsAppSideSystem _appSideSystem() {
+    final entity = _currentEntity;
+    if (entity == null || state.protocolState != ProtocolState.ready) {
+      throw ProtocolException('Device not ready');
+    }
+    final system = entity.system<ZeppOsAppSideSystem>();
+    if (system == null)
+      throw UnsupportedError('Zepp OS app-side is unavailable');
+    return system;
+  }
+
+  @override
+  Future<List<int>> listZeppOsAppSides() => _appSideSystem().cachedAppIds();
+
+  @override
+  Future<List<int>> observedZeppOsAppSideIds() =>
+      _appSideSystem().observedAppIds();
+
+  @override
+  Future<List<ZeppOsAppSideSessionInfo>> zeppOsAppSideSessions() async =>
+      _appSideSystem().sessions;
+
+  @override
+  Future<List<ZeppOsAppSideDebugEvent>> zeppOsAppSideEvents(int appId) async =>
+      _appSideSystem().eventsFor(appId);
+
+  @override
+  Future<void> clearZeppOsAppSideEvents(int appId) async =>
+      _appSideSystem().clearEvents(appId);
+
+  @override
+  Future<void> startZeppOsAppSide(int appId) => _appSideSystem().start(appId);
+
+  @override
+  Future<void> stopZeppOsAppSide(int appId) => _appSideSystem().stop(appId);
+
+  @override
+  Future<void> injectZeppOsAppSideMessage(int appId, Uint8List payload) =>
+      _appSideSystem().injectMessage(appId, payload);
+
+  @override
+  Future<void> sendZeppOsAppSideMessage(int appId, Uint8List payload) =>
+      _appSideSystem().sendMessageToWatch(appId, payload);
+
   @override
   Future<void> fetchSystemInfo() async {
     final entity = _currentEntity;
@@ -1411,7 +1469,10 @@ class LocalDeviceManager extends DeviceManager {
         'This Zepp OS device does not support app management',
       );
     }
-    appsSystem.encrypted = services[ZeppOsAppsSystem.endpoint] ?? false;
+    // Gadgetbridge's ZeppOsAppsService explicitly returns false from
+    // isEncrypted(). Endpoint 0x00a0 must stay clear-text even if a device's
+    // advertised services flags are ambiguous.
+    appsSystem.encrypted = false;
     if (requireLaunch &&
         !services.containsKey(ZeppOsAppsSystem.launchEndpoint)) {
       throw UnsupportedError(
@@ -1469,16 +1530,68 @@ class LocalDeviceManager extends DeviceManager {
     Uint8List packageBytes, {
     required String packageName,
     void Function(double progress)? onProgress,
+    void Function()? onAppSideMissing,
   }) async {
     final entity = _currentEntity;
     if (entity == null || state.protocolState != ProtocolState.ready) {
       throw ProtocolException('Device not ready');
     }
     if (entity.system<ZeppOsAppsSystem>() != null) {
-      throw UnsupportedError(
-        'Zepp OS app installation requires the firmware transfer channel, '
-        'which is not enabled in ZeroBox yet',
+      final installer = entity.system<ZeppOsAppInstallSystem>();
+      if (installer == null) {
+        throw StateError('Zepp OS installer was not loaded for this session');
+      }
+      final info = entity.system<ZeppOsDeviceInfoSystem>();
+      final source = info?.deviceSource;
+      final package = const ZeppOsPackageParser().parse(
+        packageBytes,
+        deviceSources: source == null ? const {} : {source},
       );
+      if (package.type != ZeppOsPackageType.app) {
+        throw FormatException(
+          'Selected package is ${package.type.name}, not a Zepp OS app',
+        );
+      }
+      _log.info(
+        'installing Zepp OS app ${package.name ?? packageName} '
+        '(${package.bytes.length} bytes)',
+      );
+      await installer.install(package, onProgress: onProgress);
+      final appId = package.appId;
+      if (appId != null) {
+        final storage = ZeppOsAppSideStorage();
+        final appSideJs = package.appSideJs;
+        if (appSideJs != null) {
+          await storage.save(appId, appSideJs);
+          _log.info(
+            'cached Zepp OS app-side.js for '
+            '0x${appId.toRadixString(16).padLeft(8, '0')}',
+          );
+        }
+        if (appSideJs == null) onAppSideMissing?.call();
+        final settingJs = package.settingJs;
+        if (settingJs != null) {
+          await storage.saveSetting(
+            appId,
+            settingJs,
+            assets: package.settingAssets,
+            appName: package.name,
+          );
+          _log.info(
+            'cached Zepp OS setting.js for '
+            '0x${appId.toRadixString(16).padLeft(8, '0')}',
+          );
+        }
+        if (appSideJs == null && settingJs == null) {
+          _log.info(
+            'installed Zepp OS app 0x${appId.toRadixString(16).padLeft(8, '0')} '
+            'without app-side or settings',
+          );
+        }
+      }
+      // D5/D6 are the completion acknowledgement. Do not hold the completed
+      // queue item open while the watch indexes the newly installed app.
+      return;
     }
     _log.info('installing app $packageName (${packageBytes.length} bytes)');
     final installSystem = entity.system<XiaomiInstallSystem>()!;

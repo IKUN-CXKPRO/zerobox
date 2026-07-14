@@ -55,7 +55,7 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
 
   Future<void> _pickFile() async {
     final extensions = switch (widget.type) {
-      InstallType.app => ['bin', 'rpk', 'zpk', 'zip'],
+      InstallType.app => ['bin', 'rpk', 'zpk', 'zab', 'zip'],
       InstallType.watchface => ['bin', 'face', 'mwz', 'zip'],
       InstallType.firmware => ['zip', 'bin'],
     };
@@ -191,6 +191,7 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
       _progress = 0;
     });
 
+    var appSideMissing = false;
     try {
       switch (widget.type) {
         case InstallType.app:
@@ -200,6 +201,7 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
             onProgress: (progress) {
               if (mounted) setState(() => _progress = progress);
             },
+            onAppSideMissing: () => appSideMissing = true,
           );
         case InstallType.watchface:
           await manager.installWatchface(
@@ -218,7 +220,15 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
           );
       }
       if (mounted) {
+        final message = appSideMissing
+            ? '安装成功，但包内没有 app-side.js；设备安装已完成，伴生服务不可用。'
+            : null;
         context.pop();
+        if (message != null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(message)));
+        }
       }
     } catch (e) {
       if (mounted) {

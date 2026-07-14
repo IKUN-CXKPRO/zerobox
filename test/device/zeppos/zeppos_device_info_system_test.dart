@@ -56,6 +56,8 @@ void main() {
     expect(info.serialNumber, 'SN123');
     expect(info.firmwareVersion, '3.2.1');
     expect(info.model, 'HW1 · PNP 01020304050607');
+    expect(system.productId, 0x0504);
+    expect(system.productVersion, 0x0706);
   });
 }
 

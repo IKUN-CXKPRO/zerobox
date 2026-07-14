@@ -13,9 +13,17 @@ abstract class Transport {
 }
 
 abstract class CharacteristicTransport implements Transport {
+  int? get maxWriteLength;
+
   Future<void> sendToCharacteristic(
     Uint8List data,
+    BleRequiredCharacteristic characteristic, {
+    bool withResponse = false,
+  });
+
+  Future<StreamSubscription<Uint8List>?> subscribeToCharacteristic(
     BleRequiredCharacteristic characteristic,
+    void Function(Uint8List data) onData,
   );
 }
 

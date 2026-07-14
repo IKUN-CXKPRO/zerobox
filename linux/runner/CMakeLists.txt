@@ -9,6 +9,7 @@ project(runner LANGUAGES CXX)
 add_executable(${BINARY_NAME}
   "classic_spp_channel.cc"
   "mi_account_2fa_channel.cc"
+  "zeppos_app_settings_channel.cc"
   "main.cc"
   "my_application.cc"
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"

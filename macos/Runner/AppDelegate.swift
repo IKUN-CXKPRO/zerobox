@@ -21,6 +21,72 @@ class AppDelegate: FlutterAppDelegate {
   }
 }
 
+final class MacOSZeppSettingsChannel: NSObject, WKScriptMessageHandler, NSWindowDelegate {
+  private let channel: FlutterMethodChannel
+  private weak var parentWindow: NSWindow?
+  private var window: NSWindow?
+  private var webView: WKWebView?
+  private var appId: Int?
+
+  init(messenger: FlutterBinaryMessenger, parentWindow: NSWindow?) {
+    self.parentWindow = parentWindow
+    channel = FlutterMethodChannel(name: "zerobox/zeppos_app_settings", binaryMessenger: messenger)
+    super.init()
+    channel.setMethodCallHandler(handle)
+  }
+
+  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard let args = call.arguments as? [String: Any] else {
+      result(FlutterError(code: "INVALID_ARGUMENT", message: nil, details: nil)); return
+    }
+    switch call.method {
+    case "open":
+      guard let id = args["appId"] as? Int, let html = args["html"] as? String else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "appId and html are required", details: nil)); return
+      }
+      close(notify: true)
+      let controller = WKUserContentController()
+      controller.add(self, name: "ZeppSettingsBridge")
+      let configuration = WKWebViewConfiguration()
+      configuration.websiteDataStore = .nonPersistent()
+      configuration.userContentController = controller
+      let view = WKWebView(frame: .zero, configuration: configuration)
+      let settingsWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 720, height: 760), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+      settingsWindow.title = args["title"] as? String ?? "应用设置"
+      settingsWindow.contentView = view
+      settingsWindow.delegate = self
+      settingsWindow.center()
+      window = settingsWindow; webView = view; appId = id
+      settingsWindow.makeKeyAndOrderFront(nil)
+      NSApp.activate(ignoringOtherApps: true)
+      view.loadHTMLString(html, baseURL: nil)
+      result(nil)
+    case "settingsChanged":
+      if let id = args["appId"] as? Int, id == appId, let json = args["settingsJson"] as? String {
+        webView?.evaluateJavaScript("globalThis.__zeroboxSettingsChanged(\(json))")
+      }
+      result(nil)
+    default: result(FlutterMethodNotImplemented)
+    }
+  }
+
+  func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+    guard let id = appId, let text = message.body as? String, let data = text.data(using: .utf8), var value = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any], let type = value.removeValue(forKey: "type") as? String else { return }
+    value["appId"] = id
+    channel.invokeMethod(type, arguments: value)
+  }
+
+  func windowWillClose(_ notification: Notification) { close(notify: true) }
+  private func close(notify: Bool) {
+    guard let id = appId else { return }
+    appId = nil
+    webView?.configuration.userContentController.removeScriptMessageHandler(forName: "ZeppSettingsBridge")
+    webView?.stopLoading(); webView = nil
+    window?.delegate = nil; window?.close(); window = nil
+    if notify { channel.invokeMethod("closed", arguments: ["appId": id]) }
+  }
+}
+
 final class MacOSMiAccountTwoFactorChannel: NSObject {
   private let methodChannel: FlutterMethodChannel
   private weak var parentWindow: NSWindow?

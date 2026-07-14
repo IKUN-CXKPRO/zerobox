@@ -1404,10 +1404,9 @@ packages:
   wasm_run_flutter:
     dependency: "direct main"
     description:
-      name: wasm_run_flutter
-      sha256: "9807fd559676614350d5480846de29aa687a1f48b6a1b438cf120e01cffd84a0"
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/wasm_run_flutter"
+      relative: true
+    source: path
     version: "0.1.0"
   watcher:
     dependency: transitive

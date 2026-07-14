@@ -102,6 +102,7 @@ abstract class BluetoothConnection {
   Future<void> send(
     Uint8List data, {
     BleRequiredCharacteristic? characteristic,
+    bool withResponse = false,
   });
 
   Future<void> subscribe({

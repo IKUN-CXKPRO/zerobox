@@ -12,28 +12,32 @@ class BleTransport implements CharacteristicTransport {
       _bluetoothConnection = null,
       _serviceUuid = _xiaomiServiceUuid,
       _recvCharUuid = _xiaomiRecvCharUuid,
-      _sentCharUuid = _xiaomiSentCharUuid;
+      _sentCharUuid = _xiaomiSentCharUuid,
+      _defaultWithResponse = false;
 
   BleTransport.zepp(BleConnection connection)
     : _bleConnection = connection,
       _bluetoothConnection = null,
       _serviceUuid = _zeppServiceUuid,
       _recvCharUuid = _zeppRecvCharUuid,
-      _sentCharUuid = _zeppSentCharUuid;
+      _sentCharUuid = _zeppSentCharUuid,
+      _defaultWithResponse = true;
 
   BleTransport.xiaomiBluetooth(BluetoothConnection connection)
     : _bleConnection = null,
       _bluetoothConnection = connection,
       _serviceUuid = _xiaomiServiceUuid,
       _recvCharUuid = _xiaomiRecvCharUuid,
-      _sentCharUuid = _xiaomiSentCharUuid;
+      _sentCharUuid = _xiaomiSentCharUuid,
+      _defaultWithResponse = false;
 
   BleTransport.zeppBluetooth(BluetoothConnection connection)
     : _bleConnection = null,
       _bluetoothConnection = connection,
       _serviceUuid = _zeppServiceUuid,
       _recvCharUuid = _zeppRecvCharUuid,
-      _sentCharUuid = _zeppSentCharUuid;
+      _sentCharUuid = _zeppSentCharUuid,
+      _defaultWithResponse = true;
 
   static final _log = getLogger('BleTransport');
   final BleConnection? _bleConnection;
@@ -41,9 +45,11 @@ class BleTransport implements CharacteristicTransport {
   final String _serviceUuid;
   final String _recvCharUuid;
   final String _sentCharUuid;
+  final bool _defaultWithResponse;
 
   final _incomingController = StreamController<Uint8List>.broadcast();
   StreamSubscription<Uint8List>? _valueSubscription;
+  final _characteristicSubscriptions = <StreamSubscription<Uint8List>>[];
   StreamSubscription<bool>? _connectionSubscription;
 
   static const String _xiaomiServiceUuid =
@@ -73,6 +79,15 @@ class BleTransport implements CharacteristicTransport {
   @override
   Stream<bool> get connectionState =>
       _bleConnection?.connectionState ?? _bluetoothConnection!.connectionState;
+
+  @override
+  int? get maxWriteLength {
+    final connection = _bleConnection;
+    if (connection != null) {
+      return (connection.mtu.clamp(23, 515) - 3).clamp(20, 512);
+    }
+    return _bluetoothConnection?.maxWriteLength;
+  }
 
   Future<void> start() async {
     _log.info('[$deviceId] starting transport on recv=$_recvCharUuid');
@@ -113,14 +128,17 @@ class BleTransport implements CharacteristicTransport {
         serviceUuid: _serviceUuid,
         characteristicUuid: _sentCharUuid,
       ),
+      withResponse: _defaultWithResponse,
     );
   }
 
   @override
   Future<void> sendToCharacteristic(
     Uint8List data,
-    BleRequiredCharacteristic characteristic,
-  ) async {
+    BleRequiredCharacteristic characteristic, {
+    bool withResponse = false,
+  }) async {
+    final effectiveWithResponse = withResponse || _defaultWithResponse;
     _log.fine(
       '[$deviceId] sending ${data.length} bytes to '
       '${characteristic.characteristicUuid}',
@@ -131,14 +149,37 @@ class BleTransport implements CharacteristicTransport {
         characteristic.serviceUuid,
         characteristic.characteristicUuid,
         data,
-        withResponse: false,
+        withResponse: effectiveWithResponse,
       );
     } else {
       await _bluetoothConnection!.send(
         data,
         characteristic: characteristic,
+        withResponse: effectiveWithResponse,
       );
     }
+  }
+
+  @override
+  Future<StreamSubscription<Uint8List>?> subscribeToCharacteristic(
+    BleRequiredCharacteristic characteristic,
+    void Function(Uint8List data) onData,
+  ) async {
+    final bleConnection = _bleConnection;
+    if (bleConnection != null) {
+      final subscription = await bleConnection.subscribe(
+        characteristic.serviceUuid,
+        characteristic.characteristicUuid,
+        onData,
+      );
+      _characteristicSubscriptions.add(subscription);
+      return subscription;
+    }
+    await _bluetoothConnection!.subscribe(
+      characteristic: characteristic,
+      onData: onData,
+    );
+    return null;
   }
 
   @override
@@ -146,6 +187,10 @@ class BleTransport implements CharacteristicTransport {
     _log.info('[$deviceId] disposing transport');
     await _valueSubscription?.cancel();
     _valueSubscription = null;
+    for (final subscription in _characteristicSubscriptions) {
+      await subscription.cancel();
+    }
+    _characteristicSubscriptions.clear();
     await _connectionSubscription?.cancel();
     _connectionSubscription = null;
     if (!_incomingController.isClosed) {
