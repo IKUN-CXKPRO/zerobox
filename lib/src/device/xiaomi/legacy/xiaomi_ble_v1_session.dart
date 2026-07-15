@@ -81,6 +81,15 @@ class XiaomiBleV1Session {
     _log.info('phone nonce sent; waiting for watch nonce');
     final nonceResponse = await nonceResponseFuture;
     _log.info('watch nonce response received');
+    final verifyError = _XiaomiV1AuthCodec.errorCode(nonceResponse);
+    if (verifyError != null) {
+      if (verifyError == 4) {
+        throw StateError(
+          'Xiaomi Smart Band 7 Pro is not bound to this authkey (error 4)',
+        );
+      }
+      throw StateError('Xiaomi app verification failed (error $verifyError)');
+    }
     final watchNonce = _XiaomiV1AuthCodec.watchNonce(nonceResponse);
     final watchHmac = _XiaomiV1AuthCodec.watchHmac(nonceResponse);
     if (watchNonce.length != 16 || watchHmac.length != 32) {
@@ -124,7 +133,16 @@ class XiaomiBleV1Session {
       encrypted: false,
     );
     _log.info('authentication confirmation sent; waiting for watch response');
-    await confirmResponseFuture;
+    final confirmResponse = await confirmResponseFuture;
+    final confirmError = _XiaomiV1AuthCodec.errorCode(confirmResponse);
+    if (confirmError != null) {
+      throw StateError(
+        'Xiaomi authentication confirmation failed (error $confirmError)',
+      );
+    }
+    if (!_XiaomiV1AuthCodec.deviceConfirmSucceeded(confirmResponse)) {
+      throw StateError('Xiaomi authentication was rejected by the device');
+    }
     _commandRead.encryptionEnabled = true;
     _commandWrite.encryptionEnabled = true;
     _log.info('Xiaomi BLE v1 authentication succeeded');
@@ -413,6 +431,25 @@ class _XiaomiV1AuthCodec {
     final auth = _parse(command)[3] as Uint8List? ?? Uint8List(0);
     final watch = _parse(auth)[31] as Uint8List? ?? Uint8List(0);
     return _parse(watch)[2] as Uint8List? ?? Uint8List(0);
+  }
+
+  /// The auth response oneof uses field 3 for protocol errors. The official
+  /// Mi Fitness client maps error 4 to "device not bound".
+  static int? errorCode(Uint8List command) {
+    final auth = _parse(command)[3] as Uint8List?;
+    if (auth == null) return null;
+    return _parse(auth)[3] as int?;
+  }
+
+  /// Auth subtype 27 carries DeviceConfirm in auth oneof field 33. Its first
+  /// field is the authoritative success flag; the remaining fields advertise
+  /// device capabilities.
+  static bool deviceConfirmSucceeded(Uint8List command) {
+    final auth = _parse(command)[3] as Uint8List?;
+    if (auth == null) return false;
+    final confirm = _parse(auth)[33] as Uint8List?;
+    if (confirm == null) return false;
+    return (_parse(confirm)[1] as int? ?? 0) != 0;
   }
 
   static Uint8List _command(int type, int subtype, Uint8List auth) {
