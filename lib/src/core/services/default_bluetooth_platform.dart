@@ -180,7 +180,7 @@ class _BleBluetoothConnection implements BluetoothConnection {
 
   final BleConnection _connection;
   final _incomingController = StreamController<Uint8List>.broadcast();
-  StreamSubscription<Uint8List>? _incomingSubscription;
+  final _incomingSubscriptions = <String, StreamSubscription<Uint8List>>{};
 
   @override
   String get deviceId => _connection.deviceId;
@@ -229,8 +229,9 @@ class _BleBluetoothConnection implements BluetoothConnection {
     void Function(Uint8List data)? onData,
   }) async {
     final target = characteristic ?? xiaomiRequiredBleCharacteristics.first;
-    await _incomingSubscription?.cancel();
-    _incomingSubscription = await _connection.subscribe(
+    final key = '${target.serviceUuid}/${target.characteristicUuid}';
+    await _incomingSubscriptions.remove(key)?.cancel();
+    _incomingSubscriptions[key] = await _connection.subscribe(
       target.serviceUuid,
       target.characteristicUuid,
       (data) {
@@ -242,7 +243,10 @@ class _BleBluetoothConnection implements BluetoothConnection {
 
   @override
   Future<void> dispose() async {
-    await _incomingSubscription?.cancel();
+    for (final subscription in _incomingSubscriptions.values) {
+      await subscription.cancel();
+    }
+    _incomingSubscriptions.clear();
     if (!_incomingController.isClosed) {
       await _incomingController.close();
     }
