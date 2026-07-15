@@ -1008,10 +1008,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Automatically reconnect to the last paired device on startup';
 
   @override
-  String get settingsGeneralDebugWindow => 'Debug window';
+  String get settingsGeneralDebugWindow => 'Live log window';
 
   @override
-  String get settingsGeneralDebugWindowDesc => 'Show a floating debug panel';
+  String get settingsGeneralDebugWindowDesc =>
+      'Continuously show all application logs in a separate window';
 
   @override
   String get settingsSourceOfficialCdn => 'GitHub source CDN';

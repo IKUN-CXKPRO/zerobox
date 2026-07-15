@@ -21,6 +21,239 @@ class AppDelegate: FlutterAppDelegate {
   }
 }
 
+final class MacOSLogWindowChannel: NSObject, NSWindowDelegate {
+  private let channel: FlutterMethodChannel
+  private var window: NSWindow?
+  private var textView: NSTextView?
+  private var lineCountLabel: NSTextField?
+  private var lineCount = 0
+  private var logTextColor: NSColor = .textColor
+
+  init(messenger: FlutterBinaryMessenger) {
+    channel = FlutterMethodChannel(
+      name: "zerobox/log_window",
+      binaryMessenger: messenger
+    )
+    super.init()
+    channel.setMethodCallHandler(handle)
+  }
+
+  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "open":
+      open(theme: call.arguments as? [String: Any] ?? [:])
+      result(nil)
+    case "close":
+      close(notify: false)
+      result(nil)
+    case "append":
+      guard let args = call.arguments as? [String: Any],
+            let line = args["line"] as? String else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "line is required", details: nil))
+        return
+      }
+      append(line)
+      result(nil)
+    case "appendMany":
+      guard let args = call.arguments as? [String: Any],
+            let lines = args["lines"] as? [String] else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "lines are required", details: nil))
+        return
+      }
+      append(lines.joined(separator: "\n"))
+      result(nil)
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  private func color(_ value: Any?, fallback: NSColor) -> NSColor {
+    guard let number = value as? NSNumber else { return fallback }
+    let argb = number.uint32Value
+    return NSColor(
+      calibratedRed: CGFloat((argb >> 16) & 0xff) / 255,
+      green: CGFloat((argb >> 8) & 0xff) / 255,
+      blue: CGFloat(argb & 0xff) / 255,
+      alpha: CGFloat((argb >> 24) & 0xff) / 255
+    )
+  }
+
+  private func open(theme: [String: Any]) {
+    if let window {
+      window.makeKeyAndOrderFront(nil)
+      NSApp.activate(ignoringOtherApps: true)
+      return
+    }
+
+    let isDark = theme["dark"] as? Bool ?? true
+    let surface = color(theme["surface"], fallback: .windowBackgroundColor)
+    let surfaceContainer = color(theme["surfaceContainer"], fallback: .controlBackgroundColor)
+    let logBackground = color(theme["surfaceContainerLowest"], fallback: .textBackgroundColor)
+    let onSurface = color(theme["onSurface"], fallback: .textColor)
+    let onSurfaceVariant = color(theme["onSurfaceVariant"], fallback: .secondaryLabelColor)
+    let outline = color(theme["outline"], fallback: .separatorColor)
+    let primary = color(theme["primary"], fallback: .controlAccentColor)
+    logTextColor = onSurface
+
+    let textView = NSTextView(frame: .zero)
+    textView.isEditable = false
+    textView.isSelectable = true
+    textView.isRichText = false
+    textView.usesFindBar = true
+    textView.isAutomaticQuoteSubstitutionEnabled = false
+    textView.font = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+    textView.textColor = onSurface
+    textView.backgroundColor = logBackground
+    textView.insertionPointColor = primary
+    textView.textContainerInset = NSSize(width: 14, height: 14)
+    textView.isVerticallyResizable = true
+    textView.isHorizontallyResizable = true
+    textView.autoresizingMask = [.width]
+    textView.textContainer?.widthTracksTextView = false
+    textView.textContainer?.containerSize = NSSize(
+      width: CGFloat.greatestFiniteMagnitude,
+      height: CGFloat.greatestFiniteMagnitude
+    )
+
+    let scrollView = NSScrollView(frame: .zero)
+    scrollView.hasVerticalScroller = true
+    scrollView.hasHorizontalScroller = true
+    scrollView.autohidesScrollers = true
+    scrollView.borderType = .noBorder
+    scrollView.documentView = textView
+    scrollView.translatesAutoresizingMaskIntoConstraints = false
+
+    let terminalIcon = NSImageView()
+    if #available(macOS 11.0, *) {
+      terminalIcon.image = NSImage(systemSymbolName: "terminal", accessibilityDescription: "日志")
+    } else {
+      terminalIcon.image = NSImage(named: NSImage.computerName)
+    }
+    terminalIcon.contentTintColor = primary
+    terminalIcon.translatesAutoresizingMaskIntoConstraints = false
+
+    let titleLabel = NSTextField(labelWithString: "运行日志")
+    titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
+    titleLabel.textColor = onSurface
+
+    let lineCountLabel = NSTextField(labelWithString: "0 条")
+    lineCountLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+    lineCountLabel.textColor = onSurfaceVariant
+    self.lineCountLabel = lineCountLabel
+
+    let clearButton = NSButton(title: "清空", target: self, action: #selector(clearLogs))
+    clearButton.bezelStyle = .rounded
+    clearButton.controlSize = .regular
+    clearButton.contentTintColor = primary
+
+    let header = NSView()
+    header.wantsLayer = true
+    header.layer?.backgroundColor = surfaceContainer.cgColor
+    header.translatesAutoresizingMaskIntoConstraints = false
+    for view in [terminalIcon, titleLabel, lineCountLabel, clearButton] {
+      header.addSubview(view)
+      view.translatesAutoresizingMaskIntoConstraints = false
+    }
+
+    let divider = NSView()
+    divider.wantsLayer = true
+    divider.layer?.backgroundColor = outline.cgColor
+    divider.translatesAutoresizingMaskIntoConstraints = false
+
+    let root = NSView()
+    root.wantsLayer = true
+    root.layer?.backgroundColor = surface.cgColor
+    root.addSubview(header)
+    root.addSubview(divider)
+    root.addSubview(scrollView)
+
+    NSLayoutConstraint.activate([
+      header.topAnchor.constraint(equalTo: root.topAnchor),
+      header.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+      header.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+      header.heightAnchor.constraint(equalToConstant: 58),
+      terminalIcon.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 18),
+      terminalIcon.centerYAnchor.constraint(equalTo: header.centerYAnchor),
+      terminalIcon.widthAnchor.constraint(equalToConstant: 22),
+      terminalIcon.heightAnchor.constraint(equalToConstant: 22),
+      titleLabel.leadingAnchor.constraint(equalTo: terminalIcon.trailingAnchor, constant: 10),
+      titleLabel.centerYAnchor.constraint(equalTo: header.centerYAnchor),
+      clearButton.trailingAnchor.constraint(equalTo: header.trailingAnchor, constant: -14),
+      clearButton.centerYAnchor.constraint(equalTo: header.centerYAnchor),
+      lineCountLabel.trailingAnchor.constraint(equalTo: clearButton.leadingAnchor, constant: -14),
+      lineCountLabel.centerYAnchor.constraint(equalTo: header.centerYAnchor),
+      divider.topAnchor.constraint(equalTo: header.bottomAnchor),
+      divider.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+      divider.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+      divider.heightAnchor.constraint(equalToConstant: 1),
+      scrollView.topAnchor.constraint(equalTo: divider.bottomAnchor),
+      scrollView.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+      scrollView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+      scrollView.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+    ])
+
+    let logWindow = NSWindow(
+      contentRect: NSRect(x: 0, y: 0, width: 980, height: 640),
+      styleMask: [.titled, .closable, .miniaturizable, .resizable],
+      backing: .buffered,
+      defer: false
+    )
+    logWindow.title = "ZeroBox · 运行日志"
+    logWindow.appearance = NSAppearance(named: isDark ? .darkAqua : .aqua)
+    logWindow.titlebarAppearsTransparent = true
+    logWindow.backgroundColor = surface
+    logWindow.contentView = root
+    logWindow.delegate = self
+    logWindow.isReleasedWhenClosed = false
+    logWindow.center()
+    self.window = logWindow
+    self.textView = textView
+    lineCount = 0
+    logWindow.makeKeyAndOrderFront(nil)
+    NSApp.activate(ignoringOtherApps: true)
+  }
+
+  private func append(_ value: String) {
+    guard !value.isEmpty, let textView else { return }
+    let prefix = textView.string.isEmpty ? "" : "\n"
+    textView.textStorage?.append(
+      NSAttributedString(
+        string: prefix + value,
+        attributes: [
+          .foregroundColor: logTextColor,
+          .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .regular),
+        ]
+      )
+    )
+    lineCount += max(1, value.components(separatedBy: "\n").count)
+    lineCountLabel?.stringValue = "\(lineCount) 行"
+    textView.scrollRangeToVisible(NSRange(location: textView.string.utf16.count, length: 0))
+  }
+
+  @objc private func clearLogs() {
+    textView?.string = ""
+    lineCount = 0
+    lineCountLabel?.stringValue = "0 行"
+  }
+
+  func windowWillClose(_ notification: Notification) {
+    close(notify: true)
+  }
+
+  private func close(notify: Bool) {
+    guard window != nil else { return }
+    window?.delegate = nil
+    window?.close()
+    window = nil
+    textView = nil
+    lineCountLabel = nil
+    lineCount = 0
+    if notify {
+      channel.invokeMethod("closed", arguments: nil)
+    }
+  }
+}
+
 final class MacOSZeppSettingsChannel: NSObject, WKScriptMessageHandler, NSWindowDelegate {
   private let channel: FlutterMethodChannel
   private weak var parentWindow: NSWindow?

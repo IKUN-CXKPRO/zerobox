@@ -1985,13 +1985,13 @@ abstract class AppLocalizations {
   /// No description provided for @settingsGeneralDebugWindow.
   ///
   /// In en, this message translates to:
-  /// **'Debug window'**
+  /// **'Live log window'**
   String get settingsGeneralDebugWindow;
 
   /// No description provided for @settingsGeneralDebugWindowDesc.
   ///
   /// In en, this message translates to:
-  /// **'Show a floating debug panel'**
+  /// **'Continuously show all application logs in a separate window'**
   String get settingsGeneralDebugWindowDesc;
 
   /// No description provided for @settingsSourceOfficialCdn.

@@ -241,6 +241,74 @@ class HostDeviceManager extends DeviceManager {
   }
 
   @override
+  Future<void> connectXiaomiBand7Pro(String addr, String authKey) async {
+    final generation = ++_connectGeneration;
+    _pendingConnectionAddr = addr;
+    state = state.copyWith(
+      connecting: true,
+      connectionTargetAddr: addr,
+      connectionTargetName: 'Xiaomi Smart Band 7 Pro',
+      connectionPhase: DeviceConnectionPhase.preparing,
+      protocolState: ProtocolState.connecting,
+      clearError: true,
+    );
+    try {
+      await _execute(
+        ZeroBoxCommand(
+          method: 'device.connect.band7pro',
+          params: {'device': addr, 'authkey': authKey},
+        ),
+      );
+      if (generation != _connectGeneration) return;
+      await _refreshSnapshot();
+      _pendingConnectionAddr = null;
+    } catch (error, stackTrace) {
+      if (generation != _connectGeneration) return;
+      _pendingConnectionAddr = null;
+      _log.severe('remote Band 7 Pro connection failed', error, stackTrace);
+      state = state.copyWith(
+        connecting: false,
+        connectStatus: 3,
+        protocolState: ProtocolState.error,
+        error: error.toString(),
+      );
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> selectAndConnectXiaomiBand7Pro(
+    String authKey, {
+    String? expectedAddress,
+  }) async {
+    try {
+      await _execute(
+        ZeroBoxCommand(
+          method: 'device.connect.band7pro.select',
+          params: {
+            'authkey': authKey,
+            if (expectedAddress != null) 'expectedAddress': expectedAddress,
+          },
+        ),
+      );
+      await _refreshSnapshot();
+    } catch (error, stackTrace) {
+      _log.severe(
+        'remote Band 7 Pro browser selection failed',
+        error,
+        stackTrace,
+      );
+      state = state.copyWith(
+        connecting: false,
+        connectStatus: 3,
+        protocolState: ProtocolState.error,
+        error: error.toString(),
+      );
+      rethrow;
+    }
+  }
+
+  @override
   Future<void> disconnect() async {
     _connectGeneration += 1;
     _pendingConnectionAddr = null;

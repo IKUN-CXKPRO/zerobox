@@ -145,53 +145,185 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
           padding: const EdgeInsets.symmetric(
             horizontal: StyleConstants.pagePadding,
           ),
-          child: isWide
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _ListWrapper(isFirst: true, child: savedList),
-                    ),
-                    Container(
-                      width: 1,
-                      margin: const EdgeInsets.symmetric(vertical: 12),
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                    ),
-                    Expanded(
-                      child: _ListWrapper(isFirst: false, child: scanList),
-                    ),
-                  ],
-                )
-              : CustomScrollView(
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: _SectionHeader(
-                        title: AppLocalizations.of(context)!.savedDevices,
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Wrap(
+                    spacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        key: const ValueKey('connect-band7pro-test'),
+                        onPressed: state.connecting
+                            ? null
+                            : () => _connectXiaomiBand7Pro(context),
+                        icon: const Icon(Icons.science_outlined),
+                        label: const Text('连接设备 - 7 Pro'),
                       ),
-                    ),
-                    _SliverSavedDeviceList(
-                      selectedAddr: currentAddr,
-                      onComplete: () => setState(() {}),
-                    ),
-                    const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Divider(height: 1),
-                      ),
-                    ),
-                    SliverToBoxAdapter(
-                      child: _ScanSectionHeader(
-                        onComplete: () => setState(() {}),
-                      ),
-                    ),
-                    _SliverScanDeviceList(onComplete: () => setState(() {})),
-                  ],
+                    ],
+                  ),
                 ),
+              ),
+              const SizedBox(height: 4),
+              Expanded(
+                child: isWide
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: _ListWrapper(
+                              isFirst: true,
+                              child: savedList,
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            margin: const EdgeInsets.symmetric(vertical: 12),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                          ),
+                          Expanded(
+                            child: _ListWrapper(
+                              isFirst: false,
+                              child: scanList,
+                            ),
+                          ),
+                        ],
+                      )
+                    : CustomScrollView(
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: _SectionHeader(
+                              title: AppLocalizations.of(context)!.savedDevices,
+                            ),
+                          ),
+                          _SliverSavedDeviceList(
+                            selectedAddr: currentAddr,
+                            onComplete: () => setState(() {}),
+                          ),
+                          const SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: Divider(height: 1),
+                            ),
+                          ),
+                          SliverToBoxAdapter(
+                            child: _ScanSectionHeader(
+                              onComplete: () => setState(() {}),
+                            ),
+                          ),
+                          _SliverScanDeviceList(
+                            onComplete: () => setState(() {}),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
         );
       },
     );
+  }
+
+  Future<void> _connectXiaomiBand7Pro(BuildContext context) async {
+    final authKey = await _promptBand7ProValue(
+      context,
+      title: 'Xiaomi Smart Band 7 Pro',
+      label: 'Authkey',
+      hint: '32 位十六进制 authkey',
+      obscureText: true,
+      validator: (value) {
+        final normalized = value.toLowerCase().replaceFirst('0x', '');
+        return RegExp(r'^[0-9a-f]{32}$').hasMatch(normalized)
+            ? null
+            : '请输入 32 位十六进制 authkey';
+      },
+    );
+    if (authKey == null || !context.mounted) return;
+
+    final address = await _promptBand7ProValue(
+      context,
+      title: 'Xiaomi Smart Band 7 Pro',
+      label: '蓝牙地址',
+      hint: '例如 AA:BB:CC:DD:EE:FF',
+      validator: (value) => value.trim().isEmpty ? '请输入蓝牙地址' : null,
+    );
+    if (address == null || !context.mounted) return;
+
+    final manager = ref.read(deviceManagerProvider.notifier);
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS) {
+      // CoreBluetooth hides BLE MAC addresses. The entered address is useful
+      // to the tester, but macOS must first discover the FE95 peripheral and
+      // connect with its generated UUID.
+      await manager.selectAndConnectXiaomiBand7Pro(
+        authKey.trim(),
+        expectedAddress: address.trim(),
+      );
+    } else {
+      await manager.connectXiaomiBand7Pro(address.trim(), authKey.trim());
+    }
+  }
+
+  Future<String?> _promptBand7ProValue(
+    BuildContext context, {
+    required String title,
+    required String label,
+    required String hint,
+    required String? Function(String value) validator,
+    bool obscureText = false,
+  }) async {
+    final controller = TextEditingController();
+    String? errorText;
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(title),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            obscureText: obscureText,
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: InputDecoration(
+              labelText: label,
+              hintText: hint,
+              errorText: errorText,
+            ),
+            onSubmitted: (_) {
+              final error = validator(controller.text.trim());
+              if (error != null) {
+                setDialogState(() => errorText = error);
+              } else {
+                Navigator.of(dialogContext).pop(controller.text.trim());
+              }
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final error = validator(controller.text.trim());
+                if (error != null) {
+                  setDialogState(() => errorText = error);
+                  return;
+                }
+                Navigator.of(dialogContext).pop(controller.text.trim());
+              },
+              child: const Text('下一步'),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    return result;
   }
 
   Widget _buildWebLayout(
@@ -305,11 +437,11 @@ class _ListWrapper extends StatelessWidget {
   }
 }
 
-class _WebSerialHint extends StatelessWidget {
+class _WebSerialHint extends ConsumerWidget {
   const _WebSerialHint();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -335,9 +467,96 @@ class _WebSerialHint extends StatelessWidget {
             icon: const Icon(Icons.link),
             label: Text(l10n.deviceConnect),
           ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            key: const ValueKey('connect-band7pro-test-web'),
+            onPressed: () => _showBand7ProConnectDialog(context, ref),
+            icon: const Icon(Icons.science_outlined),
+            label: const Text('连接设备 - 7 Pro'),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _showBand7ProConnectDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final authKey = await _promptValue(
+      context,
+      label: 'Authkey',
+      hint: '32 位十六进制 authkey',
+      obscureText: true,
+      validator: (value) {
+        final normalized = value.toLowerCase().replaceFirst('0x', '');
+        return RegExp(r'^[0-9a-f]{32}$').hasMatch(normalized)
+            ? null
+            : '请输入 32 位十六进制 authkey';
+      },
+    );
+    if (authKey == null || !context.mounted) return;
+    await ref
+        .read(deviceManagerProvider.notifier)
+        .selectAndConnectXiaomiBand7Pro(authKey.trim());
+  }
+
+  Future<String?> _promptValue(
+    BuildContext context, {
+    required String label,
+    required String hint,
+    required String? Function(String value) validator,
+    bool obscureText = false,
+  }) async {
+    final controller = TextEditingController();
+    String? errorText;
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Xiaomi Smart Band 7 Pro'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            obscureText: obscureText,
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: InputDecoration(
+              labelText: label,
+              hintText: hint,
+              errorText: errorText,
+            ),
+            onSubmitted: (_) {
+              final error = validator(controller.text.trim());
+              if (error != null) {
+                setDialogState(() => errorText = error);
+                return;
+              }
+              Navigator.of(dialogContext).pop(controller.text.trim());
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final error = validator(controller.text.trim());
+                if (error != null) {
+                  setDialogState(() => errorText = error);
+                  return;
+                }
+                Navigator.of(dialogContext).pop(controller.text.trim());
+              },
+              child: const Text('下一步'),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    return result;
   }
 
   Future<void> _showWebSerialConnectDialog(BuildContext context) async {

@@ -973,10 +973,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAutoReconnectDesc => '启动时自动连接上次配对的设备';
 
   @override
-  String get settingsGeneralDebugWindow => '调试窗口';
+  String get settingsGeneralDebugWindow => '实时日志窗口';
 
   @override
-  String get settingsGeneralDebugWindowDesc => '显示悬浮调试面板';
+  String get settingsGeneralDebugWindowDesc => '在独立窗口中持续显示整个程序的日志';
 
   @override
   String get settingsSourceOfficialCdn => 'GitHub 源 CDN';

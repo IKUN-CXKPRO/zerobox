@@ -11,6 +11,7 @@ class BluetoothEndpoint {
     required this.connectType,
     this.rssi,
     this.serviceUuids = const [],
+    this.serviceData = const {},
   });
 
   final String name;
@@ -18,6 +19,32 @@ class BluetoothEndpoint {
   final ConnectType connectType;
   final int? rssi;
   final List<String> serviceUuids;
+  final Map<String, Uint8List> serviceData;
+
+  bool matchesXiaomiAdvertisedMac(String address) {
+    final expected = address
+        .replaceAll(':', '')
+        .replaceAll('-', '')
+        .toLowerCase();
+    if (expected.length != 12) return false;
+    for (final entry in serviceData.entries) {
+      final uuid = entry.key.toLowerCase().replaceAll('-', '');
+      if (!uuid.contains('fe95')) continue;
+      final data = entry.value;
+      if (data.length < 11) continue;
+      final frameControl = data[0] | (data[1] << 8);
+      if ((frameControl & 0x10) == 0) continue;
+      final bytes = data.sublist(5, 11);
+      final forward = bytes
+          .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+          .join();
+      final reverse = bytes.reversed
+          .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+          .join();
+      if (expected == forward || expected == reverse) return true;
+    }
+    return false;
+  }
 }
 
 class BluetoothScanOptions {
@@ -78,6 +105,8 @@ class BluetoothConnectOptions {
     this.bleRequiredCharacteristics = const [],
     this.bleDesiredMtu,
     this.bleAttemptPair = true,
+    this.bleConnectTimeout = const Duration(seconds: 12),
+    this.bleAutoConnect = false,
     this.sppServiceUuid,
     this.sppFallbackChannels = const [5, 1],
   });
@@ -86,6 +115,8 @@ class BluetoothConnectOptions {
   final List<BleRequiredCharacteristic> bleRequiredCharacteristics;
   final int? bleDesiredMtu;
   final bool bleAttemptPair;
+  final Duration bleConnectTimeout;
+  final bool bleAutoConnect;
   final String? sppServiceUuid;
   final List<int> sppFallbackChannels;
 }

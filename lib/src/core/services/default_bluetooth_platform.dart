@@ -139,6 +139,8 @@ class DefaultBluetoothPlatform implements BluetoothPlatform {
           requiredCharacteristics: options.bleRequiredCharacteristics,
           desiredMtu: options.bleDesiredMtu,
           attemptPair: options.bleAttemptPair,
+          connectTimeout: options.bleConnectTimeout,
+          autoConnect: options.bleAutoConnect,
         );
         connection = _BleBluetoothConnection(bleConnection);
       case ConnectType.spp:

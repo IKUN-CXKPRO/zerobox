@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:universal_ble/universal_ble.dart';
 import 'package:zerobox/src/core/logging/logging_service.dart';
 import 'package:zerobox/src/device/core/ble_requirement.dart';
@@ -158,27 +158,29 @@ class BleConnection {
       ),
     };
     final completer = Completer<void>();
-    _writeTail = _writeTail.then((_) async {
-      if (_disposed) throw StateError('BLE connection is disposed');
-      _log.fine(
-        '[$deviceId] writing ${data.length} bytes to $charUuid '
-        'withResponse=$effectiveWithResponse '
-        '(requested=$withResponse, properties=${characteristic.properties})',
-      );
-      await characteristic
-          .write(data, withResponse: effectiveWithResponse)
-          .timeout(
-            const Duration(seconds: 5),
-            onTimeout: () => throw TimeoutException(
-              'BLE write timed out for $charUuid',
-              const Duration(seconds: 5),
-            ),
+    _writeTail = _writeTail
+        .then((_) async {
+          if (_disposed) throw StateError('BLE connection is disposed');
+          _log.fine(
+            '[$deviceId] writing ${data.length} bytes to $charUuid '
+            'withResponse=$effectiveWithResponse '
+            '(requested=$withResponse, properties=${characteristic.properties})',
           );
-    }).then(
-      (_) => completer.complete(),
-      onError: (Object error, StackTrace stackTrace) =>
-          completer.completeError(error, stackTrace),
-    );
+          await characteristic
+              .write(data, withResponse: effectiveWithResponse)
+              .timeout(
+                const Duration(seconds: 5),
+                onTimeout: () => throw TimeoutException(
+                  'BLE write timed out for $charUuid',
+                  const Duration(seconds: 5),
+                ),
+              );
+        })
+        .then(
+          (_) => completer.complete(),
+          onError: (Object error, StackTrace stackTrace) =>
+              completer.completeError(error, stackTrace),
+        );
     // Keep a failed operation from poisoning all later queued writes.
     _writeTail = _writeTail.catchError((Object _) {});
     await completer.future;
@@ -187,10 +189,7 @@ class BleConnection {
   Future<int> requestMtu(int desiredMtu) async {
     try {
       _log.info('[$deviceId] requesting MTU $desiredMtu');
-      mtu = await UniversalBle.requestMtu(
-        deviceId,
-        desiredMtu,
-      ).timeout(
+      mtu = await UniversalBle.requestMtu(deviceId, desiredMtu).timeout(
         const Duration(seconds: 5),
         onTimeout: () => throw TimeoutException(
           'BLE MTU negotiation timed out',
@@ -275,6 +274,7 @@ class BleGattDriver {
         connectType: ConnectType.ble,
         rssi: device.rssi,
         serviceUuids: List<String>.from(device.services),
+        serviceData: Map<String, Uint8List>.from(device.serviceData),
       );
       final previous = _scanResults[device.deviceId];
       final shouldLog =
@@ -329,46 +329,97 @@ class BleGattDriver {
         xiaomiRequiredCharacteristics,
     int? desiredMtu = 517,
     bool attemptPair = true,
+    Duration connectTimeout = const Duration(seconds: 12),
+    bool autoConnect = false,
   }) async {
     await stopScan();
-    _log.info('[$deviceId] initiating BLE connection');
+    var effectiveDeviceId = deviceId;
+    _log.info('[$effectiveDeviceId] initiating BLE connection');
     // Subscribe before starting the platform connection. Some backends emit
     // connected=true before UniversalBle.connect() completes; subscribing
     // afterwards loses that event and makes a healthy connection time out.
-    final connection = BleConnection(
-      deviceId: deviceId,
+    var connection = BleConnection(
+      deviceId: effectiveDeviceId,
       deviceName: deviceName,
     );
     await connection.start();
     try {
-      await UniversalBle.connect(deviceId).timeout(
-        const Duration(seconds: 12),
+      await UniversalBle.connect(
+        effectiveDeviceId,
+        timeout: connectTimeout,
+        autoConnect: autoConnect,
+      ).timeout(
+        connectTimeout,
         onTimeout: () {
           throw TimeoutException('UniversalBle.connect timed out');
         },
       );
     } catch (e) {
-      _log.severe('[$deviceId] UniversalBle.connect failed', e);
-      await connection.dispose();
-      rethrow;
+      final deviceNotFound = e.toString().contains('deviceNotFound');
+      if (kIsWeb && deviceNotFound) {
+        _log.warning(
+          '[$effectiveDeviceId] Web Bluetooth device cache missed; '
+          'requesting the device again before connecting',
+        );
+        await connection.dispose();
+        final selectedFuture = UniversalBle.scanStream.first.timeout(
+          const Duration(seconds: 30),
+        );
+        final services = requiredCharacteristics
+            .map((item) => item.serviceUuid)
+            .toSet()
+            .toList(growable: false);
+        await UniversalBle.startScan(
+          scanFilter: ScanFilter(withServices: services),
+        );
+        final selected = await selectedFuture;
+        effectiveDeviceId = selected.deviceId;
+        connection = BleConnection(
+          deviceId: effectiveDeviceId,
+          deviceName: selected.name ?? deviceName,
+        );
+        await connection.start();
+        try {
+          await UniversalBle.connect(
+            effectiveDeviceId,
+            timeout: connectTimeout,
+            autoConnect: autoConnect,
+          ).timeout(connectTimeout);
+        } catch (retryError) {
+          _log.severe(
+            '[$effectiveDeviceId] Web Bluetooth retry failed',
+            retryError,
+          );
+          await connection.dispose();
+          rethrow;
+        }
+      } else {
+        _log.severe('[$effectiveDeviceId] UniversalBle.connect failed', e);
+        await connection.dispose();
+        rethrow;
+      }
     }
-    _log.info('[$deviceId] UniversalBle.connect returned');
+    _log.info('[$effectiveDeviceId] UniversalBle.connect returned');
 
     // A successful platform connect is the readiness gate. The connection
     // stream is retained for later disconnect events, but is not uniformly
     // replayed by every UniversalBle backend and must not gate initialization.
-    _log.info('[$deviceId] platform connection established');
+    _log.info('[$effectiveDeviceId] platform connection established');
 
     if (attemptPair) {
       try {
-        _log.info('[$deviceId] attempting pair');
-        await UniversalBle.pair(deviceId).timeout(const Duration(seconds: 5));
-        _log.info('[$deviceId] pair succeeded or not needed');
+        _log.info('[$effectiveDeviceId] attempting pair');
+        await UniversalBle.pair(
+          effectiveDeviceId,
+        ).timeout(const Duration(seconds: 5));
+        _log.info('[$effectiveDeviceId] pair succeeded or not needed');
       } catch (e) {
         _log.warning('[$deviceId] pair failed (ignored)', e);
       }
     } else {
-      _log.info('[$deviceId] skipping OS pairing for protocol-auth device');
+      _log.info(
+        '[$effectiveDeviceId] skipping OS pairing for protocol-auth device',
+      );
     }
 
     try {

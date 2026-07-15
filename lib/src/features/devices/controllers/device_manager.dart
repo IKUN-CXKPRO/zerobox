@@ -26,6 +26,7 @@ import 'package:zerobox/src/device/xiaomi/components/resource_system.dart';
 import 'package:zerobox/src/device/xiaomi/components/thirdparty_app_system.dart';
 import 'package:zerobox/src/device/xiaomi/components/xiaomi_device_component.dart';
 import 'package:zerobox/src/device/xiaomi/xiaomi_device_factory.dart';
+import 'package:zerobox/src/device/xiaomi/legacy/xiaomi_ble_v1_session.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_auth_system.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_apps_system.dart';
 import 'package:zerobox/src/device/zeppos/systems/zeppos_app_install_system.dart';
@@ -222,6 +223,11 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
     DeviceKind kind = DeviceKind.xiaomi,
     String connectType = 'ble',
   });
+  Future<void> connectXiaomiBand7Pro(String addr, String authKey);
+  Future<void> selectAndConnectXiaomiBand7Pro(
+    String authKey, {
+    String? expectedAddress,
+  });
   Future<void> disconnect();
   Future<void> cancelConnect();
   Future<void> removeDevice(String addr);
@@ -343,6 +349,7 @@ class LocalDeviceManager extends DeviceManager {
   Timer? _batteryRefreshTimer;
   bool _batteryRefreshInProgress = false;
   BluetoothConnection? _bluetoothConnection;
+  XiaomiBleV1Session? _xiaomiBleV1Session;
   DeviceEntity? _currentEntity;
   final _scannedProfiles = <String, DeviceProfile>{};
   var _connectGeneration = 0;
@@ -879,6 +886,176 @@ class LocalDeviceManager extends DeviceManager {
     }
   }
 
+  @override
+  Future<void> connectXiaomiBand7Pro(String addr, String authKey) async {
+    final normalizedAuthKey = authKey.trim().toLowerCase().replaceFirst(
+      '0x',
+      '',
+    );
+    if (!RegExp(r'^[0-9a-f]{32}$').hasMatch(normalizedAuthKey)) {
+      throw ArgumentError('authkey 必须是 32 位十六进制字符串');
+    }
+    final normalizedAddress = addr.trim();
+    if (normalizedAddress.isEmpty) {
+      throw ArgumentError('蓝牙地址不能为空');
+    }
+
+    _log.info('Band 7 Pro: preparing BLE connection to $normalizedAddress');
+
+    final generation = ++_connectGeneration;
+    const name = 'Xiaomi Smart Band 7 Pro';
+    state = state.copyWith(
+      connecting: true,
+      connectionTargetAddr: normalizedAddress,
+      connectionTargetName: name,
+      connectionPhase: DeviceConnectionPhase.preparing,
+      connectStatus: 1,
+      protocolState: ProtocolState.connecting,
+      clearError: true,
+    );
+    try {
+      await stopBluetoothScan();
+      await _cleanupConnection();
+      _throwIfConnectCancelled(generation);
+      state = state.copyWith(
+        connectionPhase: DeviceConnectionPhase.connectingTransport,
+      );
+      _bluetoothConnection = await _bluetooth.connect(
+        normalizedAddress,
+        name,
+        const BluetoothConnectOptions(
+          connectType: ConnectType.ble,
+          bleRequiredCharacteristics:
+              XiaomiBleV1Session.requiredCharacteristics,
+          bleDesiredMtu: 512,
+          bleAttemptPair: false,
+          bleConnectTimeout: Duration(seconds: 60),
+          bleAutoConnect: true,
+        ),
+      );
+      _log.info('Band 7 Pro: BLE transport connected; starting GATT session');
+      _throwIfConnectCancelled(generation);
+
+      state = state.copyWith(
+        connectionPhase: DeviceConnectionPhase.initializingProtocol,
+        protocolState: ProtocolState.connected,
+      );
+      final session = XiaomiBleV1Session(_bluetoothConnection!);
+      _xiaomiBleV1Session = session;
+      await session.start();
+      _log.info('Band 7 Pro: GATT notifications enabled');
+      _throwIfConnectCancelled(generation);
+
+      state = state.copyWith(
+        connectionPhase: DeviceConnectionPhase.authenticating,
+        protocolState: ProtocolState.authenticating,
+      );
+      await session.authenticate(normalizedAuthKey);
+      _log.info('Band 7 Pro: authentication completed');
+      _throwIfConnectCancelled(generation);
+
+      final connected = MiWearState(
+        name: name,
+        addr: normalizedAddress,
+        connectType: ConnectType.ble.name,
+        authkey: normalizedAuthKey,
+        codename: 'm2141',
+        disconnected: false,
+      );
+      final paired = state.pairedDevices
+          .where((device) => device.addr != normalizedAddress)
+          .toList();
+      paired.insert(0, connected);
+      state = state.copyWith(
+        currentDevice: connected,
+        pairedDevices: paired,
+        connecting: false,
+        connectStatus: 2,
+        protocolState: ProtocolState.ready,
+        clearConnectionPhase: true,
+      );
+      await _savePairedDevices();
+    } on _DeviceConnectCancelled {
+      _log.info('Band 7 Pro connection cancelled');
+    } catch (error, stackTrace) {
+      if (generation != _connectGeneration) return;
+      _log.severe('Band 7 Pro connection failed', error, stackTrace);
+      state = state.copyWith(
+        connecting: false,
+        connectStatus: 3,
+        protocolState: ProtocolState.error,
+        error: error.toString(),
+        clearConnectionPhase: true,
+      );
+      await _cleanupConnection();
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> selectAndConnectXiaomiBand7Pro(
+    String authKey, {
+    String? expectedAddress,
+  }) async {
+    final expected = expectedAddress?.trim() ?? '';
+    _log.info(
+      'Band 7 Pro: starting FE95 scan${expected.isEmpty ? '' : ' for MAC $expected'}',
+    );
+    state = state.copyWith(
+      scanning: true,
+      connectionTargetName: 'Xiaomi Smart Band 7 Pro',
+      connectionPhase: DeviceConnectionPhase.preparing,
+      clearError: true,
+    );
+    try {
+      final selectedDevice = _bluetooth.scanStream
+          .firstWhere((endpoint) {
+            if (endpoint.connectType != ConnectType.ble) return false;
+            final macMatches =
+                expected.isNotEmpty &&
+                endpoint.matchesXiaomiAdvertisedMac(expected);
+            _log.info(
+              'Band 7 Pro scan: name="${endpoint.name}" '
+              'id=${endpoint.address} rssi=${endpoint.rssi ?? 'unknown'} '
+              'services=${endpoint.serviceUuids.join(',')} '
+              'serviceData=${endpoint.serviceData.keys.join(',')} '
+              'macMatch=$macMatches',
+            );
+            if (macMatches) {
+              return true;
+            }
+            final name = endpoint.name.toLowerCase();
+            return name.contains('xiaomi smart band 7 pro') ||
+                name.contains('band 7 pro');
+          })
+          .timeout(const Duration(seconds: 30));
+      await _bluetooth.requestPermissions();
+      await _bluetooth.startScan(
+        BluetoothScanOptions.ble(
+          timeout: const Duration(seconds: 30),
+          serviceUuids: const [XiaomiBleV1Session.serviceUuid],
+        ),
+      );
+      final endpoint = await selectedDevice;
+      _log.info(
+        'Band 7 Pro: selected ${endpoint.name} (${endpoint.address}); connecting by CoreBluetooth identifier',
+      );
+      state = state.copyWith(scanning: false);
+      await connectXiaomiBand7Pro(endpoint.address, authKey);
+    } catch (error, stackTrace) {
+      _log.severe('Band 7 Pro BLE discovery failed', error, stackTrace);
+      state = state.copyWith(
+        scanning: false,
+        connecting: false,
+        connectStatus: 3,
+        protocolState: ProtocolState.error,
+        error: error.toString(),
+        clearConnectionPhase: true,
+      );
+      rethrow;
+    }
+  }
+
   bool _supportsZeppOsGatt(BluetoothConnection connection) {
     const service = '00001530-0000-3512-2118-0009af100700';
     return connection.supportsCharacteristic(
@@ -1190,8 +1367,14 @@ class LocalDeviceManager extends DeviceManager {
     _batteryRefreshTimer = null;
     final connection = _bluetoothConnection;
     final entity = _currentEntity;
+    final xiaomiBleV1Session = _xiaomiBleV1Session;
     _bluetoothConnection = null;
     _currentEntity = null;
+    _xiaomiBleV1Session = null;
+
+    if (xiaomiBleV1Session != null) {
+      await xiaomiBleV1Session.dispose();
+    }
 
     if (entity != null) {
       _log.info('cleaning up connection to ${entity.id}');

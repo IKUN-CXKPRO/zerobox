@@ -148,6 +148,10 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
     ),
     'device.status' => Future.value(_status()),
     'device.connect' => _connect(command.params['device']?.toString()),
+    'device.connect.band7pro' => _connectBand7Pro(command.params),
+    'device.connect.band7pro.select' => _selectAndConnectBand7Pro(
+      command.params,
+    ),
     'device.connect.cancel' => _cancelConnect(),
     'device.disconnect' => _disconnect(),
     'device.scan' => _scan(command.params),
@@ -436,6 +440,46 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
     }
     _events.add(CommandEvent('connected', data: _deviceJson(target)));
     return _deviceJson(_state.currentDevice ?? target);
+  }
+
+  Future<Object?> _connectBand7Pro(Map<String, Object?> params) async {
+    final address = params['device']?.toString().trim() ?? '';
+    final authKey = params['authkey']?.toString().trim() ?? '';
+    if (address.isEmpty || authKey.isEmpty) {
+      throw const CommandFailure(
+        'usage',
+        'Band 7 Pro connection requires device and authkey',
+      );
+    }
+    await _manager.connectXiaomiBand7Pro(address, authKey);
+    if (_state.protocolState != ProtocolState.ready) {
+      throw CommandFailure(
+        'connection',
+        _state.error ?? 'Band 7 Pro did not become ready',
+      );
+    }
+    return _deviceJson(_state.currentDevice!);
+  }
+
+  Future<Object?> _selectAndConnectBand7Pro(Map<String, Object?> params) async {
+    final authKey = params['authkey']?.toString().trim() ?? '';
+    if (authKey.isEmpty) {
+      throw const CommandFailure(
+        'usage',
+        'Band 7 Pro browser selection requires authkey',
+      );
+    }
+    await _manager.selectAndConnectXiaomiBand7Pro(
+      authKey,
+      expectedAddress: params['expectedAddress']?.toString(),
+    );
+    if (_state.protocolState != ProtocolState.ready) {
+      throw CommandFailure(
+        'connection',
+        _state.error ?? 'Band 7 Pro did not become ready',
+      );
+    }
+    return _deviceJson(_state.currentDevice!);
   }
 
   Future<Object?> _disconnect() async {

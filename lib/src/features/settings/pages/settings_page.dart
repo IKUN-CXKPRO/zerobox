@@ -9,6 +9,7 @@ import 'package:zerobox/src/app/generated/app_localizations.dart';
 import 'package:zerobox/src/app/utils/error_localization.dart';
 import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
 import 'package:zerobox/src/core/constants/style_constants.dart';
+import 'package:zerobox/src/core/logging/log_window_controller.dart';
 import 'package:zerobox/src/core/providers/app_settings_providers.dart';
 import 'package:zerobox/src/core/providers/theme_locale_providers.dart';
 import 'package:zerobox/src/core/services/shared_prefs_service.dart';
@@ -258,6 +259,18 @@ class SettingsPage extends ConsumerWidget {
                 title: Text(l10n.settingsAutoReconnectTitle),
                 description: Text(l10n.settingsAutoReconnectDesc),
               ),
+              if (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS)
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    await ref
+                        .read(logWindowProvider.notifier)
+                        .setOpen(value ?? false, theme: Theme.of(context));
+                  },
+                  initialValue: ref.watch(logWindowProvider),
+                  leading: const Icon(Icons.terminal_outlined),
+                  title: Text(l10n.settingsGeneralDebugWindow),
+                  description: Text(l10n.settingsGeneralDebugWindowDesc),
+                ),
             ],
           ),
           _buildSection(
