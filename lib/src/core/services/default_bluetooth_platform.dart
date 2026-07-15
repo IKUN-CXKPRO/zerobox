@@ -108,8 +108,10 @@ class DefaultBluetoothPlatform implements BluetoothPlatform {
 
   void _onEndpoint(BluetoothEndpoint endpoint) {
     final key = _endpointKey(endpoint);
-    if (_scanResults.containsKey(key)) return;
     _scanResults[key] = endpoint;
+    // BLE advertisements are incremental on Windows and macOS. The first
+    // event often contains only an identifier; later events add the local
+    // name and Xiaomi FE95 service data required for Band 7 Pro matching.
     _scanController.add(endpoint);
   }
 

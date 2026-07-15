@@ -73,9 +73,10 @@ class HostDeviceManager extends DeviceManager {
         throw StateError('Daemon command failed without error details');
       }
       final details = error.details;
+      final visibleDetails = details is String ? null : details;
       throw StateError(
         '${error.code}: ${error.message}'
-        '${details == null || details.toString().isEmpty ? '' : '\n$details'}',
+        '${visibleDetails == null || visibleDetails.toString().isEmpty ? '' : '\n$visibleDetails'}',
       );
     }
     return result;

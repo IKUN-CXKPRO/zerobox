@@ -1008,9 +1008,11 @@ class LocalDeviceManager extends DeviceManager {
       clearError: true,
     );
     try {
+      final candidates = <String, BluetoothEndpoint>{};
       final selectedDevice = _bluetooth.scanStream
           .firstWhere((endpoint) {
             if (endpoint.connectType != ConnectType.ble) return false;
+            candidates[endpoint.address] = endpoint;
             final macMatches =
                 expected.isNotEmpty &&
                 (endpoint.matchesAddress(expected) ||
@@ -1029,7 +1031,23 @@ class LocalDeviceManager extends DeviceManager {
             return name.contains('xiaomi smart band 7 pro') ||
                 name.contains('band 7 pro');
           })
-          .timeout(const Duration(seconds: 30));
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              final summary = candidates.values
+                  .map(
+                    (endpoint) =>
+                        '${endpoint.name} (${endpoint.address}, '
+                        'RSSI ${endpoint.rssi ?? '?'})',
+                  )
+                  .join('; ');
+              throw TimeoutException(
+                '30 秒内未找到蓝牙地址 $expected 对应的 Xiaomi Smart Band 7 Pro。'
+                '${summary.isEmpty ? 'Windows 没有返回任何 BLE 扫描结果' : '已发现：$summary'}',
+                const Duration(seconds: 30),
+              );
+            },
+          );
       await _bluetooth.requestPermissions();
       await _bluetooth.startScan(
         BluetoothScanOptions.ble(timeout: const Duration(seconds: 30)),
