@@ -82,6 +82,7 @@ class ZeppOsAppInstallSystem extends System {
       );
 
       var offset = 0;
+      // Gadgetbridge uses the negotiated ATT payload (MTU - 3) here.
       final packetLength = (transport.maxWriteLength ?? 20).clamp(20, 512);
       while (offset < package.bytes.length) {
         final chunkEnd = math.min(
