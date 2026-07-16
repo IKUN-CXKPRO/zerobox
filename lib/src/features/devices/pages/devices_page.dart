@@ -338,21 +338,30 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
               title: Text(l10n.install),
               tiles: [
                 SettingsTile.navigation(
-                  onPressed: (_) => _pickAndEnqueue(context, ref),
+                  onPressed: (_) =>
+                      _pickAndEnqueue(context, ref, LocalDeviceInstallType.app),
                   enabled: enabled,
                   leading: const Icon(Icons.apps_outlined),
                   title: Text(l10n.deviceFeaturesInstallApp),
                   description: Text(l10n.deviceFeaturesInstallAppDesc),
                 ),
                 SettingsTile.navigation(
-                  onPressed: (_) => _pickAndEnqueue(context, ref),
+                  onPressed: (_) => _pickAndEnqueue(
+                    context,
+                    ref,
+                    LocalDeviceInstallType.watchface,
+                  ),
                   enabled: enabled,
                   leading: const Icon(Icons.watch_outlined),
                   title: Text(l10n.deviceFeaturesInstallWatchface),
                   description: Text(l10n.deviceFeaturesInstallWatchfaceDesc),
                 ),
                 SettingsTile.navigation(
-                  onPressed: (_) => _pickAndEnqueue(context, ref),
+                  onPressed: (_) => _pickAndEnqueue(
+                    context,
+                    ref,
+                    LocalDeviceInstallType.firmware,
+                  ),
                   enabled: enabled,
                   leading: const Icon(Icons.memory_outlined),
                   title: Text(l10n.deviceFeaturesInstallFirmware),
@@ -403,6 +412,7 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
   Future<void> _pickAndEnqueue(
     BuildContext context,
     WidgetRef ref,
+    LocalDeviceInstallType type,
   ) async {
     final result = await FilePicker.pickFiles(
       type: FileType.any,
@@ -416,6 +426,7 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
     final queue = ref.read(installQueueProvider.notifier);
     queue.enqueueLocalFile(
       XFile.fromData(bytes, name: file.name, path: file.path ?? ''),
+      type: type,
     );
   }
 }

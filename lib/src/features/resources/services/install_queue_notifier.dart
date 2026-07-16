@@ -181,28 +181,32 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     );
   }
 
-  void enqueueLocalFile(XFile file) {
-    unawaited(_enqueueLocalFile(file));
+  void enqueueLocalFile(XFile file, {LocalDeviceInstallType? type}) {
+    unawaited(_enqueueLocalFile(file, type: type));
   }
 
-  Future<void> _enqueueLocalFile(XFile file) async {
+  Future<void> _enqueueLocalFile(
+    XFile file, {
+    LocalDeviceInstallType? type,
+  }) async {
     final bytes = await file.readAsBytes();
     if (kIsWeb) {
-      final type = ResourceInstallService().detectLocalInstallType(
-        file.name,
-        bytes,
-      );
+      final resolvedType =
+          type ??
+          ResourceInstallService().detectLocalInstallType(file.name, bytes);
       final task = InstallTask(
         id: file.path,
         name: file.name,
-        description: type?.name ?? 'Unsupported file',
-        type: type ?? LocalDeviceInstallType.app,
+        description: resolvedType?.name ?? 'Unsupported file',
+        type: resolvedType ?? LocalDeviceInstallType.app,
         filePath: file.path,
         bytes: bytes,
-        status: type == null
+        status: resolvedType == null
             ? ResourceTaskStatus.failed
             : ResourceTaskStatus.pending,
-        error: type == null ? 'Unsupported or unrecognized file type' : null,
+        error: resolvedType == null
+            ? 'Unsupported or unrecognized file type'
+            : null,
       );
       _addWebTask(task);
       return;
@@ -212,7 +216,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
       ZeroBoxCommand(
         method: 'install.local',
         params: {
-          'type': 'auto',
+          'type': type?.name ?? 'auto',
           'path': path,
           'title': file.name,
           'deleteAfter': true,
