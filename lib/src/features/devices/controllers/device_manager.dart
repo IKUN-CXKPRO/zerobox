@@ -905,7 +905,7 @@ class LocalDeviceManager extends DeviceManager {
     if (!RegExp(r'^[0-9a-f]{32}$').hasMatch(normalizedAuthKey)) {
       throw ArgumentError('authkey 必须是 32 位十六进制字符串');
     }
-    final normalizedAddress = addr.trim();
+    final normalizedAddress = _normalizeBand7ProAddressForPlatform(addr);
     if (normalizedAddress.isEmpty) {
       throw ArgumentError('蓝牙地址不能为空');
     }
@@ -1007,7 +1007,9 @@ class LocalDeviceManager extends DeviceManager {
     String authKey, {
     String? expectedAddress,
   }) async {
-    final expected = expectedAddress?.trim() ?? '';
+    final expected = expectedAddress == null
+        ? ''
+        : _normalizeBand7ProAddressForPlatform(expectedAddress);
     _log.info(
       'Band 7 Pro: starting FE95 scan${expected.isEmpty ? '' : ' for MAC $expected'}',
     );
@@ -2084,3 +2086,11 @@ class LocalDeviceManager extends DeviceManager {
 
 final deviceManagerProvider =
     NotifierProvider<DeviceManager, DeviceManagerState>(LocalDeviceManager.new);
+
+String _normalizeBand7ProAddressForPlatform(String address) {
+  final trimmed = address.trim();
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS) {
+    return trimmed.replaceAll(':', '-');
+  }
+  return trimmed;
+}
