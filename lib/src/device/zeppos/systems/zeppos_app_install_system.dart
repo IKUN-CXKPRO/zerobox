@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:zerobox/src/device/core/ble_requirement.dart';
-import 'package:zerobox/src/device/core/ble_transport.dart';
-import 'package:zerobox/src/device/core/system.dart';
-import 'package:zerobox/src/device/core/transport.dart';
-import 'package:zerobox/src/device/zeppos/install/zeppos_package_parser.dart';
+import 'package:oronbox/src/device/core/ble_requirement.dart';
+import 'package:oronbox/src/device/core/ble_transport.dart';
+import 'package:oronbox/src/device/core/system.dart';
+import 'package:oronbox/src/device/core/transport.dart';
+import 'package:oronbox/src/device/zeppos/install/zeppos_package_parser.dart';
 
 class ZeppOsAppInstallSystem extends System {
   static const _serviceUuid = '00001530-0000-3512-2118-0009af100700';

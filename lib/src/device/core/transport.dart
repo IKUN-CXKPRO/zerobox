@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/device/core/ble_requirement.dart';
+import 'package:oronbox/src/device/core/ble_requirement.dart';
 
 abstract class Transport {
   String get deviceId;

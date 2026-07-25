@@ -7,7 +7,7 @@
 
 namespace {
 
-constexpr char kMethodChannelName[] = "zerobox/mi_account_2fa";
+constexpr char kMethodChannelName[] = "oronbox/mi_account_2fa";
 
 struct TwoFactorSession {
   GtkOverlay* overlay = nullptr;

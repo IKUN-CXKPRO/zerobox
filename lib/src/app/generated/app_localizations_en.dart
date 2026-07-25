@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'ZeroBox';
+  String get appTitle => 'OronBox';
 
   @override
   String get homeTab => 'Home';
@@ -120,7 +120,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get news => 'News';
 
   @override
-  String get zeroBoxNews => 'ZeroBox news';
+  String get oronBoxNews => 'OronBox news';
 
   @override
   String get bandbbsNews => 'BandBBS news';
@@ -133,6 +133,139 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creatorCenter => 'Creator center';
+
+  @override
+  String get creatorNewResource => 'New resource';
+
+  @override
+  String get creatorSlug => 'Resource identifier';
+
+  @override
+  String get creatorResourceName => 'Resource name';
+
+  @override
+  String get creatorResourceSummary => 'Resource summary';
+
+  @override
+  String get creatorSaveDraft => 'Save draft';
+
+  @override
+  String get creatorAddArtifact => 'Add resource file';
+
+  @override
+  String get creatorReplaceAsset => 'Upload replacement';
+
+  @override
+  String get creatorBindDevices => 'Bind devices';
+
+  @override
+  String get creatorDeleteResource => 'Delete';
+
+  @override
+  String get creatorIconCover => 'Icon & cover';
+
+  @override
+  String get creatorInvalidImage =>
+      'Unable to decode this image; use PNG/JPEG/WebP';
+
+  @override
+  String get creatorInvalidPackage =>
+      'This file is not a Vela quick app or watchface';
+
+  @override
+  String creatorPublishPreparing(Object done, Object total) {
+    return 'Processing file $done/$total';
+  }
+
+  @override
+  String creatorPublishUploading(Object percent) {
+    return 'Uploading $percent%';
+  }
+
+  @override
+  String get creatorPublishServer => 'Server is processing…';
+
+  @override
+  String get creatorAstroBoxItemId => 'Item ID';
+
+  @override
+  String get creatorAstroBoxRepository => 'Repository name';
+
+  @override
+  String get creatorAstroBoxTags => 'Tags (comma separated)';
+
+  @override
+  String get creatorAstroBoxAuthor =>
+      'Author (must match your AstroBox username)';
+
+  @override
+  String get creatorAstroBoxBindAccount => 'Bind AstroBox account';
+
+  @override
+  String get replace => 'Replace';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get creatorSubmitReview => 'Submit';
+
+  @override
+  String get creatorCorrection => 'Correct and resubmit';
+
+  @override
+  String get creatorUpdateResource => 'Update resource';
+
+  @override
+  String get creatorArchiveAction => 'Delist';
+
+  @override
+  String get creatorArchiveConfirm =>
+      'Delisting hides this resource from the store. You can restore it anytime.';
+
+  @override
+  String get creatorRestoreAction => 'Restore';
+
+  @override
+  String get creatorDeleteConfirm =>
+      'This draft resource will be permanently deleted.';
+
+  @override
+  String get creatorDeletePublishedConfirm =>
+      'Permanently deletes the OronBox resource and the corresponding BandBBS resources. This cannot be undone. Content already published on AstroBox is not affected; contact the AstroBox-Repo maintainers to delist it.';
+
+  @override
+  String creatorArtifactCount(Object count) {
+    return '$count packages';
+  }
+
+  @override
+  String get creatorKindMismatchTitle => 'File type mismatch';
+
+  @override
+  String creatorKindMismatchMessage(Object detected, Object expected) {
+    return 'This file looks like a $detected, but this resource is a $expected. You can keep it, but please confirm before submitting for review.';
+  }
+
+  @override
+  String get creatorKeepFile => 'Keep anyway';
+
+  @override
+  String creatorDeviceMoveBlocked(Object name) {
+    return '\"$name\" has only this device bound and cannot be moved';
+  }
+
+  @override
+  String get creatorAssetsReusedHint =>
+      'Existing packages and previews are reused — no need to re-upload';
+
+  @override
+  String get creatorRevisionHistory => 'Revision history';
+
+  @override
+  String creatorUploadProgress(Object progress) {
+    return 'Uploading $progress%';
+  }
 
   @override
   String get filter => 'Filter';
@@ -168,7 +301,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get localResources => 'Local resources';
 
   @override
-  String get zeroBox => 'ZeroBox';
+  String get oronBox => 'OronBox';
 
   @override
   String get bandbbs => 'BandBBS';
@@ -195,6 +328,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get supportedDevices => 'Supported devices';
 
   @override
+  String get resourceProfile => 'Resource platform and type';
+
+  @override
+  String creatorArtifactProfileMismatch(Object fileName, Object profile) {
+    return '$fileName does not match the selected $profile profile and was not added';
+  }
+
+  @override
   String get downloads => 'Downloads';
 
   @override
@@ -219,9 +360,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openSourcePage => 'Open source page';
 
   @override
-  String get creatorDashboard => 'Creator dashboard';
-
-  @override
   String get myResources => 'My resources';
 
   @override
@@ -234,6 +372,73 @@ class AppLocalizationsEn extends AppLocalizations {
   String get published => 'Published';
 
   @override
+  String get creatorArchived => 'Archived';
+
+  @override
+  String get creatorBandBbsNoDevices =>
+      'Select supported devices for the resource file first';
+
+  @override
+  String creatorBandBbsUnmappedDevices(Object devices) {
+    return 'No BandBBS category could be resolved for: $devices';
+  }
+
+  @override
+  String get creatorBandBbsSharedCategory =>
+      'Devices in the same BandBBS category are bound to multiple packages. Bind one package per category';
+
+  @override
+  String get creatorBandBbsUnresolved => 'Unable to resolve a BandBBS category';
+
+  @override
+  String get creatorOptionalIcon => 'Icon (optional, 1:1)';
+
+  @override
+  String get creatorOptionalCover => 'Cover (optional, 3:2)';
+
+  @override
+  String get creatorRequiredIcon => 'Icon (required for AstroBox, 1:1)';
+
+  @override
+  String get creatorRequiredCover => 'Cover (required for AstroBox, 3:2)';
+
+  @override
+  String get creatorIconShapeHint =>
+      'The icon is not square and may look wrong in AstroBox';
+
+  @override
+  String get creatorCoverShapeHint =>
+      'The cover is not 3:2 and may look wrong in AstroBox';
+
+  @override
+  String get creatorTermsBandBbs => 'BandBBS community terms and rules';
+
+  @override
+  String get creatorTermsAstroBox => 'AstroBox-Repo submission standards';
+
+  @override
+  String get creatorTermsAccept =>
+      'I have read and accept the publishing agreements above';
+
+  @override
+  String get creatorTermsContinue => 'Enter Creator Center';
+
+  @override
+  String get agree => 'Agree';
+
+  @override
+  String get creatorRulesAccept =>
+      'I have read and agree to the review rules above';
+
+  @override
+  String get creatorBandBbsTermsNotice =>
+      'After OronBox review, this resource is published directly to the matching BandBBS categories. Deleting the OronBox resource also deletes the corresponding BandBBS resources.';
+
+  @override
+  String get creatorAstroBoxTermsNotice =>
+      'After OronBox review, a resource repository is created and a PR is submitted to the official AstroBox repository, reviewed independently by AstroBox maintainers. To delist after publication, contact the AstroBox-Repo maintainers.';
+
+  @override
   String get failed => 'Failed / Needs action';
 
   @override
@@ -243,7 +448,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get basicInfo => 'Basic info';
 
   @override
-  String get packageFiles => 'Package files';
+  String get packageFiles => 'Resource files';
 
   @override
   String get deviceSelection => 'Device selection';
@@ -292,7 +497,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorBluetoothUnavailable =>
-      'Bluetooth is not available. Check that Bluetooth is enabled and ZeroBox has permission to use it';
+      'Bluetooth is not available. Check that Bluetooth is enabled and OronBox has permission to use it';
 
   @override
   String get errorBluetoothConnectFailed =>
@@ -379,7 +584,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get advanced => 'Advanced';
 
   @override
-  String get aboutZeroBox => 'About ZeroBox';
+  String get aboutOronBox => 'About OronBox';
 
   @override
   String get openSourceLicenses => 'Open source licenses';
@@ -389,7 +594,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get acknowledgementsDesc =>
-      'Open source projects referenced by ZeroBox';
+      'Open source projects referenced by OronBox';
 
   @override
   String get developmentTeam => 'Development team';
@@ -538,7 +743,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get webSerialHint =>
-      'On the web, ZeroBox connects to devices via Web Serial. Saved devices stay in this browser.';
+      'On the web, OronBox connects to devices via Web Serial. Saved devices stay in this browser.';
 
   @override
   String get webSerialConnectDialogTitle => 'Connect via Web Serial';
@@ -560,7 +765,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceActionsShareQR => 'Share QR';
 
   @override
-  String get deviceShareZeroBoxCode => 'Switch to ZeroBox code';
+  String get deviceShareOronBoxCode => 'Switch to OronBox code';
 
   @override
   String get deviceShareAstroBoxCompatibleCode =>
@@ -649,18 +854,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String externalLinkDescription(String url) {
-    return 'You are about to visit $url\n\nThis website is operated by a third party, is not affiliated with ZeroBox, and its security is unknown. Please proceed with caution. Do you want to continue?';
+    return 'You are about to visit $url\n\nThis website is operated by a third party, is not affiliated with OronBox, and its security is unknown. Please proceed with caution. Do you want to continue?';
   }
 
   @override
   String get externalLinkAstroBoxResourceHint =>
-      'This appears to be an AstroBox resource. You can also view and install it within ZeroBox';
+      'This appears to be an AstroBox resource. You can also view and install it within OronBox';
 
   @override
   String get continueToWebsite => 'Continue';
 
   @override
-  String get viewInZeroBox => 'View in ZeroBox';
+  String get viewInOronBox => 'View in OronBox';
 
   @override
   String get uninstall => 'Uninstall';
@@ -690,13 +895,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get desktopTrayShow => 'Show window';
 
   @override
-  String get desktopTrayExit => 'Exit ZeroBox';
+  String get desktopTrayExit => 'Exit OronBox';
 
   @override
   String get desktopCloseTitle => 'Exit confirmation';
 
   @override
-  String get desktopCloseMessage => 'Would you like to exit ZeroBox?';
+  String get desktopCloseMessage => 'Would you like to exit OronBox?';
 
   @override
   String get desktopCloseRemember => 'Do not ask again';
@@ -705,7 +910,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get desktopCloseToTray => 'Minimize to tray';
 
   @override
-  String get desktopCloseExit => 'Exit ZeroBox';
+  String get desktopCloseExit => 'Exit OronBox';
 
   @override
   String get settingsDesktopCloseBehavior => 'Close button behavior';
@@ -829,7 +1034,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAccountLoginBBSDesc =>
-      'Sign in to sync purchased resources';
+      'Sign in to access BandBBS resources';
 
   @override
   String get settingsAccountBandBbsSigningIn => 'Signing in';
@@ -1091,7 +1296,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enter the MAC address and serial number shown on the device.';
 
   @override
-  String get settingsAboutAboutAstrobox => 'About ZeroBox';
+  String get settingsAboutAboutAstrobox => 'About OronBox';
 
   @override
   String get settingsAboutAboutAstroboxDesc => 'Version, changelog and team';
@@ -1114,7 +1319,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAboutWebsite => 'Official website';
 
   @override
-  String get settingsAboutWebsiteDesc => 'Visit zerobox.zxor.org';
+  String get settingsAboutWebsiteDesc => 'Visit oronbox.zxor.org';
 
   @override
   String get settingsAboutQQ => 'QQ group';
@@ -1273,7 +1478,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAboutSoftwareCopyright =>
-      'Copyright © ZeroBox contributors';
+      'Copyright © OronBox contributors';
 
   @override
   String get acknowledgementsKazumi =>
@@ -1409,7 +1614,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAboutLogsDescription =>
-      'Runtime logs from the last 7 days. On Android, they can be viewed and copied in the Files app.';
+      'Logs stay on this device for diagnostics and are kept for the last 7 days';
+
+  @override
+  String settingsAboutLogsSize(Object size) {
+    return 'Currently using $size';
+  }
+
+  @override
+  String get settingsAboutLogsExport => 'Export';
+
+  @override
+  String settingsAboutLogsExported(Object path) {
+    return 'Exported to $path';
+  }
+
+  @override
+  String get settingsAboutLogsEmpty => 'No logs to export yet';
+
+  @override
+  String get settingsAboutLogsClear => 'Clear';
+
+  @override
+  String get settingsAboutLogsClearConfirm =>
+      'All log files except the current session will be deleted.';
 
   @override
   String get settingsAboutLogsOpen => 'Open logs folder';
@@ -1422,7 +1650,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAboutLogsWarningMessage =>
-      'Logs may contain BandBBS, Xiaomi, or Amazfit login credentials and other sensitive information. Do not share them with anyone other than official ZeroBox maintainers!';
+      'Logs may contain BandBBS, Xiaomi, or Amazfit login credentials and other sensitive information. Do not share them with anyone other than official OronBox maintainers!';
 
   @override
   String get pluginPermissionRequestTitle => 'Plugin permission request';
@@ -1545,7 +1773,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String resourceTypeUnknownMessage(Object selectedType) {
-    return 'ZeroBox cannot identify the actual resource type. Install it as $selectedType anyway?';
+    return 'OronBox cannot identify the actual resource type. Install it as $selectedType anyway?';
   }
 
   @override
@@ -1601,4 +1829,445 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resourceInstallConfirm => 'Install';
+
+  @override
+  String get resourceName => 'Resource name';
+
+  @override
+  String get resourceSummary => 'Short summary';
+
+  @override
+  String get previewImages => 'Preview images';
+
+  @override
+  String get add => 'Add';
+
+  @override
+  String get submit => 'Submit';
+
+  @override
+  String get currentAccount => 'current account';
+
+  @override
+  String get submitForReview => 'Submit for review';
+
+  @override
+  String get creatorConfirmTitle => 'Confirm publishing plan';
+
+  @override
+  String get creatorConfirmOronBox =>
+      'The resource will be reviewed by OronBox and published in OronBox Resources after approval';
+
+  @override
+  String creatorConfirmBandBbs(Object category) {
+    return 'After approval, the resource will be published directly to BandBBS category $category';
+  }
+
+  @override
+  String creatorConfirmAstroBox(Object owner, Object repository) {
+    return 'After approval, GitHub user $owner will create or update repository $repository and open an ABRepo pull request';
+  }
+
+  @override
+  String get creatorBandBbsDirectPublish =>
+      'Published directly to the BandBBS community after OronBox review';
+
+  @override
+  String get bandBbsCategoryId => 'BandBBS resource category ID';
+
+  @override
+  String get bandBbsCategory => 'BandBBS resource category';
+
+  @override
+  String creatorAstroBoxPrPublish(Object repository) {
+    return 'After OronBox review, create resource repository $repository and submit a PR to the official AstroBox repo';
+  }
+
+  @override
+  String get creatorOronBoxRequired =>
+      'Required. Resources are reviewed by OronBox';
+
+  @override
+  String get creatorAstroTags => 'AstroBox tags';
+
+  @override
+  String get creatorAstroTagsHint =>
+      'Separate multiple tags with commas or semicolons';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get reviewNote => 'Review note';
+
+  @override
+  String get creatorReviewRejected => 'Resource changes requested';
+
+  @override
+  String creatorReviewState(Object state) {
+    return 'Review status: $state';
+  }
+
+  @override
+  String get creatorOperationWorking => 'Working';
+
+  @override
+  String get creatorOperationRefreshing => 'Refreshing creator data';
+
+  @override
+  String get creatorOperationCreating => 'Creating resource';
+
+  @override
+  String get creatorOperationSaving => 'Saving changes';
+
+  @override
+  String get creatorOperationUploading => 'Uploading and processing file';
+
+  @override
+  String get creatorOperationBinding => 'Updating supported devices';
+
+  @override
+  String get creatorOperationDeleting => 'Deleting';
+
+  @override
+  String get creatorOperationSubmitting => 'Submitting for review';
+
+  @override
+  String get creatorOperationAuthorizing => 'Waiting for authorization';
+
+  @override
+  String get creatorResolvingPublicationTarget =>
+      'Resolving publication category';
+
+  @override
+  String get creatorSessionExpired =>
+      'Your OronBox session has expired. Sign in again before authorizing publishing';
+
+  @override
+  String get creatorStateApproved => 'Approved';
+
+  @override
+  String get creatorStateExternalReview => 'External review';
+
+  @override
+  String get creatorStateFailed => 'Publishing failed';
+
+  @override
+  String get creatorStateSuperseded => 'Superseded by a newer revision';
+
+  @override
+  String get creatorStateCancelled => 'Cancelled';
+
+  @override
+  String get creatorNoResources => 'No resources created yet';
+
+  @override
+  String get creatorLoginRequiredTitle => 'Sign in to use Creator Center';
+
+  @override
+  String get creatorLoginRequiredDescription =>
+      'Sign in to BandBBS and connect your OronBox account before creating, editing, or submitting resources';
+
+  @override
+  String get creatorLoginAction => 'Sign in to BandBBS';
+
+  @override
+  String get creatorSelectHint =>
+      'Select a resource on the left, or create a new one';
+
+  @override
+  String get creatorOronBoxReady =>
+      'OronBox and BandBBS read access are available';
+
+  @override
+  String get creatorBandBbsWriteReady =>
+      'BandBBS publishing access is authorized';
+
+  @override
+  String get creatorBandBbsWriteMissing =>
+      'BandBBS write access is missing, so BandBBS publishing is unavailable';
+
+  @override
+  String creatorGitHubOwnPublishReady(Object login) {
+    return 'GitHub is connected; publish as $login';
+  }
+
+  @override
+  String get creatorGitHubOwnPublishMissing =>
+      'GitHub is not connected, so AstroBox resources cannot be published under your account';
+
+  @override
+  String get creatorAuthorize => 'Authorize';
+
+  @override
+  String get openCreatorCenter => 'Open creator center';
+
+  @override
+  String get creatorGitHubNotConnected => 'GitHub account is not connected';
+
+  @override
+  String creatorGitHubConnected(Object login) {
+    return 'Connected as GitHub user $login';
+  }
+
+  @override
+  String get githubAuthorizationFailed =>
+      'Unable to open the GitHub authorization page';
+
+  @override
+  String get githubAuthorizationTimedOut => 'GitHub authorization timed out';
+
+  @override
+  String get authorize => 'Authorize';
+
+  @override
+  String get creatorBandBbsAuthorized =>
+      'BandBBS resource publishing is authorized';
+
+  @override
+  String get creatorBandBbsAuthorizationRequired =>
+      'Authorize OronBox separately to publish BandBBS resources on your behalf';
+
+  @override
+  String get connect => 'Connect';
+
+  @override
+  String get editResource => 'Edit resource';
+
+  @override
+  String get legalAndPrivacy => 'Legal and privacy';
+
+  @override
+  String get legalAndPrivacyDesc =>
+      'View the terms, privacy notice, and resource rules';
+
+  @override
+  String get termsTitle => 'Terms and disclaimer';
+
+  @override
+  String get privacyTitle => 'Privacy notice';
+
+  @override
+  String get resourcePublishingTitle => 'Resource publishing agreement';
+
+  @override
+  String get reviewRulesTitle => 'Resource review rules';
+
+  @override
+  String get feedbackTitle => 'Feedback';
+
+  @override
+  String get feedbackDesc => 'Submit feedback and view responses';
+
+  @override
+  String get reportResource => 'Report resource';
+
+  @override
+  String get report => 'Report';
+
+  @override
+  String get feedbackSubject => 'Subject';
+
+  @override
+  String get feedbackMessage => 'Feedback or issue';
+
+  @override
+  String get reportReason => 'Reason for report';
+
+  @override
+  String get submitted => 'Submitted';
+
+  @override
+  String get myFeedback => 'My feedback';
+
+  @override
+  String get noFeedback => 'No feedback yet';
+
+  @override
+  String get feedbackProcessing => 'Processing';
+
+  @override
+  String get feedbackReplied => 'Replied';
+
+  @override
+  String get feedbackOpen => 'Open';
+
+  @override
+  String get feedbackResolved => 'Resolved';
+
+  @override
+  String get feedbackDismissed => 'Dismissed';
+
+  @override
+  String get feedbackClosed => 'Closed';
+
+  @override
+  String get feedbackLoading => 'Loading tickets';
+
+  @override
+  String get feedbackNewTicket => 'New ticket';
+
+  @override
+  String get feedbackYou => 'You';
+
+  @override
+  String get feedbackResolution => 'Resolution';
+
+  @override
+  String get feedbackReplyHint => 'Reply to this ticket';
+
+  @override
+  String get feedbackConversationClosed =>
+      'This ticket is closed and cannot be replied to';
+
+  @override
+  String get checkUpdates => 'Check for updates';
+
+  @override
+  String get updateChecking => 'Checking for updates…';
+
+  @override
+  String get updateCheckFailed => 'Unable to check for updates';
+
+  @override
+  String get latestVersionInstalled => 'You are using the latest version';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return 'Version $version is available';
+  }
+
+  @override
+  String get viewUpdate => 'View update';
+
+  @override
+  String get oobeWelcomeSlogan =>
+      'A beautiful and fast VelaOS / ZeppOS wearable device manager, built with Flutter';
+
+  @override
+  String get oobeNext => 'Next';
+
+  @override
+  String get oobeBack => 'Back';
+
+  @override
+  String get oobeFeatureDevicesTitle => 'Device connection';
+
+  @override
+  String get oobeFeatureDevicesBody =>
+      'Connect and manage VelaOS and ZeppOS wearable devices';
+
+  @override
+  String get oobeFeatureResourcesTitle => 'Resource center';
+
+  @override
+  String get oobeFeatureResourcesBody =>
+      'Supports the official OronBox source, AstroBox-Repo, BandBBS, and the Amazfit App Store';
+
+  @override
+  String get oobeFeaturePluginsTitle => 'JavaScript plugins';
+
+  @override
+  String get oobeFeaturePluginsBody =>
+      'A high-performance, highly extensible JavaScript plugin system with device interaction';
+
+  @override
+  String get oobeFeaturePlatformsTitle => 'Multi-platform';
+
+  @override
+  String get oobeFeaturePlatformsBody =>
+      'Available on Android, Windows, macOS, Linux, and Web';
+
+  @override
+  String get oobeOpenSourceTitle => 'Fully open source';
+
+  @override
+  String get oobeOpenSourceBody =>
+      'The OronBox client and server both follow GNU AGPL-3.0 with their complete source code available';
+
+  @override
+  String get oobeOpenSourceClientLink => 'View client source code';
+
+  @override
+  String get oobeOpenSourceServerLink => 'View server source code';
+
+  @override
+  String get oobeAgreementHint => 'Please read and scroll to the bottom';
+
+  @override
+  String get oobeAgreeCheckbox => 'I have read and agree';
+
+  @override
+  String get oobeAgreeContinue => 'Agree and continue';
+
+  @override
+  String get oobeAgreedContinue => 'Agreed, continue';
+
+  @override
+  String get oobeDeclineExit => 'Exit';
+
+  @override
+  String get oobeDeclineWebHint =>
+      'You must accept the agreements to continue; please close this page';
+
+  @override
+  String get oobeLoginTitle => 'Connect your accounts';
+
+  @override
+  String get oobeLoginBandBbsDesc =>
+      'Sign in with your BandBBS account to access BandBBS resources and prepare creator services';
+
+  @override
+  String get oobeLoginLocalNote =>
+      'Xiaomi and Amazfit sign-in run entirely on this device; related data is never sent to any third party other than Xiaomi/Amazfit';
+
+  @override
+  String get oobeLoginXiaomiDesc =>
+      'Sign in with your Xiaomi account to sync your bound Xiaomi devices';
+
+  @override
+  String get oobeLoginHuamiDesc =>
+      'Sign in with your Amazfit account to access Amazfit app store resources';
+
+  @override
+  String get oobeCdnTesting => 'Testing...';
+
+  @override
+  String get oobeCdnSelected => 'Best CDN selected';
+
+  @override
+  String get oobeCdnTitle => 'GitHub CDN Speed Test';
+
+  @override
+  String get oobeDoneTitle => 'All set';
+
+  @override
+  String get oobeDoneBody => 'Start exploring OronBox';
+
+  @override
+  String get oobeStart => 'Get started';
+
+  @override
+  String get oobeFinish => 'Finish';
+
+  @override
+  String get settingsReplayOobe => 'Restart guide';
+
+  @override
+  String get settingsReplayOobeDesc =>
+      'View the welcome guide and initial setup again';
+
+  @override
+  String get creatorAuthorized => 'Authorized';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get creatorConnect => 'Connect';
+
+  @override
+  String creatorReviewItemsProgress(Object done, Object total) {
+    return 'Requested changes ($done/$total resolved)';
+  }
 }

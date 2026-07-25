@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:zerobox/src/app/widgets/horizontal_scroller.dart';
-import 'package:zerobox/src/app/widgets/network_img_layer.dart';
+import 'package:oronbox/src/app/widgets/horizontal_scroller.dart';
+import 'package:oronbox/src/app/widgets/network_img_layer.dart';
 
 /// Renders the safe, presentation-only subset of XenForo HTML as Flutter
 /// widgets.

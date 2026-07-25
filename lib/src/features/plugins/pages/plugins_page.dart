@@ -6,16 +6,16 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/app/widgets/page_container.dart';
-import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/core/network/dio_provider.dart';
-import 'package:zerobox/src/core/utils/layout.dart';
-import 'package:zerobox/src/core/constants/style_constants.dart';
-import 'package:zerobox/src/features/plugins/application/abv1_plugin_store.dart';
-import 'package:zerobox/src/features/plugins/domain/plugin_package.dart';
-import 'package:zerobox/src/host/application_host_provider.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/network/dio_provider.dart';
+import 'package:oronbox/src/core/utils/layout.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/features/plugins/application/abv1_plugin_store.dart';
+import 'package:oronbox/src/features/plugins/domain/plugin_package.dart';
+import 'package:oronbox/src/host/application_host_provider.dart';
 
 import 'plugin_detail_page.dart';
 
@@ -48,8 +48,8 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
     if (mounted) setState(() => _loading = true);
     try {
       final values = await Future.wait([
-        _execute(const ZeroBoxCommand(method: 'plugin.list')),
-        _execute(const ZeroBoxCommand(method: 'plugin.safeMode.get')),
+        _execute(const OronBoxCommand(method: 'plugin.list')),
+        _execute(const OronBoxCommand(method: 'plugin.safeMode.get')),
       ]);
       if (!mounted) return;
       setState(() {
@@ -99,7 +99,7 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
         return;
       }
       await _execute(
-        ZeroBoxCommand(
+        OronBoxCommand(
           method: 'plugin.install',
           params: {'bytes': base64Encode(bytes), 'fileName': file.name},
         ),
@@ -167,7 +167,7 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
         ref.read(appDioProvider),
       ).download(plugin);
       await _execute(
-        ZeroBoxCommand(
+        OronBoxCommand(
           method: 'plugin.install',
           params: {
             'bytes': base64Encode(bytes),
@@ -250,7 +250,7 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
 
   Future<void> _exitSafeMode() async {
     await _execute(
-      const ZeroBoxCommand(
+      const OronBoxCommand(
         method: 'plugin.safeMode.set',
         params: {'enabled': false},
       ),
@@ -385,7 +385,7 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
     );
   }
 
-  Future<Object?> _execute(ZeroBoxCommand command) async {
+  Future<Object?> _execute(OronBoxCommand command) async {
     final result = await ref.read(applicationHostProvider).execute(command);
     if (!result.ok) {
       throw StateError('${result.error!.code}: ${result.error!.message}');

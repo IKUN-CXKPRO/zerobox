@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/daemon/daemon_endpoint.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/daemon/daemon_endpoint.dart';
 
-class ZeroBoxDaemonClient implements ZeroBoxCommandBus {
-  ZeroBoxDaemonClient._(this._socket, this._token) {
+class OronBoxDaemonClient implements OronBoxCommandBus {
+  OronBoxDaemonClient._(this._socket, this._token) {
     _subscription = _socket
         .cast<List<int>>()
         .transform(utf8.decoder)
@@ -25,11 +25,11 @@ class ZeroBoxDaemonClient implements ZeroBoxCommandBus {
   final _events = StreamController<CommandEvent>.broadcast();
   var _nextId = 0;
 
-  static Future<ZeroBoxDaemonClient> connect({
+  static Future<OronBoxDaemonClient> connect({
     Duration timeout = const Duration(seconds: 1),
   }) async {
     if (!Platform.isWindows) {
-      final client = ZeroBoxDaemonClient._(await _connectUnix(timeout), null);
+      final client = OronBoxDaemonClient._(await _connectUnix(timeout), null);
       try {
         await client._verifyDaemon();
         return client;
@@ -41,18 +41,18 @@ class ZeroBoxDaemonClient implements ZeroBoxCommandBus {
 
     final endpoints = await readWindowsDaemonEndpoints();
     if (endpoints.isEmpty) {
-      throw StateError('ZeroBox daemon endpoint is unavailable');
+      throw StateError('OronBox daemon endpoint is unavailable');
     }
     Object? lastError;
     for (final endpoint in endpoints) {
-      ZeroBoxDaemonClient? client;
+      OronBoxDaemonClient? client;
       try {
         final socket = await Socket.connect(
           InternetAddress.loopbackIPv4,
           endpoint.port,
           timeout: timeout,
         );
-        client = ZeroBoxDaemonClient._(socket, endpoint.token);
+        client = OronBoxDaemonClient._(socket, endpoint.token);
         await client._verifyDaemon();
         return client;
       } catch (error) {
@@ -60,12 +60,12 @@ class ZeroBoxDaemonClient implements ZeroBoxCommandBus {
         await client?.close();
       }
     }
-    throw StateError('Unable to authenticate ZeroBox daemon: $lastError');
+    throw StateError('Unable to authenticate OronBox daemon: $lastError');
   }
 
   Future<void> _verifyDaemon() async {
     final result = await execute(
-      const ZeroBoxCommand(method: 'daemon.info'),
+      const OronBoxCommand(method: 'daemon.info'),
       timeout: const Duration(seconds: 2),
     );
     if (!result.ok) {
@@ -78,14 +78,14 @@ class ZeroBoxDaemonClient implements ZeroBoxCommandBus {
     if (info is! Map ||
         info['running'] != true ||
         info['platform'] != Platform.operatingSystem) {
-      throw StateError('The endpoint is not a compatible ZeroBox daemon');
+      throw StateError('The endpoint is not a compatible OronBox daemon');
     }
-    if (info['protocolVersion'] != zeroBoxProtocolVersion) {
+    if (info['protocolVersion'] != oronBoxProtocolVersion) {
       await execute(
-        const ZeroBoxCommand(method: 'daemon.stop'),
+        const OronBoxCommand(method: 'daemon.stop'),
         timeout: const Duration(seconds: 2),
       );
-      throw StateError('The ZeroBox daemon protocol version is outdated');
+      throw StateError('The OronBox daemon protocol version is outdated');
     }
   }
 
@@ -102,7 +102,7 @@ class ZeroBoxDaemonClient implements ZeroBoxCommandBus {
 
   @override
   Future<CommandResult> execute(
-    ZeroBoxCommand command, {
+    OronBoxCommand command, {
     Duration timeout = const Duration(minutes: 10),
   }) {
     final id = '${++_nextId}';

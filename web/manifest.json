@@ -1,6 +1,6 @@
 {
-    "name": "zerobox",
-    "short_name": "zerobox",
+    "name": "OronBox",
+    "short_name": "OronBox",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

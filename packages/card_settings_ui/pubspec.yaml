@@ -1,6 +1,6 @@
 name: card_settings_ui
-description: "A card based settings ui for flutter. (ZeroBox fork with web support.)"
-version: 2.0.1+zerobox.1
+description: "A card based settings ui for flutter. (OronBox fork with web support.)"
+version: 2.0.1+oronbox.1
 homepage: https://github.com/ErBWs/card-settings-ui
 
 environment:

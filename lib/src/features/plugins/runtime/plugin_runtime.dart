@@ -36,7 +36,7 @@ abstract interface class PluginRuntime {
   Future<void> close();
 }
 
-const zeroBoxPluginBootstrap = r'''
+const oronBoxPluginBootstrap = r'''
 (() => {
   const callbacks = Object.create(null);
   const events = Object.create(null);
@@ -45,7 +45,7 @@ const zeroBoxPluginBootstrap = r'''
   let nextTimer = 0;
 
   function host(method, args = []) {
-    return sendMessage('ZeroBoxHost', JSON.stringify({method, args}));
+    return sendMessage('OronBoxHost', JSON.stringify({method, args}));
   }
 
   function registerCallback(fn) {
@@ -251,7 +251,7 @@ const zeroBoxPluginBootstrap = r'''
     },
   };
 
-  Object.defineProperty(globalThis, 'ZeroBox', {
+  Object.defineProperty(globalThis, 'OronBox', {
     value: Object.freeze(api),
     writable: false,
     configurable: false,

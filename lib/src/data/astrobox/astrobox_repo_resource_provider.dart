@@ -5,12 +5,12 @@ import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:zerobox/src/data/astrobox/astrobox_cdn.dart';
-import 'package:zerobox/src/data/astrobox/models/astrobox_models.dart';
-import 'package:zerobox/src/data/community/community_source.dart';
-import 'package:zerobox/src/device/core/xiaomi_wearable_catalog.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
-import 'package:zerobox/src/features/resources/domain/resource_catalog.dart';
+import 'package:oronbox/src/data/astrobox/astrobox_cdn.dart';
+import 'package:oronbox/src/data/astrobox/models/astrobox_models.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 
 class AstroBoxRepoCatalog implements CommunityResourceCatalog {
   AstroBoxRepoCatalog({Dio? dio, this.cdn = AstroBoxCdn.raw})
@@ -183,14 +183,14 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
       }
       request.onProgress?.call(1, status: 'finished');
       return CommunityResourceDownloadResult(
-        path: '/zerobox_downloads/$fileName',
+        path: '/oronbox_downloads/$fileName',
         fileName: fileName,
         bytes: bytes,
       );
     }
     final tempDir = await getTemporaryDirectory();
     final directory = Directory(
-      '${tempDir.path}/zerobox_downloads/${request.resource.ref.id}',
+      '${tempDir.path}/oronbox_downloads/${request.resource.ref.id}',
     );
     await directory.create(recursive: true);
     final path = '${directory.path}/$fileName';

@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:universal_ble/universal_ble.dart';
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/device/core/ble_requirement.dart';
-import 'package:zerobox/src/device/core/bluetooth_platform.dart';
-import 'package:zerobox/src/device/core/connect_type.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/device/core/ble_requirement.dart';
+import 'package:oronbox/src/device/core/bluetooth_platform.dart';
+import 'package:oronbox/src/device/core/connect_type.dart';
 
-export 'package:zerobox/src/device/core/ble_requirement.dart';
-export 'package:zerobox/src/device/core/connect_type.dart';
+export 'package:oronbox/src/device/core/ble_requirement.dart';
+export 'package:oronbox/src/device/core/connect_type.dart';
 
 class BleConnection {
   BleConnection({
@@ -304,7 +304,7 @@ class BleGattDriver {
         _log.fine(
           'scanned device: $name @ ${device.deviceId} rssi=${device.rssi}',
         );
-        _log.info(
+        _log.fine(
           'device_identity platform.ble_scan '
           'addr=${device.deviceId} bleName="$name" rssi=${device.rssi}',
         );

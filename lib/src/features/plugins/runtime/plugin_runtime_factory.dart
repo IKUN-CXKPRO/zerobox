@@ -1,5 +1,5 @@
-import 'package:zerobox/src/features/plugins/domain/plugin_package.dart';
-import 'package:zerobox/src/features/plugins/storage/plugin_storage.dart';
+import 'package:oronbox/src/features/plugins/domain/plugin_package.dart';
+import 'package:oronbox/src/features/plugins/storage/plugin_storage.dart';
 
 import 'plugin_runtime.dart';
 import 'plugin_runtime_stub.dart'

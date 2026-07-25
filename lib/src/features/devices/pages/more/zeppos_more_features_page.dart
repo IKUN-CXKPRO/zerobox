@@ -4,12 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/app/widgets/page_container.dart';
-import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
-import 'package:zerobox/src/core/constants/style_constants.dart';
-import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
-import 'package:zerobox/src/protocols/common/device_protocol.dart' as proto;
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
 
 class ZeppOsMoreFeaturesPage extends ConsumerStatefulWidget {
   const ZeppOsMoreFeaturesPage({super.key});
@@ -64,7 +64,6 @@ class _ZeppOsMoreFeaturesPageState
       body: PageContainer(
         padding: const EdgeInsets.symmetric(
           horizontal: StyleConstants.pagePadding,
-          vertical: 16,
         ),
         child: ListView(
           children: [

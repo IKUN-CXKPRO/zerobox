@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/device/zeppos/crypto/zeppos_auth_crypto.dart';
+import 'package:oronbox/src/device/zeppos/crypto/zeppos_auth_crypto.dart';
 
 void main() {
   test('scalar one encodes the Gadgetbridge B-163 base point', () {

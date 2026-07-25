@@ -4,8 +4,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/device/zeppos/app_side/zeppos_app_side_storage.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/device/zeppos/app_side/zeppos_app_side_storage.dart';
 
 class ZeppOsAppSettingsService {
   ZeppOsAppSettingsService._() {
@@ -13,7 +13,7 @@ class ZeppOsAppSettingsService {
   }
 
   static final instance = ZeppOsAppSettingsService._();
-  static const _channel = MethodChannel('zerobox/zeppos_app_settings');
+  static const _channel = MethodChannel('oronbox/zeppos_app_settings');
   final _storage = ZeppOsAppSideStorage();
   final _coordinator = ZeppOsSettingsCoordinator.instance;
   final _log = getLogger('ZeppOsAppSettings');
@@ -165,7 +165,7 @@ function showStatus(message,isError=false){const e=document.createElement('div')
 globalThis.eval=undefined;globalThis.Function=undefined;
 try{const script=document.createElement('script');script.textContent=__source;document.head.append(script)}catch(e){showError(e)}
 queueMicrotask(()=>{if(!pageOption)showError(new Error(__lastLog||'setting.js did not register AppSettingsPage'))});
-globalThis.__zeroboxSettingsChanged=raw=>{const next=typeof raw==='string'?JSON.parse(raw):raw;const old=new Map(__values);__values.clear();for(const [k,v] of Object.entries(next||{}))__values.set(k,String(v));for(const k of new Set([...old.keys(),...__values.keys()]))if(old.get(k)!==__values.get(k))notify({key:k,oldValue:old.get(k),newValue:__values.get(k)});rebuild()};
+globalThis.__oronboxSettingsChanged=raw=>{const next=typeof raw==='string'?JSON.parse(raw):raw;const old=new Map(__values);__values.clear();for(const [k,v] of Object.entries(next||{}))__values.set(k,String(v));for(const k of new Set([...old.keys(),...__values.keys()]))if(old.get(k)!==__values.get(k))notify({key:k,oldValue:old.get(k),newValue:__values.get(k)});rebuild()};
 window.onerror=(m,s,l,c,e)=>{showError(e||new Error(String(m)));return true};window.onunhandledrejection=e=>showError(e.reason);
 </script></body></html>''';
 }

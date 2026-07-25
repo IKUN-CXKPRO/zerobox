@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/app/widgets/dialog_helper.dart';
-import 'package:zerobox/src/data/community/community_source.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/widgets/dialog_helper.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 
-enum _ExternalLinkAction { openInZeroBox, openExternally }
+enum _ExternalLinkAction { openInOronBox, openExternally }
 
 ResourceRef? astroBoxResourceRefFromUri(Uri uri) {
   final host = uri.host.toLowerCase();
@@ -26,7 +26,7 @@ ResourceRef? astroBoxResourceRefFromUri(Uri uri) {
 Future<void> openResourceExternalLink(BuildContext context, Uri uri) async {
   final l10n = AppLocalizations.of(context)!;
   final internalRef = astroBoxResourceRefFromUri(uri);
-  final action = await ZeroBoxDialog.show<_ExternalLinkAction>(
+  final action = await OronBoxDialog.show<_ExternalLinkAction>(
     context: context,
     builder: (dialogContext) => AlertDialog(
       title: Text(l10n.externalLinkTitle),
@@ -42,8 +42,8 @@ Future<void> openResourceExternalLink(BuildContext context, Uri uri) async {
         if (internalRef != null)
           TextButton(
             onPressed: () =>
-                Navigator.pop(dialogContext, _ExternalLinkAction.openInZeroBox),
-            child: Text(l10n.viewInZeroBox),
+                Navigator.pop(dialogContext, _ExternalLinkAction.openInOronBox),
+            child: Text(l10n.viewInOronBox),
           ),
         FilledButton(
           onPressed: () =>
@@ -55,7 +55,7 @@ Future<void> openResourceExternalLink(BuildContext context, Uri uri) async {
   );
   if (!context.mounted) return;
   switch (action) {
-    case _ExternalLinkAction.openInZeroBox:
+    case _ExternalLinkAction.openInOronBox:
       final ref = internalRef!;
       final location = Uri(
         pathSegments: ['resources', 'detail', ref.id],

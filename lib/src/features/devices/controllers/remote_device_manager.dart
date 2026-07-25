@@ -3,16 +3,16 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/core/models/bt_models.dart';
-import 'package:zerobox/src/device/core/connect_type.dart';
-import 'package:zerobox/src/device/core/device_kind.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_app_side_system.dart';
-import 'package:zerobox/src/features/accounts/models/mi_account_models.dart';
-import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
-import 'package:zerobox/src/host/application_host_provider.dart';
-import 'package:zerobox/src/protocols/common/device_protocol.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/device/core/connect_type.dart';
+import 'package:oronbox/src/device/core/device_kind.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_app_side_system.dart';
+import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/host/application_host_provider.dart';
+import 'package:oronbox/src/protocols/common/device_protocol.dart';
 
 class HostDeviceManager extends DeviceManager {
   static final _log = getLogger('HostDeviceManager');
@@ -65,7 +65,7 @@ class HostDeviceManager extends DeviceManager {
     if (raw is Map) _applyState(raw.cast<String, Object?>());
   }
 
-  Future<CommandResult> _execute(ZeroBoxCommand command) async {
+  Future<CommandResult> _execute(OronBoxCommand command) async {
     final result = await ref.read(applicationHostProvider).execute(command);
     if (!result.ok) {
       final error = result.error;
@@ -84,7 +84,7 @@ class HostDeviceManager extends DeviceManager {
   Future<void> _refreshSnapshot() async {
     try {
       final result = await _execute(
-        const ZeroBoxCommand(method: 'device.snapshot'),
+        const OronBoxCommand(method: 'device.snapshot'),
       );
       final raw = result.value;
       if (raw is Map) _applyState(raw.cast<String, Object?>());
@@ -95,6 +95,10 @@ class HostDeviceManager extends DeviceManager {
 
   void _applyState(Map<String, Object?> raw) {
     if (_disposed) return;
+    final previousProtocol = state.protocolState;
+    final previousDevice = state.currentDevice;
+    final wasConnected =
+        previousDevice != null && !previousDevice.disconnected;
     final rawConnectionTarget = raw['connectionTargetAddr']?.toString();
     final pendingConnectionAddr = _pendingConnectionAddr;
     if (pendingConnectionAddr != null &&
@@ -142,6 +146,22 @@ class HostDeviceManager extends DeviceManager {
           : const {},
       error: raw['error']?.toString(),
     );
+    final connectedDevice = state.currentDevice;
+    final isConnected =
+        connectedDevice != null && !connectedDevice.disconnected;
+    if (state.protocolState != previousProtocol || isConnected != wasConnected) {
+      logDiagnostic(
+        _log,
+        Level.INFO,
+        'Device connection state changed',
+        fields: {
+          'protocol': state.protocolState.name,
+          'connected': isConnected,
+          if (connectedDevice != null) 'device': connectedDevice.name,
+          if (connectedDevice != null) 'addr': connectedDevice.addr,
+        },
+      );
+    }
   }
 
   List<T> _modelList<T>(
@@ -155,7 +175,7 @@ class HostDeviceManager extends DeviceManager {
       : <T>[];
 
   Future<Map<String, Object?>> _executeState(String method) async {
-    final result = await _execute(ZeroBoxCommand(method: method));
+    final result = await _execute(OronBoxCommand(method: method));
     final raw = (result.value as Map).cast<String, Object?>();
     _applyState(raw);
     return raw;
@@ -172,7 +192,7 @@ class HostDeviceManager extends DeviceManager {
     );
     try {
       await _execute(
-        ZeroBoxCommand(
+        OronBoxCommand(
           method: 'device.scan.start',
           params: {'connectType': connectType.name},
         ),
@@ -200,6 +220,18 @@ class HostDeviceManager extends DeviceManager {
   }) async {
     final generation = ++_connectGeneration;
     _pendingConnectionAddr = addr;
+    // The auth key must never appear in logs.
+    logDiagnostic(
+      _log,
+      Level.INFO,
+      'Device connect requested',
+      fields: {
+        'addr': addr,
+        'name': name,
+        'kind': kind.name,
+        'connectType': connectType,
+      },
+    );
     state = state.copyWith(
       connecting: true,
       connectionTargetAddr: addr,
@@ -233,7 +265,7 @@ class HostDeviceManager extends DeviceManager {
       );
       if (generation != _connectGeneration) return;
       await _execute(
-        ZeroBoxCommand(method: 'device.connect', params: {'device': addr}),
+        OronBoxCommand(method: 'device.connect', params: {'device': addr}),
       );
       if (generation != _connectGeneration) return;
       await _refreshSnapshot();
@@ -261,8 +293,14 @@ class HostDeviceManager extends DeviceManager {
   Future<void> disconnect([String? address]) async {
     _connectGeneration += 1;
     _pendingConnectionAddr = null;
+    logDiagnostic(
+      _log,
+      Level.INFO,
+      'Device disconnect requested',
+      fields: {if (address != null) 'addr': address},
+    );
     await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'device.disconnect',
         params: {if (address != null) 'device': address},
       ),
@@ -275,14 +313,14 @@ class HostDeviceManager extends DeviceManager {
     if (!state.connecting) return;
     _connectGeneration += 1;
     _pendingConnectionAddr = null;
-    await _execute(const ZeroBoxCommand(method: 'device.connect.cancel'));
+    await _execute(const OronBoxCommand(method: 'device.connect.cancel'));
     await _refreshSnapshot();
   }
 
   @override
   Future<void> removeDevice(String addr) async {
     await _execute(
-      ZeroBoxCommand(method: 'device.remove', params: {'device': addr}),
+      OronBoxCommand(method: 'device.remove', params: {'device': addr}),
     );
     await _refreshSnapshot();
   }
@@ -300,7 +338,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<void> setFindingZeppOsDevice(bool finding) async {
     await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'device.zeppos.find',
         params: {'finding': finding},
       ),
@@ -310,7 +348,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<void> sendXiaoAiReply(String text) async {
     await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'device.zeppos.xiaoai.reply',
         params: {'text': text},
       ),
@@ -320,7 +358,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<void> setXiaoAiContinuousCapture(bool enabled) async {
     await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'device.zeppos.xiaoai.continuous',
         params: {'enabled': enabled},
       ),
@@ -330,7 +368,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<void> setXiaoAiEndpoint(int endpoint) async {
     await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'device.zeppos.xiaoai.endpoint',
         params: {'endpoint': endpoint},
       ),
@@ -341,7 +379,7 @@ class HostDeviceManager extends DeviceManager {
   void clearZeppOsMessages() {
     unawaited(
       _execute(
-        const ZeroBoxCommand(method: 'device.zeppos.messages.clear'),
+        const OronBoxCommand(method: 'device.zeppos.messages.clear'),
       ).then((_) => _refreshSnapshot()),
     );
   }
@@ -358,20 +396,20 @@ class HostDeviceManager extends DeviceManager {
 
   @override
   Future<void> fetchApps() async {
-    await _execute(const ZeroBoxCommand(method: 'app.list'));
+    await _execute(const OronBoxCommand(method: 'app.list'));
     await _refreshSnapshot();
   }
 
   @override
   Future<void> fetchWatchfaces() async {
-    await _execute(const ZeroBoxCommand(method: 'watchface.list'));
+    await _execute(const OronBoxCommand(method: 'watchface.list'));
     await _refreshSnapshot();
   }
 
   @override
   Future<void> openApp(AppInfo app, {String page = ''}) async {
     await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'app.launch',
         params: {'package': app.packageName, if (page.isNotEmpty) 'page': page},
       ),
@@ -384,7 +422,7 @@ class HostDeviceManager extends DeviceManager {
     Uint8List payload,
   ) async {
     await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'device.interconnect.send',
         params: {
           'package': packageName,
@@ -397,7 +435,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<void> sendRaw(Uint8List payload) async {
     await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'device.raw.send',
         params: {'payload': payload.toList(growable: false)},
       ),
@@ -407,7 +445,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<Uint8List> requestZeppOsScreenshot() async {
     final result = await _execute(
-      const ZeroBoxCommand(method: 'device.zeppos.screenshot'),
+      const OronBoxCommand(method: 'device.zeppos.screenshot'),
     );
     return Uint8List.fromList(
       (result.value as List).map((value) => (value as num).toInt()).toList(),
@@ -417,7 +455,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<List<int>> listZeppOsAppSides() async {
     final result = await _execute(
-      const ZeroBoxCommand(method: 'device.zeppos.appside.list'),
+      const OronBoxCommand(method: 'device.zeppos.appside.list'),
     );
     return (result.value as List)
         .map((value) => (value as num).toInt())
@@ -427,7 +465,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<List<int>> observedZeppOsAppSideIds() async {
     final result = await _execute(
-      const ZeroBoxCommand(method: 'device.zeppos.appside.observed'),
+      const OronBoxCommand(method: 'device.zeppos.appside.observed'),
     );
     return (result.value as List)
         .map((value) => (value as num).toInt())
@@ -437,7 +475,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<List<ZeppOsAppSideSessionInfo>> zeppOsAppSideSessions() async {
     final result = await _execute(
-      const ZeroBoxCommand(method: 'device.zeppos.appside.sessions'),
+      const OronBoxCommand(method: 'device.zeppos.appside.sessions'),
     );
     return (result.value as List)
         .whereType<Map>()
@@ -458,7 +496,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<List<ZeppOsAppSideDebugEvent>> zeppOsAppSideEvents(int appId) async {
     final result = await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'device.zeppos.appside.events',
         params: {'appId': appId},
       ),
@@ -489,7 +527,7 @@ class HostDeviceManager extends DeviceManager {
 
   @override
   Future<void> clearZeppOsAppSideEvents(int appId) => _execute(
-    ZeroBoxCommand(
+    OronBoxCommand(
       method: 'device.zeppos.appside.events.clear',
       params: {'appId': appId},
     ),
@@ -497,7 +535,7 @@ class HostDeviceManager extends DeviceManager {
 
   @override
   Future<void> startZeppOsAppSide(int appId) => _execute(
-    ZeroBoxCommand(
+    OronBoxCommand(
       method: 'device.zeppos.appside.start',
       params: {'appId': appId},
     ),
@@ -505,7 +543,7 @@ class HostDeviceManager extends DeviceManager {
 
   @override
   Future<void> stopZeppOsAppSide(int appId) => _execute(
-    ZeroBoxCommand(
+    OronBoxCommand(
       method: 'device.zeppos.appside.stop',
       params: {'appId': appId},
     ),
@@ -514,7 +552,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<void> injectZeppOsAppSideMessage(int appId, Uint8List payload) =>
       _execute(
-        ZeroBoxCommand(
+        OronBoxCommand(
           method: 'device.zeppos.appside.inject',
           params: {'appId': appId, 'payload': payload.toList()},
         ),
@@ -523,7 +561,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<void> sendZeppOsAppSideMessage(int appId, Uint8List payload) =>
       _execute(
-        ZeroBoxCommand(
+        OronBoxCommand(
           method: 'device.zeppos.appside.send',
           params: {'appId': appId, 'payload': payload.toList()},
         ),
@@ -532,7 +570,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<void> uninstallApp(AppInfo app) async {
     await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'app.uninstall',
         params: {'package': app.packageName},
       ),
@@ -543,7 +581,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<void> uninstallWatchface(WatchfaceInfo watchface) async {
     await _execute(
-      ZeroBoxCommand(method: 'watchface.remove', params: {'id': watchface.id}),
+      OronBoxCommand(method: 'watchface.remove', params: {'id': watchface.id}),
     );
     await _refreshSnapshot();
   }
@@ -551,7 +589,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<void> setWatchface(WatchfaceInfo watchface) async {
     await _execute(
-      ZeroBoxCommand(method: 'watchface.set', params: {'id': watchface.id}),
+      OronBoxCommand(method: 'watchface.set', params: {'id': watchface.id}),
     );
     await _refreshSnapshot();
   }
@@ -573,13 +611,13 @@ class HostDeviceManager extends DeviceManager {
           if (value is num) onProgress?.call(value.toDouble());
         });
         await _execute(
-          ZeroBoxCommand(
+          OronBoxCommand(
             method: 'install.local',
             params: {
               'type': type,
               'payloadMode': 'memory',
               'bytes': bytes,
-              'fileName': 'zerobox_web.$extension',
+              'fileName': 'oronbox_web.$extension',
             },
           ),
         );
@@ -592,16 +630,16 @@ class HostDeviceManager extends DeviceManager {
 
     final directory = await getTemporaryDirectory();
     final file = File(
-      '${directory.path}/zerobox_gui_${DateTime.now().microsecondsSinceEpoch}.$extension',
+      '${directory.path}/oronbox_gui_${DateTime.now().microsecondsSinceEpoch}.$extension',
     );
     await file.writeAsBytes(bytes, flush: true);
     StreamSubscription<CommandEvent>? progressSubscription;
     try {
       final queued = await _execute(
-        ZeroBoxCommand(
+        OronBoxCommand(
           method: 'task.enqueue',
           params: {
-            'command': ZeroBoxCommand(
+            'command': OronBoxCommand(
               method: 'install.local',
               params: {'type': type, 'path': file.path, 'deleteAfter': true},
             ).toJson(),
@@ -620,7 +658,7 @@ class HostDeviceManager extends DeviceManager {
         if (value is num) onProgress?.call(value.toDouble());
       });
       final completed = await _execute(
-        ZeroBoxCommand(method: 'queue.wait', params: {'id': taskId}),
+        OronBoxCommand(method: 'queue.wait', params: {'id': taskId}),
       );
       final task = (completed.value as Map).cast<String, Object?>();
       final nested = task['result'];
@@ -660,7 +698,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<void> importSharedDevice(MiWearState device) async {
     await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'device.import',
         params: {'device': device.toJson()},
       ),

@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
-import 'package:zerobox/src/features/devices/services/zeppos_app_settings_service.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/features/devices/services/zeppos_app_settings_service.dart';
 
 Future<void> showZeppOsAppSettings(
   BuildContext context, {

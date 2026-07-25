@@ -5,20 +5,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/app/utils/error_localization.dart';
-import 'package:zerobox/src/app/window/debug_window_preference.dart';
-import 'package:zerobox/src/app/window/window_launcher.dart';
-import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
-import 'package:zerobox/src/core/constants/style_constants.dart';
-import 'package:zerobox/src/core/providers/app_settings_providers.dart';
-import 'package:zerobox/src/core/providers/theme_locale_providers.dart';
-import 'package:zerobox/src/core/services/shared_prefs_service.dart';
-import 'package:zerobox/src/core/utils/layout.dart';
-import 'package:zerobox/src/data/astrobox/astrobox_cdn.dart';
-import 'package:zerobox/src/features/resources/application/resource_catalog_providers.dart';
-import 'package:zerobox/src/features/accounts/application/host_accounts.dart';
-import 'package:zerobox/src/features/accounts/services/mi_account_two_factor_resolver.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/window/debug_window_preference.dart';
+import 'package:oronbox/src/app/window/window_launcher.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/core/providers/app_settings_providers.dart';
+import 'package:oronbox/src/core/providers/theme_locale_providers.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/core/utils/layout.dart';
+import 'package:oronbox/src/data/astrobox/astrobox_cdn.dart';
+import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
+import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
+import 'package:oronbox/src/features/accounts/services/mi_account_two_factor_resolver.dart';
 
 final _desktopExitBehaviorProvider = Provider<int?>((ref) {
   return SharedPrefsService.instance.getInt('desktop.exit_behavior');
@@ -336,10 +336,22 @@ class SettingsPage extends ConsumerWidget {
               ),
               SettingsTile.navigation(
                 onPressed: (_) =>
-                    _launchUrl(context, 'https://zerobox.zxor.org'),
+                    _launchUrl(context, 'https://oronbox.zxor.org'),
                 leading: const Icon(Icons.language_outlined),
                 title: Text(l10n.settingsAboutWebsite),
                 description: Text(l10n.settingsAboutWebsiteDesc),
+              ),
+              SettingsTile.navigation(
+                onPressed: (_) => context.push('/settings/feedback'),
+                leading: const Icon(Icons.feedback_outlined),
+                title: Text(l10n.feedbackTitle),
+                description: Text(l10n.feedbackDesc),
+              ),
+              SettingsTile.navigation(
+                onPressed: (_) => context.push('/oobe?replay=1'),
+                leading: const Icon(Icons.waving_hand_outlined),
+                title: Text(l10n.settingsReplayOobe),
+                description: Text(l10n.settingsReplayOobeDesc),
               ),
               if (showDebugWindowSettings)
                 SettingsTile.switchTile(

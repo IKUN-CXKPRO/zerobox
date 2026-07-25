@@ -1,7 +1,7 @@
-# ZeroBox 插件系统
+# OronBox 插件系统
 
-ZeroBox 插件是一个 `.zbp` 文件，本质是 ZIP 压缩包。根目录必须包含 `manifest.json`
-和入口脚本。插件运行在沙箱化的 QuickJS 环境中，通过全局 `ZeroBox` 对象访问宿主能力。
+OronBox 插件是一个 `.zbp` 文件，本质是 ZIP 压缩包。根目录必须包含 `manifest.json`
+和入口脚本。插件运行在沙箱化的 QuickJS 环境中，通过全局 `OronBox` 对象访问宿主能力。
 
 ## 快速开始：Hello World
 
@@ -37,16 +37,16 @@ ZeroBox 插件是一个 `.zbp` 文件，本质是 ZIP 压缩包。根目录必�
 ### 2. 创建 main.js
 
 ```js
-// ZeroBox 加载插件后自动调用 activate
+// OronBox 加载插件后自动调用 activate
 globalThis.activate = async (plugin) => {
   let count = 0;
 
-  const { Column, Text, Button } = ZeroBox.ui;
-  const render = () => ZeroBox.ui.render(
+  const { Column, Text, Button } = OronBox.ui;
+  const render = () => OronBox.ui.render(
     Column({ gap: 12, padding: 16 }, [
       Text(`计数器: ${count}`),
       Button('点我 +1', {
-        onClick: ZeroBox.ui.action(() => count++, render),
+        onClick: OronBox.ui.action(() => count++, render),
       }),
     ]),
   );
@@ -57,9 +57,9 @@ globalThis.activate = async (plugin) => {
 
 关键点：
 - 入口是全局函数 `activate(plugin)`，`plugin` 包含 `{id, name, version, runtimeVersion}`
-- UI 通过 `ZeroBox.ui.render(tree)` 渲染组件树
-- 组件事件直接接收函数；异步状态操作使用 `ZeroBox.ui.action(fn, render)`
-- `render()` 应返回 `ZeroBox.ui.render()` 的 Promise
+- UI 通过 `OronBox.ui.render(tree)` 渲染组件树
+- 组件事件直接接收函数；异步状态操作使用 `OronBox.ui.action(fn, render)`
+- `render()` 应返回 `OronBox.ui.render()` 的 Promise
 
 ### 3. 准备图标
 
@@ -75,7 +75,7 @@ zip counter.zbp manifest.json main.js icon.png
 
 ### 5. 安装
 
-在 ZeroBox 插件页点击「导入插件」，选择 `counter.zbp` 即可。
+在 OronBox 插件页点击「导入插件」，选择 `counter.zbp` 即可。
 
 ## Plugin UI
 

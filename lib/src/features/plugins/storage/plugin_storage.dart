@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:zerobox/src/features/plugins/domain/plugin_package.dart';
+import 'package:oronbox/src/features/plugins/domain/plugin_package.dart';
 
 enum PluginStorageArea { package, data, cache, temporary }
 
@@ -61,7 +61,7 @@ class PluginStoragePath {
           part.isEmpty ||
           part == '.' ||
           part == '..' ||
-          part.startsWith('.zerobox'),
+          part.startsWith('.oronbox'),
     )) {
       throw FormatException('Unsafe plugin path: $value');
     }

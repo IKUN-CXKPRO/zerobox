@@ -5,11 +5,11 @@ import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/app/widgets/page_container.dart';
-import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
-import 'package:zerobox/src/core/constants/style_constants.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_app_side_system.dart';
-import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_app_side_system.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 
 enum _MessageMode { text, json, hex }
 

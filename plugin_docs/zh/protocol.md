@@ -12,7 +12,7 @@
 
 ```js
 // 发送一个 hex 为 "0100" 的帧
-await ZeroBox.protocol.send(btoa('\x01\x00'));
+await OronBox.protocol.send(btoa('\x01\x00'));
 ```
 
 ### request(base64Payload, options?)
@@ -20,7 +20,7 @@ await ZeroBox.protocol.send(btoa('\x01\x00'));
 发送并等待响应。
 
 ```js
-const response = await ZeroBox.protocol.request(btoa('\x01\x00'));
+const response = await OronBox.protocol.request(btoa('\x01\x00'));
 // response = {}  (响应通过 observe 获取)
 ```
 
@@ -31,7 +31,7 @@ const response = await ZeroBox.protocol.request(btoa('\x01\x00'));
 旁路监听所有原始协议数据（只读，不影响正常分发）。
 
 ```js
-const stop = await ZeroBox.protocol.observe(({ data }) => {
+const stop = await OronBox.protocol.observe(({ data }) => {
   // data 是 Base64 编码的原始字节
   console.info('协议数据:', data);
 });
@@ -46,30 +46,30 @@ await stop();
 globalThis.activate = async (plugin) => {
   let hexInput = '';
   let output = '';
-  const { Column, Text, TextField, Button } = ZeroBox.ui;
+  const { Column, Text, TextField, Button } = OronBox.ui;
 
   const sendHex = async () => {
     try {
       const bytes = hexInput.match(/../g)
         ?.map(b => String.fromCharCode(parseInt(b, 16)))
         .join('') ?? '';
-      await ZeroBox.protocol.send(btoa(bytes));
+      await OronBox.protocol.send(btoa(bytes));
       output = `已发送: ${bytes.length} 字节`;
     } catch (e) {
       output = `错误: ${e.message}`;
     }
   };
 
-  const render = () => ZeroBox.ui.render(
+  const render = () => OronBox.ui.render(
     Column({ gap: 8 }, [
       TextField({ value: hexInput, onChange: v => { hexInput = v; } }),
-      Button('发送 Hex', { onClick: ZeroBox.ui.action(sendHex, render) }),
+      Button('发送 Hex', { onClick: OronBox.ui.action(sendHex, render) }),
       Text(output || '等待数据...'),
     ]),
   );
 
   // 监听入站数据
-  ZeroBox.protocol.observe(({ data }) => {
+  OronBox.protocol.observe(({ data }) => {
     // Base64 → Hex
     const raw = atob(data);
     let hex = '';

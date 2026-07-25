@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/device/core/ble_requirement.dart';
-import 'package:zerobox/src/device/core/transport.dart';
-import 'package:zerobox/src/device/zeppos/crypto/zeppos_auth_crypto.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/device/core/ble_requirement.dart';
+import 'package:oronbox/src/device/core/transport.dart';
+import 'package:oronbox/src/device/zeppos/crypto/zeppos_auth_crypto.dart';
 
 class ZeppOsPayload {
   const ZeppOsPayload({required this.endpoint, required this.payload});

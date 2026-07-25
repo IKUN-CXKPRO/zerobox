@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:zerobox/src/features/accounts/services/huami_auth_service.dart';
+import 'package:oronbox/src/features/accounts/services/huami_auth_service.dart';
 
 class HuamiAppStoreApiClient {
   HuamiAppStoreApiClient({required this.dio, required this.auth});

@@ -9,7 +9,7 @@
 #include <string>
 #include <variant>
 
-#if defined(ZEROBOX_HAVE_WEBVIEW2)
+#if defined(ORONBOX_HAVE_WEBVIEW2)
 #include <WebView2.h>
 #include <wrl.h>
 #endif
@@ -17,7 +17,7 @@
 namespace {
 using flutter::EncodableMap;
 using flutter::EncodableValue;
-constexpr char kChannel[] = "zerobox/zeppos_app_settings";
+constexpr char kChannel[] = "oronbox/zeppos_app_settings";
 
 const EncodableValue* Get(const EncodableMap& map, const char* key) {
   const auto it = map.find(EncodableValue(key));
@@ -37,7 +37,7 @@ bool GetInteger(const EncodableValue* value, int64_t* result) {
   return false;
 }
 
-#if defined(ZEROBOX_HAVE_WEBVIEW2)
+#if defined(ORONBOX_HAVE_WEBVIEW2)
 using Microsoft::WRL::Callback;
 using Microsoft::WRL::ComPtr;
 
@@ -78,7 +78,7 @@ class Session : public std::enable_shared_from_this<Session> {
     WNDCLASSW wc{};
     wc.lpfnWndProc = Proc;
     wc.hInstance = GetModuleHandle(nullptr);
-    wc.lpszClassName = L"ZeroBoxZeppSettings";
+    wc.lpszClassName = L"OronBoxZeppSettings";
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     static const bool registered = RegisterClassW(&wc) != 0 ||
                                    GetLastError() == ERROR_CLASS_ALREADY_EXISTS;
@@ -160,7 +160,7 @@ class Session : public std::enable_shared_from_this<Session> {
   void SettingsChanged(const std::string& settings_json) {
     if (!webview_) return;
     const std::wstring script =
-        L"globalThis.__zeroboxSettingsChanged(" + Wide(settings_json) + L")";
+        L"globalThis.__oronboxSettingsChanged(" + Wide(settings_json) + L")";
     webview_->ExecuteScript(script.c_str(), nullptr);
   }
 
@@ -256,7 +256,7 @@ void RegisterZeppOsAppSettingsChannel(flutter::BinaryMessenger* messenger,
           messenger, kChannel, &flutter::StandardMethodCodec::GetInstance());
   channel->SetMethodCallHandler(
       [messenger, parent_window](const auto& call, auto result) {
-#if defined(ZEROBOX_HAVE_WEBVIEW2)
+#if defined(ORONBOX_HAVE_WEBVIEW2)
         if (call.method_name() == "open" && call.arguments() &&
             std::holds_alternative<flutter::EncodableMap>(*call.arguments())) {
           const auto& args =
@@ -310,7 +310,7 @@ void RegisterZeppOsAppSettingsChannel(flutter::BinaryMessenger* messenger,
 }
 
 void CloseZeppOsAppSettings() {
-#if defined(ZEROBOX_HAVE_WEBVIEW2)
+#if defined(ORONBOX_HAVE_WEBVIEW2)
   if (session) session->Shutdown();
   session.reset();
 #endif

@@ -2,13 +2,14 @@ import 'dart:async';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/core/models/bt_models.dart';
-import 'package:zerobox/src/features/accounts/application/host_accounts.dart';
-import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
-import 'package:zerobox/src/features/devices/services/device_share_link.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/devices/services/device_share_link.dart';
 
 final initialDeepLinksProvider = Provider<List<String>>((ref) => const []);
 
@@ -80,6 +81,9 @@ class _DeviceDeepLinkHandlerState extends ConsumerState<DeviceDeepLinkHandler> {
           .read(hostAccountsProvider.notifier)
           .handleBandBbsCallback(uri);
       if (!handled || !mounted) return handled;
+      if (kIsWeb && uri.queryParameters['oauth'] == 'bandbbs') {
+        context.go(uri.path.isEmpty ? '/' : uri.path);
+      }
       final l10n = AppLocalizations.of(context)!;
       final state = ref.read(hostAccountsProvider).bandbbs;
       ScaffoldMessenger.of(context).showSnackBar(

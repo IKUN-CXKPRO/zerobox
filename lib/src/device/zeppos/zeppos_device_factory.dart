@@ -1,23 +1,23 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/device/core/entity.dart';
-import 'package:zerobox/src/device/core/event_bus.dart';
-import 'package:zerobox/src/device/core/runtime.dart';
-import 'package:zerobox/src/device/core/system.dart';
-import 'package:zerobox/src/device/core/transport.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_auth_system.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_app_install_system.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_app_side_system.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_apps_system.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_battery_system.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_device_info_system.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_find_device_system.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_services_system.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_screenshot_system.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_xiao_ai_system.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_watchface_system.dart';
-import 'package:zerobox/src/device/zeppos/zeppos_device_component.dart';
+import 'package:oronbox/src/device/core/entity.dart';
+import 'package:oronbox/src/device/core/event_bus.dart';
+import 'package:oronbox/src/device/core/runtime.dart';
+import 'package:oronbox/src/device/core/system.dart';
+import 'package:oronbox/src/device/core/transport.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_auth_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_app_install_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_app_side_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_apps_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_battery_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_device_info_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_find_device_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_services_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_screenshot_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_xiao_ai_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_watchface_system.dart';
+import 'package:oronbox/src/device/zeppos/zeppos_device_component.dart';
 
 class ZeppOsDeviceFactory implements DeviceEntityFactory {
   @override

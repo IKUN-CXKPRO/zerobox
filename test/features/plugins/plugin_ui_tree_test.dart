@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/features/plugins/widgets/plugin_ui_tree.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/features/plugins/widgets/plugin_ui_tree.dart';
 
 void main() {
   testWidgets('renders a centered tree with flexible rows and callbacks', (

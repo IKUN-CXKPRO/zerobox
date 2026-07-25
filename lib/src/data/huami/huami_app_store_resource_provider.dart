@@ -4,11 +4,11 @@ import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:zerobox/src/data/community/community_source.dart';
-import 'package:zerobox/src/data/huami/huami_app_store_api_client.dart';
-import 'package:zerobox/src/features/accounts/services/huami_auth_service.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
-import 'package:zerobox/src/features/resources/domain/resource_catalog.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/data/huami/huami_app_store_api_client.dart';
+import 'package:oronbox/src/features/accounts/services/huami_auth_service.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 
 class HuamiAppStoreCatalog implements CommunityResourceCatalog {
   HuamiAppStoreCatalog({required Dio dio, required HuamiAuthNotifier auth})
@@ -42,7 +42,7 @@ class HuamiAppStoreCatalog implements CommunityResourceCatalog {
 
   @override
   Future<CommunityResourcePage> getPage(CommunityResourceQuery query) async {
-    if (query.type != null && query.type != CommunityResourceType.quickApp) {
+    if (query.type != null && query.type != CommunityResourceType.miniprogram) {
       return CommunityResourcePage(
         items: const [],
         page: query.page,
@@ -206,14 +206,14 @@ class HuamiAppStoreCatalog implements CommunityResourceCatalog {
     request.onProgress?.call(1, status: 'finished');
     if (kIsWeb) {
       return CommunityResourceDownloadResult(
-        path: '/zerobox_downloads/$fileName',
+        path: '/oronbox_downloads/$fileName',
         fileName: fileName,
         bytes: bytes,
       );
     }
 
     final directory = Directory(
-      '${(await getTemporaryDirectory()).path}/zerobox_downloads/${request.resource.ref.id}',
+      '${(await getTemporaryDirectory()).path}/oronbox_downloads/${request.resource.ref.id}',
     );
     await directory.create(recursive: true);
     final path = '${directory.path}/$fileName';
@@ -250,7 +250,7 @@ class HuamiAppStoreCatalog implements CommunityResourceCatalog {
     return CommunityResource(
       ref: ResourceRef(source: sourceId, id: '$deviceSource:$appId'),
       name: name,
-      type: CommunityResourceType.quickApp,
+      type: CommunityResourceType.miniprogram,
       paidType: isFree ? CommunityPaidType.free : CommunityPaidType.paid,
       authors: _publisherAuthors(row['publisher']),
       supportedDevices: {deviceSource.toString()},
@@ -273,7 +273,7 @@ class HuamiAppStoreCatalog implements CommunityResourceCatalog {
         CommunityResource(
           ref: ResourceRef(source: sourceId, id: '$deviceSource:$appId'),
           name: row['name']?.toString().trim() ?? appId,
-          type: CommunityResourceType.quickApp,
+          type: CommunityResourceType.miniprogram,
           paidType: row['is_free'] == false
               ? CommunityPaidType.paid
               : CommunityPaidType.free,

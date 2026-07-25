@@ -7,7 +7,7 @@ Make HTTP/HTTPS requests through the host. Only `http://` and `https://` schemes
 Response body is limited to 16 MiB. Use `download` for larger files.
 
 ```js
-const resp = await ZeroBox.network.fetch('https://httpbin.org/json', {
+const resp = await OronBox.network.fetch('https://httpbin.org/json', {
   method: 'GET',
   headers: { 'Accept': 'application/json' },
   body: base64data  // optional, Base64-encoded request body
@@ -25,7 +25,7 @@ const json = JSON.parse(text);
 Streams the response directly to a sandbox file. Ideal for large downloads.
 
 ```js
-const result = await ZeroBox.network.download(
+const result = await OronBox.network.download(
   'https://example.com/file.bin',
   '/data/file.bin',
   { method: 'GET', headers: {} }
@@ -39,11 +39,11 @@ const result = await ZeroBox.network.download(
 globalThis.activate = async (plugin) => {
   let url = 'https://httpbin.org/json';
   let result = 'Enter a URL and tap Fetch';
-  const { Column, Text, TextField, Button } = ZeroBox.ui;
+  const { Column, Text, TextField, Button } = OronBox.ui;
 
   const fetchJson = async () => {
     try {
-      const resp = await ZeroBox.network.fetch(url);
+      const resp = await OronBox.network.fetch(url);
       const body = resp.body ? atob(resp.body) : '';
       try {
         result = JSON.stringify(JSON.parse(body), null, 2);
@@ -53,10 +53,10 @@ globalThis.activate = async (plugin) => {
     } catch (e) { result = `Error: ${e.message}`; }
   };
 
-  const render = () => ZeroBox.ui.render(
+  const render = () => OronBox.ui.render(
     Column({ gap: 8 }, [
       TextField({ value: url, onChange: v => { url = v; } }),
-      Button('Fetch', { onClick: ZeroBox.ui.action(fetchJson, render) }),
+      Button('Fetch', { onClick: OronBox.ui.action(fetchJson, render) }),
       Text(result),
     ]),
   );

@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
-const _channel = MethodChannel('zerobox/background_tasks');
+const _channel = MethodChannel('oronbox/background_tasks');
 
 class BackgroundTaskHandle {
   const BackgroundTaskHandle(this.id);

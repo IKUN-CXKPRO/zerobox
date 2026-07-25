@@ -154,7 +154,7 @@ class PluginPackageReader {
     }
     if (extension == 'abp' && manifest.runtime != PluginRuntimeType.legacy) {
       throw const FormatException(
-        'ZeroBox plugins must use the .zbp extension',
+        'OronBox plugins must use the .zbp extension',
       );
     }
     if (!entries.containsKey(manifest.entry)) {

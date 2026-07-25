@@ -1,5 +1,5 @@
-import 'package:zerobox/src/core/models/bt_models.dart';
-import 'package:zerobox/src/device/core/device_profile.dart';
+import 'package:oronbox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/device/core/device_profile.dart';
 
 enum DevicePlatform { velaOS, zeppOS }
 

@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/device/core/entity.dart';
-import 'package:zerobox/src/device/core/event_bus.dart';
-import 'package:zerobox/src/device/core/transport.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_device_info_system.dart';
-import 'package:zerobox/src/device/zeppos/zeppos_device_component.dart';
+import 'package:oronbox/src/device/core/entity.dart';
+import 'package:oronbox/src/device/core/event_bus.dart';
+import 'package:oronbox/src/device/core/transport.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_device_info_system.dart';
+import 'package:oronbox/src/device/zeppos/zeppos_device_component.dart';
 
 void main() {
   test('requests and decodes Zepp OS device information', () async {

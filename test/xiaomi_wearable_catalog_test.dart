@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/device/core/xiaomi_wearable_catalog.dart';
+import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
 
 void main() {
   group('Xiaomi wearable identity normalization', () {

@@ -9,7 +9,7 @@ All methods accept an optional `deviceId` parameter; omit to target the current 
 ### list()
 
 ```js
-const devices = await ZeroBox.device.list();
+const devices = await OronBox.device.list();
 // [{ id: 'D4:17:61:...', name: 'Xiaomi Smart Band 9 Pro',
 //    connectType: 'spp', connected: true, current: true }, ...]
 ```
@@ -17,7 +17,7 @@ const devices = await ZeroBox.device.list();
 ### info(deviceId?)
 
 ```js
-const info = await ZeroBox.device.info();
+const info = await OronBox.device.info();
 // { id: 'D4:...', name: '...', model: 'M2401B1',
 //   firmwareVersion: '3.1.175', battery: 85 }
 ```
@@ -25,13 +25,13 @@ const info = await ZeroBox.device.info();
 ### connect(deviceId)
 
 ```js
-await ZeroBox.device.connect('D4:17:61:14:18:6E');
+await OronBox.device.connect('D4:17:61:14:18:6E');
 ```
 
 ### disconnect()
 
 ```js
-await ZeroBox.device.disconnect();
+await OronBox.device.disconnect();
 ```
 
 ## App Management
@@ -39,7 +39,7 @@ await ZeroBox.device.disconnect();
 ### apps.list(deviceId?)
 
 ```js
-const apps = await ZeroBox.device.apps.list();
+const apps = await OronBox.device.apps.list();
 // [{ packageName: 'com.example.app', name: 'Example',
 //    versionCode: 1, canRemove: true }, ...]
 ```
@@ -47,13 +47,13 @@ const apps = await ZeroBox.device.apps.list();
 ### apps.launch(packageName, options)
 
 ```js
-await ZeroBox.device.apps.launch('com.example.app', { page: '' });
+await OronBox.device.apps.launch('com.example.app', { page: '' });
 ```
 
 ### apps.uninstall(packageName)
 
 ```js
-await ZeroBox.device.apps.uninstall('com.example.app');
+await OronBox.device.apps.uninstall('com.example.app');
 ```
 
 ## Install Resources
@@ -62,17 +62,17 @@ await ZeroBox.device.apps.uninstall('com.example.app');
 
 ```js
 // Install a quick app
-await ZeroBox.device.install('/data/app.bin', {
+await OronBox.device.install('/data/app.bin', {
   type: 'app', fileName: 'app.bin'
 });
 
 // Install a watchface
-await ZeroBox.device.install('/data/watchface.bin', {
+await OronBox.device.install('/data/watchface.bin', {
   type: 'watchface', fileName: 'watchface.bin'
 });
 
 // Install firmware
-await ZeroBox.device.install('/data/firmware.fw', {
+await OronBox.device.install('/data/firmware.fw', {
   type: 'firmware', fileName: 'firmware.fw'
 });
 ```
@@ -84,18 +84,18 @@ await ZeroBox.device.install('/data/firmware.fw', {
 ```js
 globalThis.activate = async (plugin) => {
   let info = 'Tap a button';
-  const { Column, Text, Button } = ZeroBox.ui;
+  const { Column, Text, Button } = OronBox.ui;
 
   const listDevices = async () => {
-    const devices = await ZeroBox.device.list();
+    const devices = await OronBox.device.list();
     info = devices.map(d =>
       `${d.name} ${d.connected ? '✓' : '✗'} ${d.current ? '←active' : ''}`
     ).join('\n');
   };
 
-  const render = () => ZeroBox.ui.render(
+  const render = () => OronBox.ui.render(
     Column({ gap: 8 }, [
-      Button('List devices', { onClick: ZeroBox.ui.action(listDevices, render) }),
+      Button('List devices', { onClick: OronBox.ui.action(listDevices, render) }),
       Text(info),
     ]),
   );

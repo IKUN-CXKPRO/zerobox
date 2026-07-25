@@ -1,13 +1,17 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/cli/cli_models.dart';
-import 'package:zerobox/src/cli/cli_parser.dart';
-import 'package:zerobox/src/cli/resource_cli_command.dart';
+import 'package:oronbox/src/cli/cli_models.dart';
+import 'package:oronbox/src/cli/cli_entrypoint_io.dart';
+import 'package:oronbox/src/cli/cli_parser.dart';
+import 'package:oronbox/src/cli/resource_cli_command.dart';
 
 void main() {
   test('GUI mode leaves arguments untouched', () {
-    final result = parseCliInvocation(['zerobox://open?id=1']);
+    final result = parseCliInvocation(['oronbox://open?id=1']);
     expect(result.noGui, isFalse);
-    expect(result.arguments, ['zerobox://open?id=1']);
+    expect(result.arguments, ['oronbox://open?id=1']);
   });
 
   test('parses explicit local install type and path', () {
@@ -165,5 +169,26 @@ void main() {
       () => buildResourceQueryCommand(invocation),
       throwsA(isA<CliUsageException>()),
     );
+  });
+
+  test('builds a creator publish command with a base64 bundle', () async {
+    final bundle = File(
+      '${Directory.systemTemp.path}/cli-publish-test.zip',
+    )..writeAsBytesSync(const [80, 75, 3, 4]);
+    addTearDown(() {
+      if (bundle.existsSync()) bundle.deleteSync();
+    });
+    final command = await buildCliCommand(
+      parseCliInvocation([
+        '--nogui',
+        'creator',
+        'publish',
+        'resource-id',
+        bundle.path,
+      ]),
+    );
+    expect(command.method, 'creator.publish');
+    expect(command.params['resource'], 'resource-id');
+    expect(command.params['bundle'], base64Encode(const [80, 75, 3, 4]));
   });
 }

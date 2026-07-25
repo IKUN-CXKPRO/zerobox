@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'ZeroBox'**
+  /// **'OronBox'**
   String get appTitle;
 
   /// No description provided for @homeTab.
@@ -314,11 +314,11 @@ abstract class AppLocalizations {
   /// **'News'**
   String get news;
 
-  /// No description provided for @zeroBoxNews.
+  /// No description provided for @oronBoxNews.
   ///
   /// In en, this message translates to:
-  /// **'ZeroBox news'**
-  String get zeroBoxNews;
+  /// **'OronBox news'**
+  String get oronBoxNews;
 
   /// No description provided for @bandbbsNews.
   ///
@@ -343,6 +343,234 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Creator center'**
   String get creatorCenter;
+
+  /// No description provided for @creatorNewResource.
+  ///
+  /// In en, this message translates to:
+  /// **'New resource'**
+  String get creatorNewResource;
+
+  /// No description provided for @creatorSlug.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource identifier'**
+  String get creatorSlug;
+
+  /// No description provided for @creatorResourceName.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource name'**
+  String get creatorResourceName;
+
+  /// No description provided for @creatorResourceSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource summary'**
+  String get creatorResourceSummary;
+
+  /// No description provided for @creatorSaveDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Save draft'**
+  String get creatorSaveDraft;
+
+  /// No description provided for @creatorAddArtifact.
+  ///
+  /// In en, this message translates to:
+  /// **'Add resource file'**
+  String get creatorAddArtifact;
+
+  /// No description provided for @creatorReplaceAsset.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload replacement'**
+  String get creatorReplaceAsset;
+
+  /// No description provided for @creatorBindDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Bind devices'**
+  String get creatorBindDevices;
+
+  /// No description provided for @creatorDeleteResource.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get creatorDeleteResource;
+
+  /// No description provided for @creatorIconCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon & cover'**
+  String get creatorIconCover;
+
+  /// No description provided for @creatorInvalidImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to decode this image; use PNG/JPEG/WebP'**
+  String get creatorInvalidImage;
+
+  /// No description provided for @creatorInvalidPackage.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is not a Vela quick app or watchface'**
+  String get creatorInvalidPackage;
+
+  /// No description provided for @creatorPublishPreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing file {done}/{total}'**
+  String creatorPublishPreparing(Object done, Object total);
+
+  /// No description provided for @creatorPublishUploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading {percent}%'**
+  String creatorPublishUploading(Object percent);
+
+  /// No description provided for @creatorPublishServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Server is processing…'**
+  String get creatorPublishServer;
+
+  /// No description provided for @creatorAstroBoxItemId.
+  ///
+  /// In en, this message translates to:
+  /// **'Item ID'**
+  String get creatorAstroBoxItemId;
+
+  /// No description provided for @creatorAstroBoxRepository.
+  ///
+  /// In en, this message translates to:
+  /// **'Repository name'**
+  String get creatorAstroBoxRepository;
+
+  /// No description provided for @creatorAstroBoxTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags (comma separated)'**
+  String get creatorAstroBoxTags;
+
+  /// No description provided for @creatorAstroBoxAuthor.
+  ///
+  /// In en, this message translates to:
+  /// **'Author (must match your AstroBox username)'**
+  String get creatorAstroBoxAuthor;
+
+  /// No description provided for @creatorAstroBoxBindAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Bind AstroBox account'**
+  String get creatorAstroBoxBindAccount;
+
+  /// No description provided for @replace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get replace;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @creatorSubmitReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit'**
+  String get creatorSubmitReview;
+
+  /// No description provided for @creatorCorrection.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct and resubmit'**
+  String get creatorCorrection;
+
+  /// No description provided for @creatorUpdateResource.
+  ///
+  /// In en, this message translates to:
+  /// **'Update resource'**
+  String get creatorUpdateResource;
+
+  /// No description provided for @creatorArchiveAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delist'**
+  String get creatorArchiveAction;
+
+  /// No description provided for @creatorArchiveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delisting hides this resource from the store. You can restore it anytime.'**
+  String get creatorArchiveConfirm;
+
+  /// No description provided for @creatorRestoreAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get creatorRestoreAction;
+
+  /// No description provided for @creatorDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This draft resource will be permanently deleted.'**
+  String get creatorDeleteConfirm;
+
+  /// No description provided for @creatorDeletePublishedConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently deletes the OronBox resource and the corresponding BandBBS resources. This cannot be undone. Content already published on AstroBox is not affected; contact the AstroBox-Repo maintainers to delist it.'**
+  String get creatorDeletePublishedConfirm;
+
+  /// No description provided for @creatorArtifactCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} packages'**
+  String creatorArtifactCount(Object count);
+
+  /// No description provided for @creatorKindMismatchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'File type mismatch'**
+  String get creatorKindMismatchTitle;
+
+  /// No description provided for @creatorKindMismatchMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This file looks like a {detected}, but this resource is a {expected}. You can keep it, but please confirm before submitting for review.'**
+  String creatorKindMismatchMessage(Object detected, Object expected);
+
+  /// No description provided for @creatorKeepFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep anyway'**
+  String get creatorKeepFile;
+
+  /// No description provided for @creatorDeviceMoveBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" has only this device bound and cannot be moved'**
+  String creatorDeviceMoveBlocked(Object name);
+
+  /// No description provided for @creatorAssetsReusedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Existing packages and previews are reused — no need to re-upload'**
+  String get creatorAssetsReusedHint;
+
+  /// No description provided for @creatorRevisionHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Revision history'**
+  String get creatorRevisionHistory;
+
+  /// No description provided for @creatorUploadProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading {progress}%'**
+  String creatorUploadProgress(Object progress);
 
   /// No description provided for @filter.
   ///
@@ -410,11 +638,11 @@ abstract class AppLocalizations {
   /// **'Local resources'**
   String get localResources;
 
-  /// No description provided for @zeroBox.
+  /// No description provided for @oronBox.
   ///
   /// In en, this message translates to:
-  /// **'ZeroBox'**
-  String get zeroBox;
+  /// **'OronBox'**
+  String get oronBox;
 
   /// No description provided for @bandbbs.
   ///
@@ -464,6 +692,18 @@ abstract class AppLocalizations {
   /// **'Supported devices'**
   String get supportedDevices;
 
+  /// No description provided for @resourceProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource platform and type'**
+  String get resourceProfile;
+
+  /// No description provided for @creatorArtifactProfileMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'{fileName} does not match the selected {profile} profile and was not added'**
+  String creatorArtifactProfileMismatch(Object fileName, Object profile);
+
   /// No description provided for @downloads.
   ///
   /// In en, this message translates to:
@@ -512,12 +752,6 @@ abstract class AppLocalizations {
   /// **'Open source page'**
   String get openSourcePage;
 
-  /// No description provided for @creatorDashboard.
-  ///
-  /// In en, this message translates to:
-  /// **'Creator dashboard'**
-  String get creatorDashboard;
-
   /// No description provided for @myResources.
   ///
   /// In en, this message translates to:
@@ -542,6 +776,120 @@ abstract class AppLocalizations {
   /// **'Published'**
   String get published;
 
+  /// No description provided for @creatorArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get creatorArchived;
+
+  /// No description provided for @creatorBandBbsNoDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Select supported devices for the resource file first'**
+  String get creatorBandBbsNoDevices;
+
+  /// No description provided for @creatorBandBbsUnmappedDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'No BandBBS category could be resolved for: {devices}'**
+  String creatorBandBbsUnmappedDevices(Object devices);
+
+  /// No description provided for @creatorBandBbsSharedCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices in the same BandBBS category are bound to multiple packages. Bind one package per category'**
+  String get creatorBandBbsSharedCategory;
+
+  /// No description provided for @creatorBandBbsUnresolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to resolve a BandBBS category'**
+  String get creatorBandBbsUnresolved;
+
+  /// No description provided for @creatorOptionalIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon (optional, 1:1)'**
+  String get creatorOptionalIcon;
+
+  /// No description provided for @creatorOptionalCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover (optional, 3:2)'**
+  String get creatorOptionalCover;
+
+  /// No description provided for @creatorRequiredIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon (required for AstroBox, 1:1)'**
+  String get creatorRequiredIcon;
+
+  /// No description provided for @creatorRequiredCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover (required for AstroBox, 3:2)'**
+  String get creatorRequiredCover;
+
+  /// No description provided for @creatorIconShapeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The icon is not square and may look wrong in AstroBox'**
+  String get creatorIconShapeHint;
+
+  /// No description provided for @creatorCoverShapeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The cover is not 3:2 and may look wrong in AstroBox'**
+  String get creatorCoverShapeHint;
+
+  /// No description provided for @creatorTermsBandBbs.
+  ///
+  /// In en, this message translates to:
+  /// **'BandBBS community terms and rules'**
+  String get creatorTermsBandBbs;
+
+  /// No description provided for @creatorTermsAstroBox.
+  ///
+  /// In en, this message translates to:
+  /// **'AstroBox-Repo submission standards'**
+  String get creatorTermsAstroBox;
+
+  /// No description provided for @creatorTermsAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'I have read and accept the publishing agreements above'**
+  String get creatorTermsAccept;
+
+  /// No description provided for @creatorTermsContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter Creator Center'**
+  String get creatorTermsContinue;
+
+  /// No description provided for @agree.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree'**
+  String get agree;
+
+  /// No description provided for @creatorRulesAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'I have read and agree to the review rules above'**
+  String get creatorRulesAccept;
+
+  /// No description provided for @creatorBandBbsTermsNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'After OronBox review, this resource is published directly to the matching BandBBS categories. Deleting the OronBox resource also deletes the corresponding BandBBS resources.'**
+  String get creatorBandBbsTermsNotice;
+
+  /// No description provided for @creatorAstroBoxTermsNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'After OronBox review, a resource repository is created and a PR is submitted to the official AstroBox repository, reviewed independently by AstroBox maintainers. To delist after publication, contact the AstroBox-Repo maintainers.'**
+  String get creatorAstroBoxTermsNotice;
+
   /// No description provided for @failed.
   ///
   /// In en, this message translates to:
@@ -563,7 +911,7 @@ abstract class AppLocalizations {
   /// No description provided for @packageFiles.
   ///
   /// In en, this message translates to:
-  /// **'Package files'**
+  /// **'Resource files'**
   String get packageFiles;
 
   /// No description provided for @deviceSelection.
@@ -659,7 +1007,7 @@ abstract class AppLocalizations {
   /// No description provided for @errorBluetoothUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Bluetooth is not available. Check that Bluetooth is enabled and ZeroBox has permission to use it'**
+  /// **'Bluetooth is not available. Check that Bluetooth is enabled and OronBox has permission to use it'**
   String get errorBluetoothUnavailable;
 
   /// No description provided for @errorBluetoothConnectFailed.
@@ -806,11 +1154,11 @@ abstract class AppLocalizations {
   /// **'Advanced'**
   String get advanced;
 
-  /// No description provided for @aboutZeroBox.
+  /// No description provided for @aboutOronBox.
   ///
   /// In en, this message translates to:
-  /// **'About ZeroBox'**
-  String get aboutZeroBox;
+  /// **'About OronBox'**
+  String get aboutOronBox;
 
   /// No description provided for @openSourceLicenses.
   ///
@@ -827,7 +1175,7 @@ abstract class AppLocalizations {
   /// No description provided for @acknowledgementsDesc.
   ///
   /// In en, this message translates to:
-  /// **'Open source projects referenced by ZeroBox'**
+  /// **'Open source projects referenced by OronBox'**
   String get acknowledgementsDesc;
 
   /// No description provided for @developmentTeam.
@@ -1103,7 +1451,7 @@ abstract class AppLocalizations {
   /// No description provided for @webSerialHint.
   ///
   /// In en, this message translates to:
-  /// **'On the web, ZeroBox connects to devices via Web Serial. Saved devices stay in this browser.'**
+  /// **'On the web, OronBox connects to devices via Web Serial. Saved devices stay in this browser.'**
   String get webSerialHint;
 
   /// No description provided for @webSerialConnectDialogTitle.
@@ -1142,11 +1490,11 @@ abstract class AppLocalizations {
   /// **'Share QR'**
   String get deviceActionsShareQR;
 
-  /// No description provided for @deviceShareZeroBoxCode.
+  /// No description provided for @deviceShareOronBoxCode.
   ///
   /// In en, this message translates to:
-  /// **'Switch to ZeroBox code'**
-  String get deviceShareZeroBoxCode;
+  /// **'Switch to OronBox code'**
+  String get deviceShareOronBoxCode;
 
   /// No description provided for @deviceShareAstroBoxCompatibleCode.
   ///
@@ -1319,13 +1667,13 @@ abstract class AppLocalizations {
   /// No description provided for @externalLinkDescription.
   ///
   /// In en, this message translates to:
-  /// **'You are about to visit {url}\n\nThis website is operated by a third party, is not affiliated with ZeroBox, and its security is unknown. Please proceed with caution. Do you want to continue?'**
+  /// **'You are about to visit {url}\n\nThis website is operated by a third party, is not affiliated with OronBox, and its security is unknown. Please proceed with caution. Do you want to continue?'**
   String externalLinkDescription(String url);
 
   /// No description provided for @externalLinkAstroBoxResourceHint.
   ///
   /// In en, this message translates to:
-  /// **'This appears to be an AstroBox resource. You can also view and install it within ZeroBox'**
+  /// **'This appears to be an AstroBox resource. You can also view and install it within OronBox'**
   String get externalLinkAstroBoxResourceHint;
 
   /// No description provided for @continueToWebsite.
@@ -1334,11 +1682,11 @@ abstract class AppLocalizations {
   /// **'Continue'**
   String get continueToWebsite;
 
-  /// No description provided for @viewInZeroBox.
+  /// No description provided for @viewInOronBox.
   ///
   /// In en, this message translates to:
-  /// **'View in ZeroBox'**
-  String get viewInZeroBox;
+  /// **'View in OronBox'**
+  String get viewInOronBox;
 
   /// No description provided for @uninstall.
   ///
@@ -1397,7 +1745,7 @@ abstract class AppLocalizations {
   /// No description provided for @desktopTrayExit.
   ///
   /// In en, this message translates to:
-  /// **'Exit ZeroBox'**
+  /// **'Exit OronBox'**
   String get desktopTrayExit;
 
   /// No description provided for @desktopCloseTitle.
@@ -1409,7 +1757,7 @@ abstract class AppLocalizations {
   /// No description provided for @desktopCloseMessage.
   ///
   /// In en, this message translates to:
-  /// **'Would you like to exit ZeroBox?'**
+  /// **'Would you like to exit OronBox?'**
   String get desktopCloseMessage;
 
   /// No description provided for @desktopCloseRemember.
@@ -1427,7 +1775,7 @@ abstract class AppLocalizations {
   /// No description provided for @desktopCloseExit.
   ///
   /// In en, this message translates to:
-  /// **'Exit ZeroBox'**
+  /// **'Exit OronBox'**
   String get desktopCloseExit;
 
   /// No description provided for @settingsDesktopCloseBehavior.
@@ -1667,7 +2015,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAccountLoginBBSDesc.
   ///
   /// In en, this message translates to:
-  /// **'Sign in to sync purchased resources'**
+  /// **'Sign in to access BandBBS resources'**
   String get settingsAccountLoginBBSDesc;
 
   /// No description provided for @settingsAccountBandBbsSigningIn.
@@ -2135,7 +2483,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAboutAboutAstrobox.
   ///
   /// In en, this message translates to:
-  /// **'About ZeroBox'**
+  /// **'About OronBox'**
   String get settingsAboutAboutAstrobox;
 
   /// No description provided for @settingsAboutAboutAstroboxDesc.
@@ -2177,7 +2525,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAboutWebsiteDesc.
   ///
   /// In en, this message translates to:
-  /// **'Visit zerobox.zxor.org'**
+  /// **'Visit oronbox.zxor.org'**
   String get settingsAboutWebsiteDesc;
 
   /// No description provided for @settingsAboutQQ.
@@ -2477,7 +2825,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAboutSoftwareCopyright.
   ///
   /// In en, this message translates to:
-  /// **'Copyright © ZeroBox contributors'**
+  /// **'Copyright © OronBox contributors'**
   String get settingsAboutSoftwareCopyright;
 
   /// No description provided for @acknowledgementsKazumi.
@@ -2705,8 +3053,44 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAboutLogsDescription.
   ///
   /// In en, this message translates to:
-  /// **'Runtime logs from the last 7 days. On Android, they can be viewed and copied in the Files app.'**
+  /// **'Logs stay on this device for diagnostics and are kept for the last 7 days'**
   String get settingsAboutLogsDescription;
+
+  /// No description provided for @settingsAboutLogsSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently using {size}'**
+  String settingsAboutLogsSize(Object size);
+
+  /// No description provided for @settingsAboutLogsExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get settingsAboutLogsExport;
+
+  /// No description provided for @settingsAboutLogsExported.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported to {path}'**
+  String settingsAboutLogsExported(Object path);
+
+  /// No description provided for @settingsAboutLogsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No logs to export yet'**
+  String get settingsAboutLogsEmpty;
+
+  /// No description provided for @settingsAboutLogsClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get settingsAboutLogsClear;
+
+  /// No description provided for @settingsAboutLogsClearConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'All log files except the current session will be deleted.'**
+  String get settingsAboutLogsClearConfirm;
 
   /// No description provided for @settingsAboutLogsOpen.
   ///
@@ -2729,7 +3113,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAboutLogsWarningMessage.
   ///
   /// In en, this message translates to:
-  /// **'Logs may contain BandBBS, Xiaomi, or Amazfit login credentials and other sensitive information. Do not share them with anyone other than official ZeroBox maintainers!'**
+  /// **'Logs may contain BandBBS, Xiaomi, or Amazfit login credentials and other sensitive information. Do not share them with anyone other than official OronBox maintainers!'**
   String get settingsAboutLogsWarningMessage;
 
   /// No description provided for @pluginPermissionRequestTitle.
@@ -2944,7 +3328,7 @@ abstract class AppLocalizations {
   /// No description provided for @resourceTypeUnknownMessage.
   ///
   /// In en, this message translates to:
-  /// **'ZeroBox cannot identify the actual resource type. Install it as {selectedType} anyway?'**
+  /// **'OronBox cannot identify the actual resource type. Install it as {selectedType} anyway?'**
   String resourceTypeUnknownMessage(Object selectedType);
 
   /// No description provided for @resourceInstallCancel.
@@ -3030,6 +3414,798 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Install'**
   String get resourceInstallConfirm;
+
+  /// No description provided for @resourceName.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource name'**
+  String get resourceName;
+
+  /// No description provided for @resourceSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Short summary'**
+  String get resourceSummary;
+
+  /// No description provided for @previewImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview images'**
+  String get previewImages;
+
+  /// No description provided for @add.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get add;
+
+  /// No description provided for @submit.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit'**
+  String get submit;
+
+  /// No description provided for @currentAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'current account'**
+  String get currentAccount;
+
+  /// No description provided for @submitForReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit for review'**
+  String get submitForReview;
+
+  /// No description provided for @creatorConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm publishing plan'**
+  String get creatorConfirmTitle;
+
+  /// No description provided for @creatorConfirmOronBox.
+  ///
+  /// In en, this message translates to:
+  /// **'The resource will be reviewed by OronBox and published in OronBox Resources after approval'**
+  String get creatorConfirmOronBox;
+
+  /// No description provided for @creatorConfirmBandBbs.
+  ///
+  /// In en, this message translates to:
+  /// **'After approval, the resource will be published directly to BandBBS category {category}'**
+  String creatorConfirmBandBbs(Object category);
+
+  /// No description provided for @creatorConfirmAstroBox.
+  ///
+  /// In en, this message translates to:
+  /// **'After approval, GitHub user {owner} will create or update repository {repository} and open an ABRepo pull request'**
+  String creatorConfirmAstroBox(Object owner, Object repository);
+
+  /// No description provided for @creatorBandBbsDirectPublish.
+  ///
+  /// In en, this message translates to:
+  /// **'Published directly to the BandBBS community after OronBox review'**
+  String get creatorBandBbsDirectPublish;
+
+  /// No description provided for @bandBbsCategoryId.
+  ///
+  /// In en, this message translates to:
+  /// **'BandBBS resource category ID'**
+  String get bandBbsCategoryId;
+
+  /// No description provided for @bandBbsCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'BandBBS resource category'**
+  String get bandBbsCategory;
+
+  /// No description provided for @creatorAstroBoxPrPublish.
+  ///
+  /// In en, this message translates to:
+  /// **'After OronBox review, create resource repository {repository} and submit a PR to the official AstroBox repo'**
+  String creatorAstroBoxPrPublish(Object repository);
+
+  /// No description provided for @creatorOronBoxRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required. Resources are reviewed by OronBox'**
+  String get creatorOronBoxRequired;
+
+  /// No description provided for @creatorAstroTags.
+  ///
+  /// In en, this message translates to:
+  /// **'AstroBox tags'**
+  String get creatorAstroTags;
+
+  /// No description provided for @creatorAstroTagsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Separate multiple tags with commas or semicolons'**
+  String get creatorAstroTagsHint;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @reviewNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Review note'**
+  String get reviewNote;
+
+  /// No description provided for @creatorReviewRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource changes requested'**
+  String get creatorReviewRejected;
+
+  /// No description provided for @creatorReviewState.
+  ///
+  /// In en, this message translates to:
+  /// **'Review status: {state}'**
+  String creatorReviewState(Object state);
+
+  /// No description provided for @creatorOperationWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'Working'**
+  String get creatorOperationWorking;
+
+  /// No description provided for @creatorOperationRefreshing.
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshing creator data'**
+  String get creatorOperationRefreshing;
+
+  /// No description provided for @creatorOperationCreating.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating resource'**
+  String get creatorOperationCreating;
+
+  /// No description provided for @creatorOperationSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving changes'**
+  String get creatorOperationSaving;
+
+  /// No description provided for @creatorOperationUploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading and processing file'**
+  String get creatorOperationUploading;
+
+  /// No description provided for @creatorOperationBinding.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating supported devices'**
+  String get creatorOperationBinding;
+
+  /// No description provided for @creatorOperationDeleting.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting'**
+  String get creatorOperationDeleting;
+
+  /// No description provided for @creatorOperationSubmitting.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitting for review'**
+  String get creatorOperationSubmitting;
+
+  /// No description provided for @creatorOperationAuthorizing.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for authorization'**
+  String get creatorOperationAuthorizing;
+
+  /// No description provided for @creatorResolvingPublicationTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolving publication category'**
+  String get creatorResolvingPublicationTarget;
+
+  /// No description provided for @creatorSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your OronBox session has expired. Sign in again before authorizing publishing'**
+  String get creatorSessionExpired;
+
+  /// No description provided for @creatorStateApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved'**
+  String get creatorStateApproved;
+
+  /// No description provided for @creatorStateExternalReview.
+  ///
+  /// In en, this message translates to:
+  /// **'External review'**
+  String get creatorStateExternalReview;
+
+  /// No description provided for @creatorStateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Publishing failed'**
+  String get creatorStateFailed;
+
+  /// No description provided for @creatorStateSuperseded.
+  ///
+  /// In en, this message translates to:
+  /// **'Superseded by a newer revision'**
+  String get creatorStateSuperseded;
+
+  /// No description provided for @creatorStateCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get creatorStateCancelled;
+
+  /// No description provided for @creatorNoResources.
+  ///
+  /// In en, this message translates to:
+  /// **'No resources created yet'**
+  String get creatorNoResources;
+
+  /// No description provided for @creatorLoginRequiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to use Creator Center'**
+  String get creatorLoginRequiredTitle;
+
+  /// No description provided for @creatorLoginRequiredDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to BandBBS and connect your OronBox account before creating, editing, or submitting resources'**
+  String get creatorLoginRequiredDescription;
+
+  /// No description provided for @creatorLoginAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to BandBBS'**
+  String get creatorLoginAction;
+
+  /// No description provided for @creatorSelectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a resource on the left, or create a new one'**
+  String get creatorSelectHint;
+
+  /// No description provided for @creatorOronBoxReady.
+  ///
+  /// In en, this message translates to:
+  /// **'OronBox and BandBBS read access are available'**
+  String get creatorOronBoxReady;
+
+  /// No description provided for @creatorBandBbsWriteReady.
+  ///
+  /// In en, this message translates to:
+  /// **'BandBBS publishing access is authorized'**
+  String get creatorBandBbsWriteReady;
+
+  /// No description provided for @creatorBandBbsWriteMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'BandBBS write access is missing, so BandBBS publishing is unavailable'**
+  String get creatorBandBbsWriteMissing;
+
+  /// No description provided for @creatorGitHubOwnPublishReady.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub is connected; publish as {login}'**
+  String creatorGitHubOwnPublishReady(Object login);
+
+  /// No description provided for @creatorGitHubOwnPublishMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub is not connected, so AstroBox resources cannot be published under your account'**
+  String get creatorGitHubOwnPublishMissing;
+
+  /// No description provided for @creatorAuthorize.
+  ///
+  /// In en, this message translates to:
+  /// **'Authorize'**
+  String get creatorAuthorize;
+
+  /// No description provided for @openCreatorCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Open creator center'**
+  String get openCreatorCenter;
+
+  /// No description provided for @creatorGitHubNotConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub account is not connected'**
+  String get creatorGitHubNotConnected;
+
+  /// No description provided for @creatorGitHubConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected as GitHub user {login}'**
+  String creatorGitHubConnected(Object login);
+
+  /// No description provided for @githubAuthorizationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to open the GitHub authorization page'**
+  String get githubAuthorizationFailed;
+
+  /// No description provided for @githubAuthorizationTimedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub authorization timed out'**
+  String get githubAuthorizationTimedOut;
+
+  /// No description provided for @authorize.
+  ///
+  /// In en, this message translates to:
+  /// **'Authorize'**
+  String get authorize;
+
+  /// No description provided for @creatorBandBbsAuthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'BandBBS resource publishing is authorized'**
+  String get creatorBandBbsAuthorized;
+
+  /// No description provided for @creatorBandBbsAuthorizationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Authorize OronBox separately to publish BandBBS resources on your behalf'**
+  String get creatorBandBbsAuthorizationRequired;
+
+  /// No description provided for @connect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get connect;
+
+  /// No description provided for @editResource.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit resource'**
+  String get editResource;
+
+  /// No description provided for @legalAndPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Legal and privacy'**
+  String get legalAndPrivacy;
+
+  /// No description provided for @legalAndPrivacyDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'View the terms, privacy notice, and resource rules'**
+  String get legalAndPrivacyDesc;
+
+  /// No description provided for @termsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms and disclaimer'**
+  String get termsTitle;
+
+  /// No description provided for @privacyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy notice'**
+  String get privacyTitle;
+
+  /// No description provided for @resourcePublishingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource publishing agreement'**
+  String get resourcePublishingTitle;
+
+  /// No description provided for @reviewRulesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource review rules'**
+  String get reviewRulesTitle;
+
+  /// No description provided for @feedbackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback'**
+  String get feedbackTitle;
+
+  /// No description provided for @feedbackDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit feedback and view responses'**
+  String get feedbackDesc;
+
+  /// No description provided for @reportResource.
+  ///
+  /// In en, this message translates to:
+  /// **'Report resource'**
+  String get reportResource;
+
+  /// No description provided for @report.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get report;
+
+  /// No description provided for @feedbackSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Subject'**
+  String get feedbackSubject;
+
+  /// No description provided for @feedbackMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback or issue'**
+  String get feedbackMessage;
+
+  /// No description provided for @reportReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason for report'**
+  String get reportReason;
+
+  /// No description provided for @submitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted'**
+  String get submitted;
+
+  /// No description provided for @myFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'My feedback'**
+  String get myFeedback;
+
+  /// No description provided for @noFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'No feedback yet'**
+  String get noFeedback;
+
+  /// No description provided for @feedbackProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing'**
+  String get feedbackProcessing;
+
+  /// No description provided for @feedbackReplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Replied'**
+  String get feedbackReplied;
+
+  /// No description provided for @feedbackOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get feedbackOpen;
+
+  /// No description provided for @feedbackResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved'**
+  String get feedbackResolved;
+
+  /// No description provided for @feedbackDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismissed'**
+  String get feedbackDismissed;
+
+  /// No description provided for @feedbackClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get feedbackClosed;
+
+  /// No description provided for @feedbackLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading tickets'**
+  String get feedbackLoading;
+
+  /// No description provided for @feedbackNewTicket.
+  ///
+  /// In en, this message translates to:
+  /// **'New ticket'**
+  String get feedbackNewTicket;
+
+  /// No description provided for @feedbackYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get feedbackYou;
+
+  /// No description provided for @feedbackResolution.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution'**
+  String get feedbackResolution;
+
+  /// No description provided for @feedbackReplyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply to this ticket'**
+  String get feedbackReplyHint;
+
+  /// No description provided for @feedbackConversationClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'This ticket is closed and cannot be replied to'**
+  String get feedbackConversationClosed;
+
+  /// No description provided for @checkUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get checkUpdates;
+
+  /// No description provided for @updateChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking for updates…'**
+  String get updateChecking;
+
+  /// No description provided for @updateCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to check for updates'**
+  String get updateCheckFailed;
+
+  /// No description provided for @latestVersionInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'You are using the latest version'**
+  String get latestVersionInstalled;
+
+  /// No description provided for @newVersionAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version} is available'**
+  String newVersionAvailable(Object version);
+
+  /// No description provided for @viewUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'View update'**
+  String get viewUpdate;
+
+  /// No description provided for @oobeWelcomeSlogan.
+  ///
+  /// In en, this message translates to:
+  /// **'A beautiful and fast VelaOS / ZeppOS wearable device manager, built with Flutter'**
+  String get oobeWelcomeSlogan;
+
+  /// No description provided for @oobeNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get oobeNext;
+
+  /// No description provided for @oobeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get oobeBack;
+
+  /// No description provided for @oobeFeatureDevicesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Device connection'**
+  String get oobeFeatureDevicesTitle;
+
+  /// No description provided for @oobeFeatureDevicesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect and manage VelaOS and ZeppOS wearable devices'**
+  String get oobeFeatureDevicesBody;
+
+  /// No description provided for @oobeFeatureResourcesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource center'**
+  String get oobeFeatureResourcesTitle;
+
+  /// No description provided for @oobeFeatureResourcesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Supports the official OronBox source, AstroBox-Repo, BandBBS, and the Amazfit App Store'**
+  String get oobeFeatureResourcesBody;
+
+  /// No description provided for @oobeFeaturePluginsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'JavaScript plugins'**
+  String get oobeFeaturePluginsTitle;
+
+  /// No description provided for @oobeFeaturePluginsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A high-performance, highly extensible JavaScript plugin system with device interaction'**
+  String get oobeFeaturePluginsBody;
+
+  /// No description provided for @oobeFeaturePlatformsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Multi-platform'**
+  String get oobeFeaturePlatformsTitle;
+
+  /// No description provided for @oobeFeaturePlatformsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Available on Android, Windows, macOS, Linux, and Web'**
+  String get oobeFeaturePlatformsBody;
+
+  /// No description provided for @oobeOpenSourceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Fully open source'**
+  String get oobeOpenSourceTitle;
+
+  /// No description provided for @oobeOpenSourceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The OronBox client and server both follow GNU AGPL-3.0 with their complete source code available'**
+  String get oobeOpenSourceBody;
+
+  /// No description provided for @oobeOpenSourceClientLink.
+  ///
+  /// In en, this message translates to:
+  /// **'View client source code'**
+  String get oobeOpenSourceClientLink;
+
+  /// No description provided for @oobeOpenSourceServerLink.
+  ///
+  /// In en, this message translates to:
+  /// **'View server source code'**
+  String get oobeOpenSourceServerLink;
+
+  /// No description provided for @oobeAgreementHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Please read and scroll to the bottom'**
+  String get oobeAgreementHint;
+
+  /// No description provided for @oobeAgreeCheckbox.
+  ///
+  /// In en, this message translates to:
+  /// **'I have read and agree'**
+  String get oobeAgreeCheckbox;
+
+  /// No description provided for @oobeAgreeContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree and continue'**
+  String get oobeAgreeContinue;
+
+  /// No description provided for @oobeAgreedContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Agreed, continue'**
+  String get oobeAgreedContinue;
+
+  /// No description provided for @oobeDeclineExit.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit'**
+  String get oobeDeclineExit;
+
+  /// No description provided for @oobeDeclineWebHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You must accept the agreements to continue; please close this page'**
+  String get oobeDeclineWebHint;
+
+  /// No description provided for @oobeLoginTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect your accounts'**
+  String get oobeLoginTitle;
+
+  /// No description provided for @oobeLoginBandBbsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your BandBBS account to access BandBBS resources and prepare creator services'**
+  String get oobeLoginBandBbsDesc;
+
+  /// No description provided for @oobeLoginLocalNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Xiaomi and Amazfit sign-in run entirely on this device; related data is never sent to any third party other than Xiaomi/Amazfit'**
+  String get oobeLoginLocalNote;
+
+  /// No description provided for @oobeLoginXiaomiDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your Xiaomi account to sync your bound Xiaomi devices'**
+  String get oobeLoginXiaomiDesc;
+
+  /// No description provided for @oobeLoginHuamiDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your Amazfit account to access Amazfit app store resources'**
+  String get oobeLoginHuamiDesc;
+
+  /// No description provided for @oobeCdnTesting.
+  ///
+  /// In en, this message translates to:
+  /// **'Testing...'**
+  String get oobeCdnTesting;
+
+  /// No description provided for @oobeCdnSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Best CDN selected'**
+  String get oobeCdnSelected;
+
+  /// No description provided for @oobeCdnTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub CDN Speed Test'**
+  String get oobeCdnTitle;
+
+  /// No description provided for @oobeDoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'All set'**
+  String get oobeDoneTitle;
+
+  /// No description provided for @oobeDoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Start exploring OronBox'**
+  String get oobeDoneBody;
+
+  /// No description provided for @oobeStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Get started'**
+  String get oobeStart;
+
+  /// No description provided for @oobeFinish.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish'**
+  String get oobeFinish;
+
+  /// No description provided for @settingsReplayOobe.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart guide'**
+  String get settingsReplayOobe;
+
+  /// No description provided for @settingsReplayOobeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'View the welcome guide and initial setup again'**
+  String get settingsReplayOobeDesc;
+
+  /// No description provided for @creatorAuthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Authorized'**
+  String get creatorAuthorized;
+
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// No description provided for @creatorConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get creatorConnect;
+
+  /// No description provided for @creatorReviewItemsProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested changes ({done}/{total} resolved)'**
+  String creatorReviewItemsProgress(Object done, Object total);
 }
 
 class _AppLocalizationsDelegate

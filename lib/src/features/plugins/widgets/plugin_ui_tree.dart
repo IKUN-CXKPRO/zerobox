@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/features/resources/widgets/community_html_content.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/features/resources/widgets/community_html_content.dart';
 
-/// Recursively renders a ZeroBox plugin UI tree.
+/// Recursively renders a OronBox plugin UI tree.
 ///
 /// Accepts either the new tree format `{type, props, children}`
 /// or a legacy flat list (auto-wrapped in Column by the backend).

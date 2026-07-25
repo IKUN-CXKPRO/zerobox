@@ -1,0 +1,1663 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image/image.dart' as img;
+import 'package:url_launcher/url_launcher.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
+import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
+import 'package:oronbox/src/features/resources/domain/creator_publication_plan.dart';
+import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
+import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
+import 'package:oronbox/src/core/wasm/wasm_webp_encoder.dart';
+import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
+import 'package:oronbox/src/features/resources/services/resource_payload_analyzer.dart';
+
+class CreatorEditorView extends StatefulWidget {
+  const CreatorEditorView({
+    super.key,
+    required this.workspace,
+    required this.state,
+    required this.controller,
+    required this.ref,
+  });
+
+  final CreatorWorkspace workspace;
+  final CreatorWorkspaceState state;
+  final CreatorWorkspaceController controller;
+  final WidgetRef ref;
+
+  @override
+  State<CreatorEditorView> createState() => _CreatorEditorViewState();
+}
+
+Widget _publicationLogo(String target) => switch (target) {
+  'bandbbs' => const CreatorBrandLogo(
+    asset: 'assets/images/brands/bandbbs.svg',
+    label: 'BandBBS',
+  ),
+  'astrobox' => const CreatorBrandLogo(
+    asset: 'assets/images/brands/astrobox.svg',
+    label: 'AstroBox',
+  ),
+  _ => const Icon(Icons.inventory_2_outlined),
+};
+
+// BandBBS fan-out publishes one resource per category; the URLs live in
+// status_detail.resources. Older rows only carry a single external_url.
+List<String> _publicationLinkUrls(Map<String, Object?> publication) {
+  final urls = <String>[];
+  final resources =
+      (publication['status_detail'] as Map?)?['resources'] as Map?;
+  if (resources != null) {
+    final categories = resources.keys.map((value) => value.toString()).toList()
+      ..sort((a, b) => (int.tryParse(a) ?? 0).compareTo(int.tryParse(b) ?? 0));
+    for (final category in categories) {
+      final url = (resources[category] as Map?)?['url']?.toString() ?? '';
+      if (url.isNotEmpty) urls.add(url);
+    }
+  }
+  if (urls.isEmpty) {
+    final url = publication['external_url']?.toString() ?? '';
+    if (url.isNotEmpty) urls.add(url);
+  }
+  return urls;
+}
+
+class _CreatorEditorViewState extends State<CreatorEditorView> {
+  late final TextEditingController _name = TextEditingController(
+    text: widget.workspace.latestRevision?.name ?? '',
+  );
+  late final TextEditingController _summary = TextEditingController(
+    text: widget.workspace.latestRevision?.summary ?? '',
+  );
+  final _astroItemId = TextEditingController();
+  final _astroRepository = TextEditingController();
+  final _astroTags = TextEditingController();
+  final _astroAuthor = TextEditingController();
+  bool _publishBandBbs = false;
+  bool _publishAstroBox = false;
+  bool _astroBindABAccount = true;
+  List<Map<String, Object?>>? _publicationCategories;
+  CreatorPublicationPlan? _publicationPlan;
+  bool _loadingPublicationPlan = false;
+  final Map<String, Set<String>> _deviceSelections = {};
+  _DraftAsset? _icon;
+  _DraftAsset? _cover;
+  final List<_DraftAsset> _previews = [];
+  final List<_DraftAsset> _artifacts = [];
+  String _lastAutoItemId = '';
+  String _lastAutoRepo = '';
+  String _publishStage = '';
+  double _publishStageProgress = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _seedAssets();
+    for (final publication in widget.workspace.publications) {
+      final config = publication['config'] is Map
+          ? (publication['config'] as Map).cast<String, Object?>()
+          : const <String, Object?>{};
+      switch (publication['target']) {
+        case 'bandbbs':
+          _publishBandBbs = true;
+        case 'astrobox':
+          _publishAstroBox = true;
+          _astroItemId.text = config['item_id']?.toString() ?? '';
+          _astroRepository.text = config['repo_name']?.toString() ?? '';
+          _astroTags.text = (config['tags'] as List? ?? const []).join(', ');
+          _astroAuthor.text = config['author']?.toString() ?? '';
+          _astroBindABAccount = config['bind_ab_account'] != false;
+      }
+    }
+    if (_astroAuthor.text.isEmpty) {
+      _astroAuthor.text =
+          widget.ref.read(hostAccountsProvider).bandbbs.username ?? '';
+    }
+    _autoFillAstroItemId();
+    if (_publishBandBbs) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _loadPublicationPlan(),
+      );
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _hydratePreviews());
+  }
+
+  void _seedAssets() {
+    for (final media in widget.workspace.media) {
+      final asset = _DraftAsset(
+        key: media.id,
+        name: media.role,
+        sha256: media.sha256,
+        sizeBytes: media.sizeBytes,
+        width: media.width,
+        height: media.height,
+      );
+      switch (media.role) {
+        case 'icon':
+          _icon ??= asset;
+        case 'cover':
+          _cover ??= asset;
+        case 'preview':
+          if (_previews.every((item) => item.key != asset.key)) {
+            _previews.add(asset);
+          }
+      }
+    }
+    for (final artifact in widget.workspace.artifacts) {
+      if (_artifacts.any((item) => item.key == artifact.id)) continue;
+      _artifacts.add(
+        _DraftAsset(
+          key: artifact.id,
+          name: artifact.name,
+          sha256: artifact.sha256,
+          sizeBytes: artifact.sizeBytes,
+          packageId: artifact.packageId,
+          version: artifact.version,
+          type: artifact.analysisKind == 'watchface'
+              ? 'velaos_watchface'
+              : 'velaos_quickapp',
+        ),
+      );
+      _deviceSelections[artifact.id] = artifact.devices.toSet();
+    }
+  }
+
+  Future<void> _hydratePreviews() async {
+    for (final asset in [_icon, _cover, ..._previews]) {
+      if (asset == null || asset.bytes != null || asset.sha256.isEmpty) {
+        continue;
+      }
+      try {
+        final bytes = await widget.controller.blob(
+          widget.workspace.resource.id,
+          asset.sha256,
+        );
+        if (mounted && _contains(asset)) {
+          setState(() => asset.bytes = bytes);
+        }
+      } catch (_) {}
+    }
+  }
+
+  bool _contains(_DraftAsset asset) =>
+      identical(_icon, asset) ||
+      identical(_cover, asset) ||
+      _previews.any((item) => identical(item, asset));
+
+  void _autoFillAstroItemId() {
+    final candidate = _artifacts
+        .map((artifact) => artifact.packageId)
+        .firstWhere((id) => id.isNotEmpty, orElse: () => '');
+    if (candidate.isEmpty) return;
+    if (_astroItemId.text.isEmpty || _astroItemId.text == _lastAutoItemId) {
+      _astroItemId.text = candidate;
+      _lastAutoItemId = candidate;
+    }
+    final repoCandidate = 'astrobox-resource-$candidate';
+    if (_astroRepository.text.isEmpty ||
+        _astroRepository.text == _lastAutoRepo) {
+      _astroRepository.text = repoCandidate;
+      _lastAutoRepo = repoCandidate;
+    }
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _summary.dispose();
+    _astroItemId.dispose();
+    _astroRepository.dispose();
+    _astroTags.dispose();
+    _astroAuthor.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final workspace = widget.workspace;
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            children: [
+              if (widget.state.error != null) ...[
+                MaterialBanner(
+                  content: Text(widget.state.error!),
+                  actions: [
+                    TextButton(
+                      onPressed: widget.controller.refresh,
+                      child: Text(l10n.refresh),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (workspace.review case final review?) ...[
+                CreatorReviewFeedback(review: review),
+                const SizedBox(height: 16),
+              ],
+              if (workspace.publications.isNotEmpty) ...[
+                Card(
+                  color: colors.surfaceContainerHigh,
+                  margin: EdgeInsets.zero,
+                  child: Column(
+                    children: [
+                      for (final publication in workspace.publications)
+                        ListTile(
+                          dense: true,
+                          leading: _publicationLogo(
+                            publication['target']?.toString() ?? '',
+                          ),
+                          title: Text(
+                            creatorTargetLabel(
+                              l10n,
+                              publication['target']?.toString() ?? '',
+                            ),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (publication['error_message']
+                                      ?.toString()
+                                      .isNotEmpty ==
+                                  true)
+                                Text(publication['error_message'].toString()),
+                              for (final url in _publicationLinkUrls(
+                                publication,
+                              ))
+                                InkWell(
+                                  onTap: () => launchUrl(Uri.parse(url)),
+                                  child: Text(
+                                    url,
+                                    style: TextStyle(
+                                      color: colors.primary,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          trailing: CreatorStateBadge(
+                            state: publication['state']?.toString() ?? '',
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              CreatorSectionTitle(
+                icon: Icons.description_outlined,
+                title: l10n.basicInfo,
+              ),
+              const SizedBox(height: 8),
+              _EditorCard(
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _name,
+                      decoration: InputDecoration(
+                        labelText: l10n.creatorResourceName,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _summary,
+                      minLines: 3,
+                      maxLines: 8,
+                      decoration: InputDecoration(
+                        labelText: l10n.creatorResourceSummary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              CreatorSectionTitle(
+                icon: Icons.collections_outlined,
+                title: l10n.creatorIconCover,
+              ),
+              const SizedBox(height: 8),
+              Builder(
+                builder: (context) {
+                  const iconWidth = 168.0;
+                  const previewHeight = iconWidth - 24;
+                  const coverWidth = previewHeight * 1.5 + 24;
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      SizedBox(
+                        width: iconWidth,
+                        child: _mediaRoleCard(
+                          l10n,
+                          'icon',
+                          previewHeight: previewHeight,
+                        ),
+                      ),
+                      SizedBox(
+                        width: coverWidth,
+                        child: _mediaRoleCard(
+                          l10n,
+                          'cover',
+                          previewHeight: previewHeight,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              CreatorSectionTitle(
+                icon: Icons.photo_library_outlined,
+                title: l10n.previewImages,
+              ),
+              const SizedBox(height: 8),
+              if (_previews.isNotEmpty)
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    for (var index = 0; index < _previews.length; index++)
+                      _previewCard(l10n, index),
+                  ],
+                ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.tonalIcon(
+                  onPressed: widget.state.loading ? null : _pickPreview,
+                  icon: const Icon(Icons.add_photo_alternate_outlined),
+                  label: Text(l10n.add),
+                ),
+              ),
+              const SizedBox(height: 24),
+              CreatorSectionTitle(
+                icon: Icons.inventory_2_outlined,
+                title: l10n.packageFiles,
+              ),
+              const SizedBox(height: 8),
+              for (var index = 0; index < _artifacts.length; index++) ...[
+                _artifactCard(l10n, index),
+                const SizedBox(height: 12),
+              ],
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.tonalIcon(
+                  onPressed: widget.state.loading ? null : _pickArtifact,
+                  icon: const Icon(Icons.upload_file_outlined),
+                  label: Text(l10n.creatorAddArtifact),
+                ),
+              ),
+              const SizedBox(height: 24),
+              CreatorSectionTitle(
+                icon: Icons.publish_outlined,
+                title: l10n.publishTargets,
+              ),
+              const SizedBox(height: 8),
+              _publicationEditor(l10n),
+            ],
+          ),
+        ),
+        CreatorBottomBar(
+          children: [
+            if (widget.workspace.revisions.isNotEmpty)
+              TextButton.icon(
+                onPressed: widget.state.loading ? null : _toggleArchive,
+                icon: Icon(
+                  widget.workspace.resource.state == 'archived'
+                      ? Icons.unarchive_outlined
+                      : Icons.archive_outlined,
+                ),
+                label: Text(
+                  widget.workspace.resource.state == 'archived'
+                      ? l10n.creatorRestoreAction
+                      : l10n.creatorArchiveAction,
+                ),
+              ),
+            TextButton.icon(
+              onPressed: widget.state.loading ? null : _confirmDelete,
+              icon: const Icon(Icons.delete_outline),
+              label: Text(l10n.creatorDeleteResource),
+            ),
+            const Spacer(),
+            if (_publishStage.isNotEmpty ||
+                widget.state.publishProgress != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: LinearProgressIndicator(
+                        value: _publishStage.isNotEmpty
+                            ? (_publishStageProgress > 0
+                                  ? _publishStageProgress
+                                  : null)
+                            : switch (widget.state.publishProgress) {
+                                null => null,
+                                final progress =>
+                                  progress >= 1 ? null : progress,
+                              },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _publishStage.isNotEmpty
+                          ? _publishStage
+                          : switch (widget.state.publishProgress) {
+                              null => '',
+                              final progress =>
+                                progress >= 1
+                                    ? l10n.creatorPublishServer
+                                    : l10n.creatorPublishUploading(
+                                        (progress * 100).round(),
+                                      ),
+                            },
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                  ],
+                ),
+              ),
+            FilledButton.icon(
+              onPressed: widget.state.loading || !_canPublish ? null : _publish,
+              icon: Icon(
+                widget.state.loading
+                    ? Icons.hourglass_top_rounded
+                    : Icons.send_outlined,
+              ),
+              label: Text(
+                widget.state.loading
+                    ? creatorOperationLabel(l10n, widget.state.operation)
+                    : l10n.creatorSubmitReview,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  bool get _canPublish {
+    if (_name.text.trim().isEmpty) return false;
+    if (_artifacts.isEmpty || _previews.isEmpty) return false;
+    for (final artifact in _artifacts) {
+      if ((_deviceSelections[artifact.key] ?? const <String>{}).isEmpty) {
+        return false;
+      }
+    }
+    if (_publishBandBbs &&
+        (!_bandBbsPublishingAuthorized ||
+            _publicationPlan?.canPublishToBandBbs != true)) {
+      return false;
+    }
+    if (_publishAstroBox &&
+        (!_githubPublishingAuthorized ||
+            _icon == null ||
+            _cover == null ||
+            _astroItemId.text.trim().isEmpty ||
+            _astroRepository.text.trim().isEmpty ||
+            _astroTags.text.trim().isEmpty)) {
+      return false;
+    }
+    return true;
+  }
+
+  bool get _bandBbsPublishingAuthorized =>
+      widget.state.grants['bandbbs_publish'] == true;
+
+  bool get _githubPublishingAuthorized =>
+      (widget.state.grants['github_login']?.toString() ?? '').isNotEmpty;
+
+  Future<PlatformFile?> _pickFile({bool image = false}) async {
+    final picked = await FilePicker.pickFiles(
+      type: image ? FileType.image : FileType.any,
+      withData: true,
+    );
+    final file = picked?.files.singleOrNull;
+    if (file == null || file.bytes == null) return null;
+    return file;
+  }
+
+  Future<void> _pickMediaRole(String role) => _run(() async {
+    final file = await _pickFile(image: true);
+    if (file == null || !mounted) return;
+    final asset = await _processedImageAsset(
+      file.bytes!,
+      maxDimension: role == 'icon' ? 256 : 1500,
+    );
+    if (!mounted) return;
+    if (asset == null) {
+      _showFailure(AppLocalizations.of(context)!.creatorInvalidImage);
+      return;
+    }
+    setState(() {
+      if (role == 'icon') {
+        _icon = asset;
+      } else {
+        _cover = asset;
+      }
+    });
+  });
+
+  Future<void> _pickPreview() => _run(() async {
+    final file = await _pickFile(image: true);
+    if (file == null || !mounted) return;
+    final asset = await _processedImageAsset(file.bytes!);
+    if (!mounted) return;
+    if (asset == null) {
+      _showFailure(AppLocalizations.of(context)!.creatorInvalidImage);
+      return;
+    }
+    setState(() => _previews.add(asset));
+  });
+
+  Future<void> _replacePreview(int index) => _run(() async {
+    final file = await _pickFile(image: true);
+    if (file == null || !mounted) return;
+    final asset = await _processedImageAsset(file.bytes!);
+    if (!mounted) return;
+    if (asset == null) {
+      _showFailure(AppLocalizations.of(context)!.creatorInvalidImage);
+      return;
+    }
+    setState(() => _previews[index] = asset);
+  });
+
+  Future<_DraftAsset?> _processedImageAsset(
+    Uint8List raw, {
+    int maxDimension = 1500,
+  }) async {
+    final decoded = img.decodeImage(raw);
+    if (decoded == null) return null;
+    var processed = decoded;
+    if (decoded.width > maxDimension || decoded.height > maxDimension) {
+      final width = decoded.width >= decoded.height
+          ? maxDimension
+          : (decoded.width * maxDimension / decoded.height).round();
+      final height = decoded.width >= decoded.height
+          ? (decoded.height * maxDimension / decoded.width).round()
+          : maxDimension;
+      processed = img.copyResize(
+        decoded,
+        width: width,
+        height: height,
+        interpolation: img.Interpolation.cubic,
+      );
+    }
+    final key = 'local-${DateTime.now().microsecondsSinceEpoch}';
+    // getBytes() emits the image's own channel count; RGB sources would be
+    // misread as RGBA by the encoder, so normalize to 4 channels first.
+    processed = processed.convert(numChannels: 4);
+    try {
+      final encoder = await WasmWebpEncoder.instance();
+      final webp = encoder.encode(
+        processed.getBytes(),
+        processed.width,
+        processed.height,
+      );
+      if (webp != null) {
+        return _DraftAsset(
+          key: key,
+          name: 'image.webp',
+          bytes: webp,
+          width: processed.width,
+          height: processed.height,
+        );
+      }
+    } catch (_) {}
+    return _DraftAsset(
+      key: key,
+      name: 'image.png',
+      bytes: Uint8List.fromList(img.encodePng(processed)),
+      width: processed.width,
+      height: processed.height,
+    );
+  }
+
+  Future<void> _pickArtifact([_DraftAsset? replace]) => _run(() async {
+    final l10n = AppLocalizations.of(context)!;
+    final file = await _pickFile();
+    if (file == null || !mounted) return;
+    final analysis = widget.ref
+        .read(resourceInstallServiceProvider)
+        .analyzePayload(
+          fileName: file.name,
+          bytes: file.bytes!,
+          source: 'creator',
+        );
+    final isApp = analysis?.type == LocalDeviceInstallType.app;
+    final isWatchface = analysis?.type == LocalDeviceInstallType.watchface;
+    if (analysis == null ||
+        analysis.platform != ResourcePlatform.vela ||
+        (!isApp && !isWatchface)) {
+      _showFailure(l10n.creatorInvalidPackage);
+      return;
+    }
+    final expectApp =
+        widget.workspace.resource.kind == CreatorResourceKind.quickApp;
+    if (expectApp != isApp) {
+      _showFailure(
+        l10n.creatorKindMismatchMessage(
+          isApp ? l10n.quickApp : l10n.watchface,
+          creatorKindLabel(l10n, widget.workspace.resource.kind),
+        ),
+      );
+      return;
+    }
+    final asset = _DraftAsset(
+      key: replace?.key ?? 'local-${DateTime.now().microsecondsSinceEpoch}',
+      name: file.name,
+      bytes: analysis.payload,
+      packageId: analysis.identifier ?? '',
+      version: analysis.version ?? '',
+      type: isApp ? 'velaos_quickapp' : 'velaos_watchface',
+    );
+    setState(() {
+      if (replace == null) {
+        _artifacts.add(asset);
+        _deviceSelections[asset.key] = <String>{};
+      } else {
+        final index = _artifacts.indexWhere(
+          (item) => item.key == replace.key,
+        );
+        if (index >= 0) _artifacts[index] = asset;
+      }
+    });
+    _autoFillAstroItemId();
+    _rebuildPlan();
+  });
+
+  void _removeArtifact(String key) {
+    setState(() {
+      _artifacts.removeWhere((item) => item.key == key);
+      _deviceSelections.remove(key);
+    });
+    _rebuildPlan();
+  }
+
+  void _toggleDevice(String artifactKey, String deviceId, bool checked) {
+    if (checked) {
+      for (final other in _artifacts) {
+        if (other.key == artifactKey) continue;
+        final otherSelection = _deviceSelections[other.key];
+        if (otherSelection == null || !otherSelection.contains(deviceId)) {
+          continue;
+        }
+        if (otherSelection.length <= 1) {
+          final l10n = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(l10n.creatorDeviceMoveBlocked(other.name)),
+              ),
+            );
+          return;
+        }
+        setState(() => otherSelection.remove(deviceId));
+      }
+    }
+    final selection = _deviceSelections[artifactKey] ??= <String>{};
+    if (!checked && selection.length <= 1) return;
+    setState(() {
+      checked ? selection.add(deviceId) : selection.remove(deviceId);
+    });
+    _rebuildPlan();
+  }
+
+  Future<void> _loadPublicationPlan({bool refresh = false}) async {
+    if (_loadingPublicationPlan) return;
+    setState(() => _loadingPublicationPlan = true);
+    try {
+      if (refresh || _publicationCategories == null) {
+        _publicationCategories = await widget.controller
+            .bandBbsPublicationCategories();
+      }
+      _rebuildPlan();
+    } catch (error) {
+      if (mounted) showCreatorFailure(context, error);
+    } finally {
+      if (mounted) setState(() => _loadingPublicationPlan = false);
+    }
+  }
+
+  void _rebuildPlan() {
+    final categories = _publicationCategories;
+    if (categories == null || !_publishBandBbs) return;
+    final synthetic = CreatorWorkspace(
+      resource: widget.workspace.resource,
+      artifacts: [
+        for (final asset in _artifacts)
+          CreatorArtifact(
+            id: asset.key,
+            name: asset.name,
+            sha256: '',
+            packageId: asset.packageId,
+            version: asset.version,
+            devices: (_deviceSelections[asset.key] ?? const <String>{})
+                .toList(),
+          ),
+      ],
+    );
+    final plan = buildCreatorPublicationPlan(
+      workspace: synthetic,
+      devices: widget.state.devices,
+      bandBbsCategories: categories,
+    );
+    if (mounted) setState(() => _publicationPlan = plan);
+  }
+
+  Future<void> _publish() async {
+    final l10n = AppLocalizations.of(context)!;
+    final plans = <Map<String, Object?>>[
+      {'target': 'oronbox', 'config': <String, Object?>{}},
+      if (_publishBandBbs)
+        {
+          'target': 'bandbbs',
+          'config': <String, Object?>{
+            'agreement': true,
+            'targets': [
+              for (final target
+                  in _publicationPlan?.bandBbsTargets ??
+                      const <CreatorBandBbsTarget>[])
+                target.toJson(),
+            ],
+          },
+        },
+      if (_publishAstroBox)
+        {
+          'target': 'astrobox',
+          'config': <String, Object?>{
+            'item_id': _astroItemId.text.trim(),
+            'repo_name': _astroRepository.text.trim(),
+            'tags': _astroTags.text
+                .split(RegExp(r'[,;，；]'))
+                .map((value) => value.trim())
+                .where((value) => value.isNotEmpty)
+                .toList(),
+            'author': _astroAuthor.text.trim(),
+            'bind_ab_account': _astroBindABAccount,
+            'agreement': true,
+          },
+        },
+    ];
+    final summary = <String>[
+      l10n.creatorConfirmOronBox,
+      if (_publishBandBbs)
+        l10n.creatorConfirmBandBbs(
+          (_publicationPlan?.bandBbsTargets ?? const <CreatorBandBbsTarget>[])
+              .map((target) => target.categoryName)
+              .join(' / '),
+        ),
+      if (_publishAstroBox)
+        l10n.creatorConfirmAstroBox(
+          widget.state.grants['github_login']?.toString() ?? 'GitHub',
+          _astroRepository.text.trim(),
+        ),
+    ].join('\n\n');
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.creatorConfirmTitle),
+        content: Text(summary),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.creatorSubmitReview),
+          ),
+        ],
+      ),
+    );
+    if (accepted != true) return;
+    await _run(() async {
+      final missing = [
+        for (final asset in [_icon, _cover, ..._previews, ..._artifacts])
+          if (asset != null && asset.bytes == null) asset,
+      ];
+      var fetched = 0;
+      for (final asset in missing) {
+        if (!mounted) return;
+        setState(() {
+          _publishStage = l10n.creatorPublishPreparing(
+            fetched + 1,
+            missing.length + 1,
+          );
+          _publishStageProgress = fetched / (missing.length + 1);
+        });
+        asset.bytes = await widget.controller.blob(
+          widget.workspace.resource.id,
+          asset.sha256,
+        );
+        fetched++;
+      }
+      if (mounted) {
+        setState(() {
+          _publishStage = l10n.creatorPublishPreparing(
+            missing.length + 1,
+            missing.length + 1,
+          );
+          _publishStageProgress = 1;
+        });
+      }
+      final bundle = _buildBundle(plans);
+      if (mounted) setState(() => _publishStage = '');
+      try {
+        await widget.controller.publish(bundle: bundle);
+      } finally {
+        if (mounted) {
+          setState(() {
+            _publishStage = '';
+            _publishStageProgress = 0;
+          });
+        }
+      }
+    });
+  }
+
+  Uint8List _buildBundle(List<Map<String, Object?>> publications) {
+    final archive = Archive();
+    void addFile(String path, Uint8List bytes) =>
+        archive.addFile(ArchiveFile(path, bytes.length, bytes));
+    String digest(Uint8List bytes) => sha256.convert(bytes).toString();
+    Map<String, Object?> mediaRef(_DraftAsset asset, String path) => {
+      'file': path,
+      'sha256': digest(asset.bytes!),
+      'width': asset.width,
+      'height': asset.height,
+    };
+    String pathOf(String stem, _DraftAsset asset) =>
+        asset.name.endsWith('.webp') ? '$stem.webp' : '$stem.png';
+    final media = <String, Object?>{};
+    if (_icon case final icon?) {
+      final path = pathOf('media/icon', icon);
+      addFile(path, icon.bytes!);
+      media['icon'] = mediaRef(icon, path);
+    }
+    if (_cover case final cover?) {
+      final path = pathOf('media/cover', cover);
+      addFile(path, cover.bytes!);
+      media['cover'] = mediaRef(cover, path);
+    }
+    media['previews'] = [
+      for (var index = 0; index < _previews.length; index++)
+        () {
+          final path = pathOf('media/preview-$index', _previews[index]);
+          addFile(path, _previews[index].bytes!);
+          return mediaRef(_previews[index], path);
+        }(),
+    ];
+    final artifacts = [
+      for (var index = 0; index < _artifacts.length; index++)
+        () {
+          final asset = _artifacts[index];
+          final path = 'artifacts/$index.bin';
+          addFile(path, asset.bytes!);
+          return <String, Object?>{
+            'file': path,
+            'original_name': asset.name,
+            'type': asset.type,
+            'package_id': asset.packageId,
+            'package_version': asset.version,
+            'sha256': digest(asset.bytes!),
+            'device_ids': (_deviceSelections[asset.key] ?? const <String>{})
+                .toList(),
+          };
+        }(),
+    ];
+    final manifest = utf8.encode(
+      jsonEncode({
+        'version': 1,
+        'kind': widget.workspace.resource.kind == CreatorResourceKind.watchface
+            ? 'watchface'
+            : 'quickapp',
+        'name': _name.text.trim(),
+        'summary': _summary.text.trim(),
+        'media': media,
+        'artifacts': artifacts,
+        'publications': plansForManifest(publications),
+      }),
+    );
+    addFile('manifest.json', manifest);
+    return Uint8List.fromList(ZipEncoder().encode(archive));
+  }
+
+  List<Map<String, Object?>> plansForManifest(
+    List<Map<String, Object?>> publications,
+  ) => [
+    for (final publication in publications)
+      if (publication['target'] != 'oronbox') publication,
+  ];
+
+  void _showFailure(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String? _assetMeta(_DraftAsset? asset) {
+    if (asset == null) return null;
+    final parts = [
+      if (asset.width > 0 && asset.height > 0)
+        '${asset.width} × ${asset.height}',
+      if (asset.size != null) formatCreatorFileSize(asset.size!),
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
+  Widget _mediaRoleCard(
+    AppLocalizations l10n,
+    String role, {
+    required double previewHeight,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    final asset = role == 'icon' ? _icon : _cover;
+    final label = switch ((role, _publishAstroBox)) {
+      ('icon', true) => l10n.creatorRequiredIcon,
+      ('cover', true) => l10n.creatorRequiredCover,
+      ('icon', _) => l10n.creatorOptionalIcon,
+      (_, _) => l10n.creatorOptionalCover,
+    };
+    final shapeHint =
+        asset == null ||
+            asset.width <= 0 ||
+            asset.height <= 0 ||
+            !_publishAstroBox
+        ? null
+        : switch (role) {
+            'icon' => asset.width != asset.height
+                ? l10n.creatorIconShapeHint
+                : null,
+            _ => (asset.width / asset.height - 1.5).abs() > 0.02
+                ? l10n.creatorCoverShapeHint
+                : null,
+          };
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: previewHeight,
+            child: _mediaPreviewBox(colors, role, asset),
+          ),
+          const SizedBox(height: 10),
+          Text(label, style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 2),
+          Text(
+            _assetMeta(asset) ?? ' ',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+          if (shapeHint != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              shapeHint,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: colors.error),
+            ),
+          ],
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: widget.state.loading
+                    ? null
+                    : () => _pickMediaRole(role),
+                icon: const Icon(Icons.file_upload_outlined, size: 18),
+                label: Text(asset == null ? l10n.add : l10n.replace),
+              ),
+              if (asset != null)
+                TextButton(
+                  onPressed: widget.state.loading
+                      ? null
+                      : () => setState(() {
+                          if (role == 'icon') {
+                            _icon = null;
+                          } else {
+                            _cover = null;
+                          }
+                        }),
+                  style: TextButton.styleFrom(foregroundColor: colors.error),
+                  child: Text(l10n.delete),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mediaPreviewBox(
+    ColorScheme colors,
+    String role,
+    _DraftAsset? asset,
+  ) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: ColoredBox(
+        color: colors.surfaceContainerHighest,
+        child: asset?.bytes != null
+            ? Image.memory(
+                asset!.bytes!,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+              )
+            : Center(
+                child: Icon(
+                  role == 'icon'
+                      ? Icons.image_outlined
+                      : Icons.panorama_outlined,
+                  size: 40,
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _previewCard(AppLocalizations l10n, int index) {
+    const previewHeight = 144.0;
+    final colors = Theme.of(context).colorScheme;
+    final asset = _previews[index];
+    final aspect = asset.width > 0 && asset.height > 0
+        ? asset.width / asset.height
+        : 16 / 10;
+    return SizedBox(
+      width: previewHeight * aspect + 16,
+      child: Container(
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    height: previewHeight,
+                    child: ColoredBox(
+                      color: colors.surfaceContainerHighest,
+                      child: asset.bytes != null
+                          ? Image.memory(
+                              asset.bytes!,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                            )
+                          : Center(
+                              child: Icon(
+                                Icons.image_outlined,
+                                color: colors.onSurfaceVariant,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 6,
+                  left: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest.withValues(
+                        alpha: 0.9,
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '#${index + 1}',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _assetMeta(asset) ?? '',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                _cardAction(
+                  icon: Icons.sync,
+                  tooltip: l10n.replace,
+                  onPressed: widget.state.loading
+                      ? null
+                      : () => _replacePreview(index),
+                ),
+                _cardAction(
+                  icon: Icons.delete_outline,
+                  tooltip: l10n.delete,
+                  onPressed: widget.state.loading
+                      ? null
+                      : () => setState(() => _previews.removeAt(index)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _cardAction({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback? onPressed,
+  }) {
+    return IconButton(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+      padding: EdgeInsets.zero,
+    );
+  }
+
+  Widget _artifactCard(AppLocalizations l10n, int index) {
+    final colors = Theme.of(context).colorScheme;
+    final asset = _artifacts[index];
+    final selected = _deviceSelections[asset.key] ?? const <String>{};
+    final meta = [
+      if (asset.packageId.isNotEmpty) asset.packageId,
+      if (asset.version.isNotEmpty) asset.version,
+      if (asset.size != null) formatCreatorFileSize(asset.size!),
+    ].join(' · ');
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: colors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.insert_drive_file_outlined),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      asset.name,
+                      style: Theme.of(context).textTheme.titleSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (meta.isNotEmpty)
+                      Text(
+                        meta,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ),
+              TextButton.icon(
+                onPressed: widget.state.loading
+                    ? null
+                    : () => _pickArtifact(asset),
+                icon: const Icon(Icons.sync, size: 18),
+                label: Text(l10n.replace),
+              ),
+              TextButton(
+                onPressed: widget.state.loading
+                    ? null
+                    : () => _removeArtifact(asset.key),
+                style: TextButton.styleFrom(foregroundColor: colors.error),
+                child: Text(l10n.delete),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.creatorBindDevices,
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final device in widget.state.devices)
+                FilterChip(
+                  selected: selected.contains(device.id),
+                  label: Text(device.name),
+                  onSelected: widget.state.loading
+                      ? null
+                      : (checked) => _toggleDevice(asset.key, device.id, checked),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _publicationEditor(AppLocalizations l10n) {
+    final grants = widget.state.grants;
+    final githubLogin = grants['github_login']?.toString() ?? '';
+    final bandAuthorized = grants['bandbbs_publish'] == true;
+    return _EditorCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.inventory_2_outlined),
+            title: const Text('OronBox'),
+            subtitle: Text(l10n.creatorOronBoxRequired),
+            trailing: const Switch(value: true, onChanged: null),
+          ),
+          SwitchListTile(
+            value: _publishBandBbs,
+            onChanged: bandAuthorized
+                ? (value) async {
+                    if (value && !await _confirmTargetTerms('bandbbs')) {
+                      return;
+                    }
+                    setState(() => _publishBandBbs = value);
+                    if (value) _loadPublicationPlan();
+                  }
+                : null,
+            secondary: const CreatorBrandLogo(
+              asset: 'assets/images/brands/bandbbs.svg',
+              label: 'BandBBS',
+            ),
+            title: const Text('BandBBS'),
+            subtitle: Text(l10n.creatorBandBbsDirectPublish),
+          ),
+          if (_publishBandBbs) ...[
+            ListTile(
+              title: Text(
+                bandAuthorized
+                    ? l10n.creatorBandBbsAuthorized
+                    : l10n.creatorBandBbsAuthorizationRequired,
+              ),
+              trailing: FilledButton.tonal(
+                onPressed: bandAuthorized ? null : _authorizeBandBbs,
+                child: Text(
+                  bandAuthorized ? l10n.creatorAuthorized : l10n.creatorConnect,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_loadingPublicationPlan)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.hourglass_top_rounded),
+                      title: Text(l10n.creatorResolvingPublicationTarget),
+                    )
+                  else if (_publicationPlan?.bandBbsProblem case final problem?)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.error_outline),
+                      title: Text(l10n.creatorBandBbsUnresolved),
+                      subtitle: Text(_bandBbsProblemText(l10n, problem)),
+                      trailing: IconButton(
+                        onPressed: () => _loadPublicationPlan(refresh: true),
+                        icon: const Icon(Icons.refresh),
+                      ),
+                    )
+                  else if (_publicationPlan case final plan?)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.auto_awesome_outlined),
+                      title: Text(
+                        plan.bandBbsTargets
+                            .map((target) => target.categoryName)
+                            .join(' / '),
+                      ),
+                      subtitle: Text(
+                        plan.bandBbsTargets
+                            .map(
+                              (target) =>
+                                  '${target.categoryName}: ${target.packageName} (${target.deviceNames.join(', ')})',
+                            )
+                            .join('\n'),
+                      ),
+                      trailing: IconButton(
+                        onPressed: () => _loadPublicationPlan(refresh: true),
+                        icon: const Icon(Icons.refresh),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+          SwitchListTile(
+            value: _publishAstroBox,
+            onChanged: (value) async {
+              if (value && !await _confirmTargetTerms('astrobox')) return;
+              setState(() => _publishAstroBox = value);
+            },
+            secondary: const CreatorBrandLogo(
+              asset: 'assets/images/brands/astrobox.svg',
+              label: 'AstroBox',
+            ),
+            title: const Text('AstroBox-Repo'),
+            subtitle: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _astroRepository,
+              builder: (context, value, _) =>
+                  Text(l10n.creatorAstroBoxPrPublish(value.text.trim())),
+            ),
+          ),
+          if (_publishAstroBox) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _astroItemId,
+                    decoration: InputDecoration(
+                      labelText: l10n.creatorAstroBoxItemId,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _astroRepository,
+                    decoration: InputDecoration(
+                      labelText: l10n.creatorAstroBoxRepository,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _astroTags,
+                    decoration: InputDecoration(
+                      labelText: l10n.creatorAstroBoxTags,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _astroAuthor,
+                    decoration: InputDecoration(
+                      labelText: l10n.creatorAstroBoxAuthor,
+                    ),
+                  ),
+                  CheckboxListTile(
+                    value: _astroBindABAccount,
+                    onChanged: (value) => setState(
+                      () => _astroBindABAccount = value == true,
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: Text(l10n.creatorAstroBoxBindAccount),
+                  ),
+                  if (githubLogin.isEmpty)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.error_outline),
+                      title: Text(l10n.creatorGitHubOwnPublishMissing),
+                      trailing: FilledButton.tonal(
+                        onPressed: _authorizeGitHub,
+                        child: Text(l10n.creatorConnect),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _bandBbsProblemText(
+    AppLocalizations l10n,
+    CreatorBandBbsPlanProblem problem,
+  ) => switch (problem) {
+    CreatorBandBbsPlanProblem.noDevices => l10n.creatorBandBbsNoDevices,
+    CreatorBandBbsPlanProblem.unmappedDevices =>
+      l10n.creatorBandBbsUnmappedDevices(
+        _publicationPlan?.unmappedDeviceNames.join(', ') ?? '',
+      ),
+    CreatorBandBbsPlanProblem.sharedCategoryArtifacts =>
+      l10n.creatorBandBbsSharedCategory,
+  };
+
+  Future<bool> _confirmTargetTerms(String target) async {
+    final l10n = AppLocalizations.of(context)!;
+    final isBandBbs = target == 'bandbbs';
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isBandBbs ? 'BandBBS' : 'AstroBox-Repo'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isBandBbs
+                  ? l10n.creatorBandBbsTermsNotice
+                  : l10n.creatorAstroBoxTermsNotice,
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => launchUrl(
+                isBandBbs
+                    ? Uri.https('www.bandbbs.cn', '/help/terms/')
+                    : Uri.https(
+                        'github.com',
+                        '/AstralSightStudios/AstroBox-Repo/blob/main/assets/docs/submission_standards.md',
+                      ),
+              ),
+              icon: CreatorBrandLogo(
+                asset: isBandBbs
+                    ? 'assets/images/brands/bandbbs.svg'
+                    : 'assets/images/brands/astrobox.svg',
+                label: isBandBbs ? 'BandBBS' : 'AstroBox',
+                size: 18,
+              ),
+              label: Text(
+                isBandBbs
+                    ? l10n.creatorTermsBandBbs
+                    : l10n.creatorTermsAstroBox,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.agree),
+          ),
+        ],
+      ),
+    );
+    return accepted == true;
+  }
+
+  Future<void> _authorizeBandBbs() async {
+    await _run(
+      widget.ref
+          .read(hostAccountsProvider.notifier)
+          .startBandBbsPublishingAuthorization,
+    );
+  }
+
+  Future<void> _authorizeGitHub() async {
+    await _run(() async {
+      final started = await widget.controller.startGitHubAuthorization();
+      final flowId = started['flow_id']?.toString() ?? '';
+      final uri = Uri.tryParse(started['authorization_url']?.toString() ?? '');
+      if (flowId.isEmpty || uri == null || !await launchUrl(uri)) return;
+      for (var attempt = 0; attempt < 60 && mounted; attempt++) {
+        await Future<void>.delayed(const Duration(seconds: 2));
+        if (await widget.controller.pollGitHubAuthorization(flowId)) break;
+      }
+    });
+  }
+
+  Future<void> _toggleArchive() async {
+    final l10n = AppLocalizations.of(context)!;
+    final archived = widget.workspace.resource.state == 'archived';
+    if (archived) {
+      await _run(() => widget.controller.archive(false));
+      return;
+    }
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.creatorArchiveAction),
+        content: Text(l10n.creatorArchiveConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.creatorArchiveAction),
+          ),
+        ],
+      ),
+    );
+    if (accepted == true) {
+      await _run(() => widget.controller.archive(true));
+    }
+  }
+
+  Future<void> _confirmDelete() async {
+    final l10n = AppLocalizations.of(context)!;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.creatorDeleteResource),
+        content: Text(
+          widget.workspace.revisions.isEmpty
+              ? l10n.creatorDeleteConfirm
+              : l10n.creatorDeletePublishedConfirm,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.creatorDeleteResource),
+          ),
+        ],
+      ),
+    );
+    if (accepted == true) {
+      await _run(widget.controller.deleteResource);
+    }
+  }
+
+  Future<void> _run(Future<void> Function() operation) async {
+    try {
+      await operation();
+    } catch (error) {
+      if (mounted) showCreatorFailure(context, error);
+    }
+  }
+}
+
+class _EditorCard extends StatelessWidget {
+  const _EditorCard({required this.child, this.padding});
+
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: padding ?? const EdgeInsets.all(16),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _DraftAsset {
+  _DraftAsset({
+    required this.key,
+    required this.name,
+    this.bytes,
+    this.sha256 = '',
+    this.sizeBytes = 0,
+    this.width = 0,
+    this.height = 0,
+    this.packageId = '',
+    this.version = '',
+    this.type = '',
+  });
+
+  final String key;
+  final String name;
+  Uint8List? bytes;
+  final String sha256;
+  final int sizeBytes;
+  int width;
+  int height;
+  final String packageId;
+  final String version;
+  final String type;
+
+  int? get size =>
+      bytes?.length ?? (sizeBytes > 0 ? sizeBytes : null);
+}

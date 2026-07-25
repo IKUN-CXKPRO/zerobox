@@ -1,7 +1,7 @@
-import 'package:zerobox/src/data/community/community_source.dart';
-import 'package:zerobox/src/features/plugins/application/plugin_manager.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
-import 'package:zerobox/src/features/resources/domain/resource_catalog.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/features/plugins/application/plugin_manager.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 
 class PluginCommunityCatalog implements CommunityResourceCatalog {
   PluginCommunityCatalog({required this.manager, required this.sourceId})
@@ -222,6 +222,7 @@ class PluginCommunityCatalog implements CommunityResourceCatalog {
     'fontpack' => CommunityResourceType.fontpack,
     'iconpack' => CommunityResourceType.iconpack,
     'quickApp' || 'quickapp' => CommunityResourceType.quickApp,
+    'miniprogram' => CommunityResourceType.miniprogram,
     _ => throw FormatException('Unsupported plugin resource type: $value'),
   };
 

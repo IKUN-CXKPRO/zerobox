@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/core/models/bt_models.dart';
 
 class PendingSharedDeviceNotifier extends Notifier<MiWearState?> {
   @override

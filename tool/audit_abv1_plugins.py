@@ -75,7 +75,7 @@ def fetch_bytes(url: str, timeout: float) -> bytes:
     for attempt in range(3):
         request = urllib.request.Request(
             url,
-            headers={"User-Agent": "ZeroBox-ABv1-Auditor/1.0"},
+            headers={"User-Agent": "OronBox-ABv1-Auditor/1.0"},
         )
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:

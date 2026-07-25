@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/core/services/ble_gatt_driver.dart';
-import 'package:zerobox/src/core/services/rfcomm_driver.dart';
-import 'package:zerobox/src/device/core/bluetooth_platform.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/core/services/ble_gatt_driver.dart';
+import 'package:oronbox/src/core/services/rfcomm_driver.dart';
+import 'package:oronbox/src/device/core/bluetooth_platform.dart';
 
 class DefaultBluetoothPlatform implements BluetoothPlatform {
   DefaultBluetoothPlatform(this._ble, this._rfcomm)

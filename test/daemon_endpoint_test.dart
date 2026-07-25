@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/daemon/daemon_endpoint.dart';
+import 'package:oronbox/src/daemon/daemon_endpoint.dart';
 
 void main() {
   test('uses a short writable macOS sandbox endpoint', () {
@@ -7,11 +7,11 @@ void main() {
       operatingSystem: 'macos',
       environment: const {'HOME': '/Users/orpudding'},
       systemTemporaryDirectory:
-          '/Users/orpudding/Library/Containers/org.zxor.zerobox/Data/tmp',
+          '/Users/orpudding/Library/Containers/org.zxor.oronbox/Data/tmp',
     );
     expect(
       directory,
-      '/Users/orpudding/Library/Containers/org.zxor.zerobox/Data/tmp/zerobox',
+      '/Users/orpudding/Library/Containers/org.zxor.oronbox/Data/tmp/oronbox',
     );
     expect('$directory/daemon.sock'.length, lessThan(104));
   });
@@ -23,7 +23,7 @@ void main() {
         environment: const {'HOME': '/Users/orpudding'},
         systemTemporaryDirectory: '/var/folders/example/T',
       ),
-      '/var/folders/example/T/zerobox',
+      '/var/folders/example/T/oronbox',
     );
   });
 
@@ -36,7 +36,7 @@ void main() {
         },
         systemTemporaryDirectory: r'C:\Temp',
       ),
-      r'C:\Users\orpudding\AppData\Local\ZeroBox\run',
+      r'C:\Users\orpudding\AppData\Local\OronBox\run',
     );
   });
 

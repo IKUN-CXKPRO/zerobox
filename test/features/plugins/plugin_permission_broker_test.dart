@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/features/plugins/application/plugin_permission_broker.dart';
-import 'package:zerobox/src/features/plugins/domain/plugin_package.dart';
-import 'package:zerobox/src/features/plugins/domain/plugin_permission.dart';
+import 'package:oronbox/src/features/plugins/application/plugin_permission_broker.dart';
+import 'package:oronbox/src/features/plugins/domain/plugin_package.dart';
+import 'package:oronbox/src/features/plugins/domain/plugin_permission.dart';
 
 void main() {
   group('PluginPermissionBroker', () {
@@ -125,7 +125,7 @@ InstalledPlugin _plugin(List<String> permissions) => InstalledPlugin(
     id: 'org.example.plugin',
     name: 'Example',
     version: '1.0.0',
-    author: 'ZeroBox',
+    author: 'OronBox',
     description: '',
     apiLevel: 1,
     runtime: PluginRuntimeType.js,

@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/core/services/ble_gatt_driver.dart';
-import 'package:zerobox/src/core/services/rfcomm_driver.dart';
-import 'package:zerobox/src/core/services/default_bluetooth_platform.dart';
-import 'package:zerobox/src/device/core/bluetooth_platform.dart';
+import 'package:oronbox/src/core/services/ble_gatt_driver.dart';
+import 'package:oronbox/src/core/services/rfcomm_driver.dart';
+import 'package:oronbox/src/core/services/default_bluetooth_platform.dart';
+import 'package:oronbox/src/device/core/bluetooth_platform.dart';
 
 final _bleDriverProvider = Provider<BleGattDriver>((ref) {
   final manager = BleGattDriver();

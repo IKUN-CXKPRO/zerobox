@@ -22,6 +22,19 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
 
+// Native overlays such as the account and ZeppOS settings WebViews can own
+// GTK's keyboard focus. Once an overlay is closed (or the app regains focus
+// after opening a browser), Flutter may still receive pointer events without
+// its FlView receiving key events. Restore the native focus whenever the user
+// clicks back into the Flutter surface. Returning FALSE keeps the event
+// available to Flutter for its normal hit testing and text-field focus.
+static gboolean flutter_view_button_press_cb(GtkWidget* widget,
+                                             GdkEventButton*,
+                                             gpointer) {
+  gtk_widget_grab_focus(widget);
+  return FALSE;
+}
+
 static void set_window_icon(GtkWindow* window) {
   // Let installed packages resolve the application icon through hicolor first.
   gtk_window_set_icon_name(window, APPLICATION_ID);
@@ -74,11 +87,11 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "zerobox");
+    gtk_header_bar_set_title(header_bar, "oronbox");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   } else {
-    gtk_window_set_title(window, "zerobox");
+    gtk_window_set_title(window, "oronbox");
   }
 
   gtk_window_set_default_size(window, 1280, 720);
@@ -93,6 +106,9 @@ static void my_application_activate(GApplication* application) {
   // for transparent.
   gdk_rgba_parse(&background_color, "#000000");
   fl_view_set_background_color(view, &background_color);
+  gtk_widget_add_events(GTK_WIDGET(view), GDK_BUTTON_PRESS_MASK);
+  g_signal_connect(view, "button-press-event",
+                   G_CALLBACK(flutter_view_button_press_cb), nullptr);
   gtk_widget_show(GTK_WIDGET(view));
   GtkOverlay* overlay = GTK_OVERLAY(gtk_overlay_new());
   gtk_widget_show(GTK_WIDGET(overlay));

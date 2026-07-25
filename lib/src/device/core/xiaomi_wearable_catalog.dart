@@ -323,6 +323,50 @@ XiaomiWearableIdentity? normalizeXiaomiWearableIdentity(String? input) {
 XiaomiWearableIdentity? xiaomiWearableIdentityForCodename(String? value) =>
     normalizeXiaomiWearableIdentity(value);
 
+List<String> xiaomiWearableCodenamesForTitle(String? title) {
+  final normalized = _normalizeIdentityToken(title);
+  if (normalized.isEmpty) return const [];
+  final direct = _xiaomiWearableAliasIndex[normalized];
+  if (direct != null) return [direct.codename];
+  if (!normalized.contains('/')) return const [];
+  final segments = normalized.split('/');
+  if (_xiaomiWearableAliasIndex[segments.first] == null) return const [];
+  final stem = segments.first.replaceAll(RegExp(r'\d+$'), '');
+  final generations = {
+    for (final segment in segments)
+      ...RegExp(r'\d+').allMatches(segment).map((match) => match.group(0)!),
+  };
+  if (stem.isEmpty || generations.isEmpty) return const [];
+  return [
+    for (final identity in xiaomiWearableIdentities.values)
+      if (_identityMatchesGeneration(identity, stem, generations))
+        identity.codename,
+  ];
+}
+
+bool _identityMatchesGeneration(
+  XiaomiWearableIdentity identity,
+  String stem,
+  Set<String> generations,
+) {
+  final name = _normalizeIdentityToken(identity.displayName);
+  if (!name.startsWith(stem)) return false;
+  final remainder = name.substring(stem.length);
+  return generations.any(remainder.startsWith);
+}
+
+/// Variant fallback: a category titled by the base model also covers its
+/// regional variants ("小米手环10" covers "小米手环10 NFC") when no category
+/// matches the variant exactly.
+bool xiaomiWearableTitleCoversVariant(String? title, String codename) {
+  final normalized = _normalizeIdentityToken(title);
+  if (normalized.isEmpty || normalized.contains('/')) return false;
+  final identity = _xiaomiWearableAliasIndex[_normalizeIdentityToken(codename)];
+  if (identity == null) return false;
+  final name = _normalizeIdentityToken(identity.displayName);
+  return name.length > normalized.length && name.startsWith(normalized);
+}
+
 String normalizeXiaomiWearableCodename(String? input) {
   return xiaomiWearableIdentityForCodename(input)?.codename ?? '';
 }

@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:wasm_run_flutter/wasm_run_flutter.dart';
-import 'package:zerobox/src/core/wasm/wasm_runtime.dart';
-import 'package:zerobox/src/features/plugins/storage/plugin_storage.dart';
+import 'package:oronbox/src/core/wasm/wasm_runtime.dart';
+import 'package:oronbox/src/features/plugins/storage/plugin_storage.dart';
 
 import 'plugin_runtime.dart';
 import 'plugin_wasi_sandbox.dart';
@@ -65,11 +65,11 @@ final class WasmPluginRuntime implements PluginRuntime {
       _stderrSubscription = instance.stderr.listen(
         (bytes) => _emitStdio('log.error', bytes),
       );
-      final start = instance.functionOrNull('zerobox_start');
+      final start = instance.functionOrNull('oronbox_start');
       final wasiStart = instance.functionOrNull('_start');
       if (start == null && wasiStart == null) {
         throw StateError(
-          'WASM plugin must export zerobox_start or WASI _start',
+          'WASM plugin must export oronbox_start or WASI _start',
         );
       }
       (start ?? wasiStart!).call();
@@ -82,7 +82,7 @@ final class WasmPluginRuntime implements PluginRuntime {
   void _configureHostImports(WasmInstanceBuilder builder) {
     builder
       ..addImport(
-        'zerobox',
+        'oronbox',
         'request',
         WasmFunction(
           (
@@ -96,7 +96,7 @@ final class WasmPluginRuntime implements PluginRuntime {
         ),
       )
       ..addImport(
-        'zerobox',
+        'oronbox',
         'poll',
         WasmFunction(
           (int requestId) => _requests[requestId]?.status ?? -1,
@@ -105,7 +105,7 @@ final class WasmPluginRuntime implements PluginRuntime {
         ),
       )
       ..addImport(
-        'zerobox',
+        'oronbox',
         'result_len',
         WasmFunction(
           (int requestId) => _requests[requestId]?.bytes.length ?? -1,
@@ -114,7 +114,7 @@ final class WasmPluginRuntime implements PluginRuntime {
         ),
       )
       ..addImport(
-        'zerobox',
+        'oronbox',
         'result_read',
         WasmFunction(
           (int requestId, int pointer, int capacity) =>
@@ -124,7 +124,7 @@ final class WasmPluginRuntime implements PluginRuntime {
         ),
       )
       ..addImport(
-        'zerobox',
+        'oronbox',
         'result_drop',
         WasmFunction.voidReturn((int requestId) {
           _requests.remove(requestId);
@@ -161,7 +161,7 @@ final class WasmPluginRuntime implements PluginRuntime {
     _requests[id] = _WasmHostResult(status: ok ? 1 : 2, bytes: bytes);
     scheduleMicrotask(() {
       if (_closed) return;
-      _instance?.functionOrNull('zerobox_on_result')?.call([id]);
+      _instance?.functionOrNull('oronbox_on_result')?.call([id]);
     });
   }
 
@@ -215,12 +215,12 @@ final class WasmPluginRuntime implements PluginRuntime {
     String callbackId,
     List<Object?> arguments,
   ) async {
-    return _invokeJsonExport('zerobox_callback', callbackId, arguments);
+    return _invokeJsonExport('oronbox_callback', callbackId, arguments);
   }
 
   @override
   Future<void> dispatchEvent(String name, String payload) async {
-    final event = _instance?.functionOrNull('zerobox_event');
+    final event = _instance?.functionOrNull('oronbox_event');
     if (event == null) return;
     _invokeStringExport(event, name, payload);
   }
@@ -257,12 +257,12 @@ final class WasmPluginRuntime implements PluginRuntime {
   }
 
   int _allocate(Uint8List bytes) {
-    final alloc = _requiredInstance.functionOrNull('zerobox_alloc');
+    final alloc = _requiredInstance.functionOrNull('oronbox_alloc');
     if (alloc == null) {
-      throw StateError('WASM plugin must export zerobox_alloc');
+      throw StateError('WASM plugin must export oronbox_alloc');
     }
     final pointer = alloc.call([bytes.length]).firstOrNull;
-    if (pointer is! int) throw StateError('zerobox_alloc returned no pointer');
+    if (pointer is! int) throw StateError('oronbox_alloc returned no pointer');
     final memory = _memory;
     _checkRange(memory, pointer, bytes.length);
     memory.setRange(pointer, pointer + bytes.length, bytes);
@@ -270,7 +270,7 @@ final class WasmPluginRuntime implements PluginRuntime {
   }
 
   void _free(int pointer, int length) {
-    _instance?.functionOrNull('zerobox_free')?.call([pointer, length]);
+    _instance?.functionOrNull('oronbox_free')?.call([pointer, length]);
   }
 
   @override

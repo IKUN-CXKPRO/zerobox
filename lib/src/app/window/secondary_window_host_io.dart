@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:zerobox/src/app/window/window_launcher.dart';
+import 'package:oronbox/src/app/window/window_launcher.dart';
 
 class SecondaryWindowHost extends StatefulWidget {
   const SecondaryWindowHost({

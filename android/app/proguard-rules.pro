@@ -6,6 +6,6 @@
 -keep class com.github.dart_lang.jni.** { *; }
 
 # The engine's deferred-component manager references Play Core classes that are
-# only present when using Play Feature Delivery; ZeroBox ships no dynamic
+# only present when using Play Feature Delivery; OronBox ships no dynamic
 # feature modules, so these references are dead code.
 -dontwarn com.google.android.play.core.**

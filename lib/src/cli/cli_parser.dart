@@ -4,6 +4,7 @@ const _commandsWithSubcommands = {
   'daemon',
   'device',
   'resource',
+  'creator',
   'app',
   'watchface',
   'queue',
@@ -23,6 +24,9 @@ const _booleanOptions = {
   'hide-force-paid',
   'help',
   'version',
+  'archived',
+  'agree-bandbbs',
+  'agree-astrobox',
 };
 
 CliInvocation parseCliInvocation(List<String> rawArgs) {

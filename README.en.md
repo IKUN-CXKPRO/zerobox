@@ -1,4 +1,4 @@
-# ZeroBox
+# OronBox
 
 A pretty fast wearable management tool for VelaOS and ZeppOS, built with Flutter
 
@@ -6,9 +6,9 @@ A pretty fast wearable management tool for VelaOS and ZeppOS, built with Flutter
 
 > ⚠️ This project is under active development and is not yet production-ready
 
-## What is ZeroBox?
+## What is OronBox?
 
-ZeroBox is a cross-platform wearable device management tool that lets you connect, manage and install resources on VelaOS / Xiaomi and ZeppOS devices without the official client
+OronBox is a cross-platform wearable device management tool that lets you connect, manage and install resources on VelaOS / Xiaomi and ZeppOS devices without the official client
 
 ## Supported platforms
 
@@ -32,12 +32,12 @@ ZeroBox is a cross-platform wearable device management tool that lets you connec
 | Optimize resource installation flow | ✅ Done |
 | Optimize device connection experience | ✅ Done |
 | Integrate BandBBS OAuth login for BandBBS community resources | ✅ Done |
-| Creator center, one-click publish resources to BandBBS / AstroBox-Repo | 🚧 WIP |
+| Creator center, one-click publish resources to BandBBS / AstroBox-Repo | ✅ Done |
 | Home page improvements | 🚧 WIP |
 
 ## CLI usage
 
-ZeroBox provides a powerful, scriptable command-line interface for managing devices, installing resources, accessing community sources and controlling background tasks without the GUI. See the [ZeroBox CLI and daemon documentation](docs/en/CLI.md) for usage details.
+OronBox provides a powerful, scriptable command-line interface for managing devices, installing resources, accessing community sources and controlling background tasks without the GUI. See the [OronBox CLI and daemon documentation](docs/en/CLI.md) for usage details.
 
 ## Build from source
 
@@ -56,7 +56,7 @@ Usage:
 
 ## Acknowledgements
 
-ZeroBox benefits from the following excellent projects:
+OronBox benefits from the following excellent projects:
 
 | Project | What we referenced |
 |---------|--------------------|
@@ -71,4 +71,4 @@ ZeroBox benefits from the following excellent projects:
 
 ## License
 
-ZeroBox is licensed under the [GNU Affero General Public License v3.0](LICENSE)
+OronBox is licensed under the [GNU Affero General Public License v3.0](LICENSE)

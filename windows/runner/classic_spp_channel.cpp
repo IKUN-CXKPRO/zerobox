@@ -477,13 +477,13 @@ void RegisterRfcommChannel(flutter::BinaryMessenger* messenger) {
   WSAStartup(MAKEWORD(2, 2), &data);
 
   auto method_channel = std::make_unique<flutter::MethodChannel<EncodableValue>>(
-      messenger, "zerobox/classic_spp",
+      messenger, "oronbox/classic_spp",
       &flutter::StandardMethodCodec::GetInstance());
   method_channel->SetMethodCallHandler(HandleMethodCall);
   method_channel.release();
 
   auto event_channel = std::make_unique<flutter::EventChannel<EncodableValue>>(
-      messenger, "zerobox/classic_spp/events",
+      messenger, "oronbox/classic_spp/events",
       &flutter::StandardMethodCodec::GetInstance());
   event_channel->SetStreamHandler(
       std::make_unique<flutter::StreamHandlerFunctions<EncodableValue>>(
@@ -501,7 +501,7 @@ void RegisterRfcommChannel(flutter::BinaryMessenger* messenger) {
   event_channel.release();
 
   auto scan_channel = std::make_unique<flutter::EventChannel<EncodableValue>>(
-      messenger, "zerobox/classic_spp/scan_events",
+      messenger, "oronbox/classic_spp/scan_events",
       &flutter::StandardMethodCodec::GetInstance());
   scan_channel->SetStreamHandler(
       std::make_unique<flutter::StreamHandlerFunctions<EncodableValue>>(

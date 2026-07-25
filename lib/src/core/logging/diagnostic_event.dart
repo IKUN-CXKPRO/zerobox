@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:logging/logging.dart';
 
 enum DiagnosticProcess { frontend, backend, cli, debugWindow, pluginWindow }
@@ -67,16 +69,45 @@ class DiagnosticEvent {
   }
 
   String format() {
-    final buffer = StringBuffer(
-      '[${time.toIso8601String()}] ${level.name} $source: $message',
-    );
+    final buffer = StringBuffer('${_formatTime(time)} ')
+      ..write(level.name.padRight(5))
+      ..write(' [$scope] ')
+      ..write(source)
+      ..write(' – ')
+      ..write(message);
     if (fields.isNotEmpty) {
-      buffer.write(
-        ' ${fields.entries.map((e) => '${e.key}=${e.value}').join(' ')}',
-      );
+      for (final entry in fields.entries) {
+        buffer
+          ..write(' ')
+          ..write(entry.key)
+          ..write('=')
+          ..write(_formatField(entry.value));
+      }
     }
-    if (error != null) buffer.write('\n  ERROR: $error');
+    if (error != null) buffer.write('\n  error: $error');
     if (stackTrace != null) buffer.write('\n$stackTrace');
     return buffer.toString();
+  }
+
+  static String _formatTime(DateTime value) {
+    final local = value.toLocal();
+    String two(int part) => part.toString().padLeft(2, '0');
+    return '${local.year}-${two(local.month)}-${two(local.day)} '
+        '${two(local.hour)}:${two(local.minute)}:${two(local.second)}.'
+        '${local.millisecond.toString().padLeft(3, '0')}';
+  }
+
+  String _formatField(Object? value) {
+    String encoded;
+    try {
+      encoded = switch (value) {
+        null || num() || bool() => value.toString(),
+        String text => text.contains(RegExp(r'\s')) ? jsonEncode(text) : text,
+        _ => jsonEncode(value),
+      };
+    } catch (_) {
+      encoded = jsonEncode(value.toString());
+    }
+    return encoded.length <= 300 ? encoded : '${encoded.substring(0, 297)}...';
   }
 }

@@ -3,12 +3,12 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/device/core/system.dart';
-import 'package:zerobox/src/device/zeppos/app_side/zeppos_app_side_storage.dart';
-import 'package:zerobox/src/device/zeppos/zeppos_device_component.dart';
-import 'package:zerobox/src/features/plugins/runtime/plugin_runtime.dart';
-import 'package:zerobox/src/features/plugins/runtime/plugin_runtime_factory.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/device/core/system.dart';
+import 'package:oronbox/src/device/zeppos/app_side/zeppos_app_side_storage.dart';
+import 'package:oronbox/src/device/zeppos/zeppos_device_component.dart';
+import 'package:oronbox/src/features/plugins/runtime/plugin_runtime.dart';
+import 'package:oronbox/src/features/plugins/runtime/plugin_runtime_factory.dart';
 
 class ZeppOsAppSideSessionInfo {
   const ZeppOsAppSideSessionInfo({
@@ -837,7 +837,7 @@ String _appSideBootstrap(String initialSettings) =>
       const index = listeners.indexOf(callback);
       if (index !== -1) listeners.splice(index, 1);
     },
-    send: data => sendMessage('ZeroBoxHost', JSON.stringify({
+    send: data => sendMessage('OronBoxHost', JSON.stringify({
       method: 'appside.peer.send', args: [ZbBuffer.from(data).toString('hex')]
     }))
   };
@@ -865,7 +865,7 @@ String _appSideBootstrap(String initialSettings) =>
       : {...(input || {})};
     request.method = String(request.method || 'GET');
     request.headers = request.headers || {};
-    return Promise.resolve(sendMessage('ZeroBoxHost', JSON.stringify({
+    return Promise.resolve(sendMessage('OronBoxHost', JSON.stringify({
       method: 'appside.fetch', args: [JSON.stringify(request)]
     }))).then(raw => {
       const response = raw && typeof raw === 'object' ? raw : {body: raw};
@@ -891,7 +891,7 @@ String _appSideBootstrap(String initialSettings) =>
   const values = new Map(Object.entries(initialSettings));
   const storageListeners = [];
   const persistSettings = change => {
-    sendMessage('ZeroBoxHost', JSON.stringify({
+    sendMessage('OronBoxHost', JSON.stringify({
       method: 'appside.settings.write', args: [JSON.stringify(change)]
     })).catch(error => console.error(error));
   };

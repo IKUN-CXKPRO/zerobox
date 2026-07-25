@@ -47,10 +47,10 @@ mkdir -p "${STAGING_ROOT}"
 
 prepare_desktop_file() {
   local dst="$1"
-  local exec_path="${2:-${INSTALL_PREFIX}/zerobox}"
+  local exec_path="${2:-${INSTALL_PREFIX}/oronbox}"
   mkdir -p "$(dirname "${dst}")"
   cp "${PROJECT_ROOT}/linux/${DESKTOP_FILE}.in" "${dst}"
-  sed -i "s|@CMAKE_INSTALL_PREFIX@/zerobox|${exec_path}|g" "${dst}"
+  sed -i "s|@CMAKE_INSTALL_PREFIX@/oronbox|${exec_path}|g" "${dst}"
 }
 
 copy_bundle_to() {

@@ -3,19 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/app/utils/error_localization.dart';
-import 'package:zerobox/src/app/widgets/dialog_helper.dart';
-import 'package:zerobox/src/app/widgets/network_img_layer.dart';
-import 'package:zerobox/src/app/widgets/page_container.dart';
-import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
-import 'package:zerobox/src/core/constants/style_constants.dart';
-import 'package:zerobox/src/core/providers/app_settings_providers.dart';
-import 'package:zerobox/src/data/community/community_source.dart';
-import 'package:zerobox/src/features/accounts/application/host_accounts.dart';
-import 'package:zerobox/src/features/resources/application/resource_catalog_providers.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
-import 'package:zerobox/src/features/resources/services/download_queue_notifier.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/widgets/dialog_helper.dart';
+import 'package:oronbox/src/app/widgets/network_img_layer.dart';
+import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/core/providers/app_settings_providers.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
+import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/services/download_queue_notifier.dart';
 
 class BandBbsAccountPage extends ConsumerStatefulWidget {
   const BandBbsAccountPage({super.key});
@@ -106,7 +106,7 @@ class _BandBbsAccountPageState extends ConsumerState<BandBbsAccountPage> {
                             .read(hostAccountsProvider.notifier)
                             .logout('bandbbs');
                         if (!context.mounted) return;
-                        ZeroBoxDialog.showToast(
+                        OronBoxDialog.showToast(
                           message: l10n.bandBbsLoggedOut,
                           context: context,
                         );

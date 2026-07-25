@@ -1,25 +1,25 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/device/xiaomi/system/xiaomi_system.dart';
-import 'package:zerobox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_system.pb.dart'
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
+import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_system.pb.dart'
     as pb_system;
-import 'package:zerobox/src/protocols/xiaomi/packet/l2_packet.dart';
-import 'package:zerobox_network/zerobox_network.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
+import 'package:oronbox_network/oronbox_network.dart';
 
 class XiaomiNetworkSystem extends XiaomiSystem {
   static final _log = getLogger('XiaomiNetworkSystem');
 
-  ZeroboxNetworkSession? _session;
+  OronboxNetworkSession? _session;
   StreamSubscription<Uint8List>? _outboundSubscription;
-  StreamSubscription<ZeroboxNetworkEvent>? _eventSubscription;
-  ZeroboxNetworkStatistics? _statistics;
+  StreamSubscription<OronboxNetworkEvent>? _eventSubscription;
+  OronboxNetworkStatistics? _statistics;
   Future<void> _outboundTail = Future<void>.value();
   bool _disposed = false;
 
-  ZeroboxNetworkStatistics? get statistics => _statistics;
+  OronboxNetworkStatistics? get statistics => _statistics;
 
   Future<void> start() async {
     if (_disposed) {
@@ -27,9 +27,9 @@ class XiaomiNetworkSystem extends XiaomiSystem {
     }
     if (_session != null) return;
 
-    final ZeroboxNetworkSession session;
+    final OronboxNetworkSession session;
     try {
-      session = await ZeroboxNetworkSession.open();
+      session = await OronboxNetworkSession.open();
     } on UnsupportedError catch (error) {
       _log.info('[${entity.id}] network proxy unavailable: $error');
       return;
@@ -81,16 +81,16 @@ class XiaomiNetworkSystem extends XiaomiSystem {
         });
   }
 
-  void _onNetworkEvent(ZeroboxNetworkEvent event) {
+  void _onNetworkEvent(OronboxNetworkEvent event) {
     switch (event) {
-      case ZeroboxNetworkStatus(:final message):
+      case OronboxNetworkStatus(:final message):
         _log.info('[${entity.id}] $message');
-      case ZeroboxNetworkWarning(:final message):
+      case OronboxNetworkWarning(:final message):
         _log.warning('[${entity.id}] $message');
-      case ZeroboxNetworkStatistics():
+      case OronboxNetworkStatistics():
         _statistics = event;
-      case ZeroboxNetworkPacket():
-      case ZeroboxNetworkClosed():
+      case OronboxNetworkPacket():
+      case OronboxNetworkClosed():
         break;
     }
   }

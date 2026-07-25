@@ -95,10 +95,10 @@ if(WEBVIEW2_SDK_DIR AND EXISTS "${WEBVIEW2_SDK_DIR}/build/native/include/WebView
   set(WEBVIEW2_IMPORT_LOADER "${WEBVIEW2_SDK_DIR}/build/native/${WEBVIEW2_ARCH}/WebView2Loader.dll.lib")
   set(WEBVIEW2_LOADER_DLL "${WEBVIEW2_SDK_DIR}/build/native/${WEBVIEW2_ARCH}/WebView2Loader.dll")
   if(EXISTS "${WEBVIEW2_STATIC_LOADER}")
-    target_compile_definitions(${BINARY_NAME} PRIVATE "ZEROBOX_HAVE_WEBVIEW2")
+    target_compile_definitions(${BINARY_NAME} PRIVATE "ORONBOX_HAVE_WEBVIEW2")
     target_link_libraries(${BINARY_NAME} PRIVATE "${WEBVIEW2_STATIC_LOADER}" "ole32.lib")
   elseif(EXISTS "${WEBVIEW2_IMPORT_LOADER}")
-    target_compile_definitions(${BINARY_NAME} PRIVATE "ZEROBOX_HAVE_WEBVIEW2")
+    target_compile_definitions(${BINARY_NAME} PRIVATE "ORONBOX_HAVE_WEBVIEW2")
     target_link_libraries(${BINARY_NAME} PRIVATE "${WEBVIEW2_IMPORT_LOADER}" "ole32.lib")
     if(EXISTS "${WEBVIEW2_LOADER_DLL}")
       add_custom_command(TARGET ${BINARY_NAME} POST_BUILD

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/app/utils/error_localization.dart';
-import 'package:zerobox/src/app/widgets/page_container.dart';
-import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
-import 'package:zerobox/src/core/constants/style_constants.dart';
-import 'package:zerobox/src/core/models/bt_models.dart';
-import 'package:zerobox/src/device/zeppos/app_side/zeppos_app_side_storage.dart';
-import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
-import 'package:zerobox/src/features/devices/pages/more/zeppos_setting_viewer_page.dart';
-import 'package:zerobox/src/protocols/common/device_protocol.dart' as proto;
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/device/zeppos/app_side/zeppos_app_side_storage.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/devices/pages/more/zeppos_setting_viewer_page.dart';
+import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
 
 class DeviceAppsPage extends ConsumerStatefulWidget {
   const DeviceAppsPage({super.key});

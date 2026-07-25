@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => 'ZeroBox';
+  String get appTitle => 'OronBox';
 
   @override
   String get homeTab => '首页';
@@ -117,7 +117,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get news => '资讯';
 
   @override
-  String get zeroBoxNews => 'ZeroBox 资讯';
+  String get oronBoxNews => 'OronBox 资讯';
 
   @override
   String get bandbbsNews => 'BandBBS 资讯';
@@ -130,6 +130,133 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get creatorCenter => '创作者中心';
+
+  @override
+  String get creatorNewResource => '新建资源';
+
+  @override
+  String get creatorSlug => '资源标识';
+
+  @override
+  String get creatorResourceName => '资源名称';
+
+  @override
+  String get creatorResourceSummary => '资源简介';
+
+  @override
+  String get creatorSaveDraft => '保存草稿';
+
+  @override
+  String get creatorAddArtifact => '添加资源文件';
+
+  @override
+  String get creatorReplaceAsset => '重新上传';
+
+  @override
+  String get creatorBindDevices => '绑定设备';
+
+  @override
+  String get creatorDeleteResource => '删除';
+
+  @override
+  String get creatorIconCover => '图标与封面';
+
+  @override
+  String get creatorInvalidImage => '无法解码该图片，请使用 PNG/JPEG/WebP';
+
+  @override
+  String get creatorInvalidPackage => '该文件不是 Vela 快应用或表盘';
+
+  @override
+  String creatorPublishPreparing(Object done, Object total) {
+    return '正在处理文件 $done/$total';
+  }
+
+  @override
+  String creatorPublishUploading(Object percent) {
+    return '正在上传 $percent%';
+  }
+
+  @override
+  String get creatorPublishServer => '服务器处理中…';
+
+  @override
+  String get creatorAstroBoxItemId => '资源 ID';
+
+  @override
+  String get creatorAstroBoxRepository => '仓库名';
+
+  @override
+  String get creatorAstroBoxTags => '标签（逗号分隔）';
+
+  @override
+  String get creatorAstroBoxAuthor => '作者（确保与你的AstroBox用户名一致）';
+
+  @override
+  String get creatorAstroBoxBindAccount => '绑定 AstroBox 账号';
+
+  @override
+  String get replace => '更换';
+
+  @override
+  String get delete => '删除';
+
+  @override
+  String get creatorSubmitReview => '提交';
+
+  @override
+  String get creatorCorrection => '修正并重新提交';
+
+  @override
+  String get creatorUpdateResource => '更新资源';
+
+  @override
+  String get creatorArchiveAction => '下架';
+
+  @override
+  String get creatorArchiveConfirm => '下架后该资源将从商店隐藏，可随时恢复';
+
+  @override
+  String get creatorRestoreAction => '恢复';
+
+  @override
+  String get creatorDeleteConfirm => '将永久删除该草稿资源，无法恢复';
+
+  @override
+  String get creatorDeletePublishedConfirm =>
+      '将永久删除 OronBox 资源，并同步删除对应的米坛资源，无法恢复\nAstroBox 上已发布的内容不受影响，如需下架请联系 AstroBox-Repo 维护者';
+
+  @override
+  String creatorArtifactCount(Object count) {
+    return '$count 个安装包';
+  }
+
+  @override
+  String get creatorKindMismatchTitle => '文件类型不匹配';
+
+  @override
+  String creatorKindMismatchMessage(Object detected, Object expected) {
+    return '这似乎是一个$detected文件，而你正在创建$expected资源。可以继续保留，但提交审核前请确认。';
+  }
+
+  @override
+  String get creatorKeepFile => '仍然保留';
+
+  @override
+  String creatorDeviceMoveBlocked(Object name) {
+    return '「$name」仅剩这一台绑定设备，无法移动';
+  }
+
+  @override
+  String get creatorAssetsReusedHint => '现有安装包与预览图将沿用，无需重新上传';
+
+  @override
+  String get creatorRevisionHistory => '版本历史';
+
+  @override
+  String creatorUploadProgress(Object progress) {
+    return '正在上传 $progress%';
+  }
 
   @override
   String get filter => '筛选';
@@ -165,7 +292,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get localResources => '本地资源';
 
   @override
-  String get zeroBox => 'ZeroBox';
+  String get oronBox => 'OronBox';
 
   @override
   String get bandbbs => 'BandBBS';
@@ -192,6 +319,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get supportedDevices => '支持的设备';
 
   @override
+  String get resourceProfile => '资源平台与类型';
+
+  @override
+  String creatorArtifactProfileMismatch(Object fileName, Object profile) {
+    return '文件 $fileName 与所选的 $profile 不匹配，未添加该文件';
+  }
+
+  @override
   String get downloads => '下载包';
 
   @override
@@ -216,9 +351,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get openSourcePage => '开源页面';
 
   @override
-  String get creatorDashboard => '创作者仪表盘';
-
-  @override
   String get myResources => '我的资源';
 
   @override
@@ -231,6 +363,67 @@ class AppLocalizationsZh extends AppLocalizations {
   String get published => '已发布';
 
   @override
+  String get creatorArchived => '已归档';
+
+  @override
+  String get creatorBandBbsNoDevices => '请先为资源文件选择支持的设备';
+
+  @override
+  String creatorBandBbsUnmappedDevices(Object devices) {
+    return '无法确定以下设备对应的米坛资源分区：$devices';
+  }
+
+  @override
+  String get creatorBandBbsSharedCategory => '同一米坛分区的设备绑定了多个安装包，请让每个分区只对应一个包';
+
+  @override
+  String get creatorBandBbsUnresolved => '无法自动确定米坛分区';
+
+  @override
+  String get creatorOptionalIcon => '图标（可选，1:1）';
+
+  @override
+  String get creatorOptionalCover => '封面（可选，3:2）';
+
+  @override
+  String get creatorRequiredIcon => '图标（AstroBox 必选，1:1）';
+
+  @override
+  String get creatorRequiredCover => '封面（AstroBox 必选，3:2）';
+
+  @override
+  String get creatorIconShapeHint => '当前图标不是方形，在 AstroBox 中可能显示异常';
+
+  @override
+  String get creatorCoverShapeHint => '当前封面不是 3:2，在 AstroBox 中可能显示异常';
+
+  @override
+  String get creatorTermsBandBbs => '米坛社区条款和规则';
+
+  @override
+  String get creatorTermsAstroBox => 'AstroBox-Repo 投稿规范';
+
+  @override
+  String get creatorTermsAccept => '我已阅读并同意上述发布协议';
+
+  @override
+  String get creatorTermsContinue => '进入创作者中心';
+
+  @override
+  String get agree => '同意';
+
+  @override
+  String get creatorRulesAccept => '我已阅读并同意上述审核标准';
+
+  @override
+  String get creatorBandBbsTermsNotice =>
+      'OronBox 审核通过后将以此资源信息直接发布到米坛对应分区\n删除 OronBox 资源会同步删除对应的米坛资源';
+
+  @override
+  String get creatorAstroBoxTermsNotice =>
+      'OronBox 审核通过后将创建资源分仓库并向 AstroBox 官方仓库提交 PR，由 AstroBox 维护者独立审核\n发布后如需下架，请联系 AstroBox-Repo 维护者';
+
+  @override
   String get failed => '失败 / 需处理';
 
   @override
@@ -240,7 +433,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get basicInfo => '基本信息';
 
   @override
-  String get packageFiles => '包文件';
+  String get packageFiles => '资源文件';
 
   @override
   String get deviceSelection => '选择设备';
@@ -289,7 +482,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get errorBluetoothUnavailable =>
-      '蓝牙不可用，请检查蓝牙是否已开启，并确认系统权限已允许 ZeroBox 使用蓝牙';
+      '蓝牙不可用，请检查蓝牙是否已开启，并确认系统权限已允许 OronBox 使用蓝牙';
 
   @override
   String get errorBluetoothConnectFailed =>
@@ -370,7 +563,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get advanced => '高级';
 
   @override
-  String get aboutZeroBox => '关于 ZeroBox';
+  String get aboutOronBox => '关于 OronBox';
 
   @override
   String get openSourceLicenses => '开放源代码许可';
@@ -379,7 +572,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get acknowledgements => '特别鸣谢';
 
   @override
-  String get acknowledgementsDesc => '查看 ZeroBox 参考与致谢的开源项目';
+  String get acknowledgementsDesc => '查看 OronBox 参考与致谢的开源项目';
 
   @override
   String get developmentTeam => '开发团队';
@@ -522,7 +715,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get webSerialHint =>
-      '在网页端，ZeroBox 通过 Web Serial 连接设备，已保存的设备会保留在当前浏览器中';
+      '在网页端，OronBox 通过 Web Serial 连接设备，已保存的设备会保留在当前浏览器中';
 
   @override
   String get webSerialConnectDialogTitle => '通过 Web Serial 连接';
@@ -544,7 +737,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceActionsShareQR => '分享二维码';
 
   @override
-  String get deviceShareZeroBoxCode => '切换为 ZeroBox 码';
+  String get deviceShareOronBoxCode => '切换为 OronBox 码';
 
   @override
   String get deviceShareAstroBoxCompatibleCode => '切换 AstroBox 兼容码';
@@ -632,18 +825,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String externalLinkDescription(String url) {
-    return '即将跳转到 $url\n\n该网站由第三方运营，与 ZeroBox 没有从属关系，安全性未知，请注意辨别，是否继续访问？';
+    return '即将跳转到 $url\n\n该网站由第三方运营，与 OronBox 没有从属关系，安全性未知，请注意辨别，是否继续访问？';
   }
 
   @override
   String get externalLinkAstroBoxResourceHint =>
-      '这似乎是一个 AstroBox 资源，您也可以在 ZeroBox内访问并安装';
+      '这似乎是一个 AstroBox 资源，您也可以在 OronBox内访问并安装';
 
   @override
   String get continueToWebsite => '继续访问';
 
   @override
-  String get viewInZeroBox => '在 ZeroBox 中查看';
+  String get viewInOronBox => '在 OronBox 中查看';
 
   @override
   String get uninstall => '卸载';
@@ -673,13 +866,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get desktopTrayShow => '显示窗口';
 
   @override
-  String get desktopTrayExit => '退出 ZeroBox';
+  String get desktopTrayExit => '退出 OronBox';
 
   @override
   String get desktopCloseTitle => '退出确认';
 
   @override
-  String get desktopCloseMessage => '您想要退出 ZeroBox 吗？';
+  String get desktopCloseMessage => '您想要退出 OronBox 吗？';
 
   @override
   String get desktopCloseRemember => '下次不再询问';
@@ -688,7 +881,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get desktopCloseToTray => '最小化到托盘';
 
   @override
-  String get desktopCloseExit => '退出 ZeroBox';
+  String get desktopCloseExit => '退出 OronBox';
 
   @override
   String get settingsDesktopCloseBehavior => '关闭按钮行为';
@@ -810,7 +1003,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAccountLoginBBS => '登录 BandBBS';
 
   @override
-  String get settingsAccountLoginBBSDesc => '登录以同步已购资源';
+  String get settingsAccountLoginBBSDesc => '登录以访问米坛资源';
 
   @override
   String get settingsAccountBandBbsSigningIn => '正在登录';
@@ -1050,7 +1243,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsToolsDialogUsageInfo => '输入设备上显示的 MAC 地址和序列号';
 
   @override
-  String get settingsAboutAboutAstrobox => '关于 ZeroBox';
+  String get settingsAboutAboutAstrobox => '关于 OronBox';
 
   @override
   String get settingsAboutAboutAstroboxDesc => '版本、更新日志和团队';
@@ -1071,7 +1264,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAboutWebsite => '官方网站';
 
   @override
-  String get settingsAboutWebsiteDesc => '访问 zerobox.zxor.org';
+  String get settingsAboutWebsiteDesc => '访问 oronbox.zxor.org';
 
   @override
   String get settingsAboutQQ => 'QQ 群';
@@ -1224,7 +1417,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsAboutSoftwareCopyright =>
-      'Copyright © ZeroBox contributors';
+      'Copyright © OronBox contributors';
 
   @override
   String get acknowledgementsKazumi => 'Material Design 组件与界面设计参考';
@@ -1348,8 +1541,29 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAboutLogs => '日志';
 
   @override
-  String get settingsAboutLogsDescription =>
-      '保留最近 7 天的运行日志，Android 可在系统“文件”应用中查看和复制';
+  String get settingsAboutLogsDescription => '运行日志仅保存在本机，用于诊断问题，保留最近 7 天';
+
+  @override
+  String settingsAboutLogsSize(Object size) {
+    return '当前占用 $size';
+  }
+
+  @override
+  String get settingsAboutLogsExport => '导出';
+
+  @override
+  String settingsAboutLogsExported(Object path) {
+    return '已导出到 $path';
+  }
+
+  @override
+  String get settingsAboutLogsEmpty => '暂无可导出的日志';
+
+  @override
+  String get settingsAboutLogsClear => '清理';
+
+  @override
+  String get settingsAboutLogsClearConfirm => '将删除当前会话之外的全部日志文件。';
 
   @override
   String get settingsAboutLogsOpen => '打开日志文件夹';
@@ -1362,7 +1576,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsAboutLogsWarningMessage =>
-      '日志可能包含米坛/小米/华米登录凭证等敏感信息，请勿随意分享给除 ZeroBox 官方维护者以外的其他人！';
+      '日志可能包含米坛/小米/华米登录凭证等敏感信息，请勿随意分享给除 OronBox 官方维护者以外的其他人！';
 
   @override
   String get pluginPermissionRequestTitle => '插件权限请求';
@@ -1481,7 +1695,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String resourceTypeUnknownMessage(Object selectedType) {
-    return 'ZeroBox 无法识别此文件的实际资源类型，是否仍以$selectedType安装？';
+    return 'OronBox 无法识别此文件的实际资源类型，是否仍以$selectedType安装？';
   }
 
   @override
@@ -1537,4 +1751,420 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get resourceInstallConfirm => '确认安装';
+
+  @override
+  String get resourceName => '资源名称';
+
+  @override
+  String get resourceSummary => '简短说明';
+
+  @override
+  String get previewImages => '预览图';
+
+  @override
+  String get add => '添加';
+
+  @override
+  String get submit => '提交';
+
+  @override
+  String get currentAccount => '当前账号';
+
+  @override
+  String get submitForReview => '提交审核';
+
+  @override
+  String get creatorConfirmTitle => '确认发布计划';
+
+  @override
+  String get creatorConfirmOronBox => '资源将提交至 OronBox 审核，审核通过后在 OronBox 资源中发布';
+
+  @override
+  String creatorConfirmBandBbs(Object category) {
+    return '审核通过后将直接发布到米坛分区 $category';
+  }
+
+  @override
+  String creatorConfirmAstroBox(Object owner, Object repository) {
+    return '审核通过后将由 GitHub 用户 $owner 创建或更新仓库 $repository，并向 ABRepo 提交 PR';
+  }
+
+  @override
+  String get creatorBandBbsDirectPublish => 'OronBox 审核通过之后直接发布到米坛社区';
+
+  @override
+  String get bandBbsCategoryId => '米坛资源分区 ID';
+
+  @override
+  String get bandBbsCategory => '米坛资源分区';
+
+  @override
+  String creatorAstroBoxPrPublish(Object repository) {
+    return 'OronBox 审核通过之后创建资源分仓库 $repository 并向 AstroBox 官方仓库提交 PR';
+  }
+
+  @override
+  String get creatorOronBoxRequired => '必选，资源需经过 OronBox 审核';
+
+  @override
+  String get creatorAstroTags => 'AstroBox 标签';
+
+  @override
+  String get creatorAstroTagsHint => '使用逗号或分号分隔多个标签';
+
+  @override
+  String get retry => '重试';
+
+  @override
+  String get reviewNote => '审核意见';
+
+  @override
+  String get creatorReviewRejected => '资源已被打回';
+
+  @override
+  String creatorReviewState(Object state) {
+    return '审核状态：$state';
+  }
+
+  @override
+  String get creatorOperationWorking => '正在处理';
+
+  @override
+  String get creatorOperationRefreshing => '正在刷新创作者数据';
+
+  @override
+  String get creatorOperationCreating => '正在创建资源';
+
+  @override
+  String get creatorOperationSaving => '正在保存更改';
+
+  @override
+  String get creatorOperationUploading => '正在上传并处理文件';
+
+  @override
+  String get creatorOperationBinding => '正在更新支持设备';
+
+  @override
+  String get creatorOperationDeleting => '正在删除';
+
+  @override
+  String get creatorOperationSubmitting => '正在提交审核';
+
+  @override
+  String get creatorOperationAuthorizing => '正在等待授权';
+
+  @override
+  String get creatorResolvingPublicationTarget => '正在识别发布分区';
+
+  @override
+  String get creatorSessionExpired => 'OronBox 登录已过期，请重新登录后再授权';
+
+  @override
+  String get creatorStateApproved => '审核通过';
+
+  @override
+  String get creatorStateExternalReview => '外部审核中';
+
+  @override
+  String get creatorStateFailed => '发布失败';
+
+  @override
+  String get creatorStateSuperseded => '已被新版本取代';
+
+  @override
+  String get creatorStateCancelled => '已取消';
+
+  @override
+  String get creatorNoResources => '还没有创建资源';
+
+  @override
+  String get creatorLoginRequiredTitle => '登录后使用创作者中心';
+
+  @override
+  String get creatorLoginRequiredDescription =>
+      '需要登录米坛并连接 OronBox 账号，才能创建、编辑和提交资源';
+
+  @override
+  String get creatorLoginAction => '登录米坛';
+
+  @override
+  String get creatorSelectHint => '从左侧选择资源，或新建一个资源';
+
+  @override
+  String get creatorOronBoxReady => 'OronBox 与米坛读取权限可用';
+
+  @override
+  String get creatorBandBbsWriteReady => '已获得米坛资源发布权限';
+
+  @override
+  String get creatorBandBbsWriteMissing => '未获得米坛写入授权，无法发布到米坛';
+
+  @override
+  String creatorGitHubOwnPublishReady(Object login) {
+    return '已连接 GitHub，可使用 $login 发布';
+  }
+
+  @override
+  String get creatorGitHubOwnPublishMissing =>
+      '未连接 GitHub，无法以自己的账号发布 AstroBox 资源';
+
+  @override
+  String get creatorAuthorize => '授权';
+
+  @override
+  String get openCreatorCenter => '进入创作者中心';
+
+  @override
+  String get creatorGitHubNotConnected => '尚未连接 GitHub 账号';
+
+  @override
+  String creatorGitHubConnected(Object login) {
+    return '已连接 GitHub 账号 $login';
+  }
+
+  @override
+  String get githubAuthorizationFailed => '无法打开 GitHub 授权页面';
+
+  @override
+  String get githubAuthorizationTimedOut => 'GitHub 授权超时';
+
+  @override
+  String get authorize => '授权';
+
+  @override
+  String get creatorBandBbsAuthorized => '已获得米坛资源发布授权';
+
+  @override
+  String get creatorBandBbsAuthorizationRequired => '需要单独授权 OronBox 代表您发布米坛资源';
+
+  @override
+  String get connect => '连接';
+
+  @override
+  String get editResource => '编辑资源';
+
+  @override
+  String get legalAndPrivacy => '协议与隐私';
+
+  @override
+  String get legalAndPrivacyDesc => '查看用户协议、隐私说明和资源规则';
+
+  @override
+  String get termsTitle => '用户协议与免责声明';
+
+  @override
+  String get privacyTitle => '隐私说明';
+
+  @override
+  String get resourcePublishingTitle => '资源发布协议';
+
+  @override
+  String get reviewRulesTitle => '资源审核规则';
+
+  @override
+  String get feedbackTitle => '意见反馈';
+
+  @override
+  String get feedbackDesc => '提交问题、建议并查看答复';
+
+  @override
+  String get reportResource => '举报资源';
+
+  @override
+  String get report => '举报';
+
+  @override
+  String get feedbackSubject => '标题';
+
+  @override
+  String get feedbackMessage => '意见或问题';
+
+  @override
+  String get reportReason => '举报理由';
+
+  @override
+  String get submitted => '已提交';
+
+  @override
+  String get myFeedback => '我的反馈';
+
+  @override
+  String get noFeedback => '暂无记录';
+
+  @override
+  String get feedbackProcessing => '处理中';
+
+  @override
+  String get feedbackReplied => '已答复';
+
+  @override
+  String get feedbackOpen => '待处理';
+
+  @override
+  String get feedbackResolved => '已解决';
+
+  @override
+  String get feedbackDismissed => '已驳回';
+
+  @override
+  String get feedbackClosed => '已关闭';
+
+  @override
+  String get feedbackLoading => '正在加载工单';
+
+  @override
+  String get feedbackNewTicket => '新建工单';
+
+  @override
+  String get feedbackYou => '我';
+
+  @override
+  String get feedbackResolution => '处理结论';
+
+  @override
+  String get feedbackReplyHint => '回复此工单';
+
+  @override
+  String get feedbackConversationClosed => '该工单已关闭，无法继续回复';
+
+  @override
+  String get checkUpdates => '检查更新';
+
+  @override
+  String get updateChecking => '正在检查更新…';
+
+  @override
+  String get updateCheckFailed => '暂时无法检查更新';
+
+  @override
+  String get latestVersionInstalled => '当前已是最新版本';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return '发现新版本 $version';
+  }
+
+  @override
+  String get viewUpdate => '查看更新';
+
+  @override
+  String get oobeWelcomeSlogan =>
+      '一个又好看又快的 VelaOS / ZeppOS 可穿戴设备管理软件，使用 Flutter 构建';
+
+  @override
+  String get oobeNext => '下一步';
+
+  @override
+  String get oobeBack => '上一步';
+
+  @override
+  String get oobeFeatureDevicesTitle => '设备连接';
+
+  @override
+  String get oobeFeatureDevicesBody => '连接并管理 VelaOS 与 ZeppOS 可穿戴设备';
+
+  @override
+  String get oobeFeatureResourcesTitle => '资源中心';
+
+  @override
+  String get oobeFeatureResourcesBody =>
+      '支持 OronBox 官方源、AstroBox-Repo、米坛社区与华米应用商店';
+
+  @override
+  String get oobeFeaturePluginsTitle => 'JavaScript 插件';
+
+  @override
+  String get oobeFeaturePluginsBody => '高性能、高扩展性的 JavaScript 插件系统，支持插件与设备交互';
+
+  @override
+  String get oobeFeaturePlatformsTitle => '多端适配';
+
+  @override
+  String get oobeFeaturePlatformsBody => '支持 Android、Windows、macOS、Linux 与 Web';
+
+  @override
+  String get oobeOpenSourceTitle => '完全开源';
+
+  @override
+  String get oobeOpenSourceBody => 'OronBox 客户端与服务端均遵循 AGPL-3.0 开放完整源代码';
+
+  @override
+  String get oobeOpenSourceClientLink => '查看客户端源码';
+
+  @override
+  String get oobeOpenSourceServerLink => '查看服务端源码';
+
+  @override
+  String get oobeAgreementHint => '请阅读并滚动到底部';
+
+  @override
+  String get oobeAgreeCheckbox => '我已阅读并同意';
+
+  @override
+  String get oobeAgreeContinue => '同意并继续';
+
+  @override
+  String get oobeAgreedContinue => '已同意，继续';
+
+  @override
+  String get oobeDeclineExit => '退出';
+
+  @override
+  String get oobeDeclineWebHint => '不接受协议将无法继续使用，请关闭本页面';
+
+  @override
+  String get oobeLoginTitle => '登录账号';
+
+  @override
+  String get oobeLoginBandBbsDesc => '登录米坛账号以访问米坛资源并准备使用创作者服务';
+
+  @override
+  String get oobeLoginLocalNote => '小米和华米账号登录均在本地完成，相关数据不会被发送给小米/华米以外的第三方';
+
+  @override
+  String get oobeLoginXiaomiDesc => '登录小米账号以同步已绑定的小米设备';
+
+  @override
+  String get oobeLoginHuamiDesc => '登录华米账号以访问华米应用商店资源';
+
+  @override
+  String get oobeCdnTesting => '测速中...';
+
+  @override
+  String get oobeCdnSelected => '已选择最佳 CDN';
+
+  @override
+  String get oobeCdnTitle => 'GitHub CDN 测速';
+
+  @override
+  String get oobeDoneTitle => '一切就绪';
+
+  @override
+  String get oobeDoneBody => '开始探索 OronBox 吧';
+
+  @override
+  String get oobeStart => '开始使用';
+
+  @override
+  String get oobeFinish => '完成';
+
+  @override
+  String get settingsReplayOobe => '重新引导';
+
+  @override
+  String get settingsReplayOobeDesc => '再次查看欢迎向导与初始设置';
+
+  @override
+  String get creatorAuthorized => '已授权';
+
+  @override
+  String get back => '返回';
+
+  @override
+  String get creatorConnect => '连接';
+
+  @override
+  String creatorReviewItemsProgress(Object done, Object total) {
+    return '需要修改（已解决 $done/$total）';
+  }
 }

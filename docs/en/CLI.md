@@ -1,6 +1,6 @@
-# ZeroBox CLI and daemon
+# OronBox CLI and daemon
 
-ZeroBox exposes its desktop automation surface through `--nogui`. The desktop
+OronBox exposes its desktop automation surface through `--nogui`. The desktop
 daemon owns Bluetooth connections and task state; short-lived CLI processes
 connect over a per-user Unix socket on Linux/macOS or loopback IPC on Windows.
 The desktop GUI uses the same daemon connection and never opens a second
@@ -9,9 +9,9 @@ Bluetooth transport.
 ## Start and inspect the daemon
 
 ```sh
-zerobox --nogui daemon start
-zerobox --nogui daemon status
-zerobox --nogui daemon stop
+oronbox --nogui daemon start
+oronbox --nogui daemon status
+oronbox --nogui daemon stop
 ```
 
 Commands automatically start the daemon unless `--no-autostart` is supplied.
@@ -22,12 +22,12 @@ without a display server.
 ## Devices and local installation
 
 ```sh
-zerobox --nogui device paired
-zerobox --nogui device scan --timeout 10
-zerobox --nogui device connect AA:BB:CC:DD:EE:FF
-zerobox --nogui device info
-zerobox --nogui install quickapp ./demo.rpk
-zerobox --nogui install watchface ./face.mwz --device AA:BB:CC:DD:EE:FF
+oronbox --nogui device paired
+oronbox --nogui device scan --timeout 10
+oronbox --nogui device connect AA:BB:CC:DD:EE:FF
+oronbox --nogui device info
+oronbox --nogui install quickapp ./demo.rpk
+oronbox --nogui install watchface ./face.mwz --device AA:BB:CC:DD:EE:FF
 ```
 
 Use `--detach` to enqueue an installation and return its task ID immediately.
@@ -37,13 +37,13 @@ its final result.
 ## Resources
 
 ```sh
-zerobox --nogui resource sources
-zerobox --nogui resource devices --source bandbbs
-zerobox --nogui resource search calculator --source bandbbs --filter quickapp,free,bandbbs-category:101 --sort time
-zerobox --nogui resource list --source astrobox-repo --filter quickapp,hide-paid,hide-force-paid,o65m
-zerobox --nogui resource info bandbbs:6751
-zerobox --nogui resource download bandbbs:6751
-zerobox --nogui resource install bandbbs:6751
+oronbox --nogui resource sources
+oronbox --nogui resource devices --source bandbbs
+oronbox --nogui resource search calculator --source bandbbs --filter quickapp,free,bandbbs-category:101 --sort time
+oronbox --nogui resource list --source astrobox-repo --filter quickapp,hide-paid,hide-force-paid,o65m
+oronbox --nogui resource info bandbbs:6751
+oronbox --nogui resource download bandbbs:6751
+oronbox --nogui resource install bandbbs:6751
 ```
 
 Resource lists and searches accept comma-separated filter chips through one `--filter` option:
@@ -61,17 +61,17 @@ Device and category IDs are source-specific; list valid values with `resource de
 ## Device content, accounts and settings
 
 ```sh
-zerobox --nogui app list
-zerobox --nogui app launch com.example.app
-zerobox --nogui app uninstall com.example.app
-zerobox --nogui watchface list
-zerobox --nogui watchface set FACE_ID
-zerobox --nogui watchface remove FACE_ID
-zerobox --nogui account list
-zerobox --nogui account login amazfit --username user@example.com
-zerobox --nogui account logout bandbbs
-zerobox --nogui settings list
-zerobox --nogui settings set auto_reconnect true
+oronbox --nogui app list
+oronbox --nogui app launch com.example.app
+oronbox --nogui app uninstall com.example.app
+oronbox --nogui watchface list
+oronbox --nogui watchface set FACE_ID
+oronbox --nogui watchface remove FACE_ID
+oronbox --nogui account list
+oronbox --nogui account login amazfit --username user@example.com
+oronbox --nogui account logout bandbbs
+oronbox --nogui settings list
+oronbox --nogui settings set auto_reconnect true
 ```
 
 Use `--password-stdin` for non-interactive account login. Passwords are not
@@ -80,17 +80,17 @@ accepted as command-line options.
 ## Queue, logs and machine output
 
 ```sh
-zerobox --nogui queue list
-zerobox --nogui queue get TASK_ID
-zerobox --nogui queue wait TASK_ID
-zerobox --nogui queue watch
-zerobox --nogui queue cancel TASK_ID
-zerobox --nogui queue remove TASK_ID
-zerobox --nogui queue retry TASK_ID
-zerobox --nogui queue start
-zerobox --nogui queue pause
-zerobox --nogui logs watch
-zerobox --nogui --json device status
+oronbox --nogui queue list
+oronbox --nogui queue get TASK_ID
+oronbox --nogui queue wait TASK_ID
+oronbox --nogui queue watch
+oronbox --nogui queue cancel TASK_ID
+oronbox --nogui queue remove TASK_ID
+oronbox --nogui queue retry TASK_ID
+oronbox --nogui queue start
+oronbox --nogui queue pause
+oronbox --nogui logs watch
+oronbox --nogui --json device status
 ```
 
 `--json` emits a JSON result and JSONL progress/events. CLI exit codes are:
@@ -109,7 +109,7 @@ zerobox --nogui --json device status
 
 ## Composable architecture
 
-ZeroBox keeps its implementation inside an application host. GUI and CLI
+OronBox keeps its implementation inside an application host. GUI and CLI
 clients depend only on the shared command interface.
 
 - Linux, macOS, and Windows compose either `GUI → IPC → host` or
@@ -137,7 +137,7 @@ clients depend only on the shared command interface.
   requests.
 - Detached CLI tasks and GUI downloads/installations are persisted by the
   daemon, including held, running, failed, cancelled states, and progress.
-- Unix sockets live under `$XDG_RUNTIME_DIR/zerobox` on Linux. macOS uses its
+- Unix sockets live under `$XDG_RUNTIME_DIR/oronbox` on Linux. macOS uses its
   per-user or sandbox temporary directory to stay within the Unix socket path
   limit.
 - Windows publishes a random loopback port and per-run authentication token in

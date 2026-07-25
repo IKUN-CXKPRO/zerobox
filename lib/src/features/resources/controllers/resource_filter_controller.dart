@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
-import 'package:zerobox/src/features/resources/domain/resource_catalog.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 
 enum ResourceMode { home, library, creator }
 

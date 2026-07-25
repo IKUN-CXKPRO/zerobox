@@ -4,7 +4,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 set "SCRIPT_DIR=%~dp0"
 for %%I in ("%SCRIPT_DIR%..") do set "PROJECT_ROOT=%%~fI"
 set "RELEASE_DIR=%PROJECT_ROOT%\build\release"
-set "APP_NAME=zerobox"
+set "APP_NAME=oronbox"
 set "DEV_MODE=false"
 
 :parse_args

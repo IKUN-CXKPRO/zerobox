@@ -1,6 +1,6 @@
 # Changes from upstream card_settings_ui 2.0.1
 
-This is a local fork maintained by the ZeroBox project.
+This is a local fork maintained by the OronBox project.
 
 ## License
 

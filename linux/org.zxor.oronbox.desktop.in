@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=OronBox
+Comment=Wearable device manager
+Exec=@CMAKE_INSTALL_PREFIX@/oronbox %u
+Icon=org.zxor.oronbox
+Terminal=false
+Type=Application
+Categories=Utility;
+MimeType=x-scheme-handler/oronbox;

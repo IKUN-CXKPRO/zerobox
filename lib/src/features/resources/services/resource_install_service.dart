@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/device/core/device_kind.dart';
-import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
-import 'package:zerobox/src/features/resources/domain/resource_catalog.dart';
-import 'package:zerobox/src/features/resources/services/resource_payload_analyzer.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/device/core/device_kind.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
+import 'package:oronbox/src/features/resources/services/resource_payload_analyzer.dart';
 
 export 'resource_task_status.dart';
 export 'resource_payload_analyzer.dart'
@@ -357,6 +357,7 @@ class ResourceInstallService {
   static LocalDeviceInstallType? _catalogTypeHint(CommunityResourceType type) =>
       switch (type) {
         CommunityResourceType.quickApp => LocalDeviceInstallType.app,
+        CommunityResourceType.miniprogram => LocalDeviceInstallType.app,
         CommunityResourceType.watchface => LocalDeviceInstallType.watchface,
         CommunityResourceType.firmware => LocalDeviceInstallType.firmware,
         CommunityResourceType.fontpack ||
@@ -365,9 +366,9 @@ class ResourceInstallService {
 
   String _guessPackageName(String fileName) {
     final name = fileName.split('.').first;
-    if (name.isEmpty) return 'com.zerobox.unknown';
+    if (name.isEmpty) return 'com.oronbox.unknown';
     final sanitized = name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_');
-    return 'com.zerobox.$sanitized';
+    return 'com.oronbox.$sanitized';
   }
 
   String _guessWatchfaceId(String fileName) {
@@ -383,6 +384,7 @@ extension ResourceTypeLabel on CommunityResourceType {
   String get fileExtensionHint {
     return switch (this) {
       CommunityResourceType.quickApp => 'bin/rpk/zpk/zab/zip',
+      CommunityResourceType.miniprogram => 'zpk/zab/zip',
       CommunityResourceType.watchface => 'bin/face/mwz/zip',
       CommunityResourceType.firmware => 'zip/bin',
       CommunityResourceType.fontpack => 'zip',

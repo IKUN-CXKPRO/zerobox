@@ -5,22 +5,22 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/app/utils/error_localization.dart';
-import 'package:zerobox/src/app/widgets/page_container.dart';
-import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
-import 'package:zerobox/src/core/constants/style_constants.dart';
-import 'package:zerobox/src/core/models/bt_models.dart';
-import 'package:zerobox/src/core/models/device.dart';
-import 'package:zerobox/src/core/utils/layout.dart';
-import 'package:zerobox/src/device/core/connect_type.dart';
-import 'package:zerobox/src/device/core/device_profile.dart';
-import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
-import 'package:zerobox/src/features/devices/utils/device_address.dart';
-import 'package:zerobox/src/features/devices/widgets/device_connection_text.dart';
-import 'package:zerobox/src/features/devices/services/device_share_link.dart';
-import 'package:zerobox/src/features/devices/providers/pending_shared_device_provider.dart';
-import 'package:zerobox/src/protocols/common/device_protocol.dart' as proto;
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/core/models/device.dart';
+import 'package:oronbox/src/core/utils/layout.dart';
+import 'package:oronbox/src/device/core/connect_type.dart';
+import 'package:oronbox/src/device/core/device_profile.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/devices/utils/device_address.dart';
+import 'package:oronbox/src/features/devices/widgets/device_connection_text.dart';
+import 'package:oronbox/src/features/devices/services/device_share_link.dart';
+import 'package:oronbox/src/features/devices/providers/pending_shared_device_provider.dart';
+import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
 
 class DeviceSwitchPage extends ConsumerStatefulWidget {
   const DeviceSwitchPage({super.key});
@@ -1127,7 +1127,7 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
                     icon: Icon(compatibleMode ? Icons.link : Icons.swap_horiz),
                     label: Text(
                       compatibleMode
-                          ? l10n.deviceShareZeroBoxCode
+                          ? l10n.deviceShareOronBoxCode
                           : l10n.deviceShareAstroBoxCompatibleCode,
                     ),
                   ),

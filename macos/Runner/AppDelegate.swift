@@ -31,7 +31,7 @@ final class MacOSZeppSettingsChannel: NSObject, WKScriptMessageHandler, NSWindow
 
   init(messenger: FlutterBinaryMessenger, parentWindow: NSWindow?) {
     self.parentWindow = parentWindow
-    channel = FlutterMethodChannel(name: "zerobox/zeppos_app_settings", binaryMessenger: messenger)
+    channel = FlutterMethodChannel(name: "oronbox/zeppos_app_settings", binaryMessenger: messenger)
     super.init()
     channel.setMethodCallHandler(handle)
   }
@@ -64,7 +64,7 @@ final class MacOSZeppSettingsChannel: NSObject, WKScriptMessageHandler, NSWindow
       result(nil)
     case "settingsChanged":
       if let id = args["appId"] as? Int, id == appId, let json = args["settingsJson"] as? String {
-        webView?.evaluateJavaScript("globalThis.__zeroboxSettingsChanged(\(json))")
+        webView?.evaluateJavaScript("globalThis.__oronboxSettingsChanged(\(json))")
       }
       result(nil)
     default: result(FlutterMethodNotImplemented)
@@ -96,7 +96,7 @@ final class MacOSMiAccountTwoFactorChannel: NSObject {
   init(messenger: FlutterBinaryMessenger, parentWindow: NSWindow?) {
     self.parentWindow = parentWindow
     methodChannel = FlutterMethodChannel(
-      name: "zerobox/mi_account_2fa",
+      name: "oronbox/mi_account_2fa",
       binaryMessenger: messenger
     )
     super.init()
@@ -306,20 +306,20 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
   private var inquiry: IOBluetoothDeviceInquiry?
   private var scanResults: [String: [String: Any]] = [:]
   private var connectGeneration: UInt64 = 0
-  private let stateQueue = DispatchQueue(label: "org.zxor.zerobox.rfcomm.state")
+  private let stateQueue = DispatchQueue(label: "org.zxor.oronbox.rfcomm.state")
   private var readClosed = false
 
   init(messenger: FlutterBinaryMessenger) {
     methodChannel = FlutterMethodChannel(
-      name: "zerobox/classic_spp",
+      name: "oronbox/classic_spp",
       binaryMessenger: messenger
     )
     eventChannel = FlutterEventChannel(
-      name: "zerobox/classic_spp/events",
+      name: "oronbox/classic_spp/events",
       binaryMessenger: messenger
     )
     scanEventChannel = FlutterEventChannel(
-      name: "zerobox/classic_spp/scan_events",
+      name: "oronbox/classic_spp/scan_events",
       binaryMessenger: messenger
     )
     super.init()

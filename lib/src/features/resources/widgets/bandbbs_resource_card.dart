@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/app/widgets/horizontal_scroller.dart';
-import 'package:zerobox/src/app/widgets/network_img_layer.dart';
-import 'package:zerobox/src/core/constants/style_constants.dart';
-import 'package:zerobox/src/core/providers/app_settings_providers.dart';
-import 'package:zerobox/src/data/community/community_source.dart';
-import 'package:zerobox/src/features/resources/application/resource_catalog_providers.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/widgets/horizontal_scroller.dart';
+import 'package:oronbox/src/app/widgets/network_img_layer.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/core/providers/app_settings_providers.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 
 /// List-style resource card for the BandBBS source, modeled after the
 /// bandbbs.cn resource list: author + time, title + tagline, lazily loaded
@@ -274,6 +274,7 @@ class _StatChip extends StatelessWidget {
 Color _typeColor(ColorScheme color, CommunityResourceType type) =>
     switch (type) {
       CommunityResourceType.quickApp => color.error,
+      CommunityResourceType.miniprogram => color.error,
       CommunityResourceType.watchface => color.primary,
       CommunityResourceType.firmware => color.tertiary,
       CommunityResourceType.fontpack => color.secondary,
@@ -289,6 +290,7 @@ String _typeLabel(
     source == CommunitySourceId.huamiAppStore
         ? l10n.miniprogram
         : l10n.quickApp,
+  CommunityResourceType.miniprogram => l10n.miniprogram,
   CommunityResourceType.watchface => l10n.watchface,
   CommunityResourceType.firmware => l10n.firmwareTool,
   CommunityResourceType.fontpack => l10n.fontPack,

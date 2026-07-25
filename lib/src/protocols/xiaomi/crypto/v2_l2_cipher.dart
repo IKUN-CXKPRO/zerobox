@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
-import 'package:zerobox/src/protocols/xiaomi/crypto/miwear_crypto.dart';
-import 'package:zerobox/src/protocols/xiaomi/packet/l2_packet.dart';
+import 'package:oronbox/src/protocols/xiaomi/crypto/miwear_crypto.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
 
 class V2L2Cipher implements L2Cipher {
   V2L2Cipher({required this.encKey, required this.decKey});

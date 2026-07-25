@@ -14,7 +14,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
-        android:label="ZeroBox"
+        android:label="OronBox"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -45,19 +45,19 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="zerobox" android:host="open" />
+                <data android:scheme="oronbox" android:host="open" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="zerobox" android:host="oauth" android:pathPrefix="/bandbbs" />
+                <data android:scheme="oronbox" android:host="oauth" android:pathPrefix="/bandbbs" />
             </intent-filter>
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="zerobox.zxor.org" android:pathPrefix="/open" />
+                <data android:scheme="https" android:host="oronbox.zxor.org" android:pathPrefix="/open" />
             </intent-filter>
         </activity>
         <provider

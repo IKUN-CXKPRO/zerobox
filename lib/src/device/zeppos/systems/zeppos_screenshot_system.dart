@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/device/core/ble_requirement.dart';
-import 'package:zerobox/src/device/core/system.dart';
-import 'package:zerobox/src/device/core/transport.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_services_system.dart';
-import 'package:zerobox/src/device/zeppos/zeppos_device_component.dart';
+import 'package:oronbox/src/device/core/ble_requirement.dart';
+import 'package:oronbox/src/device/core/system.dart';
+import 'package:oronbox/src/device/core/transport.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_services_system.dart';
+import 'package:oronbox/src/device/zeppos/zeppos_device_component.dart';
 
 class ZeppOsScreenshotSystem extends System {
   static const appsEndpoint = 0x00a0;

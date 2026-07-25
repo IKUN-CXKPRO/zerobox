@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:zerobox/src/core/logging/diagnostic_event.dart';
+import 'package:oronbox/src/core/logging/diagnostic_event.dart';
 
 class DebugConsole extends StatefulWidget {
   const DebugConsole({super.key, required this.records});

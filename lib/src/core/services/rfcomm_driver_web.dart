@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:js_interop';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/core/services/rfcomm_driver.dart';
-import 'package:zerobox/src/device/core/bluetooth_platform.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/core/services/rfcomm_driver.dart';
+import 'package:oronbox/src/device/core/bluetooth_platform.dart';
 
 @JS('navigator.serial')
 external _Serial? get _navigatorSerial;

@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/daemon/daemon_task_queue.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/daemon/daemon_task_queue.dart';
 
-/// Owns ZeroBox application state and long-running tasks independently from
+/// Owns OronBox application state and long-running tasks independently from
 /// how callers reach it. Desktop exposes this module through IPC while mobile
 /// keeps it in the GUI process.
-class ApplicationHost implements ZeroBoxCommandBus {
+class ApplicationHost implements OronBoxCommandBus {
   ApplicationHost(this.core, {this.onClose, this.beginTaskExecution}) {
     tasks = DaemonTaskQueue(
       core,
@@ -21,7 +21,7 @@ class ApplicationHost implements ZeroBoxCommandBus {
     _taskSubscription = tasks.events.listen(_events.add);
   }
 
-  final ZeroBoxCommandBus core;
+  final OronBoxCommandBus core;
   final FutureOr<void> Function()? onClose;
   final Future<Future<void> Function()> Function(DaemonTask)?
   beginTaskExecution;
@@ -34,11 +34,11 @@ class ApplicationHost implements ZeroBoxCommandBus {
   Stream<CommandEvent> get events => _events.stream;
 
   @override
-  Future<CommandResult> execute(ZeroBoxCommand command) async {
+  Future<CommandResult> execute(OronBoxCommand command) async {
     return switch (command.method) {
       'task.enqueue' => CommandResult.success({
         'taskId': tasks.enqueue(
-          ZeroBoxCommand.fromJson(
+          OronBoxCommand.fromJson(
             (command.params['command'] as Map).cast<String, Object?>(),
           ),
           held: command.params['held'] == true,
@@ -77,7 +77,7 @@ class ApplicationHost implements ZeroBoxCommandBus {
     }
     final download = (result.value as Map).cast<String, Object?>();
     final autoInstall = await core.execute(
-      const ZeroBoxCommand(
+      const OronBoxCommand(
         method: 'settings.get',
         params: {'key': 'auto_install'},
       ),
@@ -85,7 +85,7 @@ class ApplicationHost implements ZeroBoxCommandBus {
     if (!autoInstall.ok) throw StateError(autoInstall.error!.message);
     final setting = (autoInstall.value as Map)['value'] != false;
     tasks.enqueue(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'install.local',
         params: {
           'type': download['type'],
@@ -110,7 +110,7 @@ class ApplicationHost implements ZeroBoxCommandBus {
   ) async {
     if (task.command.params['autoClean'] != true) return false;
     final setting = await core.execute(
-      const ZeroBoxCommand(
+      const OronBoxCommand(
         method: 'settings.get',
         params: {'key': 'disable_auto_clean'},
       ),

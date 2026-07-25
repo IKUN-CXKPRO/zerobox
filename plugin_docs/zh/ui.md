@@ -5,8 +5,8 @@
 ## 渲染
 
 ```js
-ZeroBox.ui.render(tree);      // 在插件详情页渲染
-ZeroBox.ui.openPage(tree);    // 打开全屏页面
+OronBox.ui.render(tree);      // 在插件详情页渲染
+OronBox.ui.openPage(tree);    // 打开全屏页面
 ```
 
 `render` 和 `openPage` 接收**单个根节点**（通常是 Column 容器）。
@@ -14,25 +14,25 @@ ZeroBox.ui.openPage(tree);    // 打开全屏页面
 异步交互必须等待操作完成后再重新渲染，并返回 `render()` 的 Promise：
 
 ```js
-const save = ZeroBox.ui.action(async () => {
-  await ZeroBox.storage.set('key', 'value');
+const save = OronBox.ui.action(async () => {
+  await OronBox.storage.set('key', 'value');
   status = '保存成功';
 }, render);
 ```
 
-`ZeroBox.ui.action(fn, render)` 会等待 `fn` 完成后调用 `render`。如果自行注册回调并在异步操作完成前渲染，界面只会得到旧状态。
+`OronBox.ui.action(fn, render)` 会等待 `fn` 完成后调用 `render`。如果自行注册回调并在异步操作完成前渲染，界面只会得到旧状态。
 
 ## 获取容器尺寸
 
 ```js
-const size = await ZeroBox.ui.getRenderSize();
+const size = await OronBox.ui.getRenderSize();
 // { width: 360, height: 480 }
 ```
 
 ## 原生弹窗
 
 ```js
-const result = await ZeroBox.ui.dialog({
+const result = await OronBox.ui.dialog({
   title: '确认操作',
   message: '确定要删除吗？',
   buttons: [
@@ -48,7 +48,7 @@ const result = await ZeroBox.ui.dialog({
 ### Column / Row
 
 ```js
-const { Column, Row, Spacer, Text } = ZeroBox.ui;
+const { Column, Row, Spacer, Text } = OronBox.ui;
 
 Column({ gap: 12, padding: 16, align: 'start' }, [
   Text('标题', { size: 20, weight: 'bold' }),
@@ -187,7 +187,7 @@ Tooltip({ text: '解释文字' }, Text('悬停我'));
 let activeTab = 'a';
 
 const render = () => {
-  ZeroBox.ui.render(
+  OronBox.ui.render(
     Column({}, [
       Tabs({
         scrollable: true,
@@ -225,14 +225,14 @@ Text('半透明', { opacity: 0.5 });
 
 ```js
 globalThis.activate = async (plugin) => {
-  const { Column, Row, Card, Text, Button, Switch, Slider, Dropdown, Divider, Spacer } = ZeroBox.ui;
+  const { Column, Row, Card, Text, Button, Switch, Slider, Dropdown, Divider, Spacer } = OronBox.ui;
 
   let notify = true;
   let brightness = 0.5;
   let theme = 'auto';
 
   const render = () => {
-    ZeroBox.ui.render(
+    OronBox.ui.render(
       Column({ padding: 16, gap: 12 }, [
         Text('设置', { size: 22, weight: 'bold' }),
 

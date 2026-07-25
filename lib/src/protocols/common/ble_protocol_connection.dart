@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/core/services/ble_gatt_driver.dart';
-import 'package:zerobox/src/protocols/common/device_protocol.dart';
+import 'package:oronbox/src/core/services/ble_gatt_driver.dart';
+import 'package:oronbox/src/protocols/common/device_protocol.dart';
 
 class BleProtocolConnection implements ProtocolConnection {
   BleProtocolConnection(this._connection);

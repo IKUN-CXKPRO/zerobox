@@ -153,3 +153,5 @@ packages/wasm_run_flutter/windows/wasm_run-*.tar.gz
 .agents/
 .codex/
 skills-lock.json
+server
+/.kimi-code/

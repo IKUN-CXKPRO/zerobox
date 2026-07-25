@@ -1,21 +1,21 @@
-import 'package:zerobox/src/device/core/entity.dart';
-import 'package:zerobox/src/device/core/event_bus.dart';
-import 'package:zerobox/src/device/core/runtime.dart';
-import 'package:zerobox/src/device/core/transport.dart';
-import 'package:zerobox/src/device/xiaomi/components/auth_system.dart';
-import 'package:zerobox/src/device/xiaomi/components/info_system.dart';
-import 'package:zerobox/src/device/xiaomi/components/install_system.dart';
-import 'package:zerobox/src/device/xiaomi/components/mass_system.dart';
-import 'package:zerobox/src/device/xiaomi/components/media_system.dart';
-import 'package:zerobox/src/device/xiaomi/components/network_system.dart';
-import 'package:zerobox/src/device/xiaomi/components/report_system.dart';
-import 'package:zerobox/src/device/xiaomi/components/request_pool_system.dart';
-import 'package:zerobox/src/device/xiaomi/components/resource_system.dart';
-import 'package:zerobox/src/device/xiaomi/components/sync_system.dart';
-import 'package:zerobox/src/device/xiaomi/components/thirdparty_app_system.dart';
-import 'package:zerobox/src/device/xiaomi/components/watchface_system.dart';
-import 'package:zerobox/src/device/xiaomi/components/xiaomi_device_component.dart';
-import 'package:zerobox/src/device/xiaomi/system/xiaomi_dispatcher.dart';
+import 'package:oronbox/src/device/core/entity.dart';
+import 'package:oronbox/src/device/core/event_bus.dart';
+import 'package:oronbox/src/device/core/runtime.dart';
+import 'package:oronbox/src/device/core/transport.dart';
+import 'package:oronbox/src/device/xiaomi/components/auth_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/info_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/install_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/mass_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/media_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/network_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/report_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/request_pool_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/resource_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/sync_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/thirdparty_app_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/watchface_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/xiaomi_device_component.dart';
+import 'package:oronbox/src/device/xiaomi/system/xiaomi_dispatcher.dart';
 
 class XiaomiDeviceFactory implements DeviceEntityFactory {
   @override

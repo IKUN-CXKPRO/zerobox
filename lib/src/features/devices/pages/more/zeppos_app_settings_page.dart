@@ -3,11 +3,11 @@ import 'dart:typed_data';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:zerobox/src/app/widgets/page_container.dart';
-import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
-import 'package:zerobox/src/core/constants/style_constants.dart';
-import 'package:zerobox/src/device/zeppos/app_side/zeppos_app_side_storage.dart';
-import 'package:zerobox/src/features/devices/pages/more/zeppos_setting_viewer_page.dart';
+import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/device/zeppos/app_side/zeppos_app_side_storage.dart';
+import 'package:oronbox/src/features/devices/pages/more/zeppos_setting_viewer_page.dart';
 
 class ZeppOsAppSettingsPage extends StatefulWidget {
   const ZeppOsAppSettingsPage({super.key});

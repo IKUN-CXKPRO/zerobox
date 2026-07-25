@@ -72,7 +72,7 @@ Zepp OS 连接后会先通过 endpoint `0x0000` 获取设备实际支持的服�
 7. Time（`0x0047`）
 8. Device Info（`0x0043`）
 
-这些服务是许多其他功能的基础。其中 Authentication、Connection、File Transfer 涉及连接与会话稳定性。对 ZeroBox 而言，它们属于高风险区域，不能为了实现普通上层功能而顺手重构。
+这些服务是许多其他功能的基础。其中 Authentication、Connection、File Transfer 涉及连接与会话稳定性。对 OronBox 而言，它们属于高风险区域，不能为了实现普通上层功能而顺手重构。
 
 ### 3.2 日常设置与设备界面
 
@@ -124,18 +124,18 @@ Zepp OS 连接后会先通过 endpoint `0x0000` 获取设备实际支持的服�
 2. Zepp Flow Assistant（`0x004A`）
 3. Find Device（`0x001A`）
 
-## 4. ZeroBox 当前覆盖情况
+## 4. OronBox 当前覆盖情况
 
-截至本文整理时，ZeroBox 已具备以下 Zepp OS 上层系统：
+截至本文整理时，OronBox 已具备以下 Zepp OS 上层系统：
 
-| ZeroBox System | Endpoint | 当前能力 |
+| OronBox System | Endpoint | 当前能力 |
 |---|---:|---|
 | `ZeppOsAuthSystem` | `0x0082` | authkey 认证与会话密钥建立 |
 | `ZeppOsServicesSystem` | `0x0000` | 服务列表和 endpoint 加密标志查询 |
 | `ZeppOsBatterySystem` | `0x0029` | 电量与充电状态查询 |
 | `ZeppOsFindDeviceSystem` | `0x001A` | 基础开始/停止查找 |
 
-其中查找设备目前只覆盖基础开始和停止命令。Gadgetbridge 还实现了能力查询、能力响应、启动 ACK，以及对部分旧设备的周期性重复触发逻辑，这些可以作为 ZeroBox 下一步较安全的上层完善方向。
+其中查找设备目前只覆盖基础开始和停止命令。Gadgetbridge 还实现了能力查询、能力响应、启动 ACK，以及对部分旧设备的周期性重复触发逻辑，这些可以作为 OronBox 下一步较安全的上层完善方向。
 
 ## 5. 建议研究和移植顺序
 
@@ -164,7 +164,7 @@ Zepp OS 连接后会先通过 endpoint `0x0000` 获取设备实际支持的服�
 4. HTTP（`0x0001`）、FTP Server（`0x0006`）和 Wi-Fi（`0x0003`）。
 5. Alexa/Zepp Flow 语音助手。
 
-## 6. 每个 Service 移植到 ZeroBox 时的检查模板
+## 6. 每个 Service 移植到 OronBox 时的检查模板
 
 每新增一个功能，建议依次确认：
 
@@ -172,7 +172,7 @@ Zepp OS 连接后会先通过 endpoint `0x0000` 获取设备实际支持的服�
 2. 读取服务列表返回的加密标志，不能凭经验固定明文或密文。
 3. 阅读对应 Gadgetbridge Service 的全部命令常量、请求格式、响应格式和错误分支。
 4. 判断是否依赖 File Transfer、HTTP、FTP、配置服务或其他 endpoint。
-5. 在 ZeroBox 中建立独立 `ZeppOs*System`，注册到 `ZeppOsDeviceFactory`。
+5. 在 OronBox 中建立独立 `ZeppOs*System`，注册到 `ZeppOsDeviceFactory`。
 6. 将接收 payload 分派给对应 System，不把业务解析塞进连接组件。
 7. Android/本地 `DeviceManager` 提供调用入口。
 8. 桌面 `RemoteDeviceManager`、daemon 命令和 `LocalCommandBus` 同步补齐。
@@ -184,5 +184,5 @@ Zepp OS 连接后会先通过 endpoint `0x0000` 获取设备实际支持的服�
 - 41 个 Service 是 Gadgetbridge 当前 `ZeppOsSupport` 的 41 个实际服务实例，不代表每台设备都支持 41 个 endpoint。
 - endpoint `0x0000` 返回的服务表才是目标设备能力和加密要求的最终依据。
 - 同名功能可能依赖多个服务。例如地图、音乐、日志和语音备忘录通常不只是发送一个业务 endpoint，还会依赖文件传输或网络代理。
-- ZeroBox 当前已经具备稳定的服务查询、认证、加密 endpoint 收发基础。后续应在这套基础上逐项增加独立上层 System，不应重新设计连接层。
+- OronBox 当前已经具备稳定的服务查询、认证、加密 endpoint 收发基础。后续应在这套基础上逐项增加独立上层 System，不应重新设计连接层。
 - 最适合作为下一项工作的，是补全 Find Device，或新增边界清晰的 Device Info、World Clocks、Silent Mode、Alarms 等功能。

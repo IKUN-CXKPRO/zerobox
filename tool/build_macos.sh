@@ -39,7 +39,7 @@ if command -v hdiutil >/dev/null 2>&1; then
   DMG_DST="${RELEASE_DIR}/${APP_NAME}-${VERSION}-macos-universal.dmg"
   rm -f "${DMG_DST}"
   run_cmd hdiutil create \
-    -volname "ZeroBox" \
+    -volname "OronBox" \
     -srcfolder "${APP_BUNDLE}" \
     -ov \
     -format UDZO \

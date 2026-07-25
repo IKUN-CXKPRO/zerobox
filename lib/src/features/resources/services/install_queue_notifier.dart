@@ -5,17 +5,17 @@ import 'package:cross_file/cross_file.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/core/providers/app_settings_providers.dart';
-import 'package:zerobox/src/daemon/daemon_task_models.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource_codec.dart';
-import 'package:zerobox/src/features/resources/services/resource_install_service.dart';
-import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
-import 'package:zerobox/src/host/application_host_provider.dart';
-import 'package:zerobox/src/protocols/common/device_protocol.dart' as proto;
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/providers/app_settings_providers.dart';
+import 'package:oronbox/src/daemon/daemon_task_models.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource_codec.dart';
+import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/host/application_host_provider.dart';
+import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
 
-export 'package:zerobox/src/features/resources/services/resource_install_service.dart'
+export 'package:oronbox/src/features/resources/services/resource_install_service.dart'
     show LocalDeviceInstallType, ResourceTaskStatus;
 
 enum QueueRunStatus { pending, running, stopping }
@@ -91,7 +91,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
   Future<void> _refresh() async {
     final result = await ref
         .read(applicationHostProvider)
-        .execute(const ZeroBoxCommand(method: 'queue.list'));
+        .execute(const OronBoxCommand(method: 'queue.list'));
     if (!result.ok || result.value is! List) return;
     _replaceFromRows((result.value as List).whereType<Map>());
   }
@@ -215,7 +215,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     }
     final path = await _stage(file.name, bytes);
     await _enqueue(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'install.local',
         params: {
           'type': 'auto',
@@ -251,7 +251,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     }
     final path = await _stage(file.name, bytes);
     await _enqueue(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'install.local',
         params: {
           'type': type.name,
@@ -265,7 +265,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     );
     await ref
         .read(applicationHostProvider)
-        .execute(const ZeroBoxCommand(method: 'queue.start'));
+        .execute(const OronBoxCommand(method: 'queue.start'));
   }
 
   Future<String> _stage(String name, Uint8List bytes) async {
@@ -273,17 +273,17 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     final safeName = name.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
     final file = File(
       '${directory.path}${Platform.pathSeparator}'
-      'zerobox_queue_${DateTime.now().microsecondsSinceEpoch}_$safeName',
+      'oronbox_queue_${DateTime.now().microsecondsSinceEpoch}_$safeName',
     );
     await file.writeAsBytes(bytes, flush: true);
     return file.path;
   }
 
-  Future<void> _enqueue(ZeroBoxCommand command) async {
+  Future<void> _enqueue(OronBoxCommand command) async {
     final result = await ref
         .read(applicationHostProvider)
         .execute(
-          ZeroBoxCommand(
+          OronBoxCommand(
             method: 'task.enqueue',
             params: {'held': true, 'command': command.toJson()},
           ),
@@ -307,6 +307,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
         description: codename,
         type: switch (resource.type) {
           CommunityResourceType.quickApp => LocalDeviceInstallType.app,
+          CommunityResourceType.miniprogram => LocalDeviceInstallType.app,
           CommunityResourceType.watchface => LocalDeviceInstallType.watchface,
           CommunityResourceType.firmware => LocalDeviceInstallType.firmware,
           CommunityResourceType.fontpack || CommunityResourceType.iconpack =>
@@ -361,14 +362,14 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
         task.status == ResourceTaskStatus.failed;
     final host = ref.read(applicationHostProvider);
     await host.execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: terminal ? 'queue.remove' : 'queue.cancel',
         params: {'id': taskId},
       ),
     );
     if (!terminal) {
       await host.execute(
-        ZeroBoxCommand(method: 'queue.remove', params: {'id': taskId}),
+        OronBoxCommand(method: 'queue.remove', params: {'id': taskId}),
       );
     }
   }
@@ -424,7 +425,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
       ref
           .read(applicationHostProvider)
           .execute(
-            ZeroBoxCommand(method: 'queue.retry', params: {'id': taskId}),
+            OronBoxCommand(method: 'queue.retry', params: {'id': taskId}),
           ),
     );
   }
@@ -444,7 +445,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     unawaited(
       ref
           .read(applicationHostProvider)
-          .execute(const ZeroBoxCommand(method: 'queue.start')),
+          .execute(const OronBoxCommand(method: 'queue.start')),
     );
   }
 
@@ -460,7 +461,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     unawaited(
       ref
           .read(applicationHostProvider)
-          .execute(const ZeroBoxCommand(method: 'queue.pause')),
+          .execute(const OronBoxCommand(method: 'queue.pause')),
     );
   }
 

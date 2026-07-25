@@ -6,8 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:zerobox/src/app/window/debug_window_preference.dart';
-import 'package:zerobox/src/core/utils/layout.dart';
+import 'package:oronbox/src/app/window/debug_window_preference.dart';
+import 'package:oronbox/src/core/utils/layout.dart';
 
 class SysAppBar extends ConsumerWidget implements PreferredSizeWidget {
   const SysAppBar({

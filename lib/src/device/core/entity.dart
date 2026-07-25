@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/device/core/event_bus.dart';
-import 'package:zerobox/src/device/core/system.dart';
-import 'package:zerobox/src/device/core/transport.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/device/core/event_bus.dart';
+import 'package:oronbox/src/device/core/system.dart';
+import 'package:oronbox/src/device/core/transport.dart';
 
 class DeviceEntity {
   DeviceEntity({

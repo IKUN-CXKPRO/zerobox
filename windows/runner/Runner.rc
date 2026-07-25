@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "zerobox" "\0"
+            VALUE "FileDescription", "OronBox" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "zerobox" "\0"
+            VALUE "InternalName", "oronbox" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "zerobox.exe" "\0"
-            VALUE "ProductName", "zerobox" "\0"
+            VALUE "OriginalFilename", "oronbox.exe" "\0"
+            VALUE "ProductName", "OronBox" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

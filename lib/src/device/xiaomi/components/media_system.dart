@@ -1,19 +1,19 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/device/xiaomi/components/mass_system.dart';
-import 'package:zerobox/src/device/xiaomi/system/xiaomi_system.dart';
-import 'package:zerobox/src/protocols/common/device_protocol.dart';
-import 'package:zerobox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_common.pbenum.dart'
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/device/xiaomi/components/mass_system.dart';
+import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
+import 'package:oronbox/src/protocols/common/device_protocol.dart';
+import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_common.pbenum.dart'
     as pb_common;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_media.pb.dart'
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_media.pb.dart'
     as pb_media;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_media.pbenum.dart'
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_media.pbenum.dart'
     as pb_media_enum;
-import 'package:zerobox/src/protocols/xiaomi/packet/l2_packet.dart';
-import 'package:zerobox/src/protocols/xiaomi/packet/mass_packet.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/mass_packet.dart';
 
 class MediaUploadResult {
   MediaUploadResult({required this.song, required this.duplicated});

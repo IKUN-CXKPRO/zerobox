@@ -2,15 +2,15 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/features/plugins/storage/plugin_storage.dart';
-import 'package:zerobox/src/features/plugins/storage/plugin_storage_io.dart';
+import 'package:oronbox/src/features/plugins/storage/plugin_storage.dart';
+import 'package:oronbox/src/features/plugins/storage/plugin_storage_io.dart';
 
 void main() {
   test(
     'plugin data is isolated by plugin ID while package files stay read-only',
     () async {
       final root = await Directory.systemTemp.createTemp(
-        'zerobox-storage-test-',
+        'oronbox-storage-test-',
       );
       addTearDown(() => root.delete(recursive: true));
       final storage = await createIoPluginStorage(
@@ -44,7 +44,7 @@ void main() {
   );
 
   test('symbolic links cannot escape a plugin storage root', () async {
-    final root = await Directory.systemTemp.createTemp('zerobox-storage-test-');
+    final root = await Directory.systemTemp.createTemp('oronbox-storage-test-');
     addTearDown(() => root.delete(recursive: true));
     final storage = await createIoPluginStorage(
       installedRoot: Directory('${root.path}/installed'),

@@ -76,7 +76,7 @@ async function create(id, bootstrap, globals, source) {
   const sendMessage = context.newFunction("sendMessage", (channel, message) => {
     const channelName = context.getString(channel);
     const payload = context.getString(message);
-    const hostResult = globalThis.zeroboxPluginHostCall(id, channelName, payload);
+    const hostResult = globalThis.oronboxPluginHostCall(id, channelName, payload);
     if (!hostResult || typeof hostResult.then !== "function") {
       return hostValue(instance, hostResult);
     }
@@ -106,8 +106,8 @@ async function create(id, bootstrap, globals, source) {
   sendMessage.dispose();
 
   try {
-    evaluate(instance, bootstrap, "zerobox_abv1_host.js").dispose();
-    evaluate(instance, globals, "zerobox_abv1_globals.js").dispose();
+    evaluate(instance, bootstrap, "oronbox_abv1_host.js").dispose();
+    evaluate(instance, globals, "oronbox_abv1_globals.js").dispose();
     evaluate(instance, source, `${id}/main.js`).dispose();
     return await settle(instance, evaluate(instance, "__zbStartPlugin()", `${id}/start.js`));
   } catch (error) {
@@ -157,4 +157,4 @@ async function close(id) {
   instance.runtime.dispose();
 }
 
-globalThis.ZeroBoxPluginRuntime = { create, invoke, dispatchEvent, fireTimer, close };
+globalThis.OronBoxPluginRuntime = { create, invoke, dispatchEvent, fireTimer, close };

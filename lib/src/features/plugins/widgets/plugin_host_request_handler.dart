@@ -5,10 +5,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/app/router/app_router.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/host/application_host_provider.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/router/app_router.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/host/application_host_provider.dart';
 
 class PluginHostRequestHandler extends ConsumerStatefulWidget {
   const PluginHostRequestHandler({super.key, required this.child});
@@ -71,7 +71,7 @@ class _PluginHostRequestHandlerState
     await ref
         .read(applicationHostProvider)
         .execute(
-          ZeroBoxCommand(
+          OronBoxCommand(
             method: 'plugin.host.respond',
             params: {'requestId': requestId, 'response': response},
           ),
@@ -301,15 +301,15 @@ class _PluginHostRequestHandlerState
       ),
     );
     final command = switch (action) {
-      'uninstall' => ZeroBoxCommand(
+      'uninstall' => OronBoxCommand(
         method: 'plugin.remove',
         params: {'id': pluginId},
       ),
-      'clear' => ZeroBoxCommand(
+      'clear' => OronBoxCommand(
         method: 'plugin.data.clear',
         params: {'id': pluginId},
       ),
-      'safeMode' => const ZeroBoxCommand(
+      'safeMode' => const OronBoxCommand(
         method: 'plugin.safeMode.set',
         params: {'enabled': true},
       ),

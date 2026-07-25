@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/app/generated/app_localizations_en.dart';
-import 'package:zerobox/src/app/generated/app_localizations_zh.dart';
-import 'package:zerobox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/generated/app_localizations_en.dart';
+import 'package:oronbox/src/app/generated/app_localizations_zh.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 
 void main() {
   final en = AppLocalizationsEn();

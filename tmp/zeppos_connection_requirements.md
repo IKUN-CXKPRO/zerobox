@@ -1,6 +1,6 @@
-# ZeppOS 设备连接要求与 ZeroBox 实现清单
+# ZeppOS 设备连接要求与 OronBox 实现清单
 
-本文以仓库内 `common/Gadgetbridge` 的 Huami / ZeppOS 实现为基准，记录 ZeppOS 设备从发现到可用连接所需的条件，并逐项对照 ZeroBox。本文只描述连接与协议要求，不表示所有 ZeppOS 功能已经可用。
+本文以仓库内 `common/Gadgetbridge` 的 Huami / ZeppOS 实现为基准，记录 ZeppOS 设备从发现到可用连接所需的条件，并逐项对照 OronBox。本文只描述连接与协议要求，不表示所有 ZeppOS 功能已经可用。
 
 ## 1. 结论与边界
 
@@ -20,7 +20,7 @@ Gadgetbridge 的 `HuamiCoordinator` 使用华米 BLE service 过滤器发现设�
 - BLE：`ZeppOsBtleSupport`
 - Classic：`ZeppOsBtbrSupport`
 
-ZeroBox 不能只依赖设备名称。可靠识别应综合：
+OronBox 不能只依赖设备名称。可靠识别应综合：
 
 - 广播名称（Amazfit、Zepp、Mi Band 7 等已知系列）。
 - 广播中的华米/Zepp service UUID。
@@ -37,7 +37,7 @@ ZeppOS 2021 BLE 连接至少需要：
 | 手机写、设备读（chunked write） | `00000016-0000-3512-2118-0009af100700` |
 | 设备写、手机读及 ACK（chunked read） | `00000017-0000-3512-2118-0009af100700` |
 
-`0x16/0x17`的父服务不能写死为`1530`。真实ZeppOS设备可能将它们放在`FEE0`服务下；Gadgetbridge按characteristic UUID全局解析。ZeroBox也必须优先查预期服务、再跨全部已发现服务按UUID回退。
+`0x16/0x17`的父服务不能写死为`1530`。真实ZeppOS设备可能将它们放在`FEE0`服务下；Gadgetbridge按characteristic UUID全局解析。OronBox也必须优先查预期服务、再跨全部已发现服务按UUID回退。
 
 BLE 建链顺序：
 
@@ -108,7 +108,7 @@ BTBR 使用的不是 Xiaomi 当前的标准 SPP UUID `00001101-0000-1000-8000-00
 
 因此，在 BTBR communicator 和主会话完成前，不得把裸 RFCOMM stream 直接送入 `ZeppOsDeviceComponent`，也不得宣称 authkey 连接成功。
 
-## 3. ZeroBox 当前对照
+## 3. OronBox 当前对照
 
 | 项目 | 当前状态 | 结论 / 后续工作 |
 |---|---|---|

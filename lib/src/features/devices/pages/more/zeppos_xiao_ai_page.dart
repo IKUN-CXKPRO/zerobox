@@ -6,12 +6,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
-import 'package:zerobox/src/app/widgets/page_container.dart';
-import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
-import 'package:zerobox/src/core/constants/style_constants.dart';
-import 'package:zerobox/src/core/wasm/wasm_opus_decoder.dart';
-import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
-import 'package:zerobox/src/protocols/common/device_protocol.dart' as proto;
+import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/core/wasm/wasm_opus_decoder.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
 
 class ZeppOsXiaoAiPage extends ConsumerStatefulWidget {
   const ZeppOsXiaoAiPage({super.key});
@@ -255,7 +255,6 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
       body: PageContainer(
         padding: const EdgeInsets.symmetric(
           horizontal: StyleConstants.pagePadding,
-          vertical: 16,
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -609,7 +608,7 @@ Uint8List _oggOpusFile(List<Uint8List> frames, List<int> durations) {
     0,
     0,
   ]);
-  final vendor = 'ZeroBox';
+  final vendor = 'OronBox';
   final tags = BytesBuilder()
     ..add('OpusTags'.codeUnits)
     ..add(_le32(vendor.length))

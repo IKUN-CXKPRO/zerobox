@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/data/bandbbs/bandbbs_resource_provider.dart';
-import 'package:zerobox/src/features/resources/application/resource_catalog_providers.dart';
-import 'package:zerobox/src/features/resources/controllers/resource_filter_controller.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/data/bandbbs/bandbbs_resource_provider.dart';
+import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
+import 'package:oronbox/src/features/resources/controllers/resource_filter_controller.dart';
 
 /// Responsive category sidebar for the BandBBS source, modeled after the
 /// bandbbs.cn category tree: expandable groups with aggregate resource

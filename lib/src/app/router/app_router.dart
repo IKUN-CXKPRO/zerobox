@@ -1,36 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:zerobox/src/app/layout/app_scaffold.dart';
-import 'package:zerobox/src/app/widgets/dialog_helper.dart';
-import 'package:zerobox/src/data/community/community_source.dart';
-import 'package:zerobox/src/features/resources/application/resource_catalog_providers.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
-import 'package:zerobox/src/features/devices/pages/apps/device_apps_page.dart';
-import 'package:zerobox/src/features/devices/pages/devices_page.dart';
-import 'package:zerobox/src/features/devices/pages/info/device_info_page.dart';
-import 'package:zerobox/src/features/devices/pages/install/install_local_page.dart';
-import 'package:zerobox/src/features/devices/pages/more/zeppos_more_features_page.dart';
-import 'package:zerobox/src/features/devices/pages/more/zeppos_xiao_ai_page.dart';
-import 'package:zerobox/src/features/devices/pages/more/zeppos_app_side_debug_page.dart';
-import 'package:zerobox/src/features/devices/pages/more/zeppos_app_settings_page.dart';
-import 'package:zerobox/src/features/devices/pages/switch/device_switch_page.dart';
-import 'package:zerobox/src/features/debug/pages/debug_window_app.dart';
-import 'package:zerobox/src/features/devices/pages/watchfaces/device_watchfaces_page.dart';
-import 'package:zerobox/src/features/devices/providers/pending_shared_device_provider.dart';
-import 'package:zerobox/src/features/devices/services/device_share_link.dart';
-import 'package:zerobox/src/features/resources/pages/creator/creator_dashboard_page.dart';
-import 'package:zerobox/src/features/resources/pages/creator/creator_editor_shell.dart';
-import 'package:zerobox/src/features/resources/pages/huami_publisher_page.dart';
-import 'package:zerobox/src/features/resources/pages/queue_page.dart';
-import 'package:zerobox/src/features/resources/pages/resource_detail_page.dart';
-import 'package:zerobox/src/features/resources/pages/resources_page.dart';
-import 'package:zerobox/src/features/settings/pages/acknowledgements_page.dart';
-import 'package:zerobox/src/features/settings/pages/about_software_page.dart';
-import 'package:zerobox/src/features/settings/pages/settings_page.dart';
-import 'package:zerobox/src/features/settings/pages/bandbbs_account_page.dart';
-import 'package:zerobox/src/features/plugins/pages/plugin_detail_page.dart';
-import 'package:zerobox/src/features/plugins/pages/plugins_page.dart';
+import 'package:oronbox/src/app/layout/app_scaffold.dart';
+import 'package:oronbox/src/app/widgets/dialog_helper.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/devices/pages/apps/device_apps_page.dart';
+import 'package:oronbox/src/features/devices/pages/devices_page.dart';
+import 'package:oronbox/src/features/devices/pages/info/device_info_page.dart';
+import 'package:oronbox/src/features/devices/pages/install/install_local_page.dart';
+import 'package:oronbox/src/features/devices/pages/more/zeppos_more_features_page.dart';
+import 'package:oronbox/src/features/devices/pages/more/zeppos_xiao_ai_page.dart';
+import 'package:oronbox/src/features/devices/pages/more/zeppos_app_side_debug_page.dart';
+import 'package:oronbox/src/features/devices/pages/more/zeppos_app_settings_page.dart';
+import 'package:oronbox/src/features/devices/pages/switch/device_switch_page.dart';
+import 'package:oronbox/src/features/debug/pages/debug_window_app.dart';
+import 'package:oronbox/src/features/oobe/oobe_state.dart';
+import 'package:oronbox/src/features/oobe/pages/oobe_page.dart';
+import 'package:oronbox/src/features/devices/pages/watchfaces/device_watchfaces_page.dart';
+import 'package:oronbox/src/features/devices/providers/pending_shared_device_provider.dart';
+import 'package:oronbox/src/features/devices/services/device_share_link.dart';
+import 'package:oronbox/src/features/resources/pages/huami_publisher_page.dart';
+import 'package:oronbox/src/features/resources/pages/queue_page.dart';
+import 'package:oronbox/src/features/resources/pages/resource_detail_page.dart';
+import 'package:oronbox/src/features/resources/pages/resources_page.dart';
+import 'package:oronbox/src/features/settings/pages/acknowledgements_page.dart';
+import 'package:oronbox/src/features/settings/pages/about_software_page.dart';
+import 'package:oronbox/src/features/settings/pages/settings_page.dart';
+import 'package:oronbox/src/features/settings/pages/bandbbs_account_page.dart';
+import 'package:oronbox/src/features/settings/pages/feedback_page.dart';
+import 'package:oronbox/src/features/plugins/pages/plugin_detail_page.dart';
+import 'package:oronbox/src/features/plugins/pages/plugins_page.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -38,18 +39,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/resources',
-    observers: [ZeroBoxDialog.observer],
+    observers: [OronBoxDialog.observer],
     redirect: (context, state) {
       final uri = state.uri;
-      if (uri.scheme == 'zerobox' && uri.host == 'oauth') {
+      final onOobe = uri.path == '/oobe';
+      if (!isOobeCompleted()) {
+        // Until the agreements are accepted and the wizard is finished,
+        // everything lands on the OOBE. OAuth callbacks are consumed by
+        // DeviceDeepLinkHandler independently of the route.
+        return onOobe ? null : '/oobe';
+      }
+      if (onOobe && uri.queryParameters['replay'] != '1') {
+        return '/resources';
+      }
+      if (uri.scheme == 'oronbox' && uri.host == 'oauth') {
         // OAuth callbacks are consumed by DeviceDeepLinkHandler; just land
         // somewhere sensible instead of showing a "page not found".
         return '/settings/bandbbs';
       }
       final isDeviceShareLink =
-          (uri.scheme == 'zerobox' && uri.host == 'open') ||
+          (uri.scheme == 'oronbox' && uri.host == 'open') ||
           ((uri.scheme == 'https' || uri.scheme == 'http') &&
-              uri.host == 'zerobox.zxor.org' &&
+              uri.host == 'oronbox.zxor.org' &&
               uri.path == '/open');
       if (!isDeviceShareLink) return null;
 
@@ -62,6 +73,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/home', redirect: (context, state) => '/resources'),
+      GoRoute(path: '/oobe', builder: (context, state) => const OobePage()),
       GoRoute(
         path: '/debug',
         builder: (context, state) => const DebugWindowPage(embedded: true),
@@ -108,16 +120,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => HuamiPublisherPage(
                       publisherName: state.uri.queryParameters['name'] ?? '',
                     ),
-                  ),
-                  GoRoute(
-                    path: 'creator',
-                    builder: (context, state) => const CreatorDashboardPage(),
-                    routes: [
-                      GoRoute(
-                        path: 'new',
-                        builder: (context, state) => const CreatorEditorShell(),
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -224,6 +226,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'acknowledgements',
                     builder: (context, state) => const AcknowledgementsPage(),
+                  ),
+                  GoRoute(
+                    path: 'feedback',
+                    builder: (context, state) =>
+                        FeedbackPage(target: state.extra as FeedbackTarget?),
                   ),
                 ],
               ),

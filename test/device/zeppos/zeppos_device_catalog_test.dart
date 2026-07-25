@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/device/core/device_kind.dart';
-import 'package:zerobox/src/device/core/device_profile.dart';
-import 'package:zerobox/src/device/zeppos/zeppos_device_catalog.dart';
+import 'package:oronbox/src/device/core/device_kind.dart';
+import 'package:oronbox/src/device/core/device_profile.dart';
+import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 
 void main() {
   test('catalog entries have unique IDs and Bluetooth names', () {

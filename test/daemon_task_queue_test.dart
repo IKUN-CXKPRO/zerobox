@@ -3,9 +3,9 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/core/services/shared_prefs_service.dart';
-import 'package:zerobox/src/daemon/daemon_task_queue.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/daemon/daemon_task_queue.dart';
 
 void main() {
   setUpAll(() async {
@@ -18,8 +18,8 @@ void main() {
   test('runs queued commands strictly one at a time', () async {
     final bus = _DelayedBus();
     final queue = DaemonTaskQueue(bus);
-    final first = queue.enqueue(const ZeroBoxCommand(method: 'first'));
-    final second = queue.enqueue(const ZeroBoxCommand(method: 'second'));
+    final first = queue.enqueue(const OronBoxCommand(method: 'first'));
+    final second = queue.enqueue(const OronBoxCommand(method: 'second'));
 
     expect((await queue.wait(first))?.status, 'completed');
     expect((await queue.wait(second))?.status, 'completed');
@@ -32,7 +32,7 @@ void main() {
     final bus = _BlockingBus();
     late final DaemonTaskQueue queue;
     queue = DaemonTaskQueue(bus, onCancelRunning: () async => bus.release());
-    final id = queue.enqueue(const ZeroBoxCommand(method: 'install.local'));
+    final id = queue.enqueue(const OronBoxCommand(method: 'install.local'));
     await bus.started.future;
 
     expect(queue.cancel(id), isTrue);
@@ -54,7 +54,7 @@ void main() {
       },
     );
 
-    final id = queue.enqueue(const ZeroBoxCommand(method: 'install.local'));
+    final id = queue.enqueue(const OronBoxCommand(method: 'install.local'));
     expect((await queue.wait(id))?.status, 'completed');
     expect(activeLeases, 0);
     await queue.close();
@@ -63,7 +63,7 @@ void main() {
   test('resumes a task that was running before host restart', () async {
     final task = DaemonTask(
       id: 'recovered',
-      command: const ZeroBoxCommand(method: 'resource.download'),
+      command: const OronBoxCommand(method: 'resource.download'),
       status: 'running',
       createdAt: DateTime(2026),
       startedAt: DateTime(2026, 1, 1, 0, 1),
@@ -84,7 +84,7 @@ void main() {
   test('drops persisted install tasks on restore, keeps other tasks', () async {
     DaemonTask task(String id, String method, String status) => DaemonTask(
       id: id,
-      command: ZeroBoxCommand(method: method),
+      command: OronBoxCommand(method: method),
       status: status,
       createdAt: DateTime(2026),
     );
@@ -110,7 +110,7 @@ void main() {
   });
 }
 
-class _DelayedBus implements ZeroBoxCommandBus {
+class _DelayedBus implements OronBoxCommandBus {
   int active = 0;
   int maxActive = 0;
   final methods = <String>[];
@@ -119,7 +119,7 @@ class _DelayedBus implements ZeroBoxCommandBus {
   Stream<CommandEvent> get events => const Stream.empty();
 
   @override
-  Future<CommandResult> execute(ZeroBoxCommand command) async {
+  Future<CommandResult> execute(OronBoxCommand command) async {
     active += 1;
     maxActive = active > maxActive ? active : maxActive;
     methods.add(command.method);
@@ -132,7 +132,7 @@ class _DelayedBus implements ZeroBoxCommandBus {
   Future<void> close() async {}
 }
 
-class _BlockingBus implements ZeroBoxCommandBus {
+class _BlockingBus implements OronBoxCommandBus {
   final started = Completer<void>();
   final _release = Completer<void>();
   bool cancelled = false;
@@ -146,7 +146,7 @@ class _BlockingBus implements ZeroBoxCommandBus {
   Stream<CommandEvent> get events => const Stream.empty();
 
   @override
-  Future<CommandResult> execute(ZeroBoxCommand command) async {
+  Future<CommandResult> execute(OronBoxCommand command) async {
     if (!started.isCompleted) started.complete();
     await _release.future;
     return const CommandResult.failure(

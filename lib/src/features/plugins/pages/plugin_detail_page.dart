@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/app/widgets/page_container.dart';
-import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/core/constants/style_constants.dart';
-import 'package:zerobox/src/host/application_host_provider.dart';
-import 'package:zerobox/src/app/window/window_launcher.dart';
-import 'package:zerobox/src/features/plugins/widgets/plugin_ui_tree.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/host/application_host_provider.dart';
+import 'package:oronbox/src/app/window/window_launcher.dart';
+import 'package:oronbox/src/features/plugins/widgets/plugin_ui_tree.dart';
 
 import 'plugins_page.dart';
 
@@ -39,7 +39,7 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
   StreamSubscription<CommandEvent>? _events;
-  late final ZeroBoxCommandBus _host;
+  late final OronBoxCommandBus _host;
   Future<void>? _loadFuture;
   Map<String, Object?>? _plugin;
   Object? _nodes;
@@ -69,7 +69,7 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
       // A failed open does not leave a running plugin to close.
     }
     await _host.execute(
-      ZeroBoxCommand(method: 'plugin.close', params: {'id': widget.pluginId}),
+      OronBoxCommand(method: 'plugin.close', params: {'id': widget.pluginId}),
     );
   }
 
@@ -77,7 +77,7 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
     try {
       final detail =
           (await _execute(
-                    ZeroBoxCommand(
+                    OronBoxCommand(
                       method: 'plugin.get',
                       params: {'id': widget.pluginId},
                     ),
@@ -86,7 +86,7 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
               .cast<String, Object?>();
       if (mounted) setState(() => _plugin = detail);
       final nodes = await _execute(
-        ZeroBoxCommand(method: 'plugin.open', params: {'id': widget.pluginId}),
+        OronBoxCommand(method: 'plugin.open', params: {'id': widget.pluginId}),
       );
       if (mounted) {
         setState(() {
@@ -115,7 +115,7 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
   Future<void> _invoke(String callback, [String? value]) async {
     try {
       await _execute(
-        ZeroBoxCommand(
+        OronBoxCommand(
           method: 'plugin.invoke',
           params: {
             'id': widget.pluginId,
@@ -173,7 +173,7 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
     );
     if (confirmed != true) return;
     await _execute(
-      ZeroBoxCommand(method: 'plugin.remove', params: {'id': widget.pluginId}),
+      OronBoxCommand(method: 'plugin.remove', params: {'id': widget.pluginId}),
     );
     await widget.onRemoved?.call();
     if (mounted && !widget.embedded) context.pop();
@@ -225,7 +225,7 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
     );
   }
 
-  Future<Object?> _execute(ZeroBoxCommand command) async {
+  Future<Object?> _execute(OronBoxCommand command) async {
     final result = await _host.execute(command);
     if (!result.ok) {
       throw StateError('${result.error!.code}: ${result.error!.message}');

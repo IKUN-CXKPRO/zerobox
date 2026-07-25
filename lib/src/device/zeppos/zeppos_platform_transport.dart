@@ -1,7 +1,7 @@
-import 'package:zerobox/src/core/services/ble_gatt_driver.dart';
-import 'package:zerobox/src/core/services/rfcomm_driver.dart';
-import 'package:zerobox/src/device/core/ble_transport.dart';
-import 'package:zerobox/src/device/core/spp_transport.dart';
+import 'package:oronbox/src/core/services/ble_gatt_driver.dart';
+import 'package:oronbox/src/core/services/rfcomm_driver.dart';
+import 'package:oronbox/src/device/core/ble_transport.dart';
+import 'package:oronbox/src/device/core/spp_transport.dart';
 
 class ZeppOsPlatformTransport {
   const ZeppOsPlatformTransport._();

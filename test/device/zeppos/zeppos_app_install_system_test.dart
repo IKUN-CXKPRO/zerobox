@@ -2,15 +2,15 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/device/core/ble_requirement.dart';
-import 'package:zerobox/src/device/core/ble_transport.dart';
-import 'package:zerobox/src/device/core/bluetooth_platform.dart';
-import 'package:zerobox/src/device/core/connect_type.dart';
-import 'package:zerobox/src/device/core/entity.dart';
-import 'package:zerobox/src/device/core/event_bus.dart';
-import 'package:zerobox/src/device/core/transport.dart';
-import 'package:zerobox/src/device/zeppos/install/zeppos_package_parser.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_app_install_system.dart';
+import 'package:oronbox/src/device/core/ble_requirement.dart';
+import 'package:oronbox/src/device/core/ble_transport.dart';
+import 'package:oronbox/src/device/core/bluetooth_platform.dart';
+import 'package:oronbox/src/device/core/connect_type.dart';
+import 'package:oronbox/src/device/core/entity.dart';
+import 'package:oronbox/src/device/core/event_bus.dart';
+import 'package:oronbox/src/device/core/transport.dart';
+import 'package:oronbox/src/device/zeppos/install/zeppos_package_parser.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_app_install_system.dart';
 
 void main() {
   test('runs the Gadgetbridge Zepp OS firmware transfer sequence', () async {

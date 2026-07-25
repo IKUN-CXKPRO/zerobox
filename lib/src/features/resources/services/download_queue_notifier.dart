@@ -3,16 +3,16 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/daemon/daemon_task_models.dart';
-import 'package:zerobox/src/features/resources/application/resource_catalog_providers.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource_codec.dart';
-import 'package:zerobox/src/features/resources/services/install_queue_notifier.dart';
-import 'package:zerobox/src/features/resources/services/resource_install_service.dart';
-import 'package:zerobox/src/host/application_host_provider.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/daemon/daemon_task_models.dart';
+import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource_codec.dart';
+import 'package:oronbox/src/features/resources/services/install_queue_notifier.dart';
+import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
+import 'package:oronbox/src/host/application_host_provider.dart';
 
-export 'package:zerobox/src/features/resources/services/resource_install_service.dart'
+export 'package:oronbox/src/features/resources/services/resource_install_service.dart'
     show ResourceTaskStatus;
 
 class ResourceTask {
@@ -96,10 +96,10 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
     final result = await ref
         .read(applicationHostProvider)
         .execute(
-          ZeroBoxCommand(
+          OronBoxCommand(
             method: 'task.enqueue',
             params: {
-              'command': ZeroBoxCommand(
+              'command': OronBoxCommand(
                 method: 'resource.download',
                 params: {
                   'ref': resource.ref.key,
@@ -197,14 +197,14 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
     if (task.status == ResourceTaskStatus.completed ||
         task.status == ResourceTaskStatus.failed) {
       await host.execute(
-        ZeroBoxCommand(method: 'queue.remove', params: {'id': id}),
+        OronBoxCommand(method: 'queue.remove', params: {'id': id}),
       );
     } else {
       await host.execute(
-        ZeroBoxCommand(method: 'queue.cancel', params: {'id': id}),
+        OronBoxCommand(method: 'queue.cancel', params: {'id': id}),
       );
       await host.execute(
-        ZeroBoxCommand(method: 'queue.remove', params: {'id': id}),
+        OronBoxCommand(method: 'queue.remove', params: {'id': id}),
       );
     }
   }
@@ -249,14 +249,14 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
     unawaited(
       ref
           .read(applicationHostProvider)
-          .execute(ZeroBoxCommand(method: 'queue.retry', params: {'id': id})),
+          .execute(OronBoxCommand(method: 'queue.retry', params: {'id': id})),
     );
   }
 
   Future<void> _refresh() async {
     final result = await ref
         .read(applicationHostProvider)
-        .execute(const ZeroBoxCommand(method: 'queue.list'));
+        .execute(const OronBoxCommand(method: 'queue.list'));
     if (!result.ok || result.value is! List) return;
     state = (result.value as List)
         .whereType<Map>()

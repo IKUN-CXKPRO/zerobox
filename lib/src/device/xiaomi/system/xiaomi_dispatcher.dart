@@ -1,11 +1,11 @@
 import 'dart:typed_data';
 
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/device/core/system.dart';
-import 'package:zerobox/src/device/xiaomi/components/xiaomi_device_component.dart';
-import 'package:zerobox/src/device/xiaomi/system/xiaomi_system.dart';
-import 'package:zerobox/src/protocols/xiaomi/packet/l1_packet.dart';
-import 'package:zerobox/src/protocols/xiaomi/packet/l2_packet.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/device/core/system.dart';
+import 'package:oronbox/src/device/xiaomi/components/xiaomi_device_component.dart';
+import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/l1_packet.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
 
 class XiaomiDispatcher extends Dispatcher {
   XiaomiDispatcher(this._component) : _log = getLogger('XiaomiDispatcher');

@@ -6,12 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/app/router/app_router.dart';
-import 'package:zerobox/src/app/window/window_launcher.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/core/services/shared_prefs_service.dart';
-import 'package:zerobox/src/host/application_host_provider.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/router/app_router.dart';
+import 'package:oronbox/src/app/window/window_launcher.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/host/application_host_provider.dart';
 
 class DesktopWindowHost extends ConsumerStatefulWidget {
   const DesktopWindowHost({super.key, required this.child});
@@ -63,7 +63,7 @@ class _DesktopWindowHostState extends ConsumerState<DesktopWindowHost>
         ? 'assets/images/tray_icon.ico'
         : 'assets/images/tray_icon.png';
     await trayManager.setIcon(icon);
-    if (!Platform.isLinux) await trayManager.setToolTip('ZeroBox');
+    if (!Platform.isLinux) await trayManager.setToolTip('OronBox');
     await trayManager.setContextMenu(
       Menu(
         items: [
@@ -116,7 +116,7 @@ class _DesktopWindowHostState extends ConsumerState<DesktopWindowHost>
     } catch (_) {}
     try {
       await host
-          .execute(const ZeroBoxCommand(method: 'daemon.stop'))
+          .execute(const OronBoxCommand(method: 'daemon.stop'))
           .timeout(const Duration(seconds: 2));
     } catch (_) {}
     try {

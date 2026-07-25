@@ -22,10 +22,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>org.zxor.zerobox</string>
+			<string>org.zxor.oronbox</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>zerobox</string>
+				<string>oronbox</string>
 			</array>
 		</dict>
 	</array>

@@ -3,26 +3,28 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/core/services/build_info_service.dart';
-import 'package:zerobox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/core/constants/oronbox_server.dart';
+import 'package:oronbox/src/core/network/http_observability_interceptor.dart';
+import 'package:oronbox/src/core/services/build_info_service.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 
-const _brokerBaseUrl = 'https://zb-api.zxor.org';
-const _clientAppId = 'zerobox';
-const _callbackUri = 'zerobox://oauth/bandbbs';
+const _clientAppId = 'oronbox';
+const _callbackUri = 'oronbox://oauth/bandbbs';
 
+/// Read-only BandBBS access token held by the client. The matching refresh
+/// token always stays on the OronBox server.
 class BandBbsToken {
   const BandBbsToken({
     required this.accessToken,
-    required this.refreshToken,
     required this.tokenType,
     required this.expiresAt,
     required this.scope,
   });
 
   final String accessToken;
-  final String refreshToken;
   final String tokenType;
   final DateTime expiresAt;
   final String scope;
@@ -33,7 +35,6 @@ class BandBbsToken {
 
   Map<String, Object?> toJson() => {
     'access_token': accessToken,
-    'refresh_token': refreshToken,
     'token_type': tokenType,
     'expires_at': expiresAt.toIso8601String(),
     'scope': scope,
@@ -43,7 +44,6 @@ class BandBbsToken {
     final expiresIn = _asInt(json['expires_in']);
     return BandBbsToken(
       accessToken: json['access_token']?.toString() ?? '',
-      refreshToken: json['refresh_token']?.toString() ?? '',
       tokenType: json['token_type']?.toString() ?? 'bearer',
       expiresAt: DateTime.now().toUtc().add(Duration(seconds: expiresIn)),
       scope: json['scope']?.toString() ?? '',
@@ -59,7 +59,6 @@ class BandBbsToken {
     }
     return BandBbsToken(
       accessToken: accessToken,
-      refreshToken: json['refresh_token']?.toString() ?? '',
       tokenType: json['token_type']?.toString() ?? 'bearer',
       expiresAt: expiresAt.toUtc(),
       scope: json['scope']?.toString() ?? '',
@@ -73,6 +72,60 @@ class BandBbsToken {
   }
 }
 
+/// OronBox's own session credential, used for ob-api endpoints.
+class OronBoxSession {
+  const OronBoxSession({
+    required this.accessToken,
+    required this.refreshToken,
+    required this.expiresAt,
+  });
+
+  final String accessToken;
+  final String refreshToken;
+  final DateTime expiresAt;
+
+  bool get isExpired => DateTime.now().toUtc().isAfter(
+    expiresAt.subtract(const Duration(minutes: 2)),
+  );
+
+  Map<String, Object?> toJson() => {
+    'access_token': accessToken,
+    'refresh_token': refreshToken,
+    'expires_at': expiresAt.toIso8601String(),
+  };
+
+  static OronBoxSession fromTokenResponse(Map<String, Object?> json) {
+    final expiresIn = BandBbsToken._asInt(json['expires_in']);
+    return OronBoxSession(
+      accessToken: json['access_token']?.toString() ?? '',
+      refreshToken: json['refresh_token']?.toString() ?? '',
+      expiresAt: DateTime.now().toUtc().add(Duration(seconds: expiresIn)),
+    );
+  }
+
+  static OronBoxSession? fromJson(Map<String, Object?> json) {
+    final accessToken = json['access_token']?.toString() ?? '';
+    final refreshToken = json['refresh_token']?.toString() ?? '';
+    final expiresAtRaw = json['expires_at']?.toString() ?? '';
+    final expiresAt = DateTime.tryParse(expiresAtRaw);
+    if (accessToken.isEmpty || refreshToken.isEmpty || expiresAt == null) {
+      return null;
+    }
+    return OronBoxSession(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      expiresAt: expiresAt.toUtc(),
+    );
+  }
+}
+
+class BandBbsSessionExpiredException implements Exception {
+  const BandBbsSessionExpiredException();
+
+  @override
+  String toString() => 'OronBox session expired';
+}
+
 class BandBbsAuthState {
   const BandBbsAuthState({
     required this.token,
@@ -84,22 +137,23 @@ class BandBbsAuthState {
     required this.lastError,
   });
 
-  /// BandBBS API token for bandbbs.cn requests.
+  /// BandBBS read-only access token, used to query bandbbs.cn directly.
   final BandBbsToken? token;
-  /// ZeroBox session token for zb-api.zxor.org requests.
-  final BandBbsToken? session;
+
+  /// OronBox session, used for ob-api endpoints.
+  final OronBoxSession? session;
   final String? userId;
   final String? username;
   final String? avatarUrl;
   final bool isBusy;
   final String? lastError;
 
-  bool get isSignedIn => token != null;
+  bool get isSignedIn => session != null;
 
   BandBbsAuthState copyWith({
     BandBbsToken? token,
     bool clearToken = false,
-    BandBbsToken? session,
+    OronBoxSession? session,
     bool clearSession = false,
     String? userId,
     bool clearUserId = false,
@@ -135,16 +189,20 @@ class BandBbsAuthState {
 
 class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
   static const _keyToken = 'bandbbs.oauth.token';
-  static const _keySession = 'bandbbs.oauth.session';
+  static const _keySession = 'oronbox.session.token';
   static const _keyUserId = 'bandbbs.oauth.user_id';
   static const _keyUsername = 'bandbbs.oauth.username';
   static const _keyAvatarUrl = 'bandbbs.oauth.avatar_url';
 
   final Logger _log = getLogger('BandBbsAuthService');
+  static const _secureStorage = FlutterSecureStorage();
+  Future<BandBbsToken?>? _tokenRefresh;
+  Future<OronBoxSession?>? _sessionRefresh;
+  Future<void>? _credentialRestore;
 
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: _brokerBaseUrl,
+      baseUrl: oronBoxServerBaseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 20),
     ),
@@ -153,50 +211,125 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
   @override
   BandBbsAuthState build() {
     final prefs = SharedPrefsService.instance;
-    BandBbsToken? token = _loadToken(prefs, _keyToken);
-    BandBbsToken? session = _loadToken(prefs, _keySession);
     final initial = BandBbsAuthState.empty.copyWith(
-      token: token,
-      session: session,
       userId: prefs.getString(_keyUserId),
       username: prefs.getString(_keyUsername),
       avatarUrl: prefs.getString(_keyAvatarUrl),
     );
-    final restoredToken = token;
-    if (restoredToken != null && initial.username == null) {
-      Future.microtask(() => _fetchTokenInfo(restoredToken));
-    }
+    _credentialRestore = Future.microtask(_restoreCredentials);
     return initial;
   }
 
-  BandBbsToken? _loadToken(SharedPrefsService prefs, String key) {
-    final raw = prefs.getString(key);
+  Future<void> _restoreCredentials() async {
+    try {
+      var tokenRaw = await _readCredential(_keyToken);
+      var sessionRaw = await _readCredential(_keySession);
+      final prefs = SharedPrefsService.instance;
+      tokenRaw ??= prefs.getString(_keyToken);
+      sessionRaw ??= prefs.getString(_keySession);
+      var tokenMigrated = tokenRaw == null;
+      var sessionMigrated = sessionRaw == null;
+      if (tokenRaw != null) {
+        tokenMigrated = await _writeCredential(_keyToken, tokenRaw);
+      }
+      if (sessionRaw != null) {
+        sessionMigrated = await _writeCredential(_keySession, sessionRaw);
+      }
+      if (tokenMigrated) {
+        await prefs.remove(_keyToken);
+      }
+      if (sessionMigrated) {
+        await prefs.remove(_keySession);
+      }
+      if (!ref.mounted) return;
+      final token = _restore(tokenRaw, BandBbsToken.fromJson);
+      final session = _restore(sessionRaw, OronBoxSession.fromJson);
+      state = state.copyWith(token: token, session: session);
+      if (session != null && state.username == null) {
+        await _fetchCurrentUser(session);
+      }
+    } catch (error) {
+      _log.warning(
+        'Credential storage is unavailable; login remains in memory for this run',
+        error,
+      );
+    }
+  }
+
+  Future<void> restoreCredentials() async {
+    await _credentialRestore;
+  }
+
+  static T? _restore<T>(String? raw, T? Function(Map<String, Object?>) parse) {
     if (raw == null) return null;
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is Map<String, Object?>) return BandBbsToken.fromJson(decoded);
-      if (decoded is Map) return BandBbsToken.fromJson(decoded.cast<String, Object?>());
-    } catch (_) {}
+      if (decoded is Map<String, Object?>) return parse(decoded);
+      if (decoded is Map) return parse(decoded.cast<String, Object?>());
+    } catch (_) {
+      // Corrupted persisted credential; drop it.
+    }
     return null;
   }
 
-  Future<void> startLogin() async {
+  Future<void> startLogin() => _startAuthorization();
+
+  Future<void> authorizePublishing() => _startAuthorization(purpose: 'publish');
+
+  Future<void> _startAuthorization({String? purpose}) async {
     state = state.copyWith(isBusy: true, clearLastError: true);
     try {
-      final uri = Uri.parse('$_brokerBaseUrl/oauth2/bandbbs/start').replace(
-        queryParameters: {
-          'app_id': _clientAppId,
-          'app_version': BuildInfoService.appVersion,
-          'app_build': await BuildInfoService.resolveCommitHash(),
-          'platform': _platformName(),
-          'return_uri': _callbackUri,
-        },
-      );
+      final returnUri = kIsWeb
+          ? Uri.base
+                .replace(
+                  queryParameters: {
+                    ...Uri.base.queryParameters,
+                    'oauth': 'bandbbs',
+                  },
+                  fragment: '',
+                )
+                .toString()
+          : _callbackUri;
+      late final Uri uri;
+      if (purpose == 'publish') {
+        final session = await sessionIfNeeded();
+        if (session == null) {
+          throw StateError('BandBBS account is not signed in');
+        }
+        final response = await _send<Object?>(
+          () async => _dio.post<Object?>(
+            '/api/oauth/bandbbs/publish/start',
+            data: {'return_uri': returnUri},
+            options: Options(
+              headers: {
+                ...await _clientHeaders(),
+                'Authorization': 'Bearer ${session.accessToken}',
+              },
+            ),
+          ),
+        );
+        uri = Uri.parse(
+          _objectMap(response.data)['authorization_url']!.toString(),
+        );
+      } else {
+        uri = Uri.parse('$oronBoxServerBaseUrl/oauth2/bandbbs/start').replace(
+          queryParameters: {
+            'app_id': _clientAppId,
+            'app_version': BuildInfoService.appVersion,
+            'app_build': await BuildInfoService.resolveCommitHash(),
+            'platform': _platformName(),
+            'return_uri': returnUri,
+          },
+        );
+      }
       _log.info(
         'BandBBS OAuth start method=GET endpoint=${_endpoint(uri)} '
         'platform=${_platformName()} appVersion=${BuildInfoService.appVersion}',
       );
-      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
       if (!launched) {
         throw StateError('failed to open BandBBS OAuth page');
       }
@@ -208,7 +341,12 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
   }
 
   Future<bool> handleCallback(Uri uri) async {
-    if (uri.scheme != 'zerobox' || uri.host != 'oauth' || uri.path != '/bandbbs') {
+    final nativeCallback =
+        uri.scheme == 'oronbox' &&
+        uri.host == 'oauth' &&
+        uri.path == '/bandbbs';
+    final webCallback = kIsWeb && uri.queryParameters['oauth'] == 'bandbbs';
+    if (!nativeCallback && !webCallback) {
       return false;
     }
     final ticket = uri.queryParameters['ticket']?.trim() ?? '';
@@ -234,71 +372,172 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
           options: Options(headers: await _clientHeaders()),
         ),
       );
-      final root = _objectMap(response.data);
-      // Top-level = ZeroBox session tokens.
-      final session = BandBbsToken.fromTokenResponse(root);
-      await SharedPrefsService.instance.setString(_keySession, jsonEncode(session.toJson()));
-      // Nested bandbbs = actual BandBBS API token.
-      final bandbbs = _objectMap(root['bandbbs']);
-      final token = bandbbs.isNotEmpty
-          ? BandBbsToken.fromTokenResponse(bandbbs)
-          : session;
-      await _saveToken(token);
-      state = state.copyWith(token: token, session: session, isBusy: false, clearLastError: true);
-      await _fetchTokenInfo(token);
+      final payload = _objectMap(response.data);
+      final session = OronBoxSession.fromTokenResponse(payload);
+      await _saveSession(session);
+      // Login tickets carry the read-only BandBBS access token; publish
+      // authorization tickets do not, so the existing read token survives.
+      final bandbbs = payload['bandbbs'];
+      BandBbsToken? token;
+      if (bandbbs is Map) {
+        token = BandBbsToken.fromTokenResponse(bandbbs.cast<String, Object?>());
+        await _saveToken(token);
+      }
+      await _applyUser(_objectMap(payload['user']));
+      state = state.copyWith(
+        token: token,
+        session: session,
+        isBusy: false,
+        clearLastError: true,
+      );
+      logDiagnostic(
+        _log,
+        Level.INFO,
+        'BandBBS authorization completed',
+        fields: {
+          if (state.userId != null) 'userId': state.userId,
+          if (state.username != null) 'username': state.username,
+          'readTokenGranted': token != null,
+        },
+      );
     } catch (e) {
       state = state.copyWith(isBusy: false, lastError: e.toString());
+      logDiagnostic(
+        _log,
+        Level.WARNING,
+        'BandBBS authorization failed',
+        fields: {if (state.userId != null) 'userId': state.userId},
+        error: e,
+      );
       rethrow;
     }
   }
 
+  /// Read-only BandBBS access token, refreshing it through the server when
+  /// expired (the refresh token never leaves the server).
   Future<BandBbsToken?> refreshIfNeeded() async {
+    await _credentialRestore;
     final token = state.token;
     if (token == null) return null;
     if (!token.isExpired) return token;
-    return refresh();
+    return _tokenRefresh ??= _refreshBandBbsToken().whenComplete(
+      () => _tokenRefresh = null,
+    );
   }
 
-  Future<BandBbsToken> refresh() async {
-    final oldSession = state.session;
-    if (oldSession == null) {
+  Future<BandBbsToken?> _refreshBandBbsToken() async {
+    final session = await sessionIfNeeded();
+    if (session == null) {
       throw StateError('BandBBS account is not signed in');
     }
-    // Step 1: refresh ZeroBox session.
-    final sessionResp = await _send<Object?>(
-      () async => _dio.post<Object?>(
-        '/api/oauth/bandbbs/refresh',
-        data: {'refresh_token': oldSession.refreshToken},
-        options: Options(headers: await _clientHeaders()),
-      ),
-    );
-    final newSession = BandBbsToken.fromTokenResponse(_objectMap(sessionResp.data));
-    await SharedPrefsService.instance.setString(_keySession, jsonEncode(newSession.toJson()));
-    state = state.copyWith(session: newSession, clearLastError: true);
-
-    // Step 2: refresh BandBBS API token using the new session.
-    final tokenResp = await _send<Object?>(
+    final response = await _send<Object?>(
       () async => _dio.post<Object?>(
         '/api/oauth/bandbbs/token/refresh',
         options: Options(
           headers: {
             ...await _clientHeaders(),
-            'Authorization': 'Bearer ${newSession.accessToken}',
+            'Authorization': 'Bearer ${session.accessToken}',
           },
         ),
       ),
     );
-    final newToken = BandBbsToken.fromTokenResponse(_objectMap(tokenResp.data));
-    await _saveToken(newToken);
-    state = state.copyWith(token: newToken, clearLastError: true);
-    await _fetchTokenInfo(newToken);
-    return newToken;
+    final refreshed = BandBbsToken.fromTokenResponse(_objectMap(response.data));
+    await _saveToken(refreshed);
+    state = state.copyWith(token: refreshed, clearLastError: true);
+    return refreshed;
+  }
+
+  /// OronBox session for ob-api endpoints, rotated when expired.
+  Future<OronBoxSession?> sessionIfNeeded() async {
+    await _credentialRestore;
+    var session = state.session;
+    // On desktop the OAuth callback may land on the daemon process, which
+    // writes the session to SharedPrefs without notifying this (frontend)
+    // Notifier. When our in-memory state is empty, try the persisted key
+    // once more so the frontend picks up a login that happened in the
+    // background.
+    if (session == null) {
+      final raw = await _readCredential(_keySession);
+      if (raw != null) {
+        final restored = _restore(raw, OronBoxSession.fromJson);
+        if (restored != null) {
+          session = restored;
+          state = state.copyWith(session: session);
+        }
+      }
+    }
+    if (session == null) return null;
+    if (!session.isExpired) return session;
+    return _sessionRefresh ??= _refreshSession(
+      session,
+    ).whenComplete(() => _sessionRefresh = null);
+  }
+
+  Future<OronBoxSession> _refreshSession(OronBoxSession session) async {
+    try {
+      final response = await _send<Object?>(
+        () async => _dio.post<Object?>(
+          '/api/oauth/bandbbs/refresh',
+          data: {'refresh_token': session.refreshToken},
+          options: Options(headers: await _clientHeaders()),
+        ),
+      );
+      final payload = _objectMap(response.data);
+      final refreshed = OronBoxSession.fromTokenResponse(payload);
+      await _saveSession(refreshed);
+      await _applyUser(_objectMap(payload['user']));
+      state = state.copyWith(session: refreshed, clearLastError: true);
+      return refreshed;
+    } on DioException catch (error) {
+      if (!_isInvalidRefreshToken(error)) rethrow;
+      await _forgetExpiredCredentials();
+      throw const BandBbsSessionExpiredException();
+    }
+  }
+
+  bool _isInvalidRefreshToken(DioException error) {
+    if (error.response?.statusCode != 401) return false;
+    final body = _objectMap(error.response?.data);
+    return body['code'] == 'invalid_refresh_token' ||
+        _objectMap(body['error'])['code'] == 'invalid_refresh_token';
+  }
+
+  Future<void> _forgetExpiredCredentials() async {
+    final prefs = SharedPrefsService.instance;
+    await Future.wait([
+      prefs.remove(_keyToken),
+      prefs.remove(_keySession),
+      prefs.remove(_keyUserId),
+      prefs.remove(_keyUsername),
+      prefs.remove(_keyAvatarUrl),
+      _deleteCredential(_keyToken),
+      _deleteCredential(_keySession),
+    ]);
+    state = BandBbsAuthState.empty;
   }
 
   Future<void> signOut() async {
+    final session = state.session;
+    if (session != null) {
+      try {
+        await _dio.post<Object?>(
+          '/api/session/revoke',
+          options: Options(
+            headers: {
+              ...await _clientHeaders(),
+              'Authorization': 'Bearer ${session.accessToken}',
+            },
+          ),
+        );
+      } catch (_) {
+        _log.warning('OronBox session revoke failed');
+      }
+    }
     final prefs = SharedPrefsService.instance;
     await prefs.remove(_keyToken);
     await prefs.remove(_keySession);
+    await _deleteCredential(_keyToken);
+    await _deleteCredential(_keySession);
     await prefs.remove(_keyUserId);
     await prefs.remove(_keyUsername);
     await prefs.remove(_keyAvatarUrl);
@@ -307,51 +546,84 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
 
   Future<Map<String, String>> _clientHeaders() async {
     return {
-      'X-ZeroBox-App-Id': _clientAppId,
-      'X-ZeroBox-Version': BuildInfoService.appVersion,
-      'X-ZeroBox-Build': await BuildInfoService.resolveCommitHash(),
-      'X-ZeroBox-Platform': _platformName(),
+      'X-OronBox-App-Id': _clientAppId,
+      'X-OronBox-Version': BuildInfoService.appVersion,
+      'X-OronBox-Build': await BuildInfoService.resolveCommitHash(),
+      'X-OronBox-Platform': _platformName(),
     };
   }
 
   Future<void> _saveToken(BandBbsToken token) async {
-    await SharedPrefsService.instance.setString(_keyToken, jsonEncode(token.toJson()));
+    if (await _writeCredential(_keyToken, jsonEncode(token.toJson()))) {
+      await SharedPrefsService.instance.remove(_keyToken);
+    }
   }
 
-  Future<void> _fetchTokenInfo(BandBbsToken token) async {
-    final prefs = SharedPrefsService.instance;
+  Future<void> _saveSession(OronBoxSession session) async {
+    if (await _writeCredential(_keySession, jsonEncode(session.toJson()))) {
+      await SharedPrefsService.instance.remove(_keySession);
+    }
+  }
+
+  Future<String?> _readCredential(String key) async {
     try {
-      final response = await _send<Object?>(
-        () async => Dio().get<Object?>(
-          'https://www.bandbbs.cn/api/oauth2/token',
-          queryParameters: {'token': token.accessToken},
-        ),
+      return await _secureStorage.read(key: key);
+    } catch (error) {
+      _log.warning('Unable to read a credential from secure storage', error);
+      return null;
+    }
+  }
+
+  Future<bool> _writeCredential(String key, String value) async {
+    try {
+      await _secureStorage.write(key: key, value: value);
+      return true;
+    } catch (error) {
+      _log.warning(
+        'Unable to persist a credential; it will remain in memory',
+        error,
       );
-      final userId = _objectMap(response.data)['user_id']?.toString();
-      if (userId != null && userId.isNotEmpty) {
-        await prefs.setString(_keyUserId, userId);
-        state = state.copyWith(userId: userId);
-      }
-    } catch (_) {}
+      return false;
+    }
+  }
+
+  Future<void> _deleteCredential(String key) async {
+    try {
+      await _secureStorage.delete(key: key);
+    } catch (error) {
+      _log.warning('Unable to remove a credential from secure storage', error);
+    }
+  }
+
+  Future<void> _fetchCurrentUser(OronBoxSession session) async {
     try {
       final response = await _send<Object?>(
-        () async => Dio().get<Object?>(
-          'https://www.bandbbs.cn/api/me',
+        () async => _dio.get<Object?>(
+          '/api/me',
           options: Options(
-            headers: {'Authorization': 'Bearer ${token.accessToken}'},
+            headers: {'Authorization': 'Bearer ${session.accessToken}'},
           ),
         ),
       );
-      final me = _objectMap(_objectMap(response.data)['me']);
-      final username = me['username']?.toString() ?? '';
-      final avatarUrl = _objectMap(me['avatar_urls'])['m']?.toString() ?? '';
-      if (username.isNotEmpty) await prefs.setString(_keyUsername, username);
-      if (avatarUrl.isNotEmpty) await prefs.setString(_keyAvatarUrl, avatarUrl);
-      state = state.copyWith(
-        username: username.isNotEmpty ? username : null,
-        avatarUrl: avatarUrl.isNotEmpty ? avatarUrl : null,
-      );
-    } catch (_) {}
+      await _applyUser(_objectMap(response.data));
+    } catch (_) {
+      // Session restoration still succeeds; profile can be retried later.
+    }
+  }
+
+  Future<void> _applyUser(Map<String, Object?> user) async {
+    final prefs = SharedPrefsService.instance;
+    final userId = user['bandbbs_user_id']?.toString() ?? '';
+    final username = user['username']?.toString() ?? '';
+    final avatarUrl = user['avatar_url']?.toString() ?? '';
+    if (userId.isNotEmpty) await prefs.setString(_keyUserId, userId);
+    if (username.isNotEmpty) await prefs.setString(_keyUsername, username);
+    if (avatarUrl.isNotEmpty) await prefs.setString(_keyAvatarUrl, avatarUrl);
+    state = state.copyWith(
+      userId: userId.isNotEmpty ? userId : null,
+      username: username.isNotEmpty ? username : null,
+      avatarUrl: avatarUrl.isNotEmpty ? avatarUrl : null,
+    );
   }
 
   String _platformName() {
@@ -366,12 +638,15 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
   }
 
   Future<Response<T>> _send<T>(Future<Response<T>> Function() request) async {
+    final stopwatch = Stopwatch()..start();
     try {
       final response = await request();
-      _logResponse(response);
+      stopwatch.stop();
+      _logResponse(response, stopwatch.elapsedMilliseconds);
       return response;
-    } on DioException catch (e, st) {
-      _logDioException(e, st);
+    } on DioException catch (e) {
+      stopwatch.stop();
+      _logDioException(e, stopwatch.elapsedMilliseconds);
       rethrow;
     } catch (e, st) {
       _log.severe('BandBBS OAuth request failed before Dio response', e, st);
@@ -379,60 +654,70 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
     }
   }
 
-  void _logResponse(Response<Object?> response) {
+  void _logResponse(Response<Object?> response, int durationMs) {
     final request = response.requestOptions;
     final summary = _responseSummary(request.uri.path, response.data);
-    _log.info(
-      'BandBBS OAuth request method=${request.method} '
-      'endpoint=${_endpoint(request.uri)} status=${response.statusCode}'
-      '${summary.isEmpty ? '' : ' $summary'}',
+    logDiagnostic(
+      _log,
+      Level.INFO,
+      'BandBBS OAuth request completed',
+      fields: {
+        'method': request.method,
+        'endpoint': safeHttpEndpoint(request.uri),
+        if (response.statusCode case final status?) 'status': status,
+        'durationMs': durationMs,
+        if (httpRequestId(response) case final requestId?)
+          'requestId': requestId,
+        ...summary,
+      },
     );
   }
 
-  void _logDioException(DioException error, StackTrace stackTrace) {
+  void _logDioException(DioException error, int durationMs) {
     final request = error.requestOptions;
     final response = error.response;
-    _log.severe(
-      'BandBBS OAuth request failed method=${request.method} '
-      'endpoint=${_endpoint(request.uri)} status=${response?.statusCode} '
-      'errorType=${error.type.name}',
-      null,
-      stackTrace,
+    final status = response?.statusCode;
+    logDiagnostic(
+      _log,
+      status == null || status >= 500 ? Level.SEVERE : Level.WARNING,
+      'BandBBS OAuth request failed',
+      fields: {
+        'method': request.method,
+        'endpoint': safeHttpEndpoint(request.uri),
+        if (status != null) 'status': status,
+        'durationMs': durationMs,
+        'errorType': error.type.name,
+        if (httpRequestId(response) case final requestId?)
+          'requestId': requestId,
+        ...safeHttpErrorSummary(response?.data),
+      },
     );
   }
 
-  String _responseSummary(String path, Object? data) {
+  Map<String, Object?> _responseSummary(String path, Object? data) {
     final root = _objectMap(data);
-    if (path == '/api/oauth2/token') {
-      return _fields({
-        'userId': root['user_id'],
-        'expiresIn': root['expires_in'],
-        'scopeCount': root['scope'] is Map ? (root['scope'] as Map).length : null,
-      });
-    }
     if (path == '/api/me') {
       final me = _objectMap(root['me']);
-      return _fields({'userId': me['user_id'], 'username': me['username']});
+      return {
+        if (me['user_id'] != null) 'userId': me['user_id'],
+        if (me['username'] != null) 'username': me['username'],
+      };
     }
     if (path == '/api/oauth/bandbbs/exchange' ||
         path == '/api/oauth/bandbbs/refresh' ||
         path == '/api/oauth/bandbbs/token/refresh') {
-      return _fields({
-        'tokenType': root['token_type'],
-        'expiresIn': root['expires_in'],
-        'accessTokenReceived': root['access_token']?.toString().isNotEmpty == true,
-        'refreshTokenReceived': root['refresh_token']?.toString().isNotEmpty == true,
-      });
+      return {
+        if (root['token_type'] != null) 'tokenType': root['token_type'],
+        if (root['expires_in'] != null) 'expiresIn': root['expires_in'],
+        if (root['scope'] != null) 'scope': root['scope'],
+        'accessTokenReceived':
+            root['access_token']?.toString().isNotEmpty == true,
+      };
     }
-    return '';
+    return const {};
   }
 
   String _endpoint(Uri uri) => '${uri.scheme}://${uri.host}${uri.path}';
-
-  String _fields(Map<String, Object?> values) => values.entries
-      .where((entry) => entry.value != null)
-      .map((entry) => '${entry.key}=${entry.value}')
-      .join(' ');
 }
 
 final bandBbsAuthProvider =

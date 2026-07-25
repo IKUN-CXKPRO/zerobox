@@ -5,8 +5,8 @@ Render plugin UI through component trees. Each node is a `{type, props, children
 ## Rendering
 
 ```js
-ZeroBox.ui.render(tree);      // render inline in plugin detail page
-ZeroBox.ui.openPage(tree);    // open full-screen page
+OronBox.ui.render(tree);      // render inline in plugin detail page
+OronBox.ui.openPage(tree);    // open full-screen page
 ```
 
 Both accept a single root node (typically a Column).
@@ -15,25 +15,25 @@ Async interactions must wait for the operation before re-rendering and return
 the `render()` Promise:
 
 ```js
-const save = ZeroBox.ui.action(async () => {
-  await ZeroBox.storage.set('key', 'value');
+const save = OronBox.ui.action(async () => {
+  await OronBox.storage.set('key', 'value');
   status = 'Saved';
 }, render);
 ```
 
-`ZeroBox.ui.action(fn, render)` waits for `fn` before calling `render`. Manually rendering before an asynchronous operation completes renders stale state.
+`OronBox.ui.action(fn, render)` waits for `fn` before calling `render`. Manually rendering before an asynchronous operation completes renders stale state.
 
 ## Get Render Size
 
 ```js
-const size = await ZeroBox.ui.getRenderSize();
+const size = await OronBox.ui.getRenderSize();
 // { width: 360, height: 480 }
 ```
 
 ## Native Dialog
 
 ```js
-const result = await ZeroBox.ui.dialog({
+const result = await OronBox.ui.dialog({
   title: 'Confirm',
   message: 'Are you sure?',
   buttons: [
@@ -49,7 +49,7 @@ const result = await ZeroBox.ui.dialog({
 ### Column / Row
 
 ```js
-const { Column, Row, Spacer, Text } = ZeroBox.ui;
+const { Column, Row, Spacer, Text } = OronBox.ui;
 
 Column({ gap: 12, padding: 16, align: 'start' }, [
   Text('Title', { size: 20, weight: 'bold' }),
@@ -153,11 +153,11 @@ All components: `visible` `disabled` `opacity` `padding`
 
 ```js
 globalThis.activate = async (plugin) => {
-  const { Column, Row, Card, Text, Button, Switch, Slider, Dropdown, Divider, Spacer } = ZeroBox.ui;
+  const { Column, Row, Card, Text, Button, Switch, Slider, Dropdown, Divider, Spacer } = OronBox.ui;
   let notify = true, brightness = 0.5, theme = 'auto';
 
   const render = () => {
-    ZeroBox.ui.render(
+    OronBox.ui.render(
       Column({ padding: 16, gap: 12 }, [
         Text('Settings', { size: 22, weight: 'bold' }),
         Card({}, Column({ gap: 8 }, [

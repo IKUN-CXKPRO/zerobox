@@ -1,6 +1,6 @@
 # provider — 资源提供者
 
-插件可以注册为资源源，向 ZeroBox 资源库提供可下载的资源。典型用途：
+插件可以注册为资源源，向 OronBox 资源库提供可下载的资源。典型用途：
 接入第三方社区源、私有资源库等。
 
 ## 注册
@@ -8,7 +8,7 @@
 ### register(definition)
 
 ```js
-await ZeroBox.provider.register({
+await OronBox.provider.register({
   id: 'org.example.source',     // 唯一标识，反向域名格式
   name: '示例资源源',             // 显示名称
   categories: async () => [      // 可选，返回分区列表
@@ -73,14 +73,14 @@ await ZeroBox.provider.register({
 取消注册。
 
 ```js
-await ZeroBox.provider.unregister('org.example.source');
+await OronBox.provider.unregister('org.example.source');
 ```
 
 ## 完整示例：静态资源源
 
 ```js
 globalThis.activate = async (plugin) => {
-  await ZeroBox.provider.register({
+  await OronBox.provider.register({
     id: 'com.example.mysource',
     name: '我的资源源',
     categories: async () => [
@@ -114,7 +114,7 @@ globalThis.activate = async (plugin) => {
 };
 ```
 
-注册后，ZeroBox 资源库的「资源源」下拉菜单中会出现「我的资源源」。
+注册后，OronBox 资源库的「资源源」下拉菜单中会出现「我的资源源」。
 
 ## 权限
 

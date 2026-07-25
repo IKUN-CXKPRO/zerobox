@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/data/community/community_source.dart';
-import 'package:zerobox/src/features/resources/application/command_resource_catalog.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
-import 'package:zerobox/src/features/resources/domain/resource_catalog.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/features/resources/application/command_resource_catalog.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 
 void main() {
   test(
@@ -37,15 +37,15 @@ void main() {
   );
 }
 
-class _CatalogHost implements ZeroBoxCommandBus {
+class _CatalogHost implements OronBoxCommandBus {
   final _events = StreamController<CommandEvent>.broadcast();
-  ZeroBoxCommand? lastCommand;
+  OronBoxCommand? lastCommand;
 
   @override
   Stream<CommandEvent> get events => _events.stream;
 
   @override
-  Future<CommandResult> execute(ZeroBoxCommand command) async {
+  Future<CommandResult> execute(OronBoxCommand command) async {
     lastCommand = command;
     return const CommandResult.success({
       'page': 0,

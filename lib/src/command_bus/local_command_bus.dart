@@ -4,33 +4,37 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/core/models/bt_models.dart';
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/core/logging/diagnostic_event.dart';
-import 'package:zerobox/src/core/providers/app_settings_providers.dart';
-import 'package:zerobox/src/core/services/shared_prefs_service.dart';
-import 'package:zerobox/src/device/core/connect_type.dart';
-import 'package:zerobox/src/data/community/community_source.dart';
-import 'package:zerobox/src/data/bandbbs/bandbbs_resource_provider.dart';
-import 'package:zerobox/src/data/huami/huami_app_store_resource_provider.dart';
-import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
-import 'package:zerobox/src/features/accounts/services/bandbbs_auth_service.dart';
-import 'package:zerobox/src/features/accounts/services/huami_auth_service.dart';
-import 'package:zerobox/src/features/accounts/services/mi_account_service.dart';
-import 'package:zerobox/src/features/accounts/models/mi_account_models.dart';
-import 'package:zerobox/src/features/resources/services/resource_install_service.dart';
-import 'package:zerobox/src/features/debug/application/debug_environment.dart';
-import 'package:zerobox/src/features/plugins/application/plugin_community_catalog.dart';
-import 'package:zerobox/src/features/plugins/application/plugin_manager.dart';
-import 'package:zerobox/src/features/resources/application/resource_catalog_providers.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource_codec.dart';
-import 'package:zerobox/src/features/resources/domain/resource_catalog.dart';
-import 'package:zerobox/src/host/application_host.dart';
-import 'package:zerobox/src/protocols/common/device_protocol.dart';
+import 'package:oronbox/src/command_bus/command_observability.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/core/logging/diagnostic_event.dart';
+import 'package:oronbox/src/core/providers/app_settings_providers.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/device/core/connect_type.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/data/bandbbs/bandbbs_resource_provider.dart';
+import 'package:oronbox/src/data/huami/huami_app_store_resource_provider.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
+import 'package:oronbox/src/features/accounts/services/huami_auth_service.dart';
+import 'package:oronbox/src/features/accounts/services/mi_account_service.dart';
+import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
+import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
+import 'package:oronbox/src/features/debug/application/debug_environment.dart';
+import 'package:oronbox/src/features/plugins/application/plugin_community_catalog.dart';
+import 'package:oronbox/src/features/plugins/application/plugin_manager.dart';
+import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
+import 'package:oronbox/src/features/resources/application/creator/oronbox_creator_api.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource_codec.dart';
+import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
+import 'package:oronbox/src/host/application_host.dart';
+import 'package:oronbox/src/protocols/common/device_protocol.dart';
 
-class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
+class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
+  static final _log = getLogger('LocalCommandBus');
+
   LocalCommandBus(this.container) {
     _deviceManagerSubscription = container.listen<DeviceManagerState>(
       deviceManagerProvider,
@@ -42,7 +46,7 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
       ),
       fireImmediately: true,
     );
-    _logSubscription = zeroBoxDiagnosticStream.listen(
+    _logSubscription = oronBoxDiagnosticStream.listen(
       (event) => _events.add(
         CommandEvent('debug.log', data: {'record': event.toJson()}),
       ),
@@ -78,12 +82,14 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
 
   DeviceManager get _manager => container.read(deviceManagerProvider.notifier);
   DeviceManagerState get _state => container.read(deviceManagerProvider);
+  OronBoxCreatorApi get _creatorApi =>
+      OronBoxCreatorApi(auth: container.read(bandBbsAuthProvider.notifier));
 
   @override
   Stream<CommandEvent> get events => _events.stream;
 
   @override
-  Future<CommandResult> execute(ZeroBoxCommand command) async {
+  Future<CommandResult> execute(OronBoxCommand command) async {
     if (command.method == 'debug.session.start') {
       final sessionId = command.params['sessionId']?.toString() ?? '';
       if (sessionId.isEmpty) {
@@ -137,19 +143,59 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
         );
       }
     }
+    if (!_runsExclusive(command.method)) {
+      return _runObserved(command);
+    }
     final previous = _commandTail;
     final turn = Completer<void>();
     _commandTail = turn.future;
     await previous;
+    _activeCommandCancelled = false;
     try {
-      return await _execute(command);
+      return await _runObserved(command);
     } finally {
       turn.complete();
     }
   }
 
-  Future<CommandResult> _execute(ZeroBoxCommand command) async {
-    _activeCommandCancelled = false;
+  // Only commands that drive the Bluetooth link or the device connection need
+  // to run one at a time; network/account/settings work must not queue behind
+  // them (and vice versa).
+  static bool _runsExclusive(String method) =>
+      method == 'install.local' ||
+      method == 'resource.install' ||
+      method == 'plugin.open' ||
+      method == 'plugin.invoke' ||
+      method == 'plugin.close' ||
+      method.startsWith('app.') ||
+      method.startsWith('watchface.') ||
+      (method.startsWith('device.') &&
+          method != 'device.snapshot' &&
+          method != 'device.paired' &&
+          method != 'device.status');
+
+  Future<CommandResult> _runObserved(OronBoxCommand command) async {
+    final observable = isObservableCommand(command.method);
+    final stopwatch = Stopwatch()..start();
+    final result = await _execute(command);
+    stopwatch.stop();
+    if (observable && !result.ok) {
+      logDiagnostic(
+        _log,
+        Level.WARNING,
+        'Command rejected',
+        fields: {
+          'method': command.method,
+          'durationMs': stopwatch.elapsedMilliseconds,
+          'code': result.error!.code,
+        },
+        error: result.error!.message,
+      );
+    }
+    return result;
+  }
+
+  Future<CommandResult> _execute(OronBoxCommand command) async {
     try {
       final result = await _dispatch(command);
       return CommandResult.success(_wireValue(result));
@@ -165,10 +211,12 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
           details: {'pluginId': error.pluginId, 'pluginName': error.pluginName},
         ),
       );
+    } on CreatorApiException catch (error) {
+      return CommandResult.failure(
+        CommandError(error.code, error.message, details: error.details),
+      );
     } catch (error, stackTrace) {
-      getLogger(
-        'LocalCommandBus',
-      ).severe('Command ${command.method} failed', error, stackTrace);
+      _log.severe('Command ${command.method} failed', error, stackTrace);
       return CommandResult.failure(
         CommandError('internal', error.toString(), details: '$stackTrace'),
       );
@@ -194,7 +242,7 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
     }
   }
 
-  Future<Object?> _dispatch(ZeroBoxCommand command) => switch (command.method) {
+  Future<Object?> _dispatch(OronBoxCommand command) => switch (command.method) {
     'status' => Future.value(_status()),
     'device.snapshot' => Future.value(_deviceStateJson(_state)),
     'device.paired' => Future.value(
@@ -266,12 +314,67 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
     'resource.devices' => _resourceDevices(command.params),
     'resource.probe' => _resourceProbe(command.params),
     'resource.bandbbs.categories' => _bandBbsCategories(),
+    'creator.bandbbs.categories' => _bandBbsPublicationCategories(),
     'resource.huami.publisher' => _huamiPublisher(command.params),
     'resource.download' => _resourceDownload(command.params, install: false),
     'resource.install' => _resourceDownload(command.params, install: true),
-    'account.list' => Future.value(_accountList()),
-    'account.status' => Future.value(
-      _freshAccountStatus(command.params['provider']?.toString()),
+    'support.feedback.list' => _creatorRequest('GET', '/api/feedback'),
+    'support.feedback.get' => _creatorRequest(
+      'GET',
+      '/api/feedback/${_requiredCreatorId(command.params, 'ticket')}',
+    ),
+    'support.feedback.create' => _creatorRequest(
+      'POST',
+      '/api/feedback',
+      data: {
+        'kind': command.params['kind'],
+        'subject': command.params['subject'],
+        'message': command.params['message'],
+        'target_source': command.params['targetSource'] ?? '',
+        'target_id': command.params['targetId'] ?? '',
+        'target_url': command.params['targetUrl'] ?? '',
+      },
+    ),
+    'support.feedback.reply' => _creatorRequest(
+      'POST',
+      '/api/feedback/${_requiredCreatorId(command.params, 'ticket')}/replies',
+      data: {'message': command.params['message']},
+    ),
+    'creator.list' => _creatorRequest('GET', '/api/creator/resources'),
+    'creator.devices' => _creatorRequest('GET', '/api/devices'),
+    'creator.grants' => _creatorRequest('GET', '/api/me/grants'),
+    'creator.github.start' => _creatorRequest(
+      'POST',
+      '/api/oauth/github/web/start',
+    ),
+    'creator.github.status' => _creatorRequest(
+      'POST',
+      '/api/oauth/github/web/status',
+      data: {'flow_id': command.params['flowId']},
+    ),
+    'creator.get' => _creatorRequest(
+      'GET',
+      '/api/creator/resources/${_requiredCreatorId(command.params, 'resource')}',
+    ),
+    'creator.create' => _creatorRequest(
+      'POST',
+      '/api/creator/resources',
+      data: {'slug': command.params['slug'], 'kind': command.params['kind']},
+    ),
+    'creator.publish' => _creatorPublish(command.params),
+    'creator.blob' => _creatorBlob(command.params),
+    'creator.archive' => _creatorRequest(
+      'PATCH',
+      '/api/creator/resources/${_requiredCreatorId(command.params, 'resource')}/archive',
+      query: {'archived': command.params['archived'] == true},
+    ),
+    'creator.delete' => _creatorRequest(
+      'DELETE',
+      '/api/creator/resources/${_requiredCreatorId(command.params, 'resource')}',
+    ),
+    'account.list' => _accountList(),
+    'account.status' => _freshAccountStatus(
+      command.params['provider']?.toString(),
     ),
     'account.credentials.get' => Future.value(
       _accountCredentials(command.params['provider']?.toString()),
@@ -292,12 +395,13 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
       () => _bandBbsCallback(command.params),
       () => _accountList(),
     ),
+    'account.bandbbs.publish' => _startBandBbsPublishingAuthorization(),
     'account.logout' => _withStateEvent(
       'account.state',
       () => _accountLogout(command.params['provider']?.toString()),
       () => _accountList(),
     ),
-    'logs.recent' => Future.value(recentZeroBoxLogs),
+    'logs.recent' => Future.value(recentOronBoxLogs),
     'debug.snapshot' => _debugSnapshot(),
     'debug.sources' => _debugSources(),
     'debug.plugin.snapshot' => _debugPluginSnapshot(command.params),
@@ -343,13 +447,53 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
     ),
   };
 
+  String _requiredCreatorId(Map<String, Object?> params, String key) {
+    final value = params[key]?.toString().trim() ?? '';
+    if (value.isEmpty) throw CommandFailure('usage', 'Missing $key');
+    return Uri.encodeComponent(value);
+  }
+
+  Future<Object?> _creatorRequest(
+    String method,
+    String path, {
+    Object? data,
+    Map<String, Object?>? query,
+  }) => _creatorApi.request(method, path, data: data, query: query);
+
+  Future<Object?> _creatorPublish(Map<String, Object?> params) async {
+    final encoded = params['bundle']?.toString() ?? '';
+    if (encoded.isEmpty) {
+      throw const CommandFailure('usage', 'Missing publish bundle');
+    }
+    final bundle = base64Decode(encoded);
+    final operationId = params['operationId']?.toString() ?? '';
+    return _creatorApi.publish(
+      resourceId: params['resource']?.toString() ?? '',
+      bundle: bundle,
+      onProgress: (progress) => _events.add(
+        CommandEvent(
+          'creator.publish.progress',
+          data: {'operationId': operationId, 'progress': progress},
+        ),
+      ),
+    );
+  }
+
+  Future<Object?> _creatorBlob(Map<String, Object?> params) async {
+    final bytes = await _creatorApi.downloadBlob(
+      params['resource']?.toString() ?? '',
+      params['sha256']?.toString() ?? '',
+    );
+    return {'bytes': base64Encode(bytes)};
+  }
+
   Future<Object?> _withStateEvent(
     String event,
     Future<Object?> Function() operation,
-    Object? Function() snapshot,
+    FutureOr<Object?> Function() snapshot,
   ) async {
     final result = await operation();
-    _events.add(CommandEvent(event, data: {'state': snapshot()}));
+    _events.add(CommandEvent(event, data: {'state': await snapshot()}));
     return result;
   }
 
@@ -357,7 +501,7 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
     await _pluginManager.initialize();
     final records =
         [
-            ...recentZeroBoxDiagnostics.map((event) => event.toJson()),
+            ...recentOronBoxDiagnostics.map((event) => event.toJson()),
             ..._externalDiagnostics,
           ].where((record) {
             final startedAt = _debugSessionStartedAt;
@@ -440,7 +584,7 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
     if (removedSources.contains(prefs.getString('community_source'))) {
       await prefs.setString(
         'community_source',
-        CommunitySourceId.astroboxRepo.storageKey,
+        CommunitySourceId.oronBox.storageKey,
       );
       container.invalidate(appSettingsProvider);
       _events.add(
@@ -1081,7 +1225,7 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
   }
 
   Future<Object?> _resourceList(Map<String, Object?> params) async {
-    _reloadPersistedAccounts();
+    await _ensureAccountsRestored();
     final source = _source(params['source']?.toString());
     final catalog = _resourceCatalog(source);
     final type = _resourceType(params['type']?.toString(), required: false);
@@ -1116,7 +1260,7 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
   }
 
   Future<Object?> _resourceDevices(Map<String, Object?> params) async {
-    _reloadPersistedAccounts();
+    await _ensureAccountsRestored();
     final source = _source(params['source']?.toString());
     final catalog = _resourceCatalog(source);
     final devices = await catalog.getDevices();
@@ -1132,7 +1276,7 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
   }
 
   Future<Object?> _resourceProbe(Map<String, Object?> params) async {
-    _reloadPersistedAccounts();
+    await _ensureAccountsRestored();
     final source = _source(params['source']?.toString());
     final catalog = _resourceCatalog(source);
     final raw = (params['file'] as Map).cast<String, Object?>();
@@ -1140,7 +1284,7 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
   }
 
   Future<Object?> _bandBbsCategories() async {
-    _reloadPersistedAccounts();
+    await _ensureAccountsRestored();
     final catalog =
         container.read(
               localCommunityCatalogProviderForSource(CommunitySourceId.bandbbs),
@@ -1156,8 +1300,25 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
     return tree.map(encode).toList(growable: false);
   }
 
+  Future<Object?> _bandBbsPublicationCategories() async {
+    await _ensureAccountsRestored();
+    final catalog =
+        container.read(
+              localCommunityCatalogProviderForSource(CommunitySourceId.bandbbs),
+            )
+            as BandBbsCatalog;
+    final tree = await catalog.getPublicationCategories();
+    Map<String, Object?> encode(BandBbsCategoryNode node) => {
+      'id': node.id,
+      'title': node.title,
+      'resourceCount': node.resourceCount,
+      'children': node.children.map(encode).toList(growable: false),
+    };
+    return tree.map(encode).toList(growable: false);
+  }
+
   Future<Object?> _huamiPublisher(Map<String, Object?> params) async {
-    _reloadPersistedAccounts();
+    await _ensureAccountsRestored();
     final catalog =
         container.read(
               localCommunityCatalogProviderForSource(
@@ -1172,7 +1333,7 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
   }
 
   Future<Object?> _resourceInfo(Map<String, Object?> params) async {
-    _reloadPersistedAccounts();
+    await _ensureAccountsRestored();
     final ref = _resourceRef(params);
     final catalog = _resourceCatalog(ref.source);
     final detail = await catalog.getDetail(ref);
@@ -1184,7 +1345,7 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
     Map<String, Object?> params, {
     required bool install,
   }) async {
-    _reloadPersistedAccounts();
+    await _ensureAccountsRestored();
     final ref = _resourceRef(params);
     final catalog = _resourceCatalog(ref.source);
     final detail = await catalog.getDetail(ref);
@@ -1229,6 +1390,7 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
       await service.installLocalPayload(
         type: switch (detail.type) {
           CommunityResourceType.quickApp => LocalDeviceInstallType.app,
+          CommunityResourceType.miniprogram => LocalDeviceInstallType.app,
           CommunityResourceType.watchface => LocalDeviceInstallType.watchface,
           CommunityResourceType.firmware => LocalDeviceInstallType.firmware,
           _ => throw CommandFailure(
@@ -1248,6 +1410,7 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
       'fileName': downloaded.fileName,
       'type': switch (detail.type) {
         CommunityResourceType.quickApp => 'quickapp',
+        CommunityResourceType.miniprogram => 'miniprogram',
         CommunityResourceType.watchface => 'watchface',
         CommunityResourceType.firmware => 'firmware',
         CommunityResourceType.fontpack => 'fontpack',
@@ -1258,7 +1421,7 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
   }
 
   CommunitySourceId _source(String? value) {
-    final normalized = value ?? 'astrobox-repo';
+    final normalized = value ?? 'oronbox';
     if (normalized == 'amazfit' || normalized == 'huami') {
       return CommunitySourceId.huamiAppStore;
     }
@@ -1305,7 +1468,8 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
       return null;
     }
     return switch (value) {
-      'quickapp' || 'miniprogram' => CommunityResourceType.quickApp,
+      'quickapp' => CommunityResourceType.quickApp,
+      'miniprogram' => CommunityResourceType.miniprogram,
       'watchface' => CommunityResourceType.watchface,
       'firmware' => CommunityResourceType.firmware,
       'fontpack' => CommunityResourceType.fontpack,
@@ -1332,8 +1496,8 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
   Map<String, Object?> _resourceDetailJson(CommunityResourceDetail detail) =>
       communityResourceDetailToJson(detail);
 
-  List<Map<String, Object?>> _accountList() {
-    _reloadPersistedAccounts();
+  Future<List<Map<String, Object?>>> _accountList() async {
+    await _ensureAccountsRestored();
     return [
       _accountStatus('xiaomi'),
       _accountStatus('amazfit'),
@@ -1341,15 +1505,15 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
     ];
   }
 
-  void _reloadPersistedAccounts() {
-    container.invalidate(huamiAuthProvider);
-    container.invalidate(bandBbsAuthProvider);
-  }
-
-  Map<String, Object?> _freshAccountStatus(String? provider) {
-    _reloadPersistedAccounts();
+  Future<Map<String, Object?>> _freshAccountStatus(String? provider) async {
+    if (provider == 'bandbbs') {
+      await _ensureAccountsRestored();
+    }
     return _accountStatus(provider);
   }
+
+  Future<void> _ensureAccountsRestored() =>
+      container.read(bandBbsAuthProvider.notifier).restoreCredentials();
 
   Map<String, Object?> _accountStatus(String? provider) {
     return switch (provider) {
@@ -1516,6 +1680,15 @@ class LocalCommandBus implements ZeroBoxCommandBus, ActiveOperationController {
       throw const CommandFailure('usage', 'Unsupported BandBBS callback URI');
     }
     return _accountStatus('bandbbs');
+  }
+
+  Future<Object?> _startBandBbsPublishingAuthorization() async {
+    await container.read(bandBbsAuthProvider.notifier).authorizePublishing();
+    return const {
+      'provider': 'bandbbs',
+      'authorizationStarted': true,
+      'purpose': 'publish',
+    };
   }
 
   Future<Object?> _accountLogout(String? provider) async {

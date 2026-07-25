@@ -1,15 +1,15 @@
 import 'dart:async';
 
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/data/community/community_source.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource_codec.dart';
-import 'package:zerobox/src/features/resources/domain/resource_catalog.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource_codec.dart';
+import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 
 class CommandResourceCatalog implements CommunityResourceCatalog {
   CommandResourceCatalog({required this.host, required this.sourceId});
 
-  final ZeroBoxCommandBus host;
+  final OronBoxCommandBus host;
 
   @override
   final CommunitySourceId sourceId;
@@ -19,6 +19,9 @@ class CommandResourceCatalog implements CommunityResourceCatalog {
 
   @override
   CommunityCatalogCapabilities get capabilities => switch (sourceId) {
+    CommunitySourceId.oronBox => const CommunityCatalogCapabilities(
+      serverSort: true,
+    ),
     CommunitySourceId.astroboxRepo => const CommunityCatalogCapabilities(
       serverSort: false,
     ),
@@ -33,7 +36,7 @@ class CommandResourceCatalog implements CommunityResourceCatalog {
   @override
   Future<CommunityResourcePage> getPage(CommunityResourceQuery query) async {
     final value = await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'resource.list',
         params: {
           'source': sourceId.storageKey,
@@ -42,9 +45,11 @@ class CommandResourceCatalog implements CommunityResourceCatalog {
           'query': query.query,
           'sort': query.sort.name,
           if (query.type != null)
-            'type': query.type == CommunityResourceType.quickApp
-                ? 'quickapp'
-                : query.type!.name,
+            'type': switch (query.type!) {
+              CommunityResourceType.quickApp => 'quickapp',
+              CommunityResourceType.miniprogram => 'miniprogram',
+              _ => query.type!.name,
+            },
           'hidePaid': query.hidePaid,
           'hideForcePaid': query.hideForcePaid,
           'devices': query.selectedDevices.toList(growable: false),
@@ -66,7 +71,7 @@ class CommandResourceCatalog implements CommunityResourceCatalog {
   @override
   Future<CommunityResourceDetail> getDetail(ResourceRef ref) async {
     final value = await _execute(
-      ZeroBoxCommand(method: 'resource.info', params: {'ref': ref.key}),
+      OronBoxCommand(method: 'resource.info', params: {'ref': ref.key}),
     );
     return communityResourceDetailFromJson(
       (value as Map).cast<String, Object?>(),
@@ -76,7 +81,7 @@ class CommandResourceCatalog implements CommunityResourceCatalog {
   @override
   Future<List<CommunityResourceDevice>> getDevices() async {
     final value = await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'resource.devices',
         params: {'source': sourceId.storageKey},
       ),
@@ -96,10 +101,10 @@ class CommandResourceCatalog implements CommunityResourceCatalog {
     CommunityDownloadRequest request,
   ) async {
     final queued = await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'task.enqueue',
         params: {
-          'command': ZeroBoxCommand(
+          'command': OronBoxCommand(
             method: 'resource.download',
             params: {
               'ref': request.resource.ref.key,
@@ -127,7 +132,7 @@ class CommandResourceCatalog implements CommunityResourceCatalog {
     try {
       final task =
           (await _execute(
-                    ZeroBoxCommand(
+                    OronBoxCommand(
                       method: 'queue.wait',
                       params: {'id': taskId},
                     ),
@@ -151,7 +156,7 @@ class CommandResourceCatalog implements CommunityResourceCatalog {
   @override
   Future<int?> probeDownloadSize(CommunityResourceFile file) async {
     final value = await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'resource.probe',
         params: {
           'source': sourceId.storageKey,
@@ -162,7 +167,7 @@ class CommandResourceCatalog implements CommunityResourceCatalog {
     return (value as num?)?.toInt();
   }
 
-  Future<Object?> _execute(ZeroBoxCommand command) async {
+  Future<Object?> _execute(OronBoxCommand command) async {
     final result = await host.execute(command);
     if (!result.ok) {
       throw StateError('${result.error!.code}: ${result.error!.message}');

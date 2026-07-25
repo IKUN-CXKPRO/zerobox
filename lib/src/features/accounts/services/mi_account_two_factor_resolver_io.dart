@@ -19,7 +19,7 @@ MiAccountTwoFactorResolver createPlatformMiAccountTwoFactorResolver() {
 class NativeMiAccountTwoFactorResolver implements MiAccountTwoFactorResolver {
   const NativeMiAccountTwoFactorResolver();
 
-  static const _method = MethodChannel('zerobox/mi_account_2fa');
+  static const _method = MethodChannel('oronbox/mi_account_2fa');
 
   @override
   Future<String> resolve(BuildContext context, Uri notificationUrl) async {

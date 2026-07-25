@@ -7,10 +7,10 @@ import 'plugin_runtime.dart';
 
 PluginRuntime createPluginRuntime() => _WebPluginRuntime();
 
-@JS('zeroboxPluginHostCall')
+@JS('oronboxPluginHostCall')
 external set _webHostCall(JSFunction value);
 
-@JS('ZeroBoxPluginRuntime.create')
+@JS('OronBoxPluginRuntime.create')
 external JSPromise<JSAny?> _webCreate(
   JSString id,
   JSString bootstrap,
@@ -18,24 +18,24 @@ external JSPromise<JSAny?> _webCreate(
   JSString source,
 );
 
-@JS('ZeroBoxPluginRuntime.invoke')
+@JS('OronBoxPluginRuntime.invoke')
 external JSPromise<JSAny?> _webInvoke(
   JSString id,
   JSString callback,
   JSArray<JSAny?> arguments,
 );
 
-@JS('ZeroBoxPluginRuntime.dispatchEvent')
+@JS('OronBoxPluginRuntime.dispatchEvent')
 external JSPromise<JSAny?> _webDispatchEvent(
   JSString id,
   JSString name,
   JSString payload,
 );
 
-@JS('ZeroBoxPluginRuntime.fireTimer')
+@JS('OronBoxPluginRuntime.fireTimer')
 external JSPromise<JSAny?> _webFireTimer(JSString id, JSNumber timerId);
 
-@JS('ZeroBoxPluginRuntime.close')
+@JS('OronBoxPluginRuntime.close')
 external JSPromise<JSAny?> _webClose(JSString id);
 
 class _WebPluginRuntime implements PluginRuntime {
@@ -98,7 +98,7 @@ class _WebPluginRuntime implements PluginRuntime {
   }
 
   static JSAny? _dispatchHost(String id, String channel, String message) {
-    if (channel != 'ZeroBoxHost') {
+    if (channel != 'OronBoxHost') {
       throw UnsupportedError('Unknown plugin channel: $channel');
     }
     final instance = _instances[id];

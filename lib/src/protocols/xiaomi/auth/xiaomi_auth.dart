@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/protocols/common/device_protocol.dart';
-import 'package:zerobox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_account.pb.dart'
+import 'package:oronbox/src/protocols/common/device_protocol.dart';
+import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_account.pb.dart'
     as pb_account;
-import 'package:zerobox/src/protocols/xiaomi/crypto/miwear_crypto.dart';
-import 'package:zerobox/src/protocols/xiaomi/crypto/v2_l2_cipher.dart';
-import 'package:zerobox/src/protocols/xiaomi/packet/l1_packet.dart';
-import 'package:zerobox/src/protocols/xiaomi/packet/l2_packet.dart';
+import 'package:oronbox/src/protocols/xiaomi/crypto/miwear_crypto.dart';
+import 'package:oronbox/src/protocols/xiaomi/crypto/v2_l2_cipher.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/l1_packet.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
 
 class XiaomiAuth {
   XiaomiAuth({
@@ -130,7 +130,7 @@ class XiaomiAuth {
 
     final companionDevice = pb_account.CompanionDevice(
       deviceType: pb_account.CompanionDevice_DeviceType.IOS,
-      deviceName: 'ZeroBox',
+      deviceName: 'OronBox',
       appCapability: 0xFFFFFFFF,
     );
     final companionBytes = companionDevice.writeToBuffer();

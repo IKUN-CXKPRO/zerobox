@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 
 String localizedErrorMessage(AppLocalizations l10n, Object? error) {
   final raw = _flattenError(error);

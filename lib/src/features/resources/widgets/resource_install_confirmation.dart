@@ -4,13 +4,13 @@ import 'dart:typed_data';
 import 'package:cross_file/cross_file.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/device/core/device_kind.dart';
-import 'package:zerobox/src/device/core/device_profile.dart';
-import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
-import 'package:zerobox/src/features/resources/services/install_queue_notifier.dart';
-import 'package:zerobox/src/features/resources/services/resource_install_service.dart';
-import 'package:zerobox/src/features/resources/services/resource_payload_analyzer.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/device/core/device_kind.dart';
+import 'package:oronbox/src/device/core/device_profile.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/resources/services/install_queue_notifier.dart';
+import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
+import 'package:oronbox/src/features/resources/services/resource_payload_analyzer.dart';
 
 enum _InstallDecision { cancel, selectedType, detectedType, forceDetectedType }
 

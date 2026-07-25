@@ -4,7 +4,7 @@ import 'dart:js_interop';
 import 'dart:typed_data';
 
 import 'package:web/web.dart' as web;
-import 'package:zerobox/src/features/plugins/domain/plugin_package.dart';
+import 'package:oronbox/src/features/plugins/domain/plugin_package.dart';
 
 import 'plugin_storage.dart';
 
@@ -15,12 +15,12 @@ Future<PluginStorage> createPluginStorage() async {
 }
 
 class _WebPluginStorage implements PluginStorage {
-  static const _databaseName = 'zerobox.plugins';
+  static const _databaseName = 'oronbox.plugins';
   static const _databaseVersion = 1;
   static const _filesStore = 'files';
   static const _separator = '\u0001';
-  static const _configFile = '.zerobox-config.json';
-  static const _permissionsFile = '.zerobox-permissions.json';
+  static const _configFile = '.oronbox-config.json';
+  static const _permissionsFile = '.oronbox-permissions.json';
 
   web.IDBDatabase? _database;
 
@@ -273,7 +273,7 @@ class _WebPluginStorage implements PluginStorage {
       if (remainder.isEmpty) continue;
       final slash = remainder.indexOf('/');
       final name = slash < 0 ? remainder : remainder.substring(0, slash);
-      if (name.startsWith('.zerobox')) continue;
+      if (name.startsWith('.oronbox')) continue;
       final virtual = '${path.virtualPath}/$name';
       children[name] = PluginFileStat(
         path: virtual,
@@ -292,7 +292,7 @@ class _WebPluginStorage implements PluginStorage {
       throw UnsupportedError('/plugin is read-only');
     }
     if (path.relativePath.isEmpty) return;
-    final marker = '${path.relativePath}/.zerobox-directory';
+    final marker = '${path.relativePath}/.oronbox-directory';
     final transaction = _db.transaction(_filesStore.toJS, 'readwrite');
     transaction
         .objectStore(_filesStore)

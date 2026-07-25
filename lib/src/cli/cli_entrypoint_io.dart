@@ -3,13 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/cli/cli_models.dart';
-import 'package:zerobox/src/cli/cli_parser.dart';
-import 'package:zerobox/src/cli/resource_cli_command.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/daemon/daemon_client.dart';
-import 'package:zerobox/src/daemon/daemon_server.dart';
-import 'package:zerobox/src/core/services/build_info_service.dart';
+import 'package:oronbox/src/cli/cli_models.dart';
+import 'package:oronbox/src/cli/cli_parser.dart';
+import 'package:oronbox/src/cli/resource_cli_command.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/daemon/daemon_client.dart';
+import 'package:oronbox/src/daemon/daemon_server.dart';
+import 'package:oronbox/src/core/services/build_info_service.dart';
 
 Future<bool> runCliIfRequested(List<String> args) async {
   CliInvocation invocation;
@@ -36,24 +36,24 @@ Future<CliExitCode> _run(CliInvocation invocation) async {
     if (invocation.json) {
       stdout.writeln(
         jsonEncode({
-          'name': 'ZeroBox',
+          'name': 'OronBox',
           'version': BuildInfoService.appVersion,
           'commit': commit,
           'builder': BuildInfoService.buildUser,
-          'protocolVersion': zeroBoxProtocolVersion,
+          'protocolVersion': oronBoxProtocolVersion,
         }),
       );
     } else {
       stdout.writeln(
-        'ZeroBox ${BuildInfoService.appVersion} ($commit), '
+        'OronBox ${BuildInfoService.appVersion} ($commit), '
         'built by ${BuildInfoService.buildUser}, '
-        'protocol $zeroBoxProtocolVersion',
+        'protocol $oronBoxProtocolVersion',
       );
     }
     return CliExitCode.success;
   }
   if (command == 'daemon.run') {
-    final server = ZeroBoxDaemonServer(ProviderContainer());
+    final server = OronBoxDaemonServer(ProviderContainer());
     try {
       await server.run();
       return CliExitCode.success;
@@ -66,11 +66,11 @@ Future<CliExitCode> _run(CliInvocation invocation) async {
     return _startDaemon(invocation);
   }
 
-  ZeroBoxDaemonClient client;
+  OronBoxDaemonClient client;
   try {
     client = await _connectOrStart(invocation);
   } catch (error) {
-    stderr.writeln('Unable to connect to ZeroBox daemon: $error');
+    stderr.writeln('Unable to connect to OronBox daemon: $error');
     return CliExitCode.daemon;
   }
 
@@ -119,11 +119,12 @@ Future<CliExitCode> _run(CliInvocation invocation) async {
     }
   });
   try {
-    var request = await _toCommand(invocation);
+    var request = await buildCliCommand(invocation);
     if (invocation.options.containsKey('detach') &&
         (request.method == 'install.local' ||
-            request.method == 'resource.install')) {
-      request = ZeroBoxCommand(
+            request.method == 'resource.install' ||
+            request.method == 'creator.publish')) {
+      request = OronBoxCommand(
         method: 'task.enqueue',
         params: {'command': request.toJson()},
       );
@@ -138,7 +139,7 @@ Future<CliExitCode> _run(CliInvocation invocation) async {
           stdout.writeln('Task $taskId queued; waiting for completion');
         }
         result = await client.execute(
-          ZeroBoxCommand(method: 'queue.wait', params: {'id': taskId}),
+          OronBoxCommand(method: 'queue.wait', params: {'id': taskId}),
         );
       }
     }
@@ -165,9 +166,9 @@ Future<CliExitCode> _run(CliInvocation invocation) async {
 
 Future<CliExitCode> _startDaemon(CliInvocation invocation) async {
   try {
-    final existing = await ZeroBoxDaemonClient.connect();
+    final existing = await OronBoxDaemonClient.connect();
     await existing.close();
-    if (!invocation.quiet) stdout.writeln('ZeroBox daemon is already running');
+    if (!invocation.quiet) stdout.writeln('OronBox daemon is already running');
     return CliExitCode.success;
   } catch (_) {}
   await Process.start(Platform.resolvedExecutable, [
@@ -178,7 +179,7 @@ Future<CliExitCode> _startDaemon(CliInvocation invocation) async {
   try {
     final client = await _waitForDaemon();
     await client.close();
-    if (!invocation.quiet) stdout.writeln('ZeroBox daemon started');
+    if (!invocation.quiet) stdout.writeln('OronBox daemon started');
     return CliExitCode.success;
   } catch (error) {
     stderr.writeln('Daemon failed to start: $error');
@@ -186,9 +187,9 @@ Future<CliExitCode> _startDaemon(CliInvocation invocation) async {
   }
 }
 
-Future<ZeroBoxDaemonClient> _connectOrStart(CliInvocation invocation) async {
+Future<OronBoxDaemonClient> _connectOrStart(CliInvocation invocation) async {
   try {
-    return await ZeroBoxDaemonClient.connect();
+    return await OronBoxDaemonClient.connect();
   } catch (_) {
     if (invocation.options.containsKey('no-autostart')) rethrow;
     final result = await _startDaemon(
@@ -201,15 +202,15 @@ Future<ZeroBoxDaemonClient> _connectOrStart(CliInvocation invocation) async {
     if (result != CliExitCode.success) {
       throw StateError('daemon autostart failed');
     }
-    return ZeroBoxDaemonClient.connect();
+    return OronBoxDaemonClient.connect();
   }
 }
 
-Future<ZeroBoxDaemonClient> _waitForDaemon() async {
+Future<OronBoxDaemonClient> _waitForDaemon() async {
   Object? lastError;
   for (var attempt = 0; attempt < 30; attempt++) {
     try {
-      return await ZeroBoxDaemonClient.connect(
+      return await OronBoxDaemonClient.connect(
         timeout: const Duration(milliseconds: 200),
       );
     } catch (error) {
@@ -220,25 +221,25 @@ Future<ZeroBoxDaemonClient> _waitForDaemon() async {
   throw StateError('$lastError');
 }
 
-Future<ZeroBoxCommand> _toCommand(CliInvocation invocation) async {
+Future<OronBoxCommand> buildCliCommand(CliInvocation invocation) async {
   final name = invocation.command.join('.');
   final device = invocation.options['device'];
   return switch (name) {
-    'status' => const ZeroBoxCommand(method: 'status'),
-    'daemon.status' => const ZeroBoxCommand(method: 'daemon.info'),
-    'daemon.stop' => const ZeroBoxCommand(method: 'daemon.stop'),
+    'status' => const OronBoxCommand(method: 'status'),
+    'daemon.status' => const OronBoxCommand(method: 'daemon.info'),
+    'daemon.stop' => const OronBoxCommand(method: 'daemon.stop'),
     'device.paired' ||
-    'device.list' => const ZeroBoxCommand(method: 'device.paired'),
-    'device.status' => const ZeroBoxCommand(method: 'device.status'),
-    'device.connect' => ZeroBoxCommand(
+    'device.list' => const OronBoxCommand(method: 'device.paired'),
+    'device.status' => const OronBoxCommand(method: 'device.status'),
+    'device.connect' => OronBoxCommand(
       method: 'device.connect',
       params: {
         if (invocation.arguments.isNotEmpty)
           'device': invocation.arguments.first,
       },
     ),
-    'device.disconnect' => const ZeroBoxCommand(method: 'device.disconnect'),
-    'device.scan' => ZeroBoxCommand(
+    'device.disconnect' => const OronBoxCommand(method: 'device.disconnect'),
+    'device.scan' => OronBoxCommand(
       method: 'device.scan',
       params: {
         if (invocation.options['timeout'] != null)
@@ -247,41 +248,41 @@ Future<ZeroBoxCommand> _toCommand(CliInvocation invocation) async {
           'connectType': invocation.options['connect-type'],
       },
     ),
-    'device.info' => const ZeroBoxCommand(method: 'device.info'),
-    'app.list' => const ZeroBoxCommand(method: 'app.list'),
-    'app.uninstall' => ZeroBoxCommand(
+    'device.info' => const OronBoxCommand(method: 'device.info'),
+    'app.list' => const OronBoxCommand(method: 'app.list'),
+    'app.uninstall' => OronBoxCommand(
       method: 'app.uninstall',
       params: {'package': invocation.requiredArgument('package name')},
     ),
-    'app.launch' => ZeroBoxCommand(
+    'app.launch' => OronBoxCommand(
       method: 'app.launch',
       params: {'package': invocation.requiredArgument('package name')},
     ),
-    'watchface.list' => const ZeroBoxCommand(method: 'watchface.list'),
-    'watchface.remove' => ZeroBoxCommand(
+    'watchface.list' => const OronBoxCommand(method: 'watchface.list'),
+    'watchface.remove' => OronBoxCommand(
       method: 'watchface.remove',
       params: {'id': invocation.requiredArgument('watchface ID')},
     ),
-    'watchface.set' => ZeroBoxCommand(
+    'watchface.set' => OronBoxCommand(
       method: 'watchface.set',
       params: {'id': invocation.requiredArgument('watchface ID')},
     ),
-    'settings.list' => const ZeroBoxCommand(method: 'settings.list'),
-    'settings.get' => ZeroBoxCommand(
+    'settings.list' => const OronBoxCommand(method: 'settings.list'),
+    'settings.get' => OronBoxCommand(
       method: 'settings.get',
       params: {'key': invocation.requiredArgument('setting key')},
     ),
-    'settings.set' => ZeroBoxCommand(
+    'settings.set' => OronBoxCommand(
       method: 'settings.set',
       params: {
         'key': invocation.requiredArgument('setting key'),
         'value': _settingValue(invocation),
       },
     ),
-    'resource.sources' => const ZeroBoxCommand(method: 'resource.sources'),
+    'resource.sources' => const OronBoxCommand(method: 'resource.sources'),
     'resource.list' ||
     'resource.search' => buildResourceQueryCommand(invocation),
-    'resource.devices' => ZeroBoxCommand(
+    'resource.devices' => OronBoxCommand(
       method: 'resource.devices',
       params: {
         if (invocation.options['source'] != null)
@@ -290,7 +291,7 @@ Future<ZeroBoxCommand> _toCommand(CliInvocation invocation) async {
     ),
     'resource.info' ||
     'resource.download' ||
-    'resource.install' => ZeroBoxCommand(
+    'resource.install' => OronBoxCommand(
       method: name,
       params: {
         'ref': invocation.requiredArgument('resource ref'),
@@ -302,51 +303,96 @@ Future<ZeroBoxCommand> _toCommand(CliInvocation invocation) async {
           'targetDevice': invocation.options['target-device'],
       },
     ),
-    'account.list' => const ZeroBoxCommand(method: 'account.list'),
-    'account.status' => ZeroBoxCommand(
+    'creator.list' => const OronBoxCommand(method: 'creator.list'),
+    'creator.devices' => const OronBoxCommand(method: 'creator.devices'),
+    'creator.get' => OronBoxCommand(
+      method: 'creator.get',
+      params: {'resource': invocation.requiredArgument('resource ID')},
+    ),
+    'creator.create' => OronBoxCommand(
+      method: 'creator.create',
+      params: {
+        'slug': invocation.requiredArgument('resource slug'),
+        'kind': invocation.options['type'] == 'watchface'
+            ? 'watchface'
+            : 'quickapp',
+      },
+    ),
+    'creator.publish' => OronBoxCommand(
+      method: 'creator.publish',
+      params: {
+        'resource': invocation.requiredArgument('resource ID'),
+        'bundle': base64Encode(
+          File(
+            invocation.arguments.elementAtOrNull(1) ??
+                (throw const CliUsageException('Missing bundle zip path')),
+          ).readAsBytesSync(),
+        ),
+      },
+    ),
+    'creator.archive' => OronBoxCommand(
+      method: 'creator.archive',
+      params: {
+        'resource': invocation.requiredArgument('resource ID'),
+        'archived': true,
+      },
+    ),
+    'creator.unarchive' => OronBoxCommand(
+      method: 'creator.archive',
+      params: {
+        'resource': invocation.requiredArgument('resource ID'),
+        'archived': false,
+      },
+    ),
+    'creator.delete' => OronBoxCommand(
+      method: 'creator.delete',
+      params: {'resource': invocation.requiredArgument('resource ID')},
+    ),
+    'account.list' => const OronBoxCommand(method: 'account.list'),
+    'account.status' => OronBoxCommand(
       method: 'account.status',
       params: {'provider': invocation.requiredArgument('account provider')},
     ),
-    'account.logout' => ZeroBoxCommand(
+    'account.logout' => OronBoxCommand(
       method: 'account.logout',
       params: {'provider': invocation.requiredArgument('account provider')},
     ),
     'account.login' => await _accountLoginCommand(invocation),
-    'queue.list' || 'queue.watch' => const ZeroBoxCommand(method: 'queue.list'),
-    'queue.get' => ZeroBoxCommand(
+    'queue.list' || 'queue.watch' => const OronBoxCommand(method: 'queue.list'),
+    'queue.get' => OronBoxCommand(
       method: 'queue.get',
       params: {'id': invocation.requiredArgument('task ID')},
     ),
-    'queue.wait' => ZeroBoxCommand(
+    'queue.wait' => OronBoxCommand(
       method: 'queue.wait',
       params: {'id': invocation.requiredArgument('task ID')},
     ),
-    'queue.cancel' => ZeroBoxCommand(
+    'queue.cancel' => OronBoxCommand(
       method: 'queue.cancel',
       params: {'id': invocation.requiredArgument('task ID')},
     ),
-    'queue.remove' => ZeroBoxCommand(
+    'queue.remove' => OronBoxCommand(
       method: 'queue.remove',
       params: {'id': invocation.requiredArgument('task ID')},
     ),
-    'queue.retry' => ZeroBoxCommand(
+    'queue.retry' => OronBoxCommand(
       method: 'queue.retry',
       params: {'id': invocation.requiredArgument('task ID')},
     ),
-    'queue.start' => const ZeroBoxCommand(method: 'queue.start'),
-    'queue.pause' => const ZeroBoxCommand(method: 'queue.pause'),
-    'queue.clear' => const ZeroBoxCommand(method: 'queue.clear'),
-    'logs.show' || 'logs.watch' => const ZeroBoxCommand(method: 'logs.recent'),
-    'plugin.list' => const ZeroBoxCommand(
+    'queue.start' => const OronBoxCommand(method: 'queue.start'),
+    'queue.pause' => const OronBoxCommand(method: 'queue.pause'),
+    'queue.clear' => const OronBoxCommand(method: 'queue.clear'),
+    'logs.show' || 'logs.watch' => const OronBoxCommand(method: 'logs.recent'),
+    'plugin.list' => const OronBoxCommand(
       method: 'plugin.list',
       params: {'includeIcons': false},
     ),
     'plugin.install' => _pluginInstallCommand(invocation),
-    'plugin.open' => ZeroBoxCommand(
+    'plugin.open' => OronBoxCommand(
       method: 'plugin.open',
       params: {'id': invocation.requiredArgument('plugin ID')},
     ),
-    'plugin.invoke' => ZeroBoxCommand(
+    'plugin.invoke' => OronBoxCommand(
       method: 'plugin.invoke',
       params: {
         'id': invocation.requiredArgument('plugin ID'),
@@ -357,14 +403,14 @@ Future<ZeroBoxCommand> _toCommand(CliInvocation invocation) async {
           'value': invocation.arguments.skip(2).join(' '),
       },
     ),
-    'plugin.remove' => ZeroBoxCommand(
+    'plugin.remove' => OronBoxCommand(
       method: 'plugin.remove',
       params: {'id': invocation.requiredArgument('plugin ID')},
     ),
     'install.quickapp' ||
     'install.miniprogram' ||
     'install.watchface' ||
-    'install.firmware' => ZeroBoxCommand(
+    'install.firmware' => OronBoxCommand(
       method: 'install.local',
       params: {
         'type': invocation.command.last == 'miniprogram'
@@ -378,11 +424,11 @@ Future<ZeroBoxCommand> _toCommand(CliInvocation invocation) async {
   };
 }
 
-Future<ZeroBoxCommand> _pluginInstallCommand(CliInvocation invocation) async {
+Future<OronBoxCommand> _pluginInstallCommand(CliInvocation invocation) async {
   final path = invocation.requiredArgument('ABP path');
   final file = File(path);
   if (!await file.exists()) throw CliUsageException('File not found: $path');
-  return ZeroBoxCommand(
+  return OronBoxCommand(
     method: 'plugin.install',
     params: {
       'bytes': base64Encode(await file.readAsBytes()),
@@ -392,11 +438,11 @@ Future<ZeroBoxCommand> _pluginInstallCommand(CliInvocation invocation) async {
   );
 }
 
-Future<ZeroBoxCommand> _accountLoginCommand(CliInvocation invocation) async {
+Future<OronBoxCommand> _accountLoginCommand(CliInvocation invocation) async {
   final provider = invocation.requiredArgument('account provider');
   final needsPassword =
       provider == 'amazfit' || provider == 'huami' || provider == 'xiaomi';
-  return ZeroBoxCommand(
+  return OronBoxCommand(
     method: 'account.login',
     params: {
       'provider': provider,
@@ -470,7 +516,7 @@ CliExitCode _resultExitCode(CommandResult result) {
 }
 
 const _usage = '''
-Usage: zerobox --nogui <command> [arguments] [options]
+Usage: oronbox --nogui <command> [arguments] [options]
 
 Commands:
   daemon run|start|stop|status
@@ -481,6 +527,7 @@ Commands:
   watchface list|remove|set
   settings list|get|set
   resource sources|devices|list|search|info|download|install
+  creator list|devices|get|create|import|update|upload|bind|delete-asset|submit|correct|archive|unarchive|delete
   account list|status|login|logout
   queue list|get|wait|watch|cancel|remove|retry|start|pause|clear
   logs show|watch
@@ -494,4 +541,5 @@ Options:
   --sort          Resource sort: random, name, or time
   --detach        Queue an install and return its task ID
   --wait          Wait for a detached task and return its final exit code
+  --targets       Creator targets: oronbox,bandbbs,astrobox
 ''';

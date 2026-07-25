@@ -1,8 +1,8 @@
-# ZeroBox Plugin System
+# OronBox Plugin System
 
-A ZeroBox plugin is a `.zbp` file — a ZIP archive with a root `manifest.json` and
+A OronBox plugin is a `.zbp` file — a ZIP archive with a root `manifest.json` and
 an entry script. Plugins run in a sandboxed QuickJS environment and access host
-capabilities through the global `ZeroBox` object.
+capabilities through the global `OronBox` object.
 
 ## Quick Start: Hello World
 
@@ -38,16 +38,16 @@ Build a click-counter plugin — tap a button to increment and display the count
 ### 2. Create main.js
 
 ```js
-// ZeroBox calls activate automatically after loading the plugin
+// OronBox calls activate automatically after loading the plugin
 globalThis.activate = async (plugin) => {
   let count = 0;
 
-  const { Column, Text, Button } = ZeroBox.ui;
-  const render = () => ZeroBox.ui.render(
+  const { Column, Text, Button } = OronBox.ui;
+  const render = () => OronBox.ui.render(
     Column({ gap: 12, padding: 16 }, [
       Text(`Count: ${count}`),
       Button('+1', {
-        onClick: ZeroBox.ui.action(() => count++, render),
+        onClick: OronBox.ui.action(() => count++, render),
       }),
     ]),
   );
@@ -58,9 +58,9 @@ globalThis.activate = async (plugin) => {
 
 Key points:
 - The entry point is the global function `activate(plugin)` where `plugin` is `{id, name, version, runtimeVersion}`
-- Render component trees with `ZeroBox.ui.render(tree)`
-- Component events accept functions directly; use `ZeroBox.ui.action(fn, render)` for asynchronous state changes
-- `render()` should return the Promise from `ZeroBox.ui.render()`
+- Render component trees with `OronBox.ui.render(tree)`
+- Component events accept functions directly; use `OronBox.ui.action(fn, render)` for asynchronous state changes
+- `render()` should return the Promise from `OronBox.ui.render()`
 
 ### 3. Prepare an icon
 
@@ -76,7 +76,7 @@ zip counter.zbp manifest.json main.js icon.png
 
 ### 5. Install
 
-In ZeroBox, go to the Plugins tab and tap "Import plugin", then select `counter.zbp`.
+In OronBox, go to the Plugins tab and tap "Import plugin", then select `counter.zbp`.
 
 ## Plugin UI
 

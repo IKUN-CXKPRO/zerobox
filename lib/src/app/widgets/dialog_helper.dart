@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:zerobox/src/core/utils/layout.dart';
+import 'package:oronbox/src/core/utils/layout.dart';
 
-class ZeroBoxDialog {
-  ZeroBoxDialog._internal();
+class OronBoxDialog {
+  OronBoxDialog._internal();
 
-  static final ZeroBoxDialogObserver observer = ZeroBoxDialogObserver();
+  static final OronBoxDialogObserver observer = OronBoxDialogObserver();
 
   static Future<T?> show<T>({
     BuildContext? context,
@@ -21,16 +21,16 @@ class ZeroBoxDialog {
           context: ctx,
           barrierDismissible: clickMaskDismiss ?? true,
           builder: builder,
-          routeSettings: const RouteSettings(name: 'ZeroBoxDialog'),
+          routeSettings: const RouteSettings(name: 'OronBoxDialog'),
         );
         onDismiss?.call();
         return result;
       } catch (e) {
-        debugPrint('ZeroBoxDialog: failed to show dialog: $e');
+        debugPrint('OronBoxDialog: failed to show dialog: $e');
         return null;
       }
     }
-    debugPrint('ZeroBoxDialog: no context available');
+    debugPrint('OronBoxDialog: no context available');
     return null;
   }
 
@@ -65,7 +65,7 @@ class ZeroBoxDialog {
             ),
           );
       } catch (e) {
-        debugPrint('ZeroBoxDialog: failed to show toast: $e');
+        debugPrint('OronBoxDialog: failed to show toast: $e');
       }
     }
   }
@@ -102,7 +102,7 @@ class ZeroBoxDialog {
             ),
           ),
         ),
-        routeSettings: const RouteSettings(name: 'ZeroBoxDialog'),
+        routeSettings: const RouteSettings(name: 'OronBoxDialog'),
       );
     }
   }
@@ -124,7 +124,7 @@ class ZeroBoxDialog {
         useRootNavigator: useRootNavigator,
         isDismissible: isDismissible,
         enableDrag: enableDrag,
-        routeSettings: const RouteSettings(name: 'ZeroBoxBottomSheet'),
+        routeSettings: const RouteSettings(name: 'OronBoxBottomSheet'),
       );
     }
     return null;
@@ -137,7 +137,7 @@ class ZeroBoxDialog {
   }
 }
 
-class ZeroBoxDialogObserver extends NavigatorObserver {
+class OronBoxDialogObserver extends NavigatorObserver {
   final List<Route<dynamic>> _dialogRoutes = [];
   BuildContext? _currentContext;
   BuildContext? _scaffoldContext;
@@ -178,7 +178,7 @@ class ZeroBoxDialogObserver extends NavigatorObserver {
   }
 
   bool _isDialogRoute(Route<dynamic> route) {
-    return route.settings.name == 'ZeroBoxDialog' ||
-        route.settings.name == 'ZeroBoxBottomSheet';
+    return route.settings.name == 'OronBoxDialog' ||
+        route.settings.name == 'OronBoxBottomSheet';
   }
 }

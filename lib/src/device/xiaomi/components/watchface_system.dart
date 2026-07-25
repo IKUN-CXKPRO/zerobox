@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/device/xiaomi/system/xiaomi_system.dart';
-import 'package:zerobox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_watch_face.pb.dart'
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
+import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_watch_face.pb.dart'
     as pb_watchface;
 
 class XiaomiWatchfaceSystem extends XiaomiPbSystem {

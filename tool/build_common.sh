@@ -9,12 +9,12 @@ VERSION=""
 GIT_HASH=""
 BUILD_USER=""
 
-APP_NAME="zerobox"
-PACKAGE_NAME="org.zxor.zerobox"
+APP_NAME="oronbox"
+PACKAGE_NAME="org.zxor.oronbox"
 DESCRIPTION="A pretty fast wearable management tool for VelaOS and ZeppOS built with Flutter."
-MAINTAINER="ZeroBox Team"
+MAINTAINER="OronBox Team"
 LICENSE="MIT"
-HOMEPAGE="https://github.com/zxor/zerobox"
+HOMEPAGE="https://github.com/zxor-org/OronBox"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -199,28 +199,28 @@ archive_zip() {
 setup_android_signing() {
   local props_file="${PROJECT_ROOT}/android/key.properties"
 
-  if [[ -z "${ZEROBOX_KEYSTORE_PATH:-}" ]]; then
-    log_warn "ZEROBOX_KEYSTORE_PATH not set; Android build will use the debug signing config."
-    log_warn "Set ZEROBOX_KEYSTORE_PATH, ZEROBOX_KEYSTORE_PASSWORD, ZEROBOX_KEY_ALIAS, and ZEROBOX_KEY_PASSWORD for release signing."
+  if [[ -z "${ORONBOX_KEYSTORE_PATH:-}" ]]; then
+    log_warn "ORONBOX_KEYSTORE_PATH not set; Android build will use the debug signing config."
+    log_warn "Set ORONBOX_KEYSTORE_PATH, ORONBOX_KEYSTORE_PASSWORD, ORONBOX_KEY_ALIAS, and ORONBOX_KEY_PASSWORD for release signing."
     return 0
   fi
 
-  if [[ ! -f "${ZEROBOX_KEYSTORE_PATH}" ]]; then
-    log_error "Keystore file not found: ${ZEROBOX_KEYSTORE_PATH}"
+  if [[ ! -f "${ORONBOX_KEYSTORE_PATH}" ]]; then
+    log_error "Keystore file not found: ${ORONBOX_KEYSTORE_PATH}"
     exit 1
   fi
 
-  if [[ -z "${ZEROBOX_KEYSTORE_PASSWORD:-}" || -z "${ZEROBOX_KEY_ALIAS:-}" || -z "${ZEROBOX_KEY_PASSWORD:-}" ]]; then
-    log_error "When ZEROBOX_KEYSTORE_PATH is set, ZEROBOX_KEYSTORE_PASSWORD, ZEROBOX_KEY_ALIAS, and ZEROBOX_KEY_PASSWORD must also be set."
+  if [[ -z "${ORONBOX_KEYSTORE_PASSWORD:-}" || -z "${ORONBOX_KEY_ALIAS:-}" || -z "${ORONBOX_KEY_PASSWORD:-}" ]]; then
+    log_error "When ORONBOX_KEYSTORE_PATH is set, ORONBOX_KEYSTORE_PASSWORD, ORONBOX_KEY_ALIAS, and ORONBOX_KEY_PASSWORD must also be set."
     exit 1
   fi
 
   log_info "Configuring Android release signing..."
   cat > "${props_file}" <<EOF
-storePassword=${ZEROBOX_KEYSTORE_PASSWORD}
-keyPassword=${ZEROBOX_KEY_PASSWORD}
-keyAlias=${ZEROBOX_KEY_ALIAS}
-storeFile=${ZEROBOX_KEYSTORE_PATH}
+storePassword=${ORONBOX_KEYSTORE_PASSWORD}
+keyPassword=${ORONBOX_KEY_PASSWORD}
+keyAlias=${ORONBOX_KEY_ALIAS}
+storeFile=${ORONBOX_KEYSTORE_PATH}
 EOF
 
   log_info "Wrote ${props_file}"

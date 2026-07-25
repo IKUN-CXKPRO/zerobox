@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/core/services/shared_prefs_service.dart';
-import 'package:zerobox/src/host/application_host.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/host/application_host.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -20,9 +20,9 @@ void main() {
       final core = _RecordingBus();
       final host = ApplicationHost(core);
 
-      final direct = await host.execute(const ZeroBoxCommand(method: 'echo'));
+      final direct = await host.execute(const OronBoxCommand(method: 'echo'));
       final queued = await host.execute(
-        const ZeroBoxCommand(
+        const OronBoxCommand(
           method: 'task.enqueue',
           params: {
             'command': {
@@ -34,7 +34,7 @@ void main() {
       );
       final taskId = (queued.value as Map)['taskId']!.toString();
       final completed = await host.execute(
-        ZeroBoxCommand(method: 'queue.wait', params: {'id': taskId}),
+        OronBoxCommand(method: 'queue.wait', params: {'id': taskId}),
       );
 
       expect(direct.value, {'method': 'echo'});
@@ -51,7 +51,7 @@ void main() {
       final core = _RecordingBus();
       final host = ApplicationHost(core);
       final queued = await host.execute(
-        const ZeroBoxCommand(
+        const OronBoxCommand(
           method: 'task.enqueue',
           params: {
             'held': true,
@@ -66,14 +66,14 @@ void main() {
 
       await Future<void>.delayed(Duration.zero);
       final held = await host.execute(
-        ZeroBoxCommand(method: 'queue.get', params: {'id': taskId}),
+        OronBoxCommand(method: 'queue.get', params: {'id': taskId}),
       );
       expect((held.value as Map)['status'], 'held');
       expect(core.methods, isEmpty);
 
-      await host.execute(const ZeroBoxCommand(method: 'queue.start'));
+      await host.execute(const OronBoxCommand(method: 'queue.start'));
       final completed = await host.execute(
-        ZeroBoxCommand(method: 'queue.wait', params: {'id': taskId}),
+        OronBoxCommand(method: 'queue.wait', params: {'id': taskId}),
       );
       expect((completed.value as Map)['status'], 'completed');
       expect(core.methods, ['install.local']);
@@ -86,7 +86,7 @@ void main() {
     final core = _ResourceBus(autoInstall: false, disableAutoClean: true);
     final host = ApplicationHost(core);
     final queued = await host.execute(
-      const ZeroBoxCommand(
+      const OronBoxCommand(
         method: 'task.enqueue',
         params: {
           'command': {
@@ -105,10 +105,10 @@ void main() {
     );
     final downloadId = (queued.value as Map)['taskId']!.toString();
     await host.execute(
-      ZeroBoxCommand(method: 'queue.wait', params: {'id': downloadId}),
+      OronBoxCommand(method: 'queue.wait', params: {'id': downloadId}),
     );
     final listed = await host.execute(
-      const ZeroBoxCommand(method: 'queue.list'),
+      const OronBoxCommand(method: 'queue.list'),
     );
     final rows = (listed.value as List).whereType<Map>().toList();
     final install = rows.firstWhere(
@@ -121,7 +121,7 @@ void main() {
   });
 }
 
-class _RecordingBus implements ZeroBoxCommandBus {
+class _RecordingBus implements OronBoxCommandBus {
   final methods = <String>[];
   final _events = StreamController<CommandEvent>.broadcast();
 
@@ -129,7 +129,7 @@ class _RecordingBus implements ZeroBoxCommandBus {
   Stream<CommandEvent> get events => _events.stream;
 
   @override
-  Future<CommandResult> execute(ZeroBoxCommand command) async {
+  Future<CommandResult> execute(OronBoxCommand command) async {
     methods.add(command.method);
     return CommandResult.success({'method': command.method});
   }
@@ -138,7 +138,7 @@ class _RecordingBus implements ZeroBoxCommandBus {
   Future<void> close() => _events.close();
 }
 
-class _ResourceBus implements ZeroBoxCommandBus {
+class _ResourceBus implements OronBoxCommandBus {
   _ResourceBus({required this.autoInstall, required this.disableAutoClean});
 
   final bool autoInstall;
@@ -148,7 +148,7 @@ class _ResourceBus implements ZeroBoxCommandBus {
   Stream<CommandEvent> get events => const Stream.empty();
 
   @override
-  Future<CommandResult> execute(ZeroBoxCommand command) async {
+  Future<CommandResult> execute(OronBoxCommand command) async {
     if (command.method == 'resource.download') {
       return const CommandResult.success({
         'path': '/tmp/resource.rpk',

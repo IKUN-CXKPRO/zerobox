@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/device/core/bluetooth_platform.dart';
+import 'package:oronbox/src/device/core/bluetooth_platform.dart';
 
 export 'rfcomm_driver_native.dart'
     if (dart.library.html) 'rfcomm_driver_web.dart';

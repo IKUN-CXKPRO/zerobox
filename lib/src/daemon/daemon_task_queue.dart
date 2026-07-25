@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 
 class DaemonTaskQueue {
   DaemonTaskQueue(
@@ -16,7 +16,7 @@ class DaemonTaskQueue {
   }
 
   static const _storageKey = 'daemon.tasks';
-  final ZeroBoxCommandBus bus;
+  final OronBoxCommandBus bus;
   final Future<void> Function()? onCancelRunning;
   final Future<Future<void> Function()> Function(DaemonTask)? beginExecution;
   final Future<void> Function(DaemonTask, CommandResult)? onCompleted;
@@ -33,7 +33,7 @@ class DaemonTaskQueue {
       _tasks.values.map((task) => task.toJson()).toList(growable: false)
         ..sort((a, b) => '${b['createdAt']}'.compareTo('${a['createdAt']}'));
 
-  String enqueue(ZeroBoxCommand command, {bool held = false}) {
+  String enqueue(OronBoxCommand command, {bool held = false}) {
     final now = DateTime.now();
     final id = '${now.microsecondsSinceEpoch}';
     _tasks[id] = DaemonTask(
@@ -319,7 +319,7 @@ class DaemonTask {
   });
 
   final String id;
-  final ZeroBoxCommand command;
+  final OronBoxCommand command;
   final String status;
   final DateTime createdAt;
   final DateTime? startedAt;
@@ -364,7 +364,7 @@ class DaemonTask {
 
   factory DaemonTask.fromJson(Map<String, Object?> json) => DaemonTask(
     id: json['id']!.toString(),
-    command: ZeroBoxCommand.fromJson(
+    command: OronBoxCommand.fromJson(
       (json['command'] as Map).cast<String, Object?>(),
     ),
     status: json['status']!.toString(),

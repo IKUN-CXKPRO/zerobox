@@ -6,6 +6,7 @@ class CommunitySourceId {
     this.pluginProviderName,
   });
 
+  static const oronBox = CommunitySourceId._('oronBox', 'oronbox', 'OronBox');
   static const astroboxRepo = CommunitySourceId._(
     'astroboxRepo',
     'astrobox-repo',
@@ -18,7 +19,7 @@ class CommunitySourceId {
     '华米应用商店',
   );
 
-  static const values = [astroboxRepo, bandbbs, huamiAppStore];
+  static const values = [oronBox, astroboxRepo, bandbbs, huamiAppStore];
 
   factory CommunitySourceId.plugin(String providerName) {
     final name = providerName.trim();

@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:zerobox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
 
 enum L2Channel {
   pb(1),

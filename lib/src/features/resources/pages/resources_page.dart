@@ -3,23 +3,25 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/app/utils/error_localization.dart';
-import 'package:zerobox/src/app/widgets/network_img_layer.dart';
-import 'package:zerobox/src/app/widgets/page_container.dart';
-import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
-import 'package:zerobox/src/core/constants/style_constants.dart';
-import 'package:zerobox/src/core/providers/app_settings_providers.dart';
-import 'package:zerobox/src/data/community/community_source.dart';
-import 'package:zerobox/src/data/bandbbs/bandbbs_resource_provider.dart';
-import 'package:zerobox/src/device/core/xiaomi_wearable_catalog.dart';
-import 'package:zerobox/src/features/accounts/application/host_accounts.dart';
-import 'package:zerobox/src/features/resources/application/resource_catalog_providers.dart';
-import 'package:zerobox/src/features/resources/controllers/resource_filter_controller.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
-import 'package:zerobox/src/features/resources/domain/resource_catalog.dart';
-import 'package:zerobox/src/features/resources/widgets/bandbbs_category_sidebar.dart';
-import 'package:zerobox/src/features/resources/widgets/bandbbs_resource_card.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/widgets/network_img_layer.dart';
+import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/core/providers/app_settings_providers.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/data/bandbbs/bandbbs_resource_provider.dart';
+import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
+import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
+import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
+import 'package:oronbox/src/features/resources/controllers/resource_filter_controller.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
+import 'package:oronbox/src/features/resources/widgets/bandbbs_category_sidebar.dart';
+import 'package:oronbox/src/features/resources/widgets/bandbbs_resource_card.dart';
+import 'package:oronbox/src/features/resources/pages/creator/creator_center_page.dart';
+import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
 
 class ResourcesPage extends ConsumerWidget {
   const ResourcesPage({super.key});
@@ -30,13 +32,21 @@ class ResourcesPage extends ConsumerWidget {
     final mode = ref.watch(resourceModeControllerProvider);
     return Scaffold(
       appBar: SysAppBar(
-        title: Text(l10n.exploreTab),
+        title: Text(
+          mode == ResourceMode.creator ? l10n.creatorCenter : l10n.exploreTab,
+        ),
         actions: [
           if (mode == ResourceMode.library) const _CommunitySourceMenu(),
           IconButton(
             tooltip: l10n.refresh,
             icon: const Icon(Icons.refresh),
             onPressed: () {
+              if (mode == ResourceMode.creator) {
+                unawaited(
+                  ref.read(creatorWorkspaceProvider.notifier).refresh(),
+                );
+                return;
+              }
               final catalog = ref.read(communityCatalogProvider);
               if (catalog is BandBbsCatalog) {
                 catalog.clearCategoryCache();
@@ -97,7 +107,7 @@ class ResourcesPage extends ConsumerWidget {
                 ResourceMode.library => const _ResourceLibraryView(
                   key: ValueKey('library'),
                 ),
-                ResourceMode.creator => const _ResourceCreatorPlaceholder(
+                ResourceMode.creator => const CreatorCenterPage(
                   key: ValueKey('creator'),
                 ),
               },
@@ -142,61 +152,6 @@ class _ResourceHomePlaceholder extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 l10n.resourceHomeEmptySubtitle,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () {
-                  ref
-                      .read(resourceModeControllerProvider.notifier)
-                      .setMode(ResourceMode.library);
-                },
-                icon: const Icon(Icons.library_books_outlined),
-                label: Text(l10n.openResourceLibrary),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ResourceCreatorPlaceholder extends ConsumerWidget {
-  const _ResourceCreatorPlaceholder({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: StyleConstants.pageMaxWidth,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(StyleConstants.pagePadding),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.construction_outlined,
-                size: 64,
-                color: colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.resourceCreatorEmptyTitle,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.resourceCreatorEmptySubtitle,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -807,23 +762,38 @@ class _FilterSheet extends ConsumerWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            FilterChip(
-              label: Text(
-                _typeLabel(
-                  l10n,
-                  CommunityResourceType.quickApp,
-                  source: source,
-                ),
-              ),
-              selected: filters.type == CommunityResourceType.quickApp,
-              onSelected: (_) => ref
-                  .read(resourceFiltersProvider.notifier)
-                  .setType(
-                    filters.type == CommunityResourceType.quickApp
-                        ? null
-                        : CommunityResourceType.quickApp,
+            if (source != CommunitySourceId.huamiAppStore)
+              FilterChip(
+                label: Text(
+                  _typeLabel(
+                    l10n,
+                    CommunityResourceType.quickApp,
+                    source: source,
                   ),
-            ),
+                ),
+                selected: filters.type == CommunityResourceType.quickApp,
+                onSelected: (_) => ref
+                    .read(resourceFiltersProvider.notifier)
+                    .setType(
+                      filters.type == CommunityResourceType.quickApp
+                          ? null
+                          : CommunityResourceType.quickApp,
+                    ),
+              ),
+            if (source == CommunitySourceId.oronBox ||
+                source == CommunitySourceId.huamiAppStore ||
+                source.isPlugin)
+              FilterChip(
+                label: Text(l10n.miniprograms),
+                selected: filters.type == CommunityResourceType.miniprogram,
+                onSelected: (_) => ref
+                    .read(resourceFiltersProvider.notifier)
+                    .setType(
+                      filters.type == CommunityResourceType.miniprogram
+                          ? null
+                          : CommunityResourceType.miniprogram,
+                    ),
+              ),
             FilterChip(
               label: Text(l10n.watchfaces),
               selected: filters.type == CommunityResourceType.watchface,
@@ -1034,6 +1004,7 @@ String _typeLabel(
     source == CommunitySourceId.huamiAppStore
         ? l10n.miniprograms
         : l10n.quickApps,
+  CommunityResourceType.miniprogram => l10n.miniprograms,
   CommunityResourceType.watchface => l10n.watchfaces,
   CommunityResourceType.firmware => l10n.firmwareTools,
   CommunityResourceType.fontpack => l10n.fontPack,

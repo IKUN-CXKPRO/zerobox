@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:universal_ble/universal_ble.dart';
-import 'package:zerobox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
 
 Future<void> requestBluetoothPermissionOnStartup() async {
   if (!Platform.isMacOS) return;

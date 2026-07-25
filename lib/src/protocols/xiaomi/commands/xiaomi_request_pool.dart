@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:zerobox/src/protocols/common/device_protocol.dart';
-import 'package:zerobox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_system.pb.dart'
+import 'package:oronbox/src/protocols/common/device_protocol.dart';
+import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_system.pb.dart'
     as pb_system;
 
 class XiaomiRequestSlot<T> {

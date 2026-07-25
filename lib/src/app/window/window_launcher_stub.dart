@@ -1,4 +1,4 @@
-import 'package:zerobox/src/app/window/window_launch_spec.dart';
+import 'package:oronbox/src/app/window/window_launch_spec.dart';
 
 bool get supportsSecondaryWindows => false;
 Future<bool> initializeWindowCoordinator(WindowLaunchSpec spec) async => true;

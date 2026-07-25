@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/features/plugins/storage/plugin_storage.dart';
+import 'package:oronbox/src/features/plugins/storage/plugin_storage.dart';
 
 void main() {
   group('PluginStoragePath', () {
@@ -30,8 +30,8 @@ void main() {
         '/data//secret',
         r'/data\secret',
         '/data/secret\u0000suffix',
-        '/data/.zerobox',
-        '/data/.zerobox-secret',
+        '/data/.oronbox',
+        '/data/.oronbox-secret',
         '/unknown/file',
       ]) {
         expect(

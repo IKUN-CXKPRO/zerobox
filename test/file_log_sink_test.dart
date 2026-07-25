@@ -1,12 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/core/logging/file_log_sink_io.dart';
+import 'package:oronbox/src/core/logging/file_log_sink_io.dart';
 
 void main() {
   test('serializes rapid writes and flushes every line', () async {
     final directory = await Directory.systemTemp.createTemp(
-      'zerobox_log_writer_',
+      'oronbox_log_writer_',
     );
     addTearDown(() => directory.delete(recursive: true));
     final file = File('${directory.path}/test.log');

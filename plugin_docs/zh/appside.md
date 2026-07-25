@@ -15,7 +15,7 @@
 列出已缓存 app-side.js 脚本的 appId。
 
 ```js
-const ids = await ZeroBox.appside.list();
+const ids = await OronBox.appside.list();
 // [0x0010ee3b, 0x00001234, ...]
 ```
 
@@ -24,7 +24,7 @@ const ids = await ZeroBox.appside.list();
 启动本地 AppSide QuickJS runtime。需要已缓存脚本。
 
 ```js
-await ZeroBox.appside.start(0x0010ee3b);
+await OronBox.appside.start(0x0010ee3b);
 ```
 
 ### stop(appId)
@@ -32,7 +32,7 @@ await ZeroBox.appside.start(0x0010ee3b);
 停止 runtime。
 
 ```js
-await ZeroBox.appside.stop(0x0010ee3b);
+await OronBox.appside.stop(0x0010ee3b);
 ```
 
 ### send(appId, hexData)
@@ -40,7 +40,7 @@ await ZeroBox.appside.stop(0x0010ee3b);
 将 hex 编码的二进制数据发往手表（需要手表已打开 real session）。
 
 ```js
-await ZeroBox.appside.send(0x0010ee3b, '0100ff');
+await OronBox.appside.send(0x0010ee3b, '0100ff');
 ```
 
 ### inject(appId, hexData)
@@ -48,7 +48,7 @@ await ZeroBox.appside.send(0x0010ee3b, '0100ff');
 模拟手表发来消息，注入到本地 runtime（调试用，不需要手表打开 session）。
 
 ```js
-await ZeroBox.appside.inject(0x0010ee3b, '48656c6c6f');
+await OronBox.appside.inject(0x0010ee3b, '48656c6c6f');
 // "Hello" 的 hex → runtime 的 peerSocket.onmessage 会收到
 ```
 
@@ -57,7 +57,7 @@ await ZeroBox.appside.inject(0x0010ee3b, '48656c6c6f');
 列出当前所有活跃会话。
 
 ```js
-const sessions = await ZeroBox.appside.sessions();
+const sessions = await OronBox.appside.sessions();
 // [{ appId: 0x0010ee3b, version: 1, port1: 20, port2: 1004,
 //    extra: 0, watchSessionOpen: true }, ...]
 ```
@@ -67,7 +67,7 @@ const sessions = await ZeroBox.appside.sessions();
 读取调试事件日志。
 
 ```js
-const events = await ZeroBox.appside.events(0x0010ee3b);
+const events = await OronBox.appside.events(0x0010ee3b);
 // [{ timestamp: '2024-01-01T00:00:00.000', type: 'start',
 //    message: '脚本加载成功（1234 字符）' }, ...]
 ```
@@ -77,7 +77,7 @@ const events = await ZeroBox.appside.events(0x0010ee3b);
 清空调试事件。
 
 ```js
-await ZeroBox.appside.clearEvents(0x0010ee3b);
+await OronBox.appside.clearEvents(0x0010ee3b);
 ```
 
 ## 完整示例：AppSide 管理面板
@@ -87,19 +87,19 @@ globalThis.activate = async (plugin) => {
   let ids = [];
   let sessions = [];
   let result = '';
-  const { Column, Text, Button } = ZeroBox.ui;
+  const { Column, Text, Button } = OronBox.ui;
 
   const render = () => {
     const nodes = [
       Button('刷新列表', {
-        onClick: ZeroBox.ui.action(async () => {
-          ids = await ZeroBox.appside.list();
+        onClick: OronBox.ui.action(async () => {
+          ids = await OronBox.appside.list();
           result = `已缓存 ${ids.length} 个脚本: ${ids.map(i => '0x' + i.toString(16)).join(', ')}`;
         }, render),
       }),
       Button('查看会话', {
-        onClick: ZeroBox.ui.action(async () => {
-          sessions = await ZeroBox.appside.sessions();
+        onClick: OronBox.ui.action(async () => {
+          sessions = await OronBox.appside.sessions();
           result = sessions.map(s =>
             `0x${s.appId.toString(16)}: watch=${s.watchSessionOpen}`
           ).join('\n') || '无活跃会话';
@@ -112,22 +112,22 @@ globalThis.activate = async (plugin) => {
     for (const id of ids) {
       const hex = '0x' + id.toString(16);
       nodes.push(Button(`启动 ${hex}`, {
-        onClick: ZeroBox.ui.action(async () => {
+        onClick: OronBox.ui.action(async () => {
           try {
-            await ZeroBox.appside.start(id);
+            await OronBox.appside.start(id);
             result = `${hex} 已启动`;
           } catch (e) { result = `启动失败: ${e.message}`; }
         }, render),
       }));
       nodes.push(Button(`停止 ${hex}`, {
-        onClick: ZeroBox.ui.action(async () => {
-          await ZeroBox.appside.stop(id);
+        onClick: OronBox.ui.action(async () => {
+          await OronBox.appside.stop(id);
           result = `${hex} 已停止`;
         }, render),
       }));
     }
 
-    return ZeroBox.ui.render(Column({ gap: 8 }, nodes));
+    return OronBox.ui.render(Column({ gap: 8 }, nodes));
   };
 
   render();

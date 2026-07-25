@@ -1,14 +1,14 @@
-# ZeroBox
+# OronBox
 
 一个又好看又快的 VelaOS / ZeppOS 可穿戴设备管理软件，使用 Flutter 构建
 
 [English](README.en.md) · 简体中文
 
-> ⚠️ 这是一个正在开发中的项目：ZeroBox 仍在积极开发，尚未达到生产可用状态
+> ⚠️ 这是一个正在开发中的项目：OronBox 仍在积极开发，尚未达到生产可用状态
 
-## ZeroBox 是什么？
+## OronBox 是什么？
 
-ZeroBox 是一款跨平台可穿戴设备管理工具，无需官方客户端，即可连接、管理 VelaOS / 小米与 ZeppOS 设备，并为其安装资源
+OronBox 是一款跨平台可穿戴设备管理工具，无需官方客户端，即可连接、管理 VelaOS / 小米与 ZeppOS 设备，并为其安装资源
 
 ## 支持平台
 
@@ -32,12 +32,12 @@ ZeroBox 是一款跨平台可穿戴设备管理工具，无需官方客户端，
 | 优化资源安装流程 | ✅ 已完成 |
 | 优化设备连接体验 | ✅ 已完成 |
 | 接入米坛 OAuth 登录，获取米坛社区资源 | ✅ 已完成 |
-| 创作者中心，一键发布资源到 米坛 / AstroBox-Repo | 🚧 WIP |
+| 创作者中心，一键发布资源到 米坛 / AstroBox-Repo | ✅ 已完成 |
 | 首页完善 | 🚧 WIP |
 
 ## CLI 使用
 
-ZeroBox 提供功能完整且可脚本化的命令行界面，可在无 GUI 模式下管理设备、安装资源、访问社区源以及控制后台任务，详细用法参见 [ZeroBox CLI 与守护进程文档](docs/zh/CLI.md)
+OronBox 提供功能完整且可脚本化的命令行界面，可在无 GUI 模式下管理设备、安装资源、访问社区源以及控制后台任务，详细用法参见 [OronBox CLI 与守护进程文档](docs/zh/CLI.md)
 
 ## 从源码构建
 
@@ -55,7 +55,7 @@ ZeroBox 提供功能完整且可脚本化的命令行界面，可在无 GUI 模�
 
 ## 鸣谢
 
-ZeroBox 受益于以下优秀项目：
+OronBox 受益于以下优秀项目：
 
 | 项目 | 参考的内容 |
 |------|----------------|
@@ -70,4 +70,4 @@ ZeroBox 受益于以下优秀项目：
 
 ## 许可证
 
-ZeroBox 采用 [GNU Affero General Public License v3.0](LICENSE) 许可证
+OronBox 采用 [GNU Affero General Public License v3.0](LICENSE) 许可证

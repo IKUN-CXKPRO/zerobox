@@ -4,24 +4,24 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/core/models/bt_models.dart';
-import 'package:zerobox/src/core/services/build_info_service.dart';
-import 'package:zerobox/src/core/services/shared_prefs_service.dart';
-import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
-import 'package:zerobox/src/features/plugins/domain/plugin_package.dart';
-import 'package:zerobox/src/features/plugins/domain/plugin_permission.dart';
-import 'package:zerobox/src/features/plugins/legacy/astrobox_legacy_adapter.dart';
-import 'package:zerobox/src/features/plugins/application/plugin_permission_broker.dart';
-import 'package:zerobox/src/features/plugins/application/plugin_text_file_codec.dart';
-import 'package:zerobox/src/features/plugins/application/plugin_host_environment.dart';
-import 'package:zerobox/src/features/plugins/runtime/plugin_runtime.dart';
-import 'package:zerobox/src/features/plugins/runtime/plugin_runtime_factory.dart';
-import 'package:zerobox/src/features/plugins/runtime/plugin_wasm_host.dart';
-import 'package:zerobox/src/features/plugins/storage/plugin_storage.dart';
-import 'package:zerobox/src/features/plugins/storage/plugin_storage_factory.dart';
-import 'package:zerobox/src/features/resources/services/resource_install_service.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/core/services/build_info_service.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/plugins/domain/plugin_package.dart';
+import 'package:oronbox/src/features/plugins/domain/plugin_permission.dart';
+import 'package:oronbox/src/features/plugins/legacy/astrobox_legacy_adapter.dart';
+import 'package:oronbox/src/features/plugins/application/plugin_permission_broker.dart';
+import 'package:oronbox/src/features/plugins/application/plugin_text_file_codec.dart';
+import 'package:oronbox/src/features/plugins/application/plugin_host_environment.dart';
+import 'package:oronbox/src/features/plugins/runtime/plugin_runtime.dart';
+import 'package:oronbox/src/features/plugins/runtime/plugin_runtime_factory.dart';
+import 'package:oronbox/src/features/plugins/runtime/plugin_wasm_host.dart';
+import 'package:oronbox/src/features/plugins/storage/plugin_storage.dart';
+import 'package:oronbox/src/features/plugins/storage/plugin_storage_factory.dart';
+import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
 
 class PluginManager {
   PluginManager({
@@ -436,7 +436,7 @@ class PluginManager {
         entryBytes: plugin.entryBytes,
         bootstrap: plugin.manifest.runtime == PluginRuntimeType.legacy
             ? astroBoxLegacyBootstrap
-            : zeroBoxPluginBootstrap,
+            : oronBoxPluginBootstrap,
         hostCall: (method, arguments) =>
             _handleHostCall(plugin, method, arguments),
       );
@@ -570,7 +570,7 @@ class PluginManager {
       'ui.openExternal' => _openUrl(id, arguments),
       'ui.getRenderSize' => _getRenderSize(id),
       'ui.dialog' => _showDialog(id, arguments),
-      _ => throw UnsupportedError('Unsupported ZeroBox Host API: $method'),
+      _ => throw UnsupportedError('Unsupported OronBox Host API: $method'),
     };
   }
 

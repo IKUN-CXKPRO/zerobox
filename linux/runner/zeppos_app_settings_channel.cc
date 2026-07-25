@@ -33,7 +33,7 @@ void call_cb(FlMethodChannel*, FlMethodCall* call, gpointer) {
   if (strcmp(method, "settingsChanged") == 0) {
     FlValue *id = arg(call, "appId"), *json = arg(call, "settingsJson");
     if (session.view && id && json && fl_value_get_type(id) == FL_VALUE_TYPE_INT && fl_value_get_type(json) == FL_VALUE_TYPE_STRING && fl_value_get_int(id) == session.app_id) {
-      g_autofree gchar* script = g_strdup_printf("globalThis.__zeroboxSettingsChanged(%s)", fl_value_get_string(json));
+      g_autofree gchar* script = g_strdup_printf("globalThis.__oronboxSettingsChanged(%s)", fl_value_get_string(json));
 #if WEBKIT_MAJOR_VERSION < 2 || (WEBKIT_MAJOR_VERSION == 2 && WEBKIT_MINOR_VERSION < 40)
       webkit_web_view_run_javascript(session.view, script, nullptr, nullptr, nullptr);
 #else
@@ -46,5 +46,5 @@ void call_cb(FlMethodChannel*, FlMethodCall* call, gpointer) {
 }
 }
 void zeppos_app_settings_channel_register(FlBinaryMessenger* messenger, GtkOverlay* overlay) {
-  session.overlay = overlay; g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new(); session.channel = fl_method_channel_new(messenger, "zerobox/zeppos_app_settings", FL_METHOD_CODEC(codec)); fl_method_channel_set_method_call_handler(session.channel, call_cb, nullptr, nullptr);
+  session.overlay = overlay; g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new(); session.channel = fl_method_channel_new(messenger, "oronbox/zeppos_app_settings", FL_METHOD_CODEC(codec)); fl_method_channel_set_method_call_handler(session.channel, call_cb, nullptr, nullptr);
 }

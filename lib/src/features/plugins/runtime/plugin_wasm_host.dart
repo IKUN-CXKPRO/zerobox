@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'package:zerobox/src/core/wasm/wasm_runtime.dart';
-import 'package:zerobox/src/features/plugins/storage/plugin_storage.dart';
+import 'package:oronbox/src/core/wasm/wasm_runtime.dart';
+import 'package:oronbox/src/features/plugins/storage/plugin_storage.dart';
 
 import 'plugin_wasi_sandbox.dart';
 

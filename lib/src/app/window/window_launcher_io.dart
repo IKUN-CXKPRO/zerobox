@@ -4,9 +4,9 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:window_manager/window_manager.dart';
-import 'package:zerobox/src/app/window/window_launch_spec.dart';
-import 'package:zerobox/src/core/services/shared_prefs_service.dart';
-import 'package:zerobox/src/daemon/daemon_endpoint.dart';
+import 'package:oronbox/src/app/window/window_launch_spec.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/daemon/daemon_endpoint.dart';
 
 bool get supportsSecondaryWindows =>
     Platform.isLinux || Platform.isMacOS || Platform.isWindows;

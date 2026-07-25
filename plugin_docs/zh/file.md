@@ -17,13 +17,13 @@
 
 ```js
 // 以 UTF-8 文本读取
-const text = await ZeroBox.file.read('/data/note.txt', { encoding: 'utf8' });
+const text = await OronBox.file.read('/data/note.txt', { encoding: 'utf8' });
 
 // 以 Base64 读取二进制
-const base64 = await ZeroBox.file.read('/data/image.png', { encoding: 'base64' });
+const base64 = await OronBox.file.read('/data/image.png', { encoding: 'base64' });
 
 // 分片读取
-const chunk = await ZeroBox.file.read('/data/large.bin', {
+const chunk = await OronBox.file.read('/data/large.bin', {
   encoding: 'base64',
   offset: 1024,   // 起始字节
   length: 512     // 读取长度
@@ -34,13 +34,13 @@ const chunk = await ZeroBox.file.read('/data/large.bin', {
 
 ```js
 // 写入 UTF-8 文本
-await ZeroBox.file.write('/data/note.txt', 'Hello World', { encoding: 'utf8' });
+await OronBox.file.write('/data/note.txt', 'Hello World', { encoding: 'utf8' });
 
 // 写入 Base64 二进制
-await ZeroBox.file.write('/data/image.png', base64data, { encoding: 'base64' });
+await OronBox.file.write('/data/image.png', base64data, { encoding: 'base64' });
 
 // 追加写入
-await ZeroBox.file.write('/data/log.txt', '新的一行\n', {
+await OronBox.file.write('/data/log.txt', '新的一行\n', {
   encoding: 'utf8',
   append: true
 });
@@ -50,22 +50,22 @@ await ZeroBox.file.write('/data/log.txt', '新的一行\n', {
 
 ```js
 // 列出目录内容 → [{name, path, size, isDirectory}, ...]
-const entries = await ZeroBox.file.list('/data');
+const entries = await OronBox.file.list('/data');
 
 // 查看文件信息 → {name, path, size, isDirectory} 或 null
-const stat = await ZeroBox.file.stat('/data/note.txt');
+const stat = await OronBox.file.stat('/data/note.txt');
 
 // 创建目录
-await ZeroBox.file.mkdir('/data/subdir');
+await OronBox.file.mkdir('/data/subdir');
 
 // 复制
-await ZeroBox.file.copy('/data/a.txt', '/data/b.txt');
+await OronBox.file.copy('/data/a.txt', '/data/b.txt');
 
 // 移动
-await ZeroBox.file.move('/temp/a.txt', '/data/a.txt');
+await OronBox.file.move('/temp/a.txt', '/data/a.txt');
 
 // 删除文件或目录
-await ZeroBox.file.remove('/data/old.txt');
+await OronBox.file.remove('/data/old.txt');
 ```
 
 ## 原生文件交互
@@ -75,7 +75,7 @@ await ZeroBox.file.remove('/data/old.txt');
 打开系统文件选择器，将选中文件导入到 `/temp/picker/...`。
 
 ```js
-const picked = await ZeroBox.file.pick({});
+const picked = await OronBox.file.pick({});
 if (!picked) return; // 用户取消
 // picked = { name: 'photo.png', path: '/temp/picker/.../photo.png', size: 102400 }
 ```
@@ -85,7 +85,7 @@ if (!picked) return; // 用户取消
 将沙箱文件导出到原生环境（弹出保存对话框）。
 
 ```js
-const result = await ZeroBox.file.unload('/data/report.pdf', {
+const result = await OronBox.file.unload('/data/report.pdf', {
   suggestedName: '报告.pdf'
 });
 // result = { exported: true, name: '报告.pdf' }
@@ -97,29 +97,29 @@ const result = await ZeroBox.file.unload('/data/report.pdf', {
 globalThis.activate = async (plugin) => {
   const LOG_PATH = '/data/log.txt';
   let logs = '';
-  const { Column, Text, Button } = ZeroBox.ui;
+  const { Column, Text, Button } = OronBox.ui;
 
   const addLog = async () => {
     const line = `[${new Date().toLocaleTimeString()}] 一条日志\n`;
-    await ZeroBox.file.write(LOG_PATH, line, { encoding: 'utf8', append: true });
-    logs = await ZeroBox.file.read(LOG_PATH, { encoding: 'utf8' });
+    await OronBox.file.write(LOG_PATH, line, { encoding: 'utf8', append: true });
+    logs = await OronBox.file.read(LOG_PATH, { encoding: 'utf8' });
   };
 
   const clearLogs = async () => {
-    await ZeroBox.file.remove(LOG_PATH);
+    await OronBox.file.remove(LOG_PATH);
     logs = '';
   };
 
-  const render = () => ZeroBox.ui.render(
+  const render = () => OronBox.ui.render(
     Column({ gap: 8 }, [
       Text(logs || '暂无日志'),
-      Button('添加日志', { onClick: ZeroBox.ui.action(addLog, render) }),
-      Button('清空', { onClick: ZeroBox.ui.action(clearLogs, render) }),
+      Button('添加日志', { onClick: OronBox.ui.action(addLog, render) }),
+      Button('清空', { onClick: OronBox.ui.action(clearLogs, render) }),
     ]),
   );
 
   // 启动时读取已有日志
-  try { logs = await ZeroBox.file.read(LOG_PATH, { encoding: 'utf8' }); } catch (_) {}
+  try { logs = await OronBox.file.read(LOG_PATH, { encoding: 'utf8' }); } catch (_) {}
   render();
 };
 ```

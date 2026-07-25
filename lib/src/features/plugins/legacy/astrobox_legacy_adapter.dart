@@ -1,6 +1,6 @@
 /// JavaScript compatibility adapter for AstroBox v1 plugins.
 ///
-/// The adapter translates the legacy guest API into the canonical ZeroBox
+/// The adapter translates the legacy guest API into the canonical OronBox
 /// Host API. Native code must not implement AstroBox-specific method names.
 const astroBoxLegacyBootstrap = r'''
 (() => {
@@ -13,7 +13,7 @@ const astroBoxLegacyBootstrap = r'''
   let nextTimer = 0;
 
   function host(method, args = []) {
-    return sendMessage('ZeroBoxHost', JSON.stringify({method, args}));
+    return sendMessage('OronBoxHost', JSON.stringify({method, args}));
   }
 
   function resolveVirtualFile(path) {
@@ -50,7 +50,7 @@ const astroBoxLegacyBootstrap = r'''
       RUNTIME: 'AstroBox',
       RUNTIME_VERSION: runtimeVersion,
       PLUGIN_NAME: name,
-      PLUGIN_PATH: `zerobox-plugin://${id}`,
+      PLUGIN_PATH: `oronbox-plugin://${id}`,
       PLUGIN_VERSION: version,
     };
     for (const [key, value] of Object.entries(values)) {
@@ -114,7 +114,7 @@ const astroBoxLegacyBootstrap = r'''
         });
       },
       modifyDeviceState: () => {
-        throw new Error('AstroBox modifyDeviceState is not supported by ZeroBox');
+        throw new Error('AstroBox modifyDeviceState is not supported by OronBox');
       },
       disconnectDevice: () => host('device.disconnect'),
     },

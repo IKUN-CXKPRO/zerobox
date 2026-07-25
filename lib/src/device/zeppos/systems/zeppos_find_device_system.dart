@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
-import 'package:zerobox/src/device/core/system.dart';
-import 'package:zerobox/src/device/zeppos/zeppos_device_component.dart';
+import 'package:oronbox/src/device/core/system.dart';
+import 'package:oronbox/src/device/zeppos/zeppos_device_component.dart';
 
 class ZeppOsFindDeviceSystem extends System {
   static const endpoint = 0x001a;

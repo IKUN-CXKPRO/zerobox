@@ -11,6 +11,6 @@ Issues and PRDs for this repository live as GitHub issues. Use the `gh` CLI for 
 - Apply or remove labels with `gh issue edit <number>`.
 - Close issues with `gh issue close <number>`.
 
-Infer the repository from `git remote -v`; commands run inside this clone target `zxor-org/zerobox`.
+Infer the repository from `git remote -v`; commands run inside this clone target `zxor-org/oronbox`.
 
 When a skill says to publish to the issue tracker, create a GitHub issue. When it says to fetch a ticket, read that GitHub issue and its comments.

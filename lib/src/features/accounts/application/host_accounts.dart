@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/host/application_host_provider.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/host/application_host_provider.dart';
 
 class HostAccount {
   const HostAccount({
@@ -42,11 +42,13 @@ class HostAccountsState {
     this.accounts = const {},
     this.busyProvider,
     this.error,
+    this.revision = 0,
   });
 
   final Map<String, HostAccount> accounts;
   final String? busyProvider;
   final String? error;
+  final int revision;
 
   HostAccount get xiaomi => _account('xiaomi');
   HostAccount get amazfit => _account('amazfit');
@@ -71,10 +73,12 @@ class HostAccountsState {
     bool clearBusy = false,
     String? error,
     bool clearError = false,
+    int? revision,
   }) => HostAccountsState(
     accounts: accounts ?? this.accounts,
     busyProvider: clearBusy ? null : busyProvider ?? this.busyProvider,
     error: clearError ? null : error ?? this.error,
+    revision: revision ?? this.revision,
   );
 }
 
@@ -84,6 +88,10 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
   @override
   HostAccountsState build() {
     _subscription = ref.watch(applicationHostProvider).events.listen((event) {
+      if (event.event == 'account.state' &&
+          _replaceAccounts(event.data['state'])) {
+        return;
+      }
       if (event.event == 'account.state' || event.event == 'host.connected') {
         unawaited(refresh());
       }
@@ -94,14 +102,24 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
   }
 
   Future<void> refresh() async {
-    final value = await _execute(const ZeroBoxCommand(method: 'account.list'));
+    final value = await _execute(const OronBoxCommand(method: 'account.list'));
+    _replaceAccounts(value);
+  }
+
+  bool _replaceAccounts(Object? value) {
+    if (value is! List) return false;
     final accounts = {
-      for (final row in (value as List).whereType<Map>())
+      for (final row in value.whereType<Map>())
         row['provider'].toString(): HostAccount.fromJson(
           row.cast<String, Object?>(),
         ),
     };
-    state = state.copyWith(accounts: accounts, clearError: true);
+    state = state.copyWith(
+      accounts: accounts,
+      clearError: true,
+      revision: state.revision + 1,
+    );
+    return true;
   }
 
   Future<HostAccount> loginAmazfit({
@@ -109,7 +127,7 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
     required String password,
   }) => _mutate(
     'amazfit',
-    ZeroBoxCommand(
+    OronBoxCommand(
       method: 'account.login',
       params: {
         'provider': 'amazfit',
@@ -124,7 +142,7 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
     required String password,
   }) => _mutate(
     'xiaomi',
-    ZeroBoxCommand(
+    OronBoxCommand(
       method: 'account.login',
       params: {
         'provider': 'xiaomi',
@@ -139,7 +157,7 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
     required String cookieHeader,
   }) => _mutate(
     'xiaomi',
-    ZeroBoxCommand(
+    OronBoxCommand(
       method: 'account.xiaomi.complete',
       params: {
         'url': challenge.url,
@@ -152,22 +170,33 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
   Future<void> startBandBbsLogin() async {
     await _mutate(
       'bandbbs',
-      const ZeroBoxCommand(
+      const OronBoxCommand(
         method: 'account.login',
         params: {'provider': 'bandbbs'},
       ),
     );
   }
 
+  Future<void> startBandBbsPublishingAuthorization() async {
+    state = state.copyWith(busyProvider: 'bandbbs', clearError: true);
+    try {
+      await _execute(const OronBoxCommand(method: 'account.bandbbs.publish'));
+      state = state.copyWith(clearBusy: true);
+    } catch (error) {
+      state = state.copyWith(clearBusy: true, error: error.toString());
+      rethrow;
+    }
+  }
+
   Future<bool> handleBandBbsCallback(Uri uri) async {
-    if (uri.scheme != 'zerobox' ||
+    if (uri.scheme != 'oronbox' ||
         uri.host != 'oauth' ||
         uri.path != '/bandbbs') {
       return false;
     }
     await _mutate(
       'bandbbs',
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'account.bandbbs.callback',
         params: {'uri': uri.toString()},
       ),
@@ -178,13 +207,13 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
   Future<void> logout(String provider) async {
     await _mutate(
       provider,
-      ZeroBoxCommand(method: 'account.logout', params: {'provider': provider}),
+      OronBoxCommand(method: 'account.logout', params: {'provider': provider}),
     );
   }
 
   Future<Map<String, Object?>> rememberedCredentials(String provider) async {
     final value = await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'account.credentials.get',
         params: {'provider': provider},
       ),
@@ -200,7 +229,7 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
     String? userId,
   }) async {
     await _execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'account.credentials.set',
         params: {
           'provider': provider,
@@ -213,7 +242,7 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
     );
   }
 
-  Future<HostAccount> _mutate(String provider, ZeroBoxCommand command) async {
+  Future<HostAccount> _mutate(String provider, OronBoxCommand command) async {
     state = state.copyWith(busyProvider: provider, clearError: true);
     try {
       final value = await _execute(command);
@@ -231,7 +260,7 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
     }
   }
 
-  Future<Object?> _execute(ZeroBoxCommand command) async {
+  Future<Object?> _execute(OronBoxCommand command) async {
     final result = await ref.read(applicationHostProvider).execute(command);
     if (!result.ok) {
       if (result.error?.code == 'two_factor_required') {

@@ -1,26 +1,12 @@
-import 'package:zerobox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/core/models/bt_models.dart';
 
 class DeviceShareLink {
   const DeviceShareLink._();
 
   static Uri build(MiWearState device) {
     return Uri(
-      scheme: 'zerobox',
-      host: 'open',
-      queryParameters: {
-        'source': 'deviceQr',
-        'name': device.name,
-        'mac': device.addr.replaceAll(':', ''),
-        if (device.authkey case final authkey? when authkey.isNotEmpty)
-          'authkey': authkey,
-      },
-    );
-  }
-
-  static Uri buildAstroBoxCompatible(MiWearState device) {
-    return Uri(
       scheme: 'https',
-      host: 'astrobox.online',
+      host: 'oronbox.zxor.org',
       path: '/open',
       queryParameters: {
         'source': 'deviceQr',
@@ -32,20 +18,45 @@ class DeviceShareLink {
     );
   }
 
+  static Uri buildDeepLink(MiWearState device) {
+    return Uri(
+      scheme: 'oronbox',
+      host: 'open',
+      queryParameters: _parameters(device),
+    );
+  }
+
+  static Uri buildAstroBoxCompatible(MiWearState device) {
+    return Uri(
+      scheme: 'https',
+      host: 'astrobox.online',
+      path: '/open',
+      queryParameters: _parameters(device),
+    );
+  }
+
+  static Map<String, String> _parameters(MiWearState device) => {
+    'source': 'deviceQr',
+    'name': device.name,
+    'mac': device.addr.replaceAll(':', ''),
+    if (device.authkey case final authkey? when authkey.isNotEmpty)
+      'authkey': authkey,
+  };
+
   static MiWearState? parse(String value) {
     final uri = Uri.tryParse(value.trim());
     if (uri == null) return null;
 
-    final isZeroBox = uri.scheme == 'zerobox' && uri.host == 'open';
-    final isZeroBoxWeb =
+    final isOronBox = uri.scheme == 'oronbox' && uri.host == 'open';
+    final isOronBoxWeb =
         (uri.scheme == 'https' || uri.scheme == 'http') &&
-        uri.host == 'zerobox.zxor.org' &&
+        uri.host == 'oronbox.zxor.org' &&
         uri.path == '/open';
     final isAstroBox =
         (uri.scheme == 'https' || uri.scheme == 'http') &&
         uri.host == 'astrobox.online' &&
         uri.path == '/open';
-    if (!isZeroBox && !isZeroBoxWeb && !isAstroBox) return null;
+    if (!isOronBox && !isOronBoxWeb && !isAstroBox) return null;
 
     if (uri.queryParameters['source'] != 'deviceQr') return null;
     final name = uri.queryParameters['name'];

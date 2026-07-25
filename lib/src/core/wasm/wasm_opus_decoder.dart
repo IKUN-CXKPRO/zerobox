@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:wasm_run_flutter/wasm_run_flutter.dart';
-import 'package:zerobox/src/core/wasm/wasm_runtime.dart';
+import 'package:oronbox/src/core/wasm/wasm_runtime.dart';
 
 final class WasmOpusDecoder {
   WasmOpusDecoder._(

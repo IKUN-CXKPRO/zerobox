@@ -1,11 +1,12 @@
 import 'dart:convert';
 
-const zeroBoxProtocolVersion = 5;
+const oronBoxProtocolVersion = 6;
 
-const zeroBoxDaemonCapabilities = <String>[
+const oronBoxDaemonCapabilities = <String>[
   'device',
   'install',
   'resources',
+  'creator',
   'apps',
   'watchfaces',
   'accounts',
@@ -16,16 +17,16 @@ const zeroBoxDaemonCapabilities = <String>[
   'debug',
 ];
 
-class ZeroBoxCommand {
-  const ZeroBoxCommand({required this.method, this.params = const {}});
+class OronBoxCommand {
+  const OronBoxCommand({required this.method, this.params = const {}});
 
   final String method;
   final Map<String, Object?> params;
 
   Map<String, Object?> toJson() => {'method': method, 'params': params};
 
-  factory ZeroBoxCommand.fromJson(Map<String, Object?> json) {
-    return ZeroBoxCommand(
+  factory OronBoxCommand.fromJson(Map<String, Object?> json) {
+    return OronBoxCommand(
       method: json['method']?.toString() ?? '',
       params: (json['params'] as Map?)?.cast<String, Object?>() ?? const {},
     );
@@ -84,8 +85,8 @@ class CommandEvent {
   String encode() => jsonEncode(toJson());
 }
 
-abstract interface class ZeroBoxCommandBus {
-  Future<CommandResult> execute(ZeroBoxCommand command);
+abstract interface class OronBoxCommandBus {
+  Future<CommandResult> execute(OronBoxCommand command);
   Stream<CommandEvent> get events;
   Future<void> close();
 }

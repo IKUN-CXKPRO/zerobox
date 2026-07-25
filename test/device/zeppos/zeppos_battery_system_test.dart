@@ -1,11 +1,11 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/core/models/bt_models.dart';
-import 'package:zerobox/src/device/core/entity.dart';
-import 'package:zerobox/src/device/core/event_bus.dart';
-import 'package:zerobox/src/device/core/transport.dart';
-import 'package:zerobox/src/device/zeppos/systems/zeppos_battery_system.dart';
+import 'package:oronbox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/device/core/entity.dart';
+import 'package:oronbox/src/device/core/event_bus.dart';
+import 'package:oronbox/src/device/core/transport.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_battery_system.dart';
 
 void main() {
   test(

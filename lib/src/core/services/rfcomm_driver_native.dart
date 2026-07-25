@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/core/services/rfcomm_driver.dart';
-import 'package:zerobox/src/device/core/bluetooth_platform.dart';
-import 'package:zerobox/src/device/core/connect_type.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/core/services/rfcomm_driver.dart';
+import 'package:oronbox/src/device/core/bluetooth_platform.dart';
+import 'package:oronbox/src/device/core/connect_type.dart';
 
 class NativeRfcommConnection implements RfcommConnection {
   NativeRfcommConnection({
@@ -47,9 +47,9 @@ class NativeRfcommConnection implements RfcommConnection {
 class NativeRfcommDriver implements RfcommDriver {
   NativeRfcommDriver() : _log = getLogger('RfcommDriver');
 
-  static const _method = MethodChannel('zerobox/classic_spp');
-  static const _events = EventChannel('zerobox/classic_spp/events');
-  static const _scanEvents = EventChannel('zerobox/classic_spp/scan_events');
+  static const _method = MethodChannel('oronbox/classic_spp');
+  static const _events = EventChannel('oronbox/classic_spp/events');
+  static const _scanEvents = EventChannel('oronbox/classic_spp/scan_events');
 
   final Logger _log;
   Stream<BluetoothEndpoint>? _scanData;
@@ -145,7 +145,7 @@ class NativeRfcommDriver implements RfcommDriver {
           previous.name != endpoint.name ||
           previous.connectType != endpoint.connectType;
       if (shouldLog) {
-        _log.info(
+        _log.fine(
           'device_identity platform.spp_scan '
           'addr=$addr sppName="$rawName" displayName="${endpoint.name}"',
         );
@@ -182,7 +182,7 @@ class NativeRfcommDriver implements RfcommDriver {
         final displayName = rawName?.trim().isNotEmpty == true
             ? rawName!.trim()
             : 'Unknown device';
-        _log.info(
+        _log.fine(
           'device_identity platform.spp_scan_result '
           'addr=$addr sppName="$rawName" displayName="$displayName"',
         );

@@ -5,8 +5,8 @@
 - 不接入 Flutter 原生 ONNX 插件
 - 将 ONNX 推理引擎构建为可由 `wasm_run` 托管的独立 `onnx_engine.wasm`
 - Android、iOS、Linux、macOS、Windows 与 Web 共用同一个 ONNX WASM 引擎
-- `.onnx` 模型不随 ZeroBox 安装包分发
-- ZeroBox 内建模型清单，用户启用功能时再下载模型并校验完整性
+- `.onnx` 模型不随 OronBox 安装包分发
+- OronBox 内建模型清单，用户启用功能时再下载模型并校验完整性
 
 运行关系：
 
@@ -24,10 +24,10 @@ wasm_run
 - 可被 Wasmtime/Core Wasm 直接实例化
 - 不依赖浏览器 JavaScript glue
 - 提供模型加载、Tensor 输入、推理、输出与资源释放 ABI
-- 支持 ZeroBox 模型清单中所有模型需要的 ONNX 算子和数据类型
+- 支持 OronBox 模型清单中所有模型需要的 ONNX 算子和数据类型
 - 第一版使用单线程 + WASM SIMD，后续根据真机基准决定是否补 WASM Threads
 
-官方 ONNX Runtime Web 发布物不能原样作为最终模块，因为它面向浏览器并配套 Emscripten `.mjs` glue。候选实现是使用官方 ONNX Runtime WebAssembly 静态库链接一层很薄的 ZeroBox C ABI，产出独立 `onnx_engine.wasm`
+官方 ONNX Runtime Web 发布物不能原样作为最终模块，因为它面向浏览器并配套 Emscripten `.mjs` glue。候选实现是使用官方 ONNX Runtime WebAssembly 静态库链接一层很薄的 OronBox C ABI，产出独立 `onnx_engine.wasm`
 
 ## 体积
 
@@ -39,7 +39,7 @@ wasm_run
 | gzip -9 | 3.27 MiB |
 | Brotli -11 | 2.05 MiB |
 
-加入 ZeroBox ABI 后，完整算子版预计约 13～16 MiB 原始体积
+加入 OronBox ABI 后，完整算子版预计约 13～16 MiB 原始体积
 
 因为可安装模型来自内建清单，可以收集清单内全部模型使用的算子并生成联合裁剪配置。第一版保留普通 `.onnx` 支持，只裁剪无关算子，不使用仅支持 ORT 格式的极限 Minimal Build
 

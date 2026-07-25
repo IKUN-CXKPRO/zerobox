@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/core/models/bt_models.dart';
-import 'package:zerobox/src/device/core/system.dart';
-import 'package:zerobox/src/device/zeppos/zeppos_device_component.dart';
+import 'package:oronbox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/device/core/system.dart';
+import 'package:oronbox/src/device/zeppos/zeppos_device_component.dart';
 
 /// Zepp OS application management, ported from Gadgetbridge's
 /// `ZeppOsAppsService`.

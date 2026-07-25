@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/app/utils/error_localization.dart';
-import 'package:zerobox/src/app/widgets/horizontal_scroller.dart';
-import 'package:zerobox/src/app/widgets/network_img_layer.dart';
-import 'package:zerobox/src/app/widgets/page_container.dart';
-import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
-import 'package:zerobox/src/core/constants/style_constants.dart';
-import 'package:zerobox/src/data/community/community_source.dart';
-import 'package:zerobox/src/device/core/xiaomi_wearable_catalog.dart';
-import 'package:zerobox/src/features/devices/controllers/device_manager.dart';
-import 'package:zerobox/src/features/resources/application/resource_catalog_providers.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
-import 'package:zerobox/src/features/resources/services/download_queue_notifier.dart';
-import 'package:zerobox/src/features/resources/services/install_queue_notifier.dart';
-import 'package:zerobox/src/features/resources/widgets/community_html_content.dart';
-import 'package:zerobox/src/features/resources/widgets/resource_external_link.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/widgets/horizontal_scroller.dart';
+import 'package:oronbox/src/app/widgets/network_img_layer.dart';
+import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/services/download_queue_notifier.dart';
+import 'package:oronbox/src/features/resources/services/install_queue_notifier.dart';
+import 'package:oronbox/src/features/resources/widgets/community_html_content.dart';
+import 'package:oronbox/src/features/resources/widgets/resource_external_link.dart';
+import 'package:oronbox/src/features/settings/pages/feedback_page.dart';
 
 class ResourceDetailPage extends ConsumerWidget {
   const ResourceDetailPage({super.key, required this.resource});
@@ -48,6 +49,7 @@ class _DetailContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final deviceState = ref.watch(deviceManagerProvider);
     final current = deviceState.currentDevice;
     final currentCodename = normalizeXiaomiWearableCodename(current?.codename);
@@ -151,6 +153,22 @@ class _DetailContent extends ConsumerWidget {
                 const SizedBox(height: 16),
               ],
               _Actions(detail: detail, currentCodename: currentCodename),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => context.push(
+                    '/settings/feedback',
+                    extra: FeedbackTarget(
+                      source: detail.ref.source.name,
+                      id: detail.ref.id,
+                      name: detail.name,
+                      url: detail.links.firstOrNull?.url.toString() ?? '',
+                    ),
+                  ),
+                  icon: const Icon(Icons.flag_outlined),
+                  label: Text(l10n.report),
+                ),
+              ),
               if (previews.isNotEmpty && !isBandBbs) ...[
                 const SizedBox(height: 24),
                 _PreviewGallery(previews: previews),
@@ -325,9 +343,16 @@ class _Actions extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final files = detail.files;
+    final choices = buildResourceInstallChoices(detail);
     if (files.isEmpty && detail.links.isEmpty) return const SizedBox.shrink();
-    final preferred = files
-        .where((file) => _matchesDevice(file, currentCodename))
+    final preferred = choices
+        .where((choice) => _matchesDevice(choice.file, currentCodename))
+        .where(
+          (choice) =>
+              choice.codename.isEmpty ||
+              normalizeXiaomiWearableCodename(choice.codename) ==
+                  currentCodename,
+        )
         .firstOrNull;
     final inDownloadQueue = ref.watch(
       downloadQueueProvider.select(
@@ -349,13 +374,13 @@ class _Actions extends ConsumerWidget {
     );
     final inQueue = inDownloadQueue || inInstallQueue;
     final canInstall = detail.canDownload && !inQueue;
-    void enqueue(CommunityResourceFile file) {
-      final target = currentCodename.isNotEmpty
-          ? currentCodename
-          : file.supportedDevices.firstOrNull ?? '';
+    void enqueue(ResourceInstallChoice choice) {
+      final target = choice.codename.isNotEmpty
+          ? choice.codename
+          : currentCodename;
       ref
           .read(downloadQueueProvider.notifier)
-          .enqueue(resource: detail, file: file, codename: target);
+          .enqueue(resource: detail, file: choice.file, codename: target);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.downloadStarted)));
@@ -379,14 +404,14 @@ class _Actions extends ConsumerWidget {
                 width: expand ? double.infinity : 190,
                 child: MenuAnchor(
                   alignmentOffset: const Offset(0, 4),
-                  menuChildren: files
+                  menuChildren: choices
                       .map(
-                        (file) => MenuItemButton(
-                          onPressed: canInstall ? () => enqueue(file) : null,
+                        (choice) => MenuItemButton(
+                          onPressed: canInstall ? () => enqueue(choice) : null,
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 280),
                             child: Text(
-                              _installMenuLabel(detail, file),
+                              choice.label,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -434,7 +459,7 @@ class _Actions extends ConsumerWidget {
                                     ),
                                   ),
                                   _InstallMenuHandle(
-                                    enabled: canInstall && files.length > 1,
+                                    enabled: canInstall && choices.length > 1,
                                     color: foreground,
                                     onTap: () => _toggleMenu(controller),
                                   ),
@@ -466,42 +491,61 @@ class _Actions extends ConsumerWidget {
   }
 }
 
+class ResourceInstallChoice {
+  const ResourceInstallChoice({
+    required this.file,
+    required this.codename,
+    required this.label,
+  });
+
+  final CommunityResourceFile file;
+  final String codename;
+  final String label;
+}
+
+List<ResourceInstallChoice> buildResourceInstallChoices(
+  CommunityResourceDetail detail,
+) {
+  final choices = <ResourceInstallChoice>[];
+  for (final file in detail.files) {
+    if (detail.ref.source == CommunitySourceId.bandbbs) {
+      choices.add(
+        ResourceInstallChoice(file: file, codename: '', label: file.fileName),
+      );
+      continue;
+    }
+    final devices = file.supportedDevices.isNotEmpty
+        ? file.supportedDevices
+        : detail.supportedDevices;
+    if (devices.isEmpty) {
+      choices.add(
+        ResourceInstallChoice(file: file, codename: '', label: file.label),
+      );
+      continue;
+    }
+    for (final device in devices) {
+      final codename = normalizeXiaomiWearableCodename(device);
+      if (codename.isEmpty) continue;
+      choices.add(
+        ResourceInstallChoice(
+          file: file,
+          codename: codename,
+          label: xiaomiDisplayNameForIdentity(
+            name: codename,
+            codename: codename,
+          ),
+        ),
+      );
+    }
+  }
+  return choices;
+}
+
 bool _matchesDevice(CommunityResourceFile file, String codename) {
   if (file.supportedDevices.isEmpty) return true;
   return file.supportedDevices
       .map(normalizeXiaomiWearableCodename)
       .contains(codename);
-}
-
-String _installMenuLabel(
-  CommunityResourceDetail detail,
-  CommunityResourceFile file,
-) {
-  if (detail.ref.source == CommunitySourceId.bandbbs) {
-    return file.fileName;
-  }
-
-  final explicitName = file.displayName?.trim();
-  if (explicitName != null && explicitName.isNotEmpty) {
-    return explicitName;
-  }
-
-  final deviceIds = file.supportedDevices.isNotEmpty
-      ? file.supportedDevices
-      : detail.supportedDevices;
-  if (deviceIds.isEmpty) {
-    return file.label;
-  }
-
-  final label = deviceIds
-      .map(normalizeXiaomiWearableCodename)
-      .where((codename) => codename.isNotEmpty)
-      .map(
-        (codename) =>
-            xiaomiDisplayNameForIdentity(name: codename, codename: codename),
-      )
-      .join(' / ');
-  return label.isEmpty ? file.label : label;
 }
 
 class _InstallButtonContent extends StatelessWidget {
@@ -713,6 +757,7 @@ String _typeLabel(
     source == CommunitySourceId.huamiAppStore
         ? l10n.miniprogram
         : l10n.quickApp,
+  CommunityResourceType.miniprogram => l10n.miniprogram,
   CommunityResourceType.watchface => l10n.watchface,
   CommunityResourceType.firmware => l10n.firmwareTool,
   CommunityResourceType.fontpack => l10n.fontPack,

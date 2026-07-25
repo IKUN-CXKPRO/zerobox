@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/features/plugins/domain/plugin_package.dart';
+import 'package:oronbox/src/features/plugins/domain/plugin_package.dart';
 
 void main() {
   group('PluginPackageReader', () {
@@ -145,7 +145,7 @@ Uint8List _package({
     'id': 'org.example.plugin',
     'name': 'Example Plugin',
     'version': '1.0.0',
-    'author': 'ZeroBox',
+    'author': 'OronBox',
     'description': 'Test plugin',
     'api_level': 1,
     if (runtime != null) 'runtime': runtime,

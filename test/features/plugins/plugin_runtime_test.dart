@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/features/plugins/runtime/plugin_runtime.dart';
+import 'package:oronbox/src/features/plugins/runtime/plugin_runtime.dart';
 
 void main() {
   test('failed host futures are consumed and dispatch QuickJS once', () async {

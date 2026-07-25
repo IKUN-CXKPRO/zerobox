@@ -50,7 +50,7 @@ class _QuickJsPluginRuntime implements PluginRuntime {
     _hostCall = hostCall;
 
     JavascriptRuntime.channelFunctionsRegistered[runtime
-        .getEngineInstanceId()]!['ZeroBoxHost'] = (dynamic message) {
+        .getEngineInstanceId()]!['OronBoxHost'] = (dynamic message) {
       final json = (message as Map).cast<String, Object?>();
       final method = json['method']?.toString() ?? '';
       final arguments = (json['args'] as List?)?.cast<Object?>() ?? const [];
@@ -66,7 +66,7 @@ class _QuickJsPluginRuntime implements PluginRuntime {
     };
 
     if (bootstrap.isNotEmpty) {
-      _evaluate(runtime, bootstrap, name: 'zerobox_plugin_host.js');
+      _evaluate(runtime, bootstrap, name: 'oronbox_plugin_host.js');
       _evaluate(
         runtime,
         '__zbSetRuntimeGlobals('
@@ -74,7 +74,7 @@ class _QuickJsPluginRuntime implements PluginRuntime {
         '${jsonEncode(pluginName)}, '
         '${jsonEncode(pluginVersion)}, '
         '${jsonEncode(runtimeVersion)})',
-        name: 'zerobox_plugin_globals.js',
+        name: 'oronbox_plugin_globals.js',
       );
     }
     _evaluate(runtime, utf8.decode(entryBytes), name: '$pluginId/main.js');

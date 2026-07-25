@@ -1,5 +1,5 @@
-import 'package:zerobox/src/data/community/community_source.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 
 Map<String, Object?> communityResourceFileToJson(CommunityResourceFile file) =>
     {

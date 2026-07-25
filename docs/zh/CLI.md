@@ -1,6 +1,6 @@
-# ZeroBox CLI 与守护进程
+# OronBox CLI 与守护进程
 
-ZeroBox 通过 `--nogui` 提供桌面端自动化接口
+OronBox 通过 `--nogui` 提供桌面端自动化接口
 
 桌面守护进程统一管理蓝牙连接与任务状态，短生命周期的 CLI 进程在 Linux 和 macOS 上通过当前用户专属的 Unix 套接字连接，在 Windows 上则通过回环 IPC 连接
 
@@ -9,9 +9,9 @@ ZeroBox 通过 `--nogui` 提供桌面端自动化接口
 ## 启动和查看守护进程
 
 ```sh
-zerobox --nogui daemon start
-zerobox --nogui daemon status
-zerobox --nogui daemon stop
+oronbox --nogui daemon start
+oronbox --nogui daemon status
+oronbox --nogui daemon stop
 ```
 
 除非指定 `--no-autostart`，其他命令会自动启动守护进程
@@ -21,12 +21,12 @@ zerobox --nogui daemon stop
 ## 设备与本地安装
 
 ```sh
-zerobox --nogui device paired
-zerobox --nogui device scan --timeout 10
-zerobox --nogui device connect AA:BB:CC:DD:EE:FF
-zerobox --nogui device info
-zerobox --nogui install quickapp ./demo.rpk
-zerobox --nogui install watchface ./face.mwz --device AA:BB:CC:DD:EE:FF
+oronbox --nogui device paired
+oronbox --nogui device scan --timeout 10
+oronbox --nogui device connect AA:BB:CC:DD:EE:FF
+oronbox --nogui device info
+oronbox --nogui install quickapp ./demo.rpk
+oronbox --nogui install watchface ./face.mwz --device AA:BB:CC:DD:EE:FF
 ```
 
 使用 `--detach` 可将安装加入队列并立即返回任务 ID，配合 `--wait` 可等待持久化任务完成，并根据最终结果返回相应的退出码
@@ -34,13 +34,13 @@ zerobox --nogui install watchface ./face.mwz --device AA:BB:CC:DD:EE:FF
 ## 在线资源
 
 ```sh
-zerobox --nogui resource sources
-zerobox --nogui resource devices --source bandbbs
-zerobox --nogui resource search 鸣潮 --source bandbbs --filter watchface,free,bandbbs-category:101 --sort time
-zerobox --nogui resource list --source astrobox-repo --filter quickapp,hide-paid,hide-force-paid,o65m
-zerobox --nogui resource info bandbbs:6751
-zerobox --nogui resource download bandbbs:6751
-zerobox --nogui resource install bandbbs:6751
+oronbox --nogui resource sources
+oronbox --nogui resource devices --source bandbbs
+oronbox --nogui resource search 鸣潮 --source bandbbs --filter watchface,free,bandbbs-category:101 --sort time
+oronbox --nogui resource list --source astrobox-repo --filter quickapp,hide-paid,hide-force-paid,o65m
+oronbox --nogui resource info bandbbs:6751
+oronbox --nogui resource download bandbbs:6751
+oronbox --nogui resource install bandbbs:6751
 ```
 
 资源列表和搜索通过一个 `--filter` 接收逗号分隔的筛选 chip：
@@ -58,35 +58,35 @@ zerobox --nogui resource install bandbbs:6751
 ## 设备内容、账号与设置
 
 ```sh
-zerobox --nogui app list
-zerobox --nogui app launch com.example.app
-zerobox --nogui app uninstall com.example.app
-zerobox --nogui watchface list
-zerobox --nogui watchface set FACE_ID
-zerobox --nogui watchface remove FACE_ID
-zerobox --nogui account list
-zerobox --nogui account login amazfit --username user@example.com
-zerobox --nogui account logout bandbbs
-zerobox --nogui settings list
-zerobox --nogui settings set auto_reconnect true
+oronbox --nogui app list
+oronbox --nogui app launch com.example.app
+oronbox --nogui app uninstall com.example.app
+oronbox --nogui watchface list
+oronbox --nogui watchface set FACE_ID
+oronbox --nogui watchface remove FACE_ID
+oronbox --nogui account list
+oronbox --nogui account login amazfit --username user@example.com
+oronbox --nogui account logout bandbbs
+oronbox --nogui settings list
+oronbox --nogui settings set auto_reconnect true
 ```
 
-非交互式账号登录请使用 `--password-stdin`，ZeroBox 不接受通过命令行参数直接传入密码
+非交互式账号登录请使用 `--password-stdin`，OronBox 不接受通过命令行参数直接传入密码
 
 ## 队列、日志与机器可读输出
 
 ```sh
-zerobox --nogui queue list
-zerobox --nogui queue get TASK_ID
-zerobox --nogui queue wait TASK_ID
-zerobox --nogui queue watch
-zerobox --nogui queue cancel TASK_ID
-zerobox --nogui queue remove TASK_ID
-zerobox --nogui queue retry TASK_ID
-zerobox --nogui queue start
-zerobox --nogui queue pause
-zerobox --nogui logs watch
-zerobox --nogui --json device status
+oronbox --nogui queue list
+oronbox --nogui queue get TASK_ID
+oronbox --nogui queue wait TASK_ID
+oronbox --nogui queue watch
+oronbox --nogui queue cancel TASK_ID
+oronbox --nogui queue remove TASK_ID
+oronbox --nogui queue retry TASK_ID
+oronbox --nogui queue start
+oronbox --nogui queue pause
+oronbox --nogui logs watch
+oronbox --nogui --json device status
 ```
 
 指定 `--json` 后，命令结果以 JSON 输出，进度和事件以 JSONL 输出，CLI 退出码如下：
@@ -105,7 +105,7 @@ zerobox --nogui --json device status
 
 ## 可组合架构
 
-ZeroBox 将业务实现收口在 application host 中，GUI 和 CLI 只依赖共享 command interface
+OronBox 将业务实现收口在 application host 中，GUI 和 CLI 只依赖共享 command interface
 
 - Linux、macOS 和 Windows 使用 `GUI → IPC → host` 或 `CLI → IPC → host`
 - Android 和 iOS 使用 `GUI → 进程内 host`，不需要复制设备、账号、资源或队列实现
@@ -121,5 +121,5 @@ ZeroBox 将业务实现收口在 application host 中，GUI 和 CLI 只依赖共
 - GUI 和 CLI 客户端通过 daemon 接收 `device.state`、`account.state`、`settings.state` 和任务事件
 - 设备与任务操作会串行执行，避免协议请求相互重叠
 - CLI 后台任务与 GUI 下载、安装任务均由 daemon 持久化，包括等待、运行、失败、取消状态和进度
-- Linux 的 Unix 套接字位于 `$XDG_RUNTIME_DIR/zerobox`，macOS 使用系统分配给当前用户或应用沙箱的临时目录，以满足 Unix socket 路径长度限制
+- Linux 的 Unix 套接字位于 `$XDG_RUNTIME_DIR/oronbox`，macOS 使用系统分配给当前用户或应用沙箱的临时目录，以满足 Unix socket 路径长度限制
 - Windows 使用随机回环端口，并将单次运行认证令牌保存在当前用户的本地应用数据目录中，客户端发送命令前会通过认证握手验证守护进程身份和协议版本

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/features/plugins/application/plugin_text_file_codec.dart';
+import 'package:oronbox/src/features/plugins/application/plugin_text_file_codec.dart';
 
 void main() {
   test(

@@ -7,14 +7,14 @@ List and switch the current device's watchfaces.
 ### list(deviceId?)
 
 ```js
-const watchfaces = await ZeroBox.watchface.list();
+const watchfaces = await OronBox.watchface.list();
 // [{ id: '12345', name: 'Classic', current: true }, ...]
 ```
 
 ### set(watchfaceId, deviceId?)
 
 ```js
-await ZeroBox.watchface.set('67890');
+await OronBox.watchface.set('67890');
 ```
 
 ## Example: Watchface Switcher
@@ -23,13 +23,13 @@ await ZeroBox.watchface.set('67890');
 globalThis.activate = async (plugin) => {
   let wfList = [];
   let result = 'Tap to list watchfaces';
-  const { Column, Text, Button } = ZeroBox.ui;
+  const { Column, Text, Button } = OronBox.ui;
 
   const render = () => {
     const nodes = [
       Button('List', {
-        onClick: ZeroBox.ui.action(async () => {
-          wfList = await ZeroBox.watchface.list();
+        onClick: OronBox.ui.action(async () => {
+          wfList = await OronBox.watchface.list();
           result = wfList.map(w => `${w.name} ${w.current ? '←active' : ''}`).join('\n');
         }, render),
       }),
@@ -39,13 +39,13 @@ globalThis.activate = async (plugin) => {
     for (const wf of wfList) {
       if (wf.current) continue;
       nodes.push(Button(`Switch to ${wf.name}`, {
-        onClick: ZeroBox.ui.action(async () => {
-          await ZeroBox.watchface.set(wf.id);
+        onClick: OronBox.ui.action(async () => {
+          await OronBox.watchface.set(wf.id);
           result = `Switched to ${wf.name}`;
         }, render),
       }));
     }
-    return ZeroBox.ui.render(Column({ gap: 8 }, nodes));
+    return OronBox.ui.render(Column({ gap: 8 }, nodes));
   };
 
   render();

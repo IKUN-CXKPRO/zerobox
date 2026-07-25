@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:zerobox/src/core/constants/style_constants.dart' as style;
+import 'package:oronbox/src/core/constants/style_constants.dart' as style;
 
 class NetworkImgLayer extends StatelessWidget {
   const NetworkImgLayer({

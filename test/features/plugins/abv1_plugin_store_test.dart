@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/features/plugins/application/abv1_plugin_store.dart';
+import 'package:oronbox/src/features/plugins/application/abv1_plugin_store.dart';
 
 void main() {
   group('comparePluginVersions', () {

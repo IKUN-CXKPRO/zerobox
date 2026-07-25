@@ -6,12 +6,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pointycastle/export.dart';
-import 'package:zerobox/src/data/bandbbs/bandbbs_api_client.dart';
-import 'package:zerobox/src/data/community/community_source.dart';
-import 'package:zerobox/src/device/core/xiaomi_wearable_catalog.dart';
-import 'package:zerobox/src/features/accounts/services/bandbbs_auth_service.dart';
-import 'package:zerobox/src/features/resources/domain/community_resource.dart';
-import 'package:zerobox/src/features/resources/domain/resource_catalog.dart';
+import 'package:oronbox/src/data/bandbbs/bandbbs_api_client.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
+import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 
 class BandBbsCatalog implements CommunityResourceCatalog {
   BandBbsCatalog({
@@ -206,13 +206,13 @@ class BandBbsCatalog implements CommunityResourceCatalog {
     request.onProgress?.call(1, status: 'finished');
     if (kIsWeb) {
       return CommunityResourceDownloadResult(
-        path: '/zerobox_downloads/$fileName',
+        path: '/oronbox_downloads/$fileName',
         fileName: fileName,
         bytes: payload.bytes,
       );
     }
     final directory = Directory(
-      '${(await getTemporaryDirectory()).path}/zerobox_downloads/${request.resource.ref.id}',
+      '${(await getTemporaryDirectory()).path}/oronbox_downloads/${request.resource.ref.id}',
     );
     await directory.create(recursive: true);
     final path = '${directory.path}/$fileName';
@@ -251,6 +251,18 @@ class BandBbsCatalog implements CommunityResourceCatalog {
   }
 
   void clearCategoryCache() => _categoryRequest = null;
+
+  /// Full category catalog used for publication routing. Unlike the browsing
+  /// tree, this intentionally keeps empty categories so a creator can publish
+  /// the first resource into a newly-created device section.
+  Future<List<BandBbsCategoryNode>> getPublicationCategories() async => [
+    for (final category in await _categories())
+      BandBbsCategoryNode(
+        id: category.id,
+        title: category.title,
+        resourceCount: category.resourceCount,
+      ),
+  ];
 
   Future<List<_BandBbsCategory>> _loadCategories() async {
     final root = await _api.getFlattenedCategories();

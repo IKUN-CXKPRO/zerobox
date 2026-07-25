@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:zerobox/src/features/plugins/domain/plugin_package.dart';
-import 'package:zerobox/src/features/plugins/domain/plugin_permission.dart';
+import 'package:oronbox/src/features/plugins/domain/plugin_package.dart';
+import 'package:oronbox/src/features/plugins/domain/plugin_permission.dart';
 
 typedef PluginPermissionPrompt =
     Future<PluginPermissionDecision> Function(PluginPermissionRequest request);

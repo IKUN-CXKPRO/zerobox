@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/device/core/transport.dart';
-import 'package:zerobox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
-import 'package:zerobox/src/protocols/xiaomi/commands/xiaomi_request_pool.dart';
-import 'package:zerobox/src/protocols/xiaomi/packet/l2_packet.dart';
-import 'package:zerobox/src/protocols/xiaomi/transport/xiaomi_sar_controller.dart';
-import 'package:zerobox/src/device/xiaomi/utils/auth_utils.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/device/core/transport.dart';
+import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
+import 'package:oronbox/src/protocols/xiaomi/commands/xiaomi_request_pool.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
+import 'package:oronbox/src/protocols/xiaomi/transport/xiaomi_sar_controller.dart';
+import 'package:oronbox/src/device/xiaomi/utils/auth_utils.dart';
 
 class _Mutex {
   Completer<void>? _last;

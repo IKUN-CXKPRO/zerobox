@@ -23,12 +23,12 @@ void RegisterUrlProtocol() {
   }
 
   HKEY protocol_key = nullptr;
-  if (::RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\Classes\\zerobox", 0,
+  if (::RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\Classes\\oronbox", 0,
                         nullptr, 0, KEY_WRITE, nullptr, &protocol_key,
                         nullptr) != ERROR_SUCCESS) {
     return;
   }
-  SetRegistryString(protocol_key, nullptr, L"URL:ZeroBox Protocol");
+  SetRegistryString(protocol_key, nullptr, L"URL:OronBox Protocol");
   SetRegistryString(protocol_key, L"URL Protocol", L"");
 
   HKEY command_key = nullptr;
@@ -72,7 +72,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project, !no_gui);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"zerobox", origin, size)) {
+  if (!window.Create(L"OronBox", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

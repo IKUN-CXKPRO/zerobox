@@ -1,8 +1,15 @@
 import 'dart:typed_data';
 
-import 'package:zerobox/src/data/community/community_source.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
 
-enum CommunityResourceType { quickApp, watchface, firmware, fontpack, iconpack }
+enum CommunityResourceType {
+  quickApp,
+  miniprogram,
+  watchface,
+  firmware,
+  fontpack,
+  iconpack,
+}
 
 enum CommunityPaidType { free, paid, forcePaid }
 

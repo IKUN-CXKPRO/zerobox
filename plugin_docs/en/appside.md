@@ -11,7 +11,7 @@ communicating with them in real time via `messaging.peerSocket`.
 ### list()
 
 ```js
-const ids = await ZeroBox.appside.list();
+const ids = await OronBox.appside.list();
 // [0x0010ee3b, 0x00001234, ...]
 ```
 
@@ -20,13 +20,13 @@ const ids = await ZeroBox.appside.list();
 Start the local AppSide QuickJS runtime (requires a cached script).
 
 ```js
-await ZeroBox.appside.start(0x0010ee3b);
+await OronBox.appside.start(0x0010ee3b);
 ```
 
 ### stop(appId)
 
 ```js
-await ZeroBox.appside.stop(0x0010ee3b);
+await OronBox.appside.stop(0x0010ee3b);
 ```
 
 ### send(appId, hexData)
@@ -34,7 +34,7 @@ await ZeroBox.appside.stop(0x0010ee3b);
 Send hex-encoded binary data to the watch (requires an active watch session).
 
 ```js
-await ZeroBox.appside.send(0x0010ee3b, '0100ff');
+await OronBox.appside.send(0x0010ee3b, '0100ff');
 ```
 
 ### inject(appId, hexData)
@@ -42,7 +42,7 @@ await ZeroBox.appside.send(0x0010ee3b, '0100ff');
 Simulate a watch-to-host message, injecting into the local runtime (debugging — no watch session needed).
 
 ```js
-await ZeroBox.appside.inject(0x0010ee3b, '48656c6c6f');
+await OronBox.appside.inject(0x0010ee3b, '48656c6c6f');
 // "Hello" in hex → runtime's peerSocket.onmessage receives it
 ```
 
@@ -51,7 +51,7 @@ await ZeroBox.appside.inject(0x0010ee3b, '48656c6c6f');
 List all active sessions.
 
 ```js
-const sessions = await ZeroBox.appside.sessions();
+const sessions = await OronBox.appside.sessions();
 // [{ appId: 0x0010ee3b, version: 1, port1: 20, port2: 1004,
 //    extra: 0, watchSessionOpen: true }, ...]
 ```
@@ -61,14 +61,14 @@ const sessions = await ZeroBox.appside.sessions();
 Read debug event logs for an appId.
 
 ```js
-const events = await ZeroBox.appside.events(0x0010ee3b);
+const events = await OronBox.appside.events(0x0010ee3b);
 // [{ timestamp: '2024-...', type: 'start', message: 'Script loaded (1234 chars)' }, ...]
 ```
 
 ### clearEvents(appId)
 
 ```js
-await ZeroBox.appside.clearEvents(0x0010ee3b);
+await OronBox.appside.clearEvents(0x0010ee3b);
 ```
 
 ## Example: AppSide Manager
@@ -77,13 +77,13 @@ await ZeroBox.appside.clearEvents(0x0010ee3b);
 globalThis.activate = async (plugin) => {
   let ids = [];
   let result = '';
-  const { Column, Text, Button } = ZeroBox.ui;
+  const { Column, Text, Button } = OronBox.ui;
 
   const render = () => {
     const nodes = [
       Button('Refresh', {
-        onClick: ZeroBox.ui.action(async () => {
-          ids = await ZeroBox.appside.list();
+        onClick: OronBox.ui.action(async () => {
+          ids = await OronBox.appside.list();
           result = `${ids.length} scripts cached: ${ids.map(i => '0x'+i.toString(16)).join(', ')}`;
         }, render),
       }),
@@ -93,13 +93,13 @@ globalThis.activate = async (plugin) => {
     for (const id of ids) {
       const hex = '0x' + id.toString(16);
       nodes.push(Button(`Start ${hex}`, {
-        onClick: ZeroBox.ui.action(async () => {
-          try { await ZeroBox.appside.start(id); result = `${hex} started`; }
+        onClick: OronBox.ui.action(async () => {
+          try { await OronBox.appside.start(id); result = `${hex} started`; }
           catch (e) { result = `Error: ${e.message}`; }
         }, render),
       }));
     }
-    return ZeroBox.ui.render(Column({ gap: 8 }, nodes));
+    return OronBox.ui.render(Column({ gap: 8 }, nodes));
   };
 
   render();

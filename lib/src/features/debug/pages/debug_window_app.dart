@@ -3,18 +3,18 @@ import 'dart:async';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/app/generated/app_localizations.dart';
-import 'package:zerobox/src/app/theme/app_theme.dart';
-import 'package:zerobox/src/app/theme/system_accent_color.dart';
-import 'package:zerobox/src/app/window/secondary_window_host.dart';
-import 'package:zerobox/src/app/widgets/sys_app_bar.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/core/logging/diagnostic_event.dart';
-import 'package:zerobox/src/core/providers/theme_locale_providers.dart';
-import 'package:zerobox/src/core/utils/layout.dart';
-import 'package:zerobox/src/features/debug/widgets/debug_console.dart';
-import 'package:zerobox/src/features/debug/widgets/debug_inspectors.dart';
-import 'package:zerobox/src/host/application_host_provider.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/theme/app_theme.dart';
+import 'package:oronbox/src/app/theme/system_accent_color.dart';
+import 'package:oronbox/src/app/window/secondary_window_host.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/logging/diagnostic_event.dart';
+import 'package:oronbox/src/core/providers/theme_locale_providers.dart';
+import 'package:oronbox/src/core/utils/layout.dart';
+import 'package:oronbox/src/features/debug/widgets/debug_console.dart';
+import 'package:oronbox/src/features/debug/widgets/debug_inspectors.dart';
+import 'package:oronbox/src/host/application_host_provider.dart';
 
 final _desktopAccentColorProvider = FutureProvider<Color?>((ref) {
   final source = ref.watch(
@@ -49,7 +49,7 @@ class DebugWindowApp extends ConsumerWidget {
             : _seedColorScheme(themeSettings.customSeedColor, Brightness.dark);
 
         return MaterialApp(
-          title: 'ZeroBox DevTools',
+          title: 'OronBox DevTools',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.buildLightTheme(colorScheme: lightColorScheme),
           darkTheme: themeSettings.isOledDark
@@ -93,7 +93,7 @@ class DebugWindowPage extends ConsumerStatefulWidget {
 
 class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
     with SingleTickerProviderStateMixin {
-  late final ZeroBoxCommandBus _host;
+  late final OronBoxCommandBus _host;
   late final TabController _tabs;
   StreamSubscription<CommandEvent>? _events;
   final _records = <DiagnosticEvent>[];
@@ -124,7 +124,7 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
   Future<void> _load() async {
     try {
       final result = await _host.execute(
-        const ZeroBoxCommand(method: 'debug.snapshot'),
+        const OronBoxCommand(method: 'debug.snapshot'),
       );
       if (!result.ok) throw StateError(result.error!.message);
       final snapshot = (result.value as Map).cast<String, Object?>();

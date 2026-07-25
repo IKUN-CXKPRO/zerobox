@@ -7,7 +7,7 @@ Read and write raw Bluetooth protocol frames on the current device. Data uses Ba
 ## send(base64Payload, options?)
 
 ```js
-await ZeroBox.protocol.send(btoa('\x01\x00'));
+await OronBox.protocol.send(btoa('\x01\x00'));
 ```
 
 ## request(base64Payload, options?)
@@ -15,7 +15,7 @@ await ZeroBox.protocol.send(btoa('\x01\x00'));
 Send and await a response.
 
 ```js
-const response = await ZeroBox.protocol.request(btoa('\x01\x00'));
+const response = await OronBox.protocol.request(btoa('\x01\x00'));
 ```
 
 ## observe(callback)
@@ -23,7 +23,7 @@ const response = await ZeroBox.protocol.request(btoa('\x01\x00'));
 Passive observation of all raw protocol data (read-only, does not interrupt normal dispatch).
 
 ```js
-const stop = await ZeroBox.protocol.observe(({ data }) => {
+const stop = await OronBox.protocol.observe(({ data }) => {
   // data is Base64-encoded raw bytes
   console.info('Protocol data:', data);
 });
@@ -37,9 +37,9 @@ await stop();
 globalThis.activate = async (plugin) => {
   let hexInput = '';
   let output = '';
-  const { Column, Text, TextField, Button } = ZeroBox.ui;
+  const { Column, Text, TextField, Button } = OronBox.ui;
 
-  ZeroBox.protocol.observe(({ data }) => {
+  OronBox.protocol.observe(({ data }) => {
     const raw = atob(data);
     let hex = '';
     for (let i = 0; i < raw.length; i++)
@@ -51,14 +51,14 @@ globalThis.activate = async (plugin) => {
   const sendHex = async () => {
     const bytes = hexInput.match(/../g)
       ?.map(b => String.fromCharCode(parseInt(b, 16))).join('') ?? '';
-    await ZeroBox.protocol.send(btoa(bytes));
+    await OronBox.protocol.send(btoa(bytes));
     output = `Sent: ${bytes.length} bytes`;
   };
 
-  const render = () => ZeroBox.ui.render(
+  const render = () => OronBox.ui.render(
     Column({ gap: 8 }, [
       TextField({ value: hexInput, onChange: v => { hexInput = v; } }),
-      Button('Send Hex', { onClick: ZeroBox.ui.action(sendHex, render) }),
+      Button('Send Hex', { onClick: OronBox.ui.action(sendHex, render) }),
       Text(output || 'Waiting...'),
     ]),
   );

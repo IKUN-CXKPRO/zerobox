@@ -1,21 +1,21 @@
-enum ZeroBoxWindowRole { main, debug, plugin }
+enum OronBoxWindowRole { main, debug, plugin }
 
 class WindowLaunchSpec {
   const WindowLaunchSpec({
-    this.role = ZeroBoxWindowRole.main,
+    this.role = OronBoxWindowRole.main,
     this.targetId,
     this.controlPort,
     this.controlToken,
   });
 
-  final ZeroBoxWindowRole role;
+  final OronBoxWindowRole role;
   final String? targetId;
   final int? controlPort;
   final String? controlToken;
 
-  bool get isSecondary => role != ZeroBoxWindowRole.main;
+  bool get isSecondary => role != OronBoxWindowRole.main;
   String get storageKey => switch (role) {
-    ZeroBoxWindowRole.plugin when targetId != null => 'plugin.$targetId',
+    OronBoxWindowRole.plugin when targetId != null => 'plugin.$targetId',
     _ => role.name,
   };
 
@@ -26,12 +26,12 @@ class WindowLaunchSpec {
     }
     return switch (arguments[index + 1]) {
       'debug' => WindowLaunchSpec(
-        role: ZeroBoxWindowRole.debug,
+        role: OronBoxWindowRole.debug,
         controlPort: int.tryParse(_option(arguments, '--window-port') ?? ''),
         controlToken: _option(arguments, '--window-token'),
       ),
       'plugin' => WindowLaunchSpec(
-        role: ZeroBoxWindowRole.plugin,
+        role: OronBoxWindowRole.plugin,
         targetId: _option(arguments, '--plugin-id'),
         controlPort: int.tryParse(_option(arguments, '--window-port') ?? ''),
         controlToken: _option(arguments, '--window-token'),

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/core/models/bt_models.dart';
 
 sealed class DeviceEvent {
   const DeviceEvent({required this.deviceId});

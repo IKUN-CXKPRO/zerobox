@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:zerobox/src/data/astrobox/astrobox_cdn.dart';
+import 'package:oronbox/src/data/astrobox/astrobox_cdn.dart';
 
 class GithubCdnInterceptor extends Interceptor {
   GithubCdnInterceptor({required this.cdn});

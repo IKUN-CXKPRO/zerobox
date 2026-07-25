@@ -4,14 +4,14 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/command_bus/local_command_bus.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/daemon/daemon_endpoint.dart';
-import 'package:zerobox/src/host/application_host.dart';
+import 'package:oronbox/src/command_bus/local_command_bus.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/daemon/daemon_endpoint.dart';
+import 'package:oronbox/src/host/application_host.dart';
 
-class ZeroBoxDaemonServer {
-  ZeroBoxDaemonServer(this.container)
+class OronBoxDaemonServer {
+  OronBoxDaemonServer(this.container)
     : host = ApplicationHost(LocalCommandBus(container));
 
   final ProviderContainer container;
@@ -43,7 +43,7 @@ class ZeroBoxDaemonServer {
         _windowsLock = lockFile;
       } catch (_) {
         await lockFile.close();
-        throw StateError('ZeroBox daemon is already starting or running');
+        throw StateError('OronBox daemon is already starting or running');
       }
       _server = await ServerSocket.bind(
         InternetAddress.loopbackIPv4,
@@ -58,7 +58,7 @@ class ZeroBoxDaemonServer {
           port: _server!.port,
           token: _windowsToken!,
           pid: pid,
-          protocolVersion: zeroBoxProtocolVersion,
+          protocolVersion: oronBoxProtocolVersion,
         ),
       );
     } else {
@@ -71,7 +71,7 @@ class ZeroBoxDaemonServer {
             timeout: const Duration(milliseconds: 250),
           );
           await probe.close();
-          throw StateError('ZeroBox daemon is already running');
+          throw StateError('OronBox daemon is already running');
         } catch (error) {
           if (error is StateError) rethrow;
           await socketFile.delete();
@@ -118,7 +118,7 @@ class ZeroBoxDaemonServer {
           });
           continue;
         }
-        final command = ZeroBoxCommand.fromJson(
+        final command = OronBoxCommand.fromJson(
           request.cast<String, Object?>(),
         );
         if (command.method == 'daemon.stop') {
@@ -182,11 +182,14 @@ class ZeroBoxDaemonServer {
           });
           continue;
         }
-        final result = switch (command.method) {
-          'daemon.info' => CommandResult.success(_daemonInfo()),
-          _ => await _executeForClient(client, command),
-        };
-        _write(client, {'id': id, ...result.toJson()});
+        if (command.method == 'daemon.info') {
+          _write(client, {
+            'id': id,
+            ...CommandResult.success(_daemonInfo()).toJson(),
+          });
+          continue;
+        }
+        unawaited(_executeAndWrite(client, id, command));
       }
     } catch (_) {
       // A disconnected CLI client is expected and does not stop the daemon.
@@ -201,7 +204,7 @@ class ZeroBoxDaemonServer {
           continue;
         }
         await host.execute(
-          ZeroBoxCommand(method: 'plugin.close', params: {'id': pluginId}),
+          OronBoxCommand(method: 'plugin.close', params: {'id': pluginId}),
         );
       }
       await client.close();
@@ -210,7 +213,7 @@ class ZeroBoxDaemonServer {
 
   Future<CommandResult> _executeForClient(
     Socket client,
-    ZeroBoxCommand command,
+    OronBoxCommand command,
   ) async {
     _activeOperationClient = client;
     try {
@@ -225,7 +228,7 @@ class ZeroBoxDaemonServer {
   Future<void> _executeAndWrite(
     Socket client,
     String id,
-    ZeroBoxCommand command,
+    OronBoxCommand command,
   ) async {
     final result = await _executeForClient(client, command);
     _write(client, {'id': id, ...result.toJson()});
@@ -234,7 +237,7 @@ class ZeroBoxDaemonServer {
   Future<void> _executePluginAndWrite(
     Socket client,
     String id,
-    ZeroBoxCommand command,
+    OronBoxCommand command,
   ) async {
     final result = await _executeForClient(client, command);
     if (result.ok) {
@@ -244,7 +247,7 @@ class ZeroBoxDaemonServer {
         _pluginOwners[pluginId] = client;
       } else {
         await host.execute(
-          ZeroBoxCommand(method: 'plugin.close', params: {'id': pluginId}),
+          OronBoxCommand(method: 'plugin.close', params: {'id': pluginId}),
         );
       }
     }
@@ -254,14 +257,14 @@ class ZeroBoxDaemonServer {
   Map<String, Object?> _daemonInfo() => {
     'running': true,
     'pid': pid,
-    'protocolVersion': zeroBoxProtocolVersion,
+    'protocolVersion': oronBoxProtocolVersion,
     'startedAt': startedAt.toIso8601String(),
     'uptimeSeconds': DateTime.now().difference(startedAt).inSeconds,
     'platform': Platform.operatingSystem,
     'endpoint': Platform.isWindows
         ? '127.0.0.1:${_server?.port ?? 0}'
         : daemonSocketPath,
-    'capabilities': zeroBoxDaemonCapabilities,
+    'capabilities': oronBoxDaemonCapabilities,
     'tasks': host.taskSummary,
   };
 

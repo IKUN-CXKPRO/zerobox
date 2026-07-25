@@ -5,8 +5,8 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/core/network/dio_provider.dart';
-import 'package:zerobox/src/features/accounts/models/mi_account_models.dart';
+import 'package:oronbox/src/core/network/dio_provider.dart';
+import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
 
 class MiAccountService {
   MiAccountService({Dio? dio}) : _dio = dio ?? Dio();
@@ -23,7 +23,7 @@ class MiAccountService {
       'https://hlth.io.mi.com/app/v1/source/get_source_list';
 
   static const defaultUserAgent =
-      'Mozilla/5.0 (Linux; Android 13; ZeroBox) AppleWebKit/537.36 '
+      'Mozilla/5.0 (Linux; Android 13; OronBox) AppleWebKit/537.36 '
       '(KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36';
 
   Future<MiAccountToken> login({

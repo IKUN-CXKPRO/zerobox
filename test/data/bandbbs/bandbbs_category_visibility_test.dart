@@ -4,9 +4,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:zerobox/src/core/services/shared_prefs_service.dart';
-import 'package:zerobox/src/data/bandbbs/bandbbs_resource_provider.dart';
-import 'package:zerobox/src/features/accounts/services/bandbbs_auth_service.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/data/bandbbs/bandbbs_resource_provider.dart';
+import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 
 void main() {
   setUpAll(() async {

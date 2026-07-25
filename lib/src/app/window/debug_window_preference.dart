@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 
 const _debugWindowEnabledKey = 'window.debug.enabled';
 

@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/device/zeppos/install/zeppos_package_parser.dart';
+import 'package:oronbox/src/device/zeppos/install/zeppos_package_parser.dart';
 
 void main() {
   const parser = ZeppOsPackageParser();

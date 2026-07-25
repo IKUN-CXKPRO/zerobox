@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
 
 class DebugLayoutInspector extends StatefulWidget {
   const DebugLayoutInspector({super.key, required this.nodes});
@@ -82,7 +82,7 @@ class DebugRuntimeInspector extends StatefulWidget {
     required this.plugin,
   });
 
-  final ZeroBoxCommandBus host;
+  final OronBoxCommandBus host;
   final String source;
   final Map<String, Object?>? plugin;
 
@@ -127,7 +127,7 @@ class _DebugRuntimeInspectorState extends State<DebugRuntimeInspector> {
 
   Future<Map<String, Object?>> _remoteEnvironment() async {
     final result = await widget.host.execute(
-      const ZeroBoxCommand(method: 'debug.runtime'),
+      const OronBoxCommand(method: 'debug.runtime'),
     );
     if (!result.ok) throw StateError(result.error!.message);
     return (result.value as Map).cast<String, Object?>();
@@ -137,7 +137,7 @@ class _DebugRuntimeInspectorState extends State<DebugRuntimeInspector> {
     final id = widget.plugin?['id']?.toString();
     if (id == null) return null;
     final result = await widget.host.execute(
-      ZeroBoxCommand(method: 'debug.plugin.snapshot', params: {'id': id}),
+      OronBoxCommand(method: 'debug.plugin.snapshot', params: {'id': id}),
     );
     if (!result.ok) throw StateError(result.error!.message);
     return (result.value as Map).cast<String, Object?>();
@@ -203,7 +203,7 @@ class DebugStorageInspector extends StatefulWidget {
     required this.plugin,
   });
 
-  final ZeroBoxCommandBus host;
+  final OronBoxCommandBus host;
   final String source;
   final Map<String, Object?>? plugin;
 
@@ -245,7 +245,7 @@ class _DebugStorageInspectorState extends State<DebugStorageInspector> {
     }
     setState(() => _loading = true);
     final result = await widget.host.execute(
-      const ZeroBoxCommand(method: 'debug.storage.roots'),
+      const OronBoxCommand(method: 'debug.storage.roots'),
     );
     if (!mounted) return;
     if (!result.ok) {
@@ -272,7 +272,7 @@ class _DebugStorageInspectorState extends State<DebugStorageInspector> {
       _preview = null;
     });
     final result = await widget.host.execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'debug.storage.list',
         params: {
           if (_pluginId != null) 'pluginId': _pluginId,
@@ -313,7 +313,7 @@ class _DebugStorageInspectorState extends State<DebugStorageInspector> {
   Future<void> _read(String path) async {
     setState(() => _loading = true);
     final result = await widget.host.execute(
-      ZeroBoxCommand(
+      OronBoxCommand(
         method: 'debug.storage.read',
         params: {
           if (_pluginId != null) 'pluginId': _pluginId,
@@ -356,7 +356,7 @@ class _DebugStorageInspectorState extends State<DebugStorageInspector> {
     final location = _pluginId != null
         ? '${widget.plugin?['name'] ?? _pluginId}:${_path.isEmpty ? '/' : _path}'
         : _root == null
-        ? 'ZeroBox host'
+        ? 'OronBox host'
         : '$_root/${_path.isEmpty ? '' : _path}';
     return Column(
       children: [

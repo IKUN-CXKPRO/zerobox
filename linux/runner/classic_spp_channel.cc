@@ -27,9 +27,9 @@
 
 namespace {
 
-constexpr char kMethodChannelName[] = "zerobox/classic_spp";
-constexpr char kEventChannelName[] = "zerobox/classic_spp/events";
-constexpr char kScanEventChannelName[] = "zerobox/classic_spp/scan_events";
+constexpr char kMethodChannelName[] = "oronbox/classic_spp";
+constexpr char kEventChannelName[] = "oronbox/classic_spp/events";
+constexpr char kScanEventChannelName[] = "oronbox/classic_spp/scan_events";
 constexpr char kBluezBusName[] = "org.bluez";
 constexpr char kBluezObjectPath[] = "/";
 constexpr char kBluezObjectManagerInterface[] = "org.freedesktop.DBus.ObjectManager";

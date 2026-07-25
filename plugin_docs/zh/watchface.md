@@ -9,7 +9,7 @@
 列出设备上已安装的表盘。
 
 ```js
-const watchfaces = await ZeroBox.watchface.list();
+const watchfaces = await OronBox.watchface.list();
 // [{ id: '12345', name: '经典表盘', current: true },
 //  { id: '67890', name: '运动表盘', current: false }, ...]
 ```
@@ -19,7 +19,7 @@ const watchfaces = await ZeroBox.watchface.list();
 切换当前表盘。
 
 ```js
-await ZeroBox.watchface.set('67890');
+await OronBox.watchface.set('67890');
 ```
 
 ## 完整示例
@@ -28,13 +28,13 @@ await ZeroBox.watchface.set('67890');
 globalThis.activate = async (plugin) => {
   let wfList = [];
   let result = '点击列出表盘';
-  const { Column, Text, Button } = ZeroBox.ui;
+  const { Column, Text, Button } = OronBox.ui;
 
   const render = () => {
     const nodes = [
       Button('列出表盘', {
-        onClick: ZeroBox.ui.action(async () => {
-          wfList = await ZeroBox.watchface.list();
+        onClick: OronBox.ui.action(async () => {
+          wfList = await OronBox.watchface.list();
           result = wfList.map(w =>
             `${w.name} (${w.id}) ${w.current ? '←当前' : ''}`
           ).join('\n');
@@ -47,14 +47,14 @@ globalThis.activate = async (plugin) => {
     for (const wf of wfList) {
       if (wf.current) continue;
       nodes.push(Button(`切换到 ${wf.name}`, {
-        onClick: ZeroBox.ui.action(async () => {
-          await ZeroBox.watchface.set(wf.id);
+        onClick: OronBox.ui.action(async () => {
+          await OronBox.watchface.set(wf.id);
           result = `已切换到 ${wf.name}`;
         }, render),
       }));
     }
 
-    return ZeroBox.ui.render(Column({ gap: 8 }, nodes));
+    return OronBox.ui.render(Column({ gap: 8 }, nodes));
   };
 
   render();

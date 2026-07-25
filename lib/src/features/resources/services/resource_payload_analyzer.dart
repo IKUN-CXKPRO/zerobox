@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/device/zeppos/install/zeppos_package_parser.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/device/zeppos/install/zeppos_package_parser.dart';
 
 enum LocalDeviceInstallType { app, watchface, firmware }
 

@@ -1,19 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/daemon/daemon_task_models.dart';
-import 'package:zerobox/src/host/application_host_provider.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/daemon/daemon_task_models.dart';
+import 'package:oronbox/src/host/application_host_provider.dart';
 
 final daemonTasksProvider = StreamProvider<List<DaemonTaskView>>(
   (ref) => watchHostTasks(ref.watch(applicationHostProvider)),
 );
 
-Stream<List<DaemonTaskView>> watchHostTasks(ZeroBoxCommandBus host) async* {
+Stream<List<DaemonTaskView>> watchHostTasks(OronBoxCommandBus host) async* {
   final tasks = <String, DaemonTaskView>{};
   Future<void> load() async {
     final initial = await host.execute(
-      const ZeroBoxCommand(method: 'queue.list'),
+      const OronBoxCommand(method: 'queue.list'),
     );
     if (!initial.ok || initial.value is! List) return;
     tasks.clear();
@@ -56,24 +56,24 @@ Stream<List<DaemonTaskView>> watchHostTasks(ZeroBoxCommandBus host) async* {
 List<DaemonTaskView> _sorted(Map<String, DaemonTaskView> tasks) =>
     tasks.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-Future<void> cancelHostTask(ZeroBoxCommandBus host, String id) =>
+Future<void> cancelHostTask(OronBoxCommandBus host, String id) =>
     _taskCommand(host, 'queue.cancel', id);
-Future<void> removeHostTask(ZeroBoxCommandBus host, String id) =>
+Future<void> removeHostTask(OronBoxCommandBus host, String id) =>
     _taskCommand(host, 'queue.remove', id);
-Future<void> clearHostTasks(ZeroBoxCommandBus host) async {
+Future<void> clearHostTasks(OronBoxCommandBus host) async {
   final result = await host.execute(
-    const ZeroBoxCommand(method: 'queue.clear'),
+    const OronBoxCommand(method: 'queue.clear'),
   );
   if (!result.ok) throw StateError(result.error!.message);
 }
 
 Future<void> _taskCommand(
-  ZeroBoxCommandBus host,
+  OronBoxCommandBus host,
   String method,
   String id,
 ) async {
   final result = await host.execute(
-    ZeroBoxCommand(method: method, params: {'id': id}),
+    OronBoxCommand(method: method, params: {'id': id}),
   );
   if (!result.ok) throw StateError(result.error!.message);
 }

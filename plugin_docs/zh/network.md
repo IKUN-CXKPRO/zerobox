@@ -7,7 +7,7 @@
 发起请求并返回响应。响应体大小限制 16 MiB，超出请用 `download`。
 
 ```js
-const resp = await ZeroBox.network.fetch('https://httpbin.org/json', {
+const resp = await OronBox.network.fetch('https://httpbin.org/json', {
   method: 'GET',          // 默认 GET
   headers: {              // 可选
     'Accept': 'application/json'
@@ -25,7 +25,7 @@ const resp = await ZeroBox.network.fetch('https://httpbin.org/json', {
 读取文本响应体：
 
 ```js
-const resp = await ZeroBox.network.fetch('https://api.example.com/data');
+const resp = await OronBox.network.fetch('https://api.example.com/data');
 const text = atob(resp.body);  // Base64 → 文本
 const json = JSON.parse(text);
 ```
@@ -35,7 +35,7 @@ const json = JSON.parse(text);
 将响应直接流式写入沙箱文件，适合大文件。
 
 ```js
-const result = await ZeroBox.network.download(
+const result = await OronBox.network.download(
   'https://example.com/file.bin',
   '/data/file.bin',
   {
@@ -52,11 +52,11 @@ const result = await ZeroBox.network.download(
 globalThis.activate = async (plugin) => {
   let url = 'https://httpbin.org/json';
   let result = '输入 URL 并点击获取';
-  const { Column, Text, TextField, Button } = ZeroBox.ui;
+  const { Column, Text, TextField, Button } = OronBox.ui;
 
   const fetchJson = async () => {
     try {
-      const resp = await ZeroBox.network.fetch(url);
+      const resp = await OronBox.network.fetch(url);
       const body = resp.body ? atob(resp.body) : '';
       try {
         result = JSON.stringify(JSON.parse(body), null, 2);
@@ -68,10 +68,10 @@ globalThis.activate = async (plugin) => {
     }
   };
 
-  const render = () => ZeroBox.ui.render(
+  const render = () => OronBox.ui.render(
     Column({ gap: 8 }, [
       TextField({ value: url, onChange: v => { url = v; } }),
-      Button('GET', { onClick: ZeroBox.ui.action(fetchJson, render) }),
+      Button('GET', { onClick: OronBox.ui.action(fetchJson, render) }),
       Text(result),
     ]),
   );

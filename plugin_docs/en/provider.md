@@ -1,12 +1,12 @@
 # provider — Resource Provider
 
 Plugins can register as resource sources to feed downloadable resources into
-ZeroBox's resource library. Use cases: community repos, private catalogs, etc.
+OronBox's resource library. Use cases: community repos, private catalogs, etc.
 
 ## register(definition)
 
 ```js
-await ZeroBox.provider.register({
+await OronBox.provider.register({
   id: 'org.example.source',     // Unique reverse-domain ID
   name: 'Example Source',       // Display name
   categories: async () => [     // Optional category list
@@ -45,7 +45,7 @@ await ZeroBox.provider.register({
 ### unregister(id)
 
 ```js
-await ZeroBox.provider.unregister('org.example.source');
+await OronBox.provider.unregister('org.example.source');
 ```
 
 ## Permission

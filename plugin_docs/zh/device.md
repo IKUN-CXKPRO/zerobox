@@ -9,7 +9,7 @@
 ### list()
 
 ```js
-const devices = await ZeroBox.device.list();
+const devices = await OronBox.device.list();
 // [{ id: 'D4:17:61:14:18:6E', name: 'Xiaomi Smart Band 9 Pro',
 //    connectType: 'spp', connected: true, current: true }, ...]
 ```
@@ -17,7 +17,7 @@ const devices = await ZeroBox.device.list();
 ### info(deviceId?)
 
 ```js
-const info = await ZeroBox.device.info();
+const info = await OronBox.device.info();
 // { id: 'D4:17:61:...', name: '...', model: 'M2401B1',
 //   firmwareVersion: '3.1.175', battery: 85 }
 ```
@@ -27,7 +27,7 @@ const info = await ZeroBox.device.info();
 连接指定设备，需要设备已配对且有 authkey。
 
 ```js
-await ZeroBox.device.connect('D4:17:61:14:18:6E');
+await OronBox.device.connect('D4:17:61:14:18:6E');
 ```
 
 ### disconnect()
@@ -35,7 +35,7 @@ await ZeroBox.device.connect('D4:17:61:14:18:6E');
 断开当前设备。
 
 ```js
-await ZeroBox.device.disconnect();
+await OronBox.device.disconnect();
 ```
 
 ## 应用管理
@@ -43,7 +43,7 @@ await ZeroBox.device.disconnect();
 ### apps.list(deviceId?)
 
 ```js
-const apps = await ZeroBox.device.apps.list();
+const apps = await OronBox.device.apps.list();
 // [{ packageName: 'com.example.app', name: '示例应用',
 //    versionCode: 1, canRemove: true }, ...]
 ```
@@ -51,13 +51,13 @@ const apps = await ZeroBox.device.apps.list();
 ### apps.launch(packageName, options)
 
 ```js
-await ZeroBox.device.apps.launch('com.example.app', { page: '' });
+await OronBox.device.apps.launch('com.example.app', { page: '' });
 ```
 
 ### apps.uninstall(packageName)
 
 ```js
-await ZeroBox.device.apps.uninstall('com.example.app');
+await OronBox.device.apps.uninstall('com.example.app');
 ```
 
 ## 安装资源
@@ -68,19 +68,19 @@ await ZeroBox.device.apps.uninstall('com.example.app');
 
 ```js
 // 安装快应用
-await ZeroBox.device.install('/data/app.bin', {
+await OronBox.device.install('/data/app.bin', {
   type: 'app',
   fileName: 'app.bin'
 });
 
 // 安装表盘
-await ZeroBox.device.install('/data/watchface.bin', {
+await OronBox.device.install('/data/watchface.bin', {
   type: 'watchface',
   fileName: 'watchface.bin'
 });
 
 // 安装固件
-await ZeroBox.device.install('/data/firmware.fw', {
+await OronBox.device.install('/data/firmware.fw', {
   type: 'firmware',
   fileName: 'firmware.fw'
 });
@@ -93,10 +93,10 @@ await ZeroBox.device.install('/data/firmware.fw', {
 ```js
 globalThis.activate = async (plugin) => {
   let info = '点击按钮获取设备信息';
-  const { Column, Text, Button } = ZeroBox.ui;
+  const { Column, Text, Button } = OronBox.ui;
 
   const listDevices = async () => {
-    const devices = await ZeroBox.device.list();
+    const devices = await OronBox.device.list();
     info = devices.map(d =>
       `${d.name} ${d.connected ? '✓' : '✗'} ${d.current ? '←当前' : ''}`
     ).join('\n');
@@ -104,15 +104,15 @@ globalThis.activate = async (plugin) => {
 
   const loadInfo = async () => {
     try {
-      const d = await ZeroBox.device.info();
+      const d = await OronBox.device.info();
       info = `型号: ${d.model}\n固件: ${d.firmwareVersion}\n电量: ${d.battery}%`;
     } catch (e) { info = `错误: ${e.message}`; }
   };
 
-  const render = () => ZeroBox.ui.render(
+  const render = () => OronBox.ui.render(
     Column({ gap: 8 }, [
-      Button('列出设备', { onClick: ZeroBox.ui.action(listDevices, render) }),
-      Button('设备信息', { onClick: ZeroBox.ui.action(loadInfo, render) }),
+      Button('列出设备', { onClick: OronBox.ui.action(listDevices, render) }),
+      Button('设备信息', { onClick: OronBox.ui.action(loadInfo, render) }),
       Text(info),
     ]),
   );

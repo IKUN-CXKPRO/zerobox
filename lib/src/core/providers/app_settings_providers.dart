@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
-import 'package:zerobox/src/core/services/shared_prefs_service.dart';
-import 'package:zerobox/src/data/astrobox/astrobox_cdn.dart';
-import 'package:zerobox/src/data/community/community_source.dart';
-import 'package:zerobox/src/host/application_host_provider.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/data/astrobox/astrobox_cdn.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/host/application_host_provider.dart';
 
 enum WideNavigationRailPosition { bottom, center, split }
 
@@ -212,7 +212,7 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
   Future<void> refresh() async {
     final result = await ref
         .read(applicationHostProvider)
-        .execute(const ZeroBoxCommand(method: 'settings.list'));
+        .execute(const OronBoxCommand(method: 'settings.list'));
     if (!result.ok) return;
     final json = (result.value as Map).cast<String, Object?>();
     state = AppSettings(
@@ -236,7 +236,7 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
     final result = await ref
         .read(applicationHostProvider)
         .execute(
-          ZeroBoxCommand(
+          OronBoxCommand(
             method: 'settings.set',
             params: {'key': key, 'value': value},
           ),

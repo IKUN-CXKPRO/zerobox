@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/build_common.sh"
 
 init_build "$@"
-log_info "Building ZeroBox release packages for version ${VERSION}"
+log_info "Building OronBox release packages for version ${VERSION}"
 
 clean_release_dir
 

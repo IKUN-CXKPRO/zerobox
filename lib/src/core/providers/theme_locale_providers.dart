@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 
 enum AppThemeMode { system, light, dark, oledDark }
 

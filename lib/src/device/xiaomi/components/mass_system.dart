@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/device/xiaomi/system/xiaomi_system.dart';
-import 'package:zerobox/src/protocols/xiaomi/packet/l2_packet.dart';
-import 'package:zerobox/src/protocols/xiaomi/packet/mass_packet.dart';
-import 'package:zerobox/src/protocols/xiaomi/transport/mass_transfer.dart';
+import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/mass_packet.dart';
+import 'package:oronbox/src/protocols/xiaomi/transport/mass_transfer.dart';
 
 class XiaomiMassSystem extends XiaomiSystem {
   late final MassTransfer _transfer = MassTransfer(

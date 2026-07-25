@@ -4,25 +4,25 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:fixnum/fixnum.dart';
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/device/core/event_bus.dart';
-import 'package:zerobox/src/device/xiaomi/components/info_system.dart';
-import 'package:zerobox/src/device/xiaomi/components/mass_system.dart';
-import 'package:zerobox/src/device/xiaomi/system/xiaomi_system.dart';
-import 'package:zerobox/src/protocols/common/device_protocol.dart';
-import 'package:zerobox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_common.pbenum.dart'
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/device/core/event_bus.dart';
+import 'package:oronbox/src/device/xiaomi/components/info_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/mass_system.dart';
+import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
+import 'package:oronbox/src/protocols/common/device_protocol.dart';
+import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_common.pbenum.dart'
     as pb_common;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_notification.pb.dart'
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_notification.pb.dart'
     as pb_notification;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_system.pb.dart'
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_system.pb.dart'
     as pb_system;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_thirdparty_app.pb.dart'
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_thirdparty_app.pb.dart'
     as pb_thirdparty;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_watch_face.pb.dart'
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_watch_face.pb.dart'
     as pb_watchface;
-import 'package:zerobox/src/protocols/xiaomi/packet/mass_packet.dart';
-import 'package:zerobox/src/protocols/xiaomi/transport/mass_transfer.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/mass_packet.dart';
+import 'package:oronbox/src/protocols/xiaomi/transport/mass_transfer.dart';
 
 class XiaomiInstallSystem extends XiaomiPbSystem {
   static final _log = getLogger('XiaomiInstallSystem');
@@ -41,7 +41,7 @@ class XiaomiInstallSystem extends XiaomiPbSystem {
       fileData: packageBytes,
       onProgress: onProgress,
       run: () async {
-        final name = packageName ?? 'com.zerobox.unknown';
+        final name = packageName ?? 'com.oronbox.unknown';
         const versionCode = 114514;
 
         final prepareRet = await component.requestPool.request<pb.WearPacket>(
@@ -194,7 +194,7 @@ class XiaomiInstallSystem extends XiaomiPbSystem {
                 type: pb_system.PrepareOta_Type.ALL,
                 firmwareVersion: '99.99.99',
                 fileMd5: _toHexString(fileMd5),
-                changeLog: 'ZeroBox Firmware Update',
+                changeLog: 'OronBox Firmware Update',
                 fileUrl: '',
               ),
             ),

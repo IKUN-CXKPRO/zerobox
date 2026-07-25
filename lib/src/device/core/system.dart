@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/device/core/entity.dart';
+import 'package:oronbox/src/device/core/entity.dart';
 
 abstract class System {
   late DeviceEntity entity;

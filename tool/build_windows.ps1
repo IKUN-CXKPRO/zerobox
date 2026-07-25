@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Resolve-Path (Join-Path $ScriptDir "..")
 $ReleaseDir = Join-Path $ProjectRoot "build/release"
-$AppName = "zerobox"
+$AppName = "oronbox"
 
 function Require-Command($Name) {
   if (!(Get-Command $Name -ErrorAction SilentlyContinue)) {

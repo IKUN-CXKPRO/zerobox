@@ -1,17 +1,17 @@
 import 'dart:async';
 
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/core/models/bt_models.dart' as models;
-import 'package:zerobox/src/device/core/event_bus.dart';
-import 'package:zerobox/src/device/xiaomi/system/xiaomi_system.dart';
-import 'package:zerobox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_lpa.pb.dart'
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/core/models/bt_models.dart' as models;
+import 'package:oronbox/src/device/core/event_bus.dart';
+import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
+import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_lpa.pb.dart'
     as pb_lpa;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_system.pb.dart'
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_system.pb.dart'
     as pb_system;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_watch_face.pb.dart'
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_watch_face.pb.dart'
     as pb_watchface;
-import 'package:zerobox/src/protocols/xiaomi/commands/xiaomi_request_pool.dart';
+import 'package:oronbox/src/protocols/xiaomi/commands/xiaomi_request_pool.dart';
 
 class XiaomiInfoSystem extends XiaomiPbSystem {
   static final _log = getLogger('XiaomiInfoSystem');

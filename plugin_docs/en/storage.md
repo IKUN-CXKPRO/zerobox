@@ -8,50 +8,50 @@ be any JSON-serializable data.
 ### get(key)
 
 ```js
-const value = await ZeroBox.storage.get('lastVisit');
+const value = await OronBox.storage.get('lastVisit');
 // Returns the stored value, or undefined if never set
 ```
 
 ### set(key, value)
 
 ```js
-await ZeroBox.storage.set('lastVisit', new Date().toISOString());
-await ZeroBox.storage.set('theme', 'dark');
-await ZeroBox.storage.set('prefs', { fontSize: 14, lineHeight: 1.5 });
+await OronBox.storage.set('lastVisit', new Date().toISOString());
+await OronBox.storage.set('theme', 'dark');
+await OronBox.storage.set('prefs', { fontSize: 14, lineHeight: 1.5 });
 ```
 
 ### remove(key)
 
 ```js
-await ZeroBox.storage.remove('theme');
+await OronBox.storage.remove('theme');
 ```
 
 ### clear()
 
 ```js
-await ZeroBox.storage.clear();
+await OronBox.storage.clear();
 ```
 
 ## Example: Visit Tracker
 
 ```js
 globalThis.activate = async (plugin) => {
-  let lastVisit = (await ZeroBox.storage.get('lastVisit')) || 'Never';
-  let visitCount = (await ZeroBox.storage.get('visitCount')) || 0;
-  const { Column, Text, Button } = ZeroBox.ui;
+  let lastVisit = (await OronBox.storage.get('lastVisit')) || 'Never';
+  let visitCount = (await OronBox.storage.get('visitCount')) || 0;
+  const { Column, Text, Button } = OronBox.ui;
 
   const recordVisit = async () => {
     visitCount++;
     lastVisit = new Date().toLocaleString();
-    await ZeroBox.storage.set('visitCount', visitCount);
-    await ZeroBox.storage.set('lastVisit', lastVisit);
+    await OronBox.storage.set('visitCount', visitCount);
+    await OronBox.storage.set('lastVisit', lastVisit);
   };
 
-  const render = () => ZeroBox.ui.render(
+  const render = () => OronBox.ui.render(
     Column({ gap: 8 }, [
       Text(`Last visit: ${lastVisit}`),
       Text(`Visits: ${visitCount}`),
-      Button('Record visit', { onClick: ZeroBox.ui.action(recordVisit, render) }),
+      Button('Record visit', { onClick: OronBox.ui.action(recordVisit, render) }),
     ]),
   );
 

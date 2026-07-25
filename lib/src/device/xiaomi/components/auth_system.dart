@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/device/core/event_bus.dart';
-import 'package:zerobox/src/device/xiaomi/system/xiaomi_system.dart';
-import 'package:zerobox/src/device/xiaomi/utils/auth_utils.dart';
-import 'package:zerobox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_account.pb.dart'
+import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/device/core/event_bus.dart';
+import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
+import 'package:oronbox/src/device/xiaomi/utils/auth_utils.dart';
+import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_account.pb.dart'
     as pb_account;
-import 'package:zerobox/src/protocols/xiaomi/crypto/miwear_crypto.dart';
+import 'package:oronbox/src/protocols/xiaomi/crypto/miwear_crypto.dart';
 
 class XiaomiAuthSystem extends XiaomiPbSystem {
   static final _log = getLogger('XiaomiAuthSystem');

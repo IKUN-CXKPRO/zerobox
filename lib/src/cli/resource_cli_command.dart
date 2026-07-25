@@ -1,5 +1,5 @@
-import 'package:zerobox/src/cli/cli_models.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/cli/cli_models.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
 
 const _sortRules = {'random', 'name', 'time'};
 const _resourceTypes = {'quickapp', 'watchface', 'firmware', 'miniprogram'};
@@ -13,7 +13,7 @@ const _legacyFilterOptions = {
   'hide-force-paid',
 };
 
-ZeroBoxCommand buildResourceQueryCommand(CliInvocation invocation) {
+OronBoxCommand buildResourceQueryCommand(CliInvocation invocation) {
   final name = invocation.command.join('.');
   if (name != 'resource.list' && name != 'resource.search') {
     throw CliUsageException('Unsupported resource query command: $name');
@@ -60,7 +60,7 @@ ZeroBoxCommand buildResourceQueryCommand(CliInvocation invocation) {
   if (invalidChip != null) {
     throw CliUsageException('Unsupported resource filter chip: $invalidChip');
   }
-  return ZeroBoxCommand(
+  return OronBoxCommand(
     method: name,
     params: {
       if (invocation.options['source'] != null)

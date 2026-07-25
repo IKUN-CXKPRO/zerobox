@@ -1,16 +1,34 @@
 import 'package:dio/dio.dart';
-import 'package:zerobox/src/core/logging/logging_service.dart';
-import 'package:zerobox/src/features/accounts/services/bandbbs_auth_service.dart';
+import 'package:oronbox/src/core/network/http_observability_interceptor.dart';
+import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 
 class BandBbsApiClient {
-  BandBbsApiClient({required this.dio, required this.auth});
+  BandBbsApiClient({required this.dio, required this.auth}) {
+    installHttpObservability(dio);
+  }
 
   final Dio dio;
   final BandBbsAuthNotifier auth;
-  final Logger _log = getLogger('BandBbsApiClient');
 
   static const _baseUrl = 'https://www.bandbbs.cn';
   static const _developerApiBaseUrl = 'https://api.bandbbs.cn';
+
+  Future<List<Map<String, dynamic>>> getMyResources({
+    required String creatorId,
+    int page = 1,
+  }) async {
+    final response = await _send<Object?>(
+      () async => dio.get<Object?>(
+        '$_baseUrl/api/resources/',
+        queryParameters: {'creator_id': creatorId, 'page': page},
+        options: await _authOptions(),
+      ),
+    );
+    return ((_objectMap(response.data)['resources'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((value) => value.cast<String, dynamic>())
+        .toList();
+  }
 
   Future<Map<String, dynamic>> getResource(String resourceId) async {
     final response = await _send<Object?>(
@@ -170,27 +188,8 @@ class BandBbsApiClient {
     throw FormatException('BandBBS API returned ${value.runtimeType}');
   }
 
-  Future<Response<T>> _send<T>(Future<Response<T>> Function() request) async {
-    try {
-      return await request();
-    } on DioException catch (e, st) {
-      _logDioException(e, st);
-      rethrow;
-    } catch (e, st) {
-      _log.severe('BandBBS request failed before Dio response', e, st);
-      rethrow;
-    }
-  }
-
-  void _logDioException(DioException error, StackTrace stackTrace) {
-    final request = error.requestOptions;
-    _log.severe(
-      'BandBBS ${request.method} ${request.uri} failed '
-      'status=${error.response?.statusCode}',
-      error,
-      stackTrace,
-    );
-  }
+  Future<Response<T>> _send<T>(Future<Response<T>> Function() request) =>
+      request();
 }
 
 class BandBbsResourceLicense {

@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:wasm_run_flutter/wasm_run_flutter.dart';
-import 'package:zerobox/src/features/plugins/storage/plugin_storage.dart';
+import 'package:oronbox/src/features/plugins/storage/plugin_storage.dart';
 
 final class PluginWasiSandbox {
   PluginWasiSandbox._({
@@ -30,7 +30,7 @@ final class PluginWasiSandbox {
         await storage.createDirectory(pluginId, PluginStoragePath.parse(root));
       }
       final packageShadow = PluginStoragePath.parse(
-        '/temp/zerobox-runtime/plugin',
+        '/temp/oronbox-runtime/plugin',
       );
       if (await storage.stat(pluginId, packageShadow) != null) {
         await storage.removeFile(pluginId, packageShadow);

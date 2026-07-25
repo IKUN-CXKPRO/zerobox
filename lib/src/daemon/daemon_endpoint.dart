@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:zerobox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
 
 String get daemonRuntimeDirectory => resolveDaemonRuntimeDirectory(
   operatingSystem: Platform.operatingSystem,
@@ -16,19 +16,19 @@ String resolveDaemonRuntimeDirectory({
 }) {
   if (operatingSystem == 'windows') {
     final base = environment['LOCALAPPDATA'] ?? systemTemporaryDirectory;
-    return '$base\\ZeroBox\\run';
+    return '$base\\OronBox\\run';
   }
   if (operatingSystem == 'macos') {
     // Darwin's sockaddr_un.sun_path is limited to roughly 104 bytes. A
     // sandbox container's Application Support path can exceed that before the
     // socket filename is appended. systemTemp is writable, per-user and
     // container-aware, while remaining short enough for a Unix socket.
-    return '$systemTemporaryDirectory/zerobox';
+    return '$systemTemporaryDirectory/oronbox';
   }
   final runtime = environment['XDG_RUNTIME_DIR'];
-  if (runtime?.isNotEmpty == true) return '$runtime/zerobox';
+  if (runtime?.isNotEmpty == true) return '$runtime/oronbox';
   final home = environment['HOME'] ?? systemTemporaryDirectory;
-  return '$home/.local/share/zerobox/run';
+  return '$home/.local/share/oronbox/run';
 }
 
 String get daemonSocketPath => '$daemonRuntimeDirectory/daemon.sock';
@@ -62,14 +62,14 @@ class WindowsDaemonEndpoint {
     final port = (json['port'] as num?)?.toInt() ?? 0;
     final token = json['token']?.toString() ?? '';
     if (port < 1 || port > 65535 || token.isEmpty) {
-      throw const FormatException('Invalid ZeroBox daemon endpoint');
+      throw const FormatException('Invalid OronBox daemon endpoint');
     }
     return WindowsDaemonEndpoint(
       port: port,
       token: token,
       pid: (json['pid'] as num?)?.toInt() ?? 0,
       protocolVersion:
-          (json['protocolVersion'] as num?)?.toInt() ?? zeroBoxProtocolVersion,
+          (json['protocolVersion'] as num?)?.toInt() ?? oronBoxProtocolVersion,
     );
   }
 }
@@ -87,7 +87,7 @@ Future<List<WindowsDaemonEndpoint>> readWindowsDaemonEndpoints() async {
       }
     } catch (_) {
       // A partial or stale discovery file is ignored. The authenticated
-      // handshake still decides whether any candidate is a ZeroBox daemon.
+      // handshake still decides whether any candidate is a OronBox daemon.
     }
   }
 

@@ -13,7 +13,7 @@
 #include <utility>
 #include <variant>
 
-#if defined(ZEROBOX_HAVE_WEBVIEW2)
+#if defined(ORONBOX_HAVE_WEBVIEW2)
 #include <WebView2.h>
 #include <wrl.h>
 #endif
@@ -24,11 +24,11 @@ using flutter::EncodableMap;
 using flutter::EncodableValue;
 using flutter::MethodResult;
 
-constexpr char kChannelName[] = "zerobox/mi_account_2fa";
+constexpr char kChannelName[] = "oronbox/mi_account_2fa";
 
-#if defined(ZEROBOX_HAVE_WEBVIEW2)
+#if defined(ORONBOX_HAVE_WEBVIEW2)
 
-constexpr wchar_t kWindowClassName[] = L"ZeroBoxMiAccount2FAWindow";
+constexpr wchar_t kWindowClassName[] = L"OronBoxMiAccount2FAWindow";
 constexpr UINT_PTR kPollTimerId = 1;
 constexpr UINT kPollIntervalMs = 750;
 
@@ -450,7 +450,7 @@ void WinMiAccountTwoFactorSession::Fail(const std::string& code,
   g_session.reset();
 }
 
-#endif  // defined(ZEROBOX_HAVE_WEBVIEW2)
+#endif  // defined(ORONBOX_HAVE_WEBVIEW2)
 
 void HandleResolve(HWND parent_window,
                    const EncodableValue* arguments,
@@ -466,7 +466,7 @@ void HandleResolve(HWND parent_window,
     return;
   }
 
-#if defined(ZEROBOX_HAVE_WEBVIEW2)
+#if defined(ORONBOX_HAVE_WEBVIEW2)
   if (g_session) {
     result->Error("BUSY", "Xiaomi 2FA WebView is already open");
     return;

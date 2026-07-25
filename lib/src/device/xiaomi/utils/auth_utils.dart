@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:zerobox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
-import 'package:zerobox/src/protocols/generated/xiaomi/wear_account.pb.dart'
+import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_account.pb.dart'
     as pb_account;
-import 'package:zerobox/src/protocols/xiaomi/crypto/miwear_crypto.dart';
-import 'package:zerobox/src/protocols/xiaomi/crypto/v2_l2_cipher.dart';
+import 'package:oronbox/src/protocols/xiaomi/crypto/miwear_crypto.dart';
+import 'package:oronbox/src/protocols/xiaomi/crypto/v2_l2_cipher.dart';
 
 class XiaomiAuthKeys {
   const XiaomiAuthKeys({
@@ -69,7 +69,7 @@ pb.WearPacket buildAuthStep1(Uint8List appRandom) {
     deviceType: defaultTargetPlatform == TargetPlatform.iOS
         ? pb_account.CompanionDevice_DeviceType.IOS
         : pb_account.CompanionDevice_DeviceType.ANDROID,
-    deviceName: 'ZeroBox',
+    deviceName: 'OronBox',
     appCapability: 0xFFFFFFFF,
   );
   final companionBytes = companionDevice.writeToBuffer();

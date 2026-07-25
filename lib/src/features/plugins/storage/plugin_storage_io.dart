@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
-import 'package:zerobox/src/features/plugins/domain/plugin_package.dart';
+import 'package:oronbox/src/features/plugins/domain/plugin_package.dart';
 
 import 'plugin_storage.dart';
 
@@ -12,13 +12,13 @@ Future<PluginStorage> createPluginStorage() async {
   final support = Platform.isWindows
       ? Directory(
           '${localAppData ?? (await getApplicationSupportDirectory()).path}'
-          '${Platform.pathSeparator}ZeroBox',
+          '${Platform.pathSeparator}OronBox',
         )
       : await getApplicationSupportDirectory();
   final cache = Platform.isWindows
       ? Directory(
           '${localAppData ?? (await getApplicationCacheDirectory()).path}'
-          '${Platform.pathSeparator}ZeroBox'
+          '${Platform.pathSeparator}OronBox'
           '${Platform.pathSeparator}cache',
         )
       : await getApplicationCacheDirectory();
@@ -27,7 +27,7 @@ Future<PluginStorage> createPluginStorage() async {
     installedRoot: Directory('${support.path}${Platform.pathSeparator}plugins'),
     cacheRoot: Directory('${cache.path}${Platform.pathSeparator}plugins'),
     temporaryRoot: Directory(
-      '${temporary.path}${Platform.pathSeparator}zerobox'
+      '${temporary.path}${Platform.pathSeparator}oronbox'
       '${Platform.pathSeparator}plugins-$pid',
     ),
   );
@@ -55,11 +55,11 @@ class _IoPluginStorage implements PluginStorage {
   });
 
   static const _manifestFile = 'manifest.json';
-  static const _metadataDirectoryName = '.zerobox';
+  static const _metadataDirectoryName = '.oronbox';
   static const _configFile = 'config.json';
   static const _permissionsFile = 'permissions.json';
-  static const _legacyConfigFile = '.zerobox-config.json';
-  static const _legacyPermissionsFile = '.zerobox-permissions.json';
+  static const _legacyConfigFile = '.oronbox-config.json';
+  static const _legacyPermissionsFile = '.oronbox-permissions.json';
 
   final Directory installedRoot;
   final Directory cacheRoot;
@@ -331,7 +331,7 @@ class _IoPluginStorage implements PluginStorage {
     final result = <PluginFileStat>[];
     await for (final entity in directory.list(followLinks: false)) {
       final name = _leafName(entity.path);
-      if (name.startsWith('.zerobox')) continue;
+      if (name.startsWith('.oronbox')) continue;
       final type = await FileSystemEntity.type(entity.path, followLinks: false);
       if (type == FileSystemEntityType.link) continue;
       final childPath = '${path.virtualPath}/$name';
@@ -519,7 +519,7 @@ class _IoPluginStorage implements PluginStorage {
               part == '.' ||
               part == '..' ||
               part.contains('\\') ||
-              part.startsWith('.zerobox'),
+              part.startsWith('.oronbox'),
         )) {
       throw FormatException('Unsafe plugin path: $relativePath');
     }

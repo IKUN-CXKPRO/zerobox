@@ -1,16 +1,16 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zerobox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
 
 void main() {
   test('command survives JSON transport', () {
-    const command = ZeroBoxCommand(
+    const command = OronBoxCommand(
       method: 'install.local',
       params: {'type': 'quickapp', 'path': '/tmp/app.rpk'},
     );
     final decoded = jsonDecode(jsonEncode(command.toJson()));
-    final restored = ZeroBoxCommand.fromJson(
+    final restored = OronBoxCommand.fromJson(
       (decoded as Map).cast<String, Object?>(),
     );
     expect(restored.method, command.method);

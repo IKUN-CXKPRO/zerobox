@@ -3,8 +3,8 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
-import 'package:zerobox/src/core/services/build_info_service.dart';
-import 'package:zerobox/src/daemon/daemon_endpoint.dart';
+import 'package:oronbox/src/core/services/build_info_service.dart';
+import 'package:oronbox/src/daemon/daemon_endpoint.dart';
 
 Future<Map<String, Object?>> collectDebugRuntimeEnvironment() async => {
   'system': {
@@ -16,7 +16,7 @@ Future<Map<String, Object?>> collectDebugRuntimeEnvironment() async => {
     'processors': Platform.numberOfProcessors,
   },
   'host': {
-    'kind': 'zerobox-daemon',
+    'kind': 'oronbox-daemon',
     'pid': pid,
     'executable': Platform.resolvedExecutable,
     'workingDirectory': Directory.current.path,

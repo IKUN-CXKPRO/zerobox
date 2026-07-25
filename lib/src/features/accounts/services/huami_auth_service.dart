@@ -2,7 +2,8 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zerobox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/core/network/http_observability_interceptor.dart';
 
 class HuamiTokenInfo {
   const HuamiTokenInfo({
@@ -99,7 +100,9 @@ class HuamiAuthState {
 }
 
 class HuamiAuthNotifier extends Notifier<HuamiAuthState> {
-  HuamiAuthNotifier({Dio? dio}) : _dio = dio ?? Dio();
+  HuamiAuthNotifier({Dio? dio}) : _dio = dio ?? Dio() {
+    installHttpObservability(_dio);
+  }
 
   static const _keyToken = 'huami.account.token';
   static const _keyUsername = 'huami.account.username';
