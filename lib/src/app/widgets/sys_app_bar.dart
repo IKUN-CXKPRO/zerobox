@@ -19,6 +19,7 @@ class SysAppBar extends ConsumerWidget implements PreferredSizeWidget {
     this.leading,
     this.bottom,
     this.secondary = false,
+    this.fullWindow = false,
   });
 
   final Widget? title;
@@ -28,6 +29,11 @@ class SysAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final Widget? leading;
   final PreferredSizeWidget? bottom;
   final bool secondary;
+
+  /// The page fills the whole window without the navigation rail (e.g. the
+  /// OOBE). On macOS the traffic-light avoidance must then apply even in the
+  /// wide layout, where other pages rely on the rail to stay clear.
+  final bool fullWindow;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,7 +46,9 @@ class SysAppBar extends ConsumerWidget implements PreferredSizeWidget {
         desktop && defaultTargetPlatform != TargetPlatform.macOS;
     final macOS = desktop && defaultTargetPlatform == TargetPlatform.macOS;
     final compactMacOS =
-        macOS && !useWideLayout(MediaQuery.sizeOf(context).width);
+        macOS &&
+        (!useWideLayout(MediaQuery.sizeOf(context).width) ||
+            (secondary && fullWindow));
     final macOSSecondary = compactMacOS && secondary;
     final resolvedLeading = macOSSecondary
         ? Padding(
@@ -117,6 +125,7 @@ class SysAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
   bool get _usesCompactMacOSLayout {
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.macOS) return false;
+    if (secondary && fullWindow) return true;
     final views = ui.PlatformDispatcher.instance.views;
     if (views.isEmpty) return false;
     final view = views.first;

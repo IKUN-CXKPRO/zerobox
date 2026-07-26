@@ -126,7 +126,7 @@ class _OobePageState extends ConsumerState<OobePage> {
     }
 
     return Scaffold(
-      appBar: SysAppBar(title: Text(title)),
+      appBar: SysAppBar(secondary: true, fullWindow: true, title: Text(title)),
       body: SafeArea(
         top: false,
         child: Column(
@@ -417,12 +417,26 @@ class _AgreementStep extends StatefulWidget {
 }
 
 class _AgreementStepState extends State<_AgreementStep> {
+  final _scrollController = ScrollController();
   String? _data;
+  bool _bottomReached = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_markBottomReached);
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -431,9 +445,21 @@ class _AgreementStepState extends State<_AgreementStep> {
         : 'zh';
     final data = await rootBundle.loadString(
       'assets/legal/${widget.documentId}.$language.md',
+      // Widget tests hang on the second cached load of the same asset key.
+      cache: false,
     );
     if (!mounted) return;
     setState(() => _data = data);
+    // A document that fits the viewport without scrolling counts as read.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _markBottomReached());
+  }
+
+  void _markBottomReached() {
+    if (_bottomReached || !_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.maxScrollExtent - position.pixels <= 1) {
+      setState(() => _bottomReached = true);
+    }
   }
 
   @override
@@ -464,6 +490,7 @@ class _AgreementStepState extends State<_AgreementStep> {
                         ? const SizedBox.shrink()
                         : Markdown(
                             data: data,
+                            controller: _scrollController,
                             padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
                             styleSheet: MarkdownStyleSheet.fromTheme(theme)
                                 .copyWith(
@@ -492,17 +519,35 @@ class _AgreementStepState extends State<_AgreementStep> {
               ),
               const SizedBox(height: 8),
               InkWell(
-                onTap: () => widget.onAgreed(!widget.agreed),
+                onTap: _bottomReached
+                    ? () => widget.onAgreed(!widget.agreed)
+                    : null,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 4, 16, 4),
                   child: Row(
                     children: [
                       Checkbox(
                         value: widget.agreed,
-                        onChanged: (v) => widget.onAgreed(v ?? false),
+                        onChanged: _bottomReached
+                            ? (v) => widget.onAgreed(v ?? false)
+                            : null,
                       ),
                       const SizedBox(width: 4),
-                      Text(l10n.oobeAgreeCheckbox),
+                      Text(
+                        l10n.oobeAgreeCheckbox,
+                        style: _bottomReached
+                            ? null
+                            : TextStyle(color: theme.disabledColor),
+                      ),
+                      if (!_bottomReached) ...[
+                        const Spacer(),
+                        Text(
+                          l10n.oobeAgreementHint,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

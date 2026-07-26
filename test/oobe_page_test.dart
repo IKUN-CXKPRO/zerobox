@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -117,5 +118,38 @@ void main() {
     // Button should be disabled without checkbox.
     var nextBtn = find.widgetWithText(FilledButton, '下一步');
     expect(tester.widget<FilledButton>(nextBtn).onPressed, isNull);
+  });
+
+  testWidgets('agreement checkbox unlocks after scrolling to the bottom', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_wrap(const OobePage()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('下一步'));
+    await tester.pumpAndSettle();
+
+    // The terms document is long enough to scroll in the test window, so the
+    // checkbox stays disabled until the reader reaches the bottom.
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).onChanged, isNull);
+    expect(find.text('请阅读并滚动到底部'), findsOneWidget);
+
+    for (var i = 0; i < 20; i++) {
+      await tester.drag(find.byType(Markdown), const Offset(0, -400));
+      await tester.pumpAndSettle();
+      if (tester.widget<Checkbox>(find.byType(Checkbox)).onChanged != null) {
+        break;
+      }
+    }
+
+    expect(
+      tester.widget<Checkbox>(find.byType(Checkbox)).onChanged,
+      isNotNull,
+    );
+    expect(find.text('请阅读并滚动到底部'), findsNothing);
+
+    await tester.tap(find.byType(Checkbox));
+    await tester.pumpAndSettle();
+    final nextBtn = find.widgetWithText(FilledButton, '下一步');
+    expect(tester.widget<FilledButton>(nextBtn).onPressed, isNotNull);
   });
 }
