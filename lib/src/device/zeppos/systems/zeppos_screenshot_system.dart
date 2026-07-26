@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/device/core/ble_requirement.dart';
 import 'package:oronbox/src/device/core/system.dart';
 import 'package:oronbox/src/device/core/transport.dart';
@@ -27,6 +28,7 @@ class ZeppOsScreenshotSystem extends System {
   int? _fileTransferVersion;
   bool _appsEncrypted = false;
   bool _fileTransferEncrypted = false;
+  Future<void>? _initialization;
   Completer<int>? _capabilities;
   Completer<int>? _screenshotAck;
   Completer<void>? _fileRequest;
@@ -49,27 +51,61 @@ class ZeppOsScreenshotSystem extends System {
         : null;
   }
 
+  Future<void> initialize() {
+    final pending = _initialization;
+    if (pending != null) return pending;
+    if (_fileTransferVersion != null) return Future<void>.value();
+    final future = _initialize();
+    _initialization = future;
+    return future.whenComplete(() {
+      if (identical(_initialization, future)) _initialization = null;
+    });
+  }
+
+  Future<void> _initialize() async {
+    try {
+      final servicesSystem = entity.system<ZeppOsServicesSystem>();
+      if (servicesSystem != null) {
+        final services = await servicesSystem.fetchSupportedServices();
+        final hasApps = services.containsKey(appsEndpoint);
+        final hasFileTransfer = services.containsKey(fileTransferEndpoint);
+        _log.info(
+          'screenshot services discovered: apps=$hasApps, '
+          'fileTransfer=$hasFileTransfer',
+        );
+        if (!hasApps || !hasFileTransfer) {
+          throw UnsupportedError(
+            'The connected Zepp OS device does not advertise the screenshot '
+            'and file-transfer services',
+          );
+        }
+        _appsEncrypted = services[appsEndpoint] ?? false;
+        _fileTransferEncrypted = services[fileTransferEndpoint] ?? false;
+      }
+      _log.info(
+        'initializing screenshot transport: appsEncrypted=$_appsEncrypted, '
+        'fileTransferEncrypted=$_fileTransferEncrypted, '
+        'maxWriteLength=$_maxWriteLength',
+      );
+      await _ensureCapabilities();
+    } catch (error, stackTrace) {
+      _log.warning(
+        'failed to initialize screenshot transport',
+        error,
+        stackTrace,
+      );
+      rethrow;
+    }
+  }
+
   Future<Uint8List> requestScreenshot() async {
     if (_requestRunning) {
       throw StateError('A screenshot request is already running');
     }
     _requestRunning = true;
     try {
-      final servicesSystem = entity.system<ZeppOsServicesSystem>();
-      if (servicesSystem == null) {
-        throw StateError('Zepp OS services system is unavailable');
-      }
-      final services = await servicesSystem.fetchSupportedServices();
-      if (!services.containsKey(appsEndpoint) ||
-          !services.containsKey(fileTransferEndpoint)) {
-        throw UnsupportedError(
-          'The connected Zepp OS device does not advertise the screenshot '
-          'and file-transfer services',
-        );
-      }
-      _appsEncrypted = services[appsEndpoint] ?? false;
-      _fileTransferEncrypted = services[fileTransferEndpoint] ?? false;
-      final version = await _ensureCapabilities();
+      await initialize();
+      final version = _fileTransferVersion!;
       if (version > 3) {
         throw UnsupportedError(
           'Zepp OS file transfer v$version screenshots are not supported yet',
@@ -86,16 +122,24 @@ class ZeppOsScreenshotSystem extends System {
         ..[1] = 0x01
         ..[2] = 0x01;
       try {
+        _log.info(
+          'sending screenshot command: endpoint=0x00a0, '
+          'encrypted=$_appsEncrypted, payload=${_hex(request)}',
+        );
         await _component.sendToEndpoint(
           appsEndpoint,
           request,
           encrypted: _appsEncrypted,
           maxWriteLength: _maxWriteLength,
         );
+        _log.info(
+          'screenshot command BLE writes completed; waiting for endpoint ACK '
+          'or file-transfer request',
+        );
         final status =
             await Future.any<int>([
               ack.future,
-              fileRequest.future.then((_) => 0),
+              fileRequest.future.then((_) => -1),
             ]).timeout(
               const Duration(seconds: 6),
               onTimeout: () => throw TimeoutException(
@@ -104,7 +148,7 @@ class ZeppOsScreenshotSystem extends System {
                 const Duration(seconds: 6),
               ),
             );
-        if (status != 0) {
+        if (status > 0) {
           throw StateError(
             'The watch rejected the screenshot command with status $status',
           );
@@ -168,6 +212,10 @@ class ZeppOsScreenshotSystem extends System {
       case 0x02:
         if (payload.length < 4) return;
         _fileTransferVersion = payload[1];
+        _log.info(
+          'file transfer capabilities: version=${payload[1]}, '
+          'chunkSize=${payload[2] | (payload[3] << 8)}',
+        );
         if (payload[1] == 3) {
           unawaited(_prepareV3(payload[1]));
         } else {
@@ -228,6 +276,10 @@ class ZeppOsScreenshotSystem extends System {
         length,
         crc,
         compressed: compressed,
+      );
+      _log.info(
+        'incoming screenshot: session=$session, url=$url, '
+        'filename=$filename, length=$length, compressed=$compressed',
       );
       final fileRequest = _fileRequest;
       if (fileRequest != null && !fileRequest.isCompleted) {
@@ -313,6 +365,10 @@ class ZeppOsScreenshotSystem extends System {
     final completedIndex = download.index;
     download.progress += _v3ChunkSize;
     download.index++;
+    _log.fine(
+      'screenshot v3 chunk $completedIndex received: '
+      '${download.progress}/${download.length}',
+    );
     final last = _v3LastChunk;
     _resetV3Chunk();
     _sendV3Ack(completedIndex);
@@ -329,10 +385,15 @@ class ZeppOsScreenshotSystem extends System {
     final transport = entity.transport;
     if (transport is! CharacteristicTransport) return;
     unawaited(
-      transport.sendToCharacteristic(
-        Uint8List.fromList([0x13, 0, index & 0xff, 1, 0, 0, 0]),
-        _v3Receive,
-      ),
+      transport
+          .sendToCharacteristic(
+            Uint8List.fromList([0x13, 0, index & 0xff, 1, 0, 0, 0]),
+            _v3Receive,
+            withResponse: false,
+          )
+          .catchError((Object error, StackTrace stackTrace) {
+            _failPending(error, stackTrace);
+          }),
     );
   }
 
@@ -386,6 +447,7 @@ class ZeppOsScreenshotSystem extends System {
           _crc32(screenshot) != download.crc32) {
         throw FormatException('Screenshot $protocol checksum mismatch');
       }
+      _log.info('screenshot $protocol completed: ${screenshot.length} bytes');
       final pending = _pendingScreenshot;
       if (pending != null && !pending.isCompleted) pending.complete(screenshot);
     } catch (error, stackTrace) {
@@ -398,13 +460,24 @@ class ZeppOsScreenshotSystem extends System {
 
   void _sendFileReply(Uint8List payload) {
     unawaited(
-      _component.sendToEndpoint(
-        fileTransferEndpoint,
-        payload,
-        encrypted: _fileTransferEncrypted,
-        maxWriteLength: _maxWriteLength,
-      ),
+      _component
+          .sendToEndpoint(
+            fileTransferEndpoint,
+            payload,
+            encrypted: _fileTransferEncrypted,
+            maxWriteLength: _maxWriteLength,
+          )
+          .catchError((Object error, StackTrace stackTrace) {
+            _failPending(error, stackTrace);
+          }),
     );
+  }
+
+  void _failPending(Object error, StackTrace stackTrace) {
+    final pending = _pendingScreenshot;
+    if (pending != null && !pending.isCompleted) {
+      pending.completeError(error, stackTrace);
+    }
   }
 
   static int _crc32(List<int> bytes) {
@@ -417,6 +490,9 @@ class ZeppOsScreenshotSystem extends System {
     }
     return (crc ^ 0xffffffff) & 0xffffffff;
   }
+
+  static String _hex(Iterable<int> bytes) =>
+      bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join(' ');
 
   @override
   void onData(Uint8List data) {
@@ -452,3 +528,5 @@ class _Download {
   int index = 0;
   int progress = 0;
 }
+
+final Logger _log = getLogger('ZeppOsScreenshotSystem');

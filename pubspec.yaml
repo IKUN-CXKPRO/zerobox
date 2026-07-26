@@ -116,6 +116,7 @@ flutter:
     - assets/images/
     - assets/images/team/
     - assets/images/devices/
+    - assets/scripts/zeppos/zml.js
     - assets/images/brands/
     - assets/licenses/
     - assets/wasm/

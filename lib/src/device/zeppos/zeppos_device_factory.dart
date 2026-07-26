@@ -80,6 +80,9 @@ class ZeppOsDeviceFactory implements DeviceEntityFactory {
         deviceInfoSystem.handlePayload(payload.payload);
       } else if (payload.endpoint == ZeppOsServicesSystem.endpoint) {
         servicesSystem.handlePayload(payload.payload);
+        unawaited(
+          screenshotSystem.initialize().catchError((Object _, StackTrace _) {}),
+        );
       } else if (payload.endpoint == ZeppOsXiaoAiSystem.xiaoAiEndpoint ||
           payload.endpoint == ZeppOsXiaoAiSystem.zeppFlowEndpoint) {
         xiaoAiSystem.handlePayload(payload.endpoint, payload.payload);

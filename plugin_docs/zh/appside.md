@@ -8,6 +8,114 @@
 
 `appId` 为 32-bit 无符号整数（Zepp OS 小程序的应用 ID）。
 
+## ZML
+
+> 用法参考：[ZML](https://zepp-health.github.io/zml/zh/getting-started)
+
+OronBox 内置了包含完整依赖的 ZML 运行时。插件不需要自行打包
+`@zeppos/zml`，可以通过 `attach()` 将 ZML 运行时绑定到指定小程序，并在钩子中使用
+与官方 `BaseSideService` 一致的 `this.request()`、`this.call()`、`onRequest` 和
+`onCall`。
+
+插件的 `manifest.json` 必须声明 `appside` 权限：
+
+```json
+{
+  "permissions": ["appside"]
+}
+```
+
+### attach(options)
+
+创建或取得指定 `appId` 的 ZML 通信上下文。`onInit`、`onRun`、`onDestroy`、
+`onRequest` 和 `onCall` 都是可选钩子。钩子中的 `this` 与返回值均为同一个
+ZML 上下文。
+
+```js
+globalThis.activate = async () => {
+  const zml = await OronBox.appside.attach({
+    appId: 0x0010ee3b,
+
+    onInit() {
+      console.log('ZML App-side 已初始化');
+    },
+
+    async onRun() {
+      const result = await this.request({
+        method: 'device.getData',
+        params: { type: 'summary' },
+      });
+      console.log('手表返回:', JSON.stringify(result));
+    },
+
+    onRequest(req, res) {
+      if (req.method === 'plugin.getState') {
+        res(null, { ready: true });
+        return;
+      }
+      res({
+        code: 'METHOD_NOT_FOUND',
+        message: `未知方法: ${req.method}`,
+      });
+    },
+
+    onCall(message) {
+      console.log('收到手表通知:', JSON.stringify(message));
+    },
+
+    onDestroy() {
+      console.log('ZML App-side 已停止');
+    },
+  });
+
+  const result = await zml.request({
+    method: 'device.getInfo',
+    params: {},
+  });
+
+  await zml.call({
+    method: 'plugin.ready',
+    params: { success: true },
+  });
+};
+```
+
+### request(message, options?)
+
+向小程序发送需要响应的 ZML 请求，返回一个 Promise。默认超时遵循内置 ZML
+运行时的配置。
+
+```js
+const result = await zml.request({
+  method: 'weather.get',
+  params: { city: 'Shanghai' },
+});
+```
+
+### call(message)
+
+向小程序发送单向通知，不等待响应。
+
+```js
+await zml.call({
+  method: 'settings.changed',
+  params: { theme: 'dark' },
+});
+```
+
+### detach()
+
+解除当前插件的钩子并释放它持有的 ZML 上下文。插件关闭时 OronBox 也会自动清理。
+
+```js
+await zml.detach();
+```
+
+同一个 `appId` 只建立一个实际 App-side 会话。多个钩子不得创建第二条 BLE
+连接；底层握手、分包、请求 ID、响应匹配和超时均由内置 ZML 运行时处理。
+只有手表已连接、设备状态为 `ready`，并且对应小程序建立 App-side 会话后，
+`request()` 和 `call()` 才能向手表发送数据。
+
 ## 方法
 
 ### list()

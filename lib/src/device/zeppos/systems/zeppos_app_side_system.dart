@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/device/core/system.dart';
 import 'package:oronbox/src/device/zeppos/app_side/zeppos_app_side_storage.dart';
@@ -45,6 +46,9 @@ class ZeppOsAppSideDebugEvent {
   final String? source;
   final Uint8List? payload;
 }
+
+typedef ZeppOsZmlHookHandler =
+    Future<Object?> Function(String hook, Object? payload);
 
 class ZeppOsAppSideSystem extends System {
   ZeppOsAppSideSystem({ZeppOsAppSideStorage? storage})
@@ -122,14 +126,19 @@ class ZeppOsAppSideSystem extends System {
               'port2 $port2，extra $extra）',
         );
         try {
-          await start(
-            appId,
-            version: version,
-            port1: port1,
-            port2: port2,
-            extra: extra,
-            watchSessionOpen: true,
-          );
+          final zmlHookHandler = _sessions[appId]?.zmlHookHandler;
+          if (zmlHookHandler != null) {
+            await attachZml(appId, zmlHookHandler);
+          } else {
+            await start(
+              appId,
+              version: version,
+              port1: port1,
+              port2: port2,
+              extra: extra,
+              watchSessionOpen: true,
+            );
+          }
         } catch (error) {
           _addEvent(
             appId,
@@ -222,6 +231,8 @@ class ZeppOsAppSideSystem extends System {
     int port2 = 1004,
     int extra = 0,
     bool watchSessionOpen = false,
+    String? sourceOverride,
+    ZeppOsZmlHookHandler? zmlHookHandler,
   }) async {
     if (_sessions.containsKey(appId)) {
       _addEvent(
@@ -235,7 +246,7 @@ class ZeppOsAppSideSystem extends System {
     }
     String? source;
     try {
-      source = await _storage.read(appId);
+      source = sourceOverride ?? await _storage.read(appId);
     } catch (error) {
       _addEvent(appId, type: 'error', message: '脚本加载失败：$error');
       rethrow;
@@ -265,6 +276,7 @@ class ZeppOsAppSideSystem extends System {
       watchSessionOpen: watchSessionOpen,
       runtime: runtime,
       settings: settings,
+      zmlHookHandler: zmlHookHandler,
     );
     session.settingsSubscription = ZeppOsSettingsCoordinator.instance
         .changesFor(appId)
@@ -324,6 +336,29 @@ class ZeppOsAppSideSystem extends System {
       await _closeSession(session);
       rethrow;
     }
+  }
+
+  Future<void> attachZml(int appId, ZeppOsZmlHookHandler hookHandler) async {
+    final source = await rootBundle.loadString('assets/scripts/zeppos/zml.js');
+    final header = _watchHeaders[appId];
+    await start(
+      appId,
+      version: header?.version ?? 1,
+      port1: header?.port1 ?? 20,
+      port2: header?.port2 ?? 1004,
+      extra: header?.extra ?? 0,
+      watchSessionOpen: header != null,
+      sourceOverride: '$source\n__zbInstallZmlHooks();',
+      zmlHookHandler: hookHandler,
+    );
+  }
+
+  Future<Object?> invokeZml(int appId, String method, List<Object?> arguments) {
+    final session = _sessions[appId];
+    if (session == null || session.zmlHookHandler == null) {
+      throw StateError('ZML App-side $appId is not attached');
+    }
+    return session.runtime.invokeRegistered('appside.zml.$method', arguments);
   }
 
   Future<void> stop(int appId) async {
@@ -426,6 +461,14 @@ class ZeppOsAppSideSystem extends System {
       return _persistSettings(
         session,
         arguments.firstOrNull?.toString() ?? '{}',
+      );
+    }
+    if (method == 'appside.zml.hook') {
+      final handler = session.zmlHookHandler;
+      if (handler == null) return null;
+      return handler(
+        arguments.firstOrNull?.toString() ?? '',
+        arguments.elementAtOrNull(1),
       );
     }
     throw UnsupportedError('Unsupported app-side host method: $method');
@@ -647,6 +690,7 @@ class _AppSideSession {
     required this.watchSessionOpen,
     required this.runtime,
     required this.settings,
+    this.zmlHookHandler,
   });
 
   final int appId;
@@ -657,6 +701,7 @@ class _AppSideSession {
   final bool watchSessionOpen;
   final PluginRuntime runtime;
   final Map<String, String> settings;
+  final ZeppOsZmlHookHandler? zmlHookHandler;
   Future<void> settingsWrite = Future.value();
   Future<void> settingsDispatch = Future.value();
   StreamSubscription<ZeppOsSettingsChange>? settingsSubscription;
@@ -842,6 +887,23 @@ String _appSideBootstrap(String initialSettings) =>
     }))
   };
   globalThis.messaging = {peerSocket};
+  globalThis.sideService = {
+    appInfo: {app: {appName: 'OronBox ZML'}},
+    launchReasons: {},
+    launchArgs: {}
+  };
+  globalThis.getApp = () => ({port2: 1004});
+  globalThis.transferFile = undefined;
+  globalThis.image = {
+    convert: () => Promise.reject(new Error('Image conversion is unavailable'))
+  };
+  globalThis.network = {
+    downloader: {
+      downloadFile: () => Promise.reject(
+        new Error('ZML download is unavailable; use fetch instead')
+      )
+    }
+  };
   const decodeBase64 = value => {
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
     const input = String(value || '').replace(/[^A-Za-z0-9+/]/g, '');
@@ -931,6 +993,15 @@ String _appSideBootstrap(String initialSettings) =>
       if (event !== 'change') return;
       if (typeof callback !== 'function') throw new TypeError('settingsStorage listener must be a function');
       if (!storageListeners.includes(callback)) storageListeners.push(callback);
+    },
+    removeListener(event, callback) {
+      if (event !== 'change') return;
+      if (typeof callback !== 'function') {
+        storageListeners.length = 0;
+        return;
+      }
+      const index = storageListeners.indexOf(callback);
+      if (index !== -1) storageListeners.splice(index, 1);
     }
   }};
   let service;
@@ -939,6 +1010,16 @@ String _appSideBootstrap(String initialSettings) =>
   globalThis.AppSideService = value => {
     service = value;
     globalThis.appSideService = value;
+  };
+  globalThis.__zbInvokeRegistered = async (id, args) => {
+    if (!service) throw new Error('ZML AppSideService was not registered');
+    if (id === 'appside.zml.request') {
+      return await service.request(args[0], args[1] || {});
+    }
+    if (id === 'appside.zml.call') {
+      return await service.call(args[0]);
+    }
+    throw new Error(`Unsupported App-side invocation: ${id}`);
   };
   if (typeof console.debug !== 'function') console.debug = (...args) => console.log(...args);
   const logger = {getLogger: () => console, log: (...args) => console.log(...args), debug: (...args) => console.debug(...args), info: (...args) => console.info(...args), warn: (...args) => console.warn(...args), error: (...args) => console.error(...args)};
@@ -949,13 +1030,22 @@ String _appSideBootstrap(String initialSettings) =>
     if (started) return;
     started = true;
     if (service && typeof service.onInit === 'function') await service.onInit();
+    await sendMessage('OronBoxHost', JSON.stringify({
+      method: 'appside.zml.hook', args: ['onInit', null]
+    }));
     if (service && typeof service.onRun === 'function') await service.onRun();
+    await sendMessage('OronBoxHost', JSON.stringify({
+      method: 'appside.zml.hook', args: ['onRun', null]
+    }));
   });
   AstroBox.event.addEventListener('appside.lifecycle.destroy', async () => {
     if (destroyed) return;
     destroyed = true;
     try {
       if (service && typeof service.onDestroy === 'function') await service.onDestroy();
+      await sendMessage('OronBoxHost', JSON.stringify({
+        method: 'appside.zml.hook', args: ['onDestroy', null]
+      }));
     } finally {
       listeners.length = 0;
     }
@@ -982,5 +1072,29 @@ String _appSideBootstrap(String initialSettings) =>
       }
     }
   });
+  globalThis.__zbInstallZmlHooks = () => {
+    if (!service) throw new Error('ZML AppSideService was not registered');
+    service.onCall = message => sendMessage('OronBoxHost', JSON.stringify({
+      method: 'appside.zml.hook', args: ['onCall', message]
+    }));
+    service.onRequest = (req, res) => {
+      Promise.resolve(sendMessage('OronBoxHost', JSON.stringify({
+        method: 'appside.zml.hook', args: ['onRequest', req]
+      }))).then(reply => {
+        if (reply && typeof reply === 'object' &&
+            Object.prototype.hasOwnProperty.call(reply, 'error')) {
+          res(reply.error);
+          return;
+        }
+        res(null, reply && typeof reply === 'object' &&
+          Object.prototype.hasOwnProperty.call(reply, 'result')
+            ? reply.result
+            : reply);
+      }).catch(error => res({
+        code: 'PLUGIN_HOOK_FAILED',
+        message: String(error && error.message || error)
+      }));
+    };
+  };
 })();
 ''';

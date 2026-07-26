@@ -97,7 +97,7 @@ class _ZeppOsMoreFeaturesPageState
                 SegmentedTile.navigation(
                   leading: const Icon(Icons.watch_outlined),
                   title: const Text('屏幕镜像'),
-                  description: const Text('查看手表实时画面'),
+                  description: const Text('在手机上查看手表画面'),
                   enabled: ready,
                   onPressed: (_) => _showMirror(),
                 ),
@@ -200,7 +200,6 @@ class _WatchMirrorSheetState extends ConsumerState<_WatchMirrorSheet> {
           _frame = frame;
           _error = null;
         });
-        await Future<void>.delayed(const Duration(milliseconds: 180));
       } catch (error) {
         if (!mounted || !_active) return;
         setState(() => _error = error);

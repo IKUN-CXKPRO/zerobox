@@ -58,6 +58,7 @@ class PluginManager {
   final _failures = <String, PluginExecutionFailure>{};
   final _interconnectObservers = <String>{};
   final _rawProtocolObservers = <String>{};
+  final _zmlAttachments = <int, _PluginZmlAttachment>{};
   Future<void> _interconnectDispatchTail = Future<void>.value();
   Future<void> _rawProtocolDispatchTail = Future<void>.value();
   Future<void> _interconnectSendTail = Future<void>.value();
@@ -451,6 +452,17 @@ class PluginManager {
   }
 
   Future<void> _closeRuntime(String id) async {
+    final attached = _zmlAttachments.entries
+        .where((entry) => entry.value.pluginId == id)
+        .map((entry) => entry.key)
+        .toList(growable: false);
+    for (final appId in attached) {
+      try {
+        await deviceManager.stopZeppOsAppSide(appId);
+      } finally {
+        _zmlAttachments.remove(appId);
+      }
+    }
     await _runtimes.remove(id)?.close();
     await _wasmHosts.remove(id)?.dispose();
     _permissionBroker.endSession(id);
@@ -559,6 +571,10 @@ class PluginManager {
       'appside.sessions' => _appSideSessions(),
       'appside.events' => _appSideEvents(arguments),
       'appside.clearEvents' => _appSideClearEvents(arguments),
+      'appside.zml.attach' => _appSideZmlAttach(plugin, arguments),
+      'appside.zml.request' => _appSideZmlInvoke(plugin, arguments, 'request'),
+      'appside.zml.call' => _appSideZmlInvoke(plugin, arguments, 'call'),
+      'appside.zml.detach' => _appSideZmlDetach(plugin, arguments),
       'wasm.load' => _wasmLoad(plugin, arguments),
       'wasm.call' => _wasmCall(plugin, arguments),
       'wasm.memory.read' => _wasmMemoryRead(plugin, arguments),
@@ -619,7 +635,11 @@ class PluginManager {
       'appside.stop' ||
       'appside.send' ||
       'appside.inject' ||
-      'appside.clearEvents' => ('appside', PluginPermissionRisk.high),
+      'appside.clearEvents' ||
+      'appside.zml.attach' ||
+      'appside.zml.request' ||
+      'appside.zml.call' ||
+      'appside.zml.detach' => ('appside', PluginPermissionRisk.high),
       _ => null,
     };
     if (policy == null) return null;
@@ -1283,6 +1303,91 @@ class PluginManager {
   Future<void> _appSideClearEvents(List<Object?> arguments) async {
     final appId = _parseAppSideId(arguments);
     await deviceManager.clearZeppOsAppSideEvents(appId);
+  }
+
+  Future<void> _appSideZmlAttach(
+    InstalledPlugin plugin,
+    List<Object?> arguments,
+  ) async {
+    final appId = _parseAppSideId(arguments);
+    final hooks =
+        (arguments.elementAtOrNull(1) as Map?)?.cast<String, Object?>() ??
+        const {};
+    final existing = _zmlAttachments[appId];
+    if (existing != null && existing.pluginId != plugin.manifest.id) {
+      throw StateError(
+        'ZML App-side $appId is already attached by another plugin',
+      );
+    }
+    final attachment = _PluginZmlAttachment(
+      pluginId: plugin.manifest.id,
+      hooks: hooks.map((name, callback) => MapEntry(name, callback.toString())),
+    );
+    _zmlAttachments[appId] = attachment;
+    Future<Object?> invokeHook(String hook, Object? payload) async {
+      final current = _zmlAttachments[appId];
+      if (!identical(current, attachment)) return null;
+      if (!attachment.ready) {
+        attachment.pending.add((hook: hook, payload: payload));
+        return null;
+      }
+      final callbackId = current?.hooks[hook];
+      if (callbackId == null || callbackId.isEmpty) return null;
+      final runtime = _runtimes[plugin.manifest.id];
+      if (runtime == null) return null;
+      return runtime.invokeRegistered(
+        callbackId,
+        payload == null ? const [] : [payload],
+      );
+    }
+
+    try {
+      await deviceManager.attachZeppOsZml(appId, invokeHook);
+      attachment.ready = true;
+      final pending = List.of(attachment.pending);
+      attachment.pending.clear();
+      Timer.run(() {
+        for (final event in pending) {
+          unawaited(invokeHook(event.hook, event.payload));
+        }
+      });
+    } catch (_) {
+      if (identical(_zmlAttachments[appId], attachment)) {
+        _zmlAttachments.remove(appId);
+      }
+      rethrow;
+    }
+  }
+
+  Future<Object?> _appSideZmlInvoke(
+    InstalledPlugin plugin,
+    List<Object?> arguments,
+    String method,
+  ) {
+    final appId = _parseAppSideId(arguments);
+    final attachment = _zmlAttachments[appId];
+    if (attachment?.pluginId != plugin.manifest.id) {
+      throw StateError('Plugin is not attached to ZML App-side $appId');
+    }
+    return deviceManager.invokeZeppOsZml(
+      appId,
+      method,
+      arguments.skip(1).toList(growable: false),
+    );
+  }
+
+  Future<void> _appSideZmlDetach(
+    InstalledPlugin plugin,
+    List<Object?> arguments,
+  ) async {
+    final appId = _parseAppSideId(arguments);
+    final attachment = _zmlAttachments[appId];
+    if (attachment?.pluginId != plugin.manifest.id) return;
+    try {
+      await deviceManager.stopZeppOsAppSide(appId);
+    } finally {
+      _zmlAttachments.remove(appId);
+    }
   }
 
   int _parseAppSideId(List<Object?> arguments) {
@@ -1958,6 +2063,15 @@ class PluginExecutionException implements Exception {
 
   @override
   String toString() => '$pluginName: $message';
+}
+
+class _PluginZmlAttachment {
+  _PluginZmlAttachment({required this.pluginId, required this.hooks});
+
+  final String pluginId;
+  final Map<String, String> hooks;
+  final pending = <({String hook, Object? payload})>[];
+  bool ready = false;
 }
 
 class _PluginProvider {

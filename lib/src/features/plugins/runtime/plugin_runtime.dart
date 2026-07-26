@@ -186,6 +186,47 @@ const oronBoxPluginBootstrap = r'''
       sessions: () => host('appside.sessions'),
       events: (appId) => host('appside.events', [appId]),
       clearEvents: (appId) => host('appside.clearEvents', [appId]),
+      attach: async (options) => {
+        if (!options || typeof options !== 'object') {
+          throw new TypeError('appside.attach options are required');
+        }
+        const appId = Number(options.appId);
+        const context = {
+          appId,
+          request: (message, requestOptions) =>
+            host('appside.zml.request', [appId, message, requestOptions]),
+          call: (message) => host('appside.zml.call', [appId, message]),
+          detach: () => host('appside.zml.detach', [appId]),
+        };
+        const hooks = {};
+        for (const name of ['onInit', 'onRun', 'onDestroy', 'onRequest', 'onCall']) {
+          if (typeof options[name] === 'function') {
+            hooks[name] = registerCallback(name === 'onRequest'
+              ? (request) => new Promise(resolve => {
+                  let settled = false;
+                  const respond = (error, result) => {
+                    if (settled) return;
+                    settled = true;
+                    resolve(error == null ? {result} : {error});
+                  };
+                  Promise.resolve(options[name].call(context, request, respond))
+                    .then(value => {
+                      if (!settled && value !== undefined) {
+                        settled = true;
+                        resolve({result: value});
+                      }
+                    })
+                    .catch(error => respond({
+                      code: 'PLUGIN_HOOK_FAILED',
+                      message: String(error && error.message || error),
+                    }));
+                })
+              : (...args) => options[name].call(context, ...args));
+          }
+        }
+        await host('appside.zml.attach', [appId, hooks]);
+        return Object.freeze(context);
+      },
     },
     ui: (() => {
       const n = (type, props, children) => {

@@ -97,8 +97,7 @@ class HostDeviceManager extends DeviceManager {
     if (_disposed) return;
     final previousProtocol = state.protocolState;
     final previousDevice = state.currentDevice;
-    final wasConnected =
-        previousDevice != null && !previousDevice.disconnected;
+    final wasConnected = previousDevice != null && !previousDevice.disconnected;
     final rawConnectionTarget = raw['connectionTargetAddr']?.toString();
     final pendingConnectionAddr = _pendingConnectionAddr;
     if (pendingConnectionAddr != null &&
@@ -149,7 +148,8 @@ class HostDeviceManager extends DeviceManager {
     final connectedDevice = state.currentDevice;
     final isConnected =
         connectedDevice != null && !connectedDevice.disconnected;
-    if (state.protocolState != previousProtocol || isConnected != wasConnected) {
+    if (state.protocolState != previousProtocol ||
+        isConnected != wasConnected) {
       logDiagnostic(
         _log,
         Level.INFO,
@@ -566,6 +566,20 @@ class HostDeviceManager extends DeviceManager {
           params: {'appId': appId, 'payload': payload.toList()},
         ),
       );
+
+  @override
+  Future<void> attachZeppOsZml(int appId, ZeppOsZmlHookHandler hookHandler) {
+    throw UnsupportedError('ZML plugin hooks require the local device manager');
+  }
+
+  @override
+  Future<Object?> invokeZeppOsZml(
+    int appId,
+    String method,
+    List<Object?> arguments,
+  ) {
+    throw UnsupportedError('ZML plugin hooks require the local device manager');
+  }
 
   @override
   Future<void> uninstallApp(AppInfo app) async {

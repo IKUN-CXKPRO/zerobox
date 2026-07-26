@@ -37,6 +37,13 @@ void main() {
       final fixture = _fixture();
       final screenshot = fixture.screenshot.requestScreenshot();
       await _advertiseV2(fixture);
+      final command = _decodeLastEndpointWrite(fixture.transport.writes);
+      expect(command.endpoint, ZeppOsScreenshotSystem.appsEndpoint);
+      expect(command.encrypted, isFalse);
+      expect(
+        command.payload,
+        Uint8List.fromList([0x03, 0x01, 0x01, ...List.filled(17, 0)]),
+      );
 
       final bytes = Uint8List.fromList(const [1, 2, 3, 4, 5]);
       fixture.screenshot.handlePayload(
@@ -171,6 +178,33 @@ int _crc32(List<int> bytes) {
 }
 
 Future<void> _flush() => Future<void>.delayed(Duration.zero);
+
+({int endpoint, bool encrypted, Uint8List payload}) _decodeLastEndpointWrite(
+  List<Uint8List> writes,
+) {
+  final chunks = <Uint8List>[];
+  for (var i = writes.length - 1; i >= 0; i--) {
+    final chunk = writes[i];
+    if (chunk.length >= 5 && chunk[0] == 0x03) {
+      chunks.insert(0, chunk);
+      if ((chunk[1] & 0x01) != 0) break;
+    }
+  }
+  expect(chunks, isNotEmpty);
+  final first = chunks.first;
+  final length = ByteData.sublistView(first).getUint32(5, Endian.little);
+  final endpoint = ByteData.sublistView(first).getUint16(9, Endian.little);
+  final payload = BytesBuilder(copy: false)
+    ..add(Uint8List.sublistView(first, 11));
+  for (final chunk in chunks.skip(1)) {
+    payload.add(Uint8List.sublistView(chunk, 5));
+  }
+  return (
+    endpoint: endpoint,
+    encrypted: (first[1] & 0x08) != 0,
+    payload: Uint8List.sublistView(payload.takeBytes(), 0, length),
+  );
+}
 
 class _FakeTransport implements Transport {
   final writes = <Uint8List>[];

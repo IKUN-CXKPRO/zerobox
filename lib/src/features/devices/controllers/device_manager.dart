@@ -257,6 +257,12 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
   Future<void> stopZeppOsAppSide(int appId);
   Future<void> injectZeppOsAppSideMessage(int appId, Uint8List payload);
   Future<void> sendZeppOsAppSideMessage(int appId, Uint8List payload);
+  Future<void> attachZeppOsZml(int appId, ZeppOsZmlHookHandler hookHandler);
+  Future<Object?> invokeZeppOsZml(
+    int appId,
+    String method,
+    List<Object?> arguments,
+  );
   Future<void> fetchSystemInfo();
   Future<void> fetchStorageInfo();
   Future<void> fetchApps();
@@ -1680,6 +1686,17 @@ class LocalDeviceManager extends DeviceManager {
   @override
   Future<void> sendZeppOsAppSideMessage(int appId, Uint8List payload) =>
       _appSideSystem().sendMessageToWatch(appId, payload);
+
+  @override
+  Future<void> attachZeppOsZml(int appId, ZeppOsZmlHookHandler hookHandler) =>
+      _appSideSystem().attachZml(appId, hookHandler);
+
+  @override
+  Future<Object?> invokeZeppOsZml(
+    int appId,
+    String method,
+    List<Object?> arguments,
+  ) => _appSideSystem().invokeZml(appId, method, arguments);
 
   @override
   Future<Uint8List> requestZeppOsScreenshot() async {
