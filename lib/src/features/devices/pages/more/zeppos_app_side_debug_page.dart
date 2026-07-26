@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:segmented_list/segmented_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -276,8 +276,9 @@ class _ZeppOsAppSideDebugPageState
         ],
       ),
       body: PageContainer(
-        padding: const EdgeInsets.all(StyleConstants.pagePadding),
+        padding: EdgeInsets.zero,
         child: ListView(
+          padding: const EdgeInsets.all(StyleConstants.pagePadding),
           children: [
             if (_refreshError != null) ...[
               Card(
@@ -299,11 +300,11 @@ class _ZeppOsAppSideDebugPageState
                 ),
               )
             else
-              SettingsSection(
+              SegmentedSection(
                 margin: EdgeInsetsDirectional.zero,
                 tiles: [
                   for (final id in _observed)
-                    SettingsTile<int>.radioTile(
+                    SegmentedTile<int>.radioTile(
                       radioValue: id,
                       groupValue: selected,
                       onChanged: (value) =>

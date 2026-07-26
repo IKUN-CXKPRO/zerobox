@@ -1,5 +1,5 @@
 import 'package:desktop_drop/desktop_drop.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:segmented_list/segmented_list.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -401,10 +401,10 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SettingsSection(
+            SegmentedSection(
               title: Text(l10n.install),
               tiles: [
-                SettingsTile.navigation(
+                SegmentedTile.navigation(
                   onPressed: (_) =>
                       _pickAndEnqueue(context, ref, LocalDeviceInstallType.app),
                   enabled: enabled,
@@ -412,7 +412,7 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
                   title: Text(l10n.deviceFeaturesInstallApp),
                   description: Text(l10n.deviceFeaturesInstallAppDesc),
                 ),
-                SettingsTile.navigation(
+                SegmentedTile.navigation(
                   onPressed: (_) => _pickAndEnqueue(
                     context,
                     ref,
@@ -423,7 +423,7 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
                   title: Text(l10n.deviceFeaturesInstallWatchface),
                   description: Text(l10n.deviceFeaturesInstallWatchfaceDesc),
                 ),
-                SettingsTile.navigation(
+                SegmentedTile.navigation(
                   onPressed: (_) => _pickAndEnqueue(
                     context,
                     ref,
@@ -436,32 +436,32 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
                 ),
               ],
             ),
-            SettingsSection(
+            SegmentedSection(
               title: Text(l10n.manage),
               tiles: [
                 if (isZeppOs)
-                  SettingsTile.navigation(
+                  SegmentedTile.navigation(
                     onPressed: (_) => context.push('/devices/zeppos-more'),
                     enabled: enabled,
                     leading: const Icon(Icons.functions),
                     title: Text(l10n.zeppOsMoreFeatures),
                     description: Text(l10n.zeppOsMoreFeaturesDescription),
                   ),
-                SettingsTile.navigation(
+                SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/apps'),
                   enabled: enabled,
                   leading: const Icon(Icons.apps),
                   title: Text(l10n.deviceFeaturesManageApps),
                   description: Text(l10n.deviceFeaturesManageAppsDesc),
                 ),
-                SettingsTile.navigation(
+                SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/watchfaces'),
                   enabled: enabled,
                   leading: const Icon(Icons.watch),
                   title: Text(l10n.deviceFeaturesManageWatchfaces),
                   description: Text(l10n.deviceFeaturesManageWatchfacesDesc),
                 ),
-                SettingsTile.navigation(
+                SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/info'),
                   enabled: hasDevice,
                   leading: const Icon(Icons.info_outline),

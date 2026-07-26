@@ -1,4 +1,4 @@
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:segmented_list/segmented_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -67,11 +67,11 @@ class _ZeppOsMoreFeaturesPageState
         ),
         child: ListView(
           children: [
-            SettingsSection(
+            SegmentedSection(
               title: const Text('功能'),
               margin: EdgeInsetsDirectional.zero,
               tiles: [
-                SettingsTile.navigation(
+                SegmentedTile.navigation(
                   leading: const Icon(Icons.record_voice_over),
                   title: const Text('小爱同学'),
                   description: const Text('捕获 Opus 帧并实时解码播放'),
@@ -79,14 +79,14 @@ class _ZeppOsMoreFeaturesPageState
                   onPressed: (_) =>
                       context.push('/devices/zeppos-more/xiao-ai'),
                 ),
-                SettingsTile.navigation(
+                SegmentedTile.navigation(
                   leading: const Icon(Icons.tune),
                   title: const Text('应用设置'),
                   description: const Text('打开已缓存的 Zepp OS 应用设置页'),
                   onPressed: (_) =>
                       context.push('/devices/zeppos-more/settings'),
                 ),
-                SettingsTile.navigation(
+                SegmentedTile.navigation(
                   leading: const Icon(Icons.code),
                   title: const Text('App-side 调试'),
                   description: const Text('按 appId 调试 QuickJS 与 PeerSocket 消息'),
@@ -94,7 +94,7 @@ class _ZeppOsMoreFeaturesPageState
                   onPressed: (_) =>
                       context.push('/devices/zeppos-more/app-side'),
                 ),
-                SettingsTile.navigation(
+                SegmentedTile.navigation(
                   leading: const Icon(Icons.watch_outlined),
                   title: const Text('屏幕镜像'),
                   description: const Text('查看手表实时画面'),
@@ -103,11 +103,11 @@ class _ZeppOsMoreFeaturesPageState
                 ),
               ],
             ),
-            SettingsSection(
+            SegmentedSection(
               title: const Text('设备'),
               margin: EdgeInsetsDirectional.zero,
               tiles: [
-                SettingsTile.switchTile(
+                SegmentedTile.switchTile(
                   leading: _busy
                       ? const SizedBox.square(
                           dimension: 24,

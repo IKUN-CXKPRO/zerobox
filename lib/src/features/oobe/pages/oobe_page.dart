@@ -1,4 +1,4 @@
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:segmented_list/segmented_list.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -587,7 +587,7 @@ class _LoginStepState extends ConsumerState<_LoginStep> {
     final cs = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
 
-    final cdnTiles = <SettingsTile>[];
+    final cdnTiles = <SegmentedTile>[];
     final fastest = _cdnResults.entries.where((e) => e.value != null).toList()
       ..sort((a, b) => a.value!.compareTo(b.value!));
     final fastestCdn = fastest.isNotEmpty ? fastest.first.key : null;
@@ -596,7 +596,7 @@ class _LoginStepState extends ConsumerState<_LoginStep> {
       final ms = _cdnResults[cdn];
       final isFastest = cdn == fastestCdn;
       cdnTiles.add(
-        SettingsTile(
+        SegmentedTile(
           title: Text(
             cdn.displayName,
             style: isFastest
@@ -623,26 +623,25 @@ class _LoginStepState extends ConsumerState<_LoginStep> {
     }
 
     final cdnHeaderTile = _cdnTesting
-        ? SettingsTile(
+        ? SegmentedTile(
             title: Text(l10n.oobeCdnTesting),
             trailing: const SizedBox.square(
               dimension: 18,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
           )
-        : SettingsTile(
+        : SegmentedTile(
             title: Text(l10n.oobeCdnSelected),
             trailing: Icon(Icons.check, color: cs.primary),
           );
 
-    final list = SettingsList(
+    final list = SegmentedList(
       maxWidth: StyleConstants.pageMaxWidth,
       contentPadding: const EdgeInsets.symmetric(
-        horizontal: StyleConstants.pagePadding,
         vertical: StyleConstants.pagePadding,
       ),
       sections: [
-        SettingsSection(
+        SegmentedSection(
           title: Text(l10n.oobeLoginTitle),
           tiles: [
             _bandBbsTile(context, ref, l10n),
@@ -650,7 +649,7 @@ class _LoginStepState extends ConsumerState<_LoginStep> {
             _huamiTile(context, ref, l10n),
           ],
         ),
-        SettingsSection(
+        SegmentedSection(
           title: Text(l10n.oobeCdnTitle),
           tiles: [cdnHeaderTile, ...cdnTiles],
         ),
@@ -702,13 +701,13 @@ Future<void> _startBandBbsLogin(BuildContext context, WidgetRef ref) async {
   }
 }
 
-SettingsTile _bandBbsTile(
+SegmentedTile _bandBbsTile(
   BuildContext context,
   WidgetRef ref,
   AppLocalizations l10n,
 ) {
   final account = ref.watch(hostAccountsProvider.select((s) => s.bandbbs));
-  return SettingsTile.navigation(
+  return SegmentedTile.navigation(
     onPressed: account.isSignedIn || account.isBusy
         ? null
         : (_) => _startBandBbsLogin(context, ref),
@@ -738,13 +737,13 @@ SettingsTile _bandBbsTile(
   );
 }
 
-SettingsTile _xiaomiTile(
+SegmentedTile _xiaomiTile(
   BuildContext context,
   WidgetRef ref,
   AppLocalizations l10n,
 ) {
   final account = ref.watch(hostAccountsProvider.select((s) => s.xiaomi));
-  return SettingsTile.navigation(
+  return SegmentedTile.navigation(
     onPressed: account.isSignedIn || account.isBusy
         ? null
         : (_) => _showMiAccountLogin(context, ref),
@@ -770,13 +769,13 @@ SettingsTile _xiaomiTile(
   );
 }
 
-SettingsTile _huamiTile(
+SegmentedTile _huamiTile(
   BuildContext context,
   WidgetRef ref,
   AppLocalizations l10n,
 ) {
   final account = ref.watch(hostAccountsProvider.select((s) => s.amazfit));
-  return SettingsTile.navigation(
+  return SegmentedTile.navigation(
     onPressed: account.isSignedIn || account.isBusy
         ? null
         : (_) => _showHuamiAccountLogin(context, ref),

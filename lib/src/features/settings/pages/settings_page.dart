@@ -1,4 +1,4 @@
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:segmented_list/segmented_list.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -57,10 +57,9 @@ class SettingsPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: SysAppBar(title: Text(l10n.settingsTab)),
-      body: SettingsList(
+      body: SegmentedList(
         maxWidth: StyleConstants.pageMaxWidth,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: StyleConstants.pagePadding,
           vertical: StyleConstants.pagePadding,
         ),
         sections: [
@@ -68,13 +67,13 @@ class SettingsPage extends ConsumerWidget {
             context,
             title: l10n.settingsAccount,
             tiles: [
-              SettingsTile.navigation(
+              SegmentedTile.navigation(
                 onPressed: (_) => _showMiAccountLogin(context, ref),
                 leading: const _MiLogo(),
                 title: Text(l10n.settingsMiAccount),
                 description: Text(l10n.settingsMiAccountDesc),
               ),
-              SettingsTile.navigation(
+              SegmentedTile.navigation(
                 onPressed: (_) => _showHuamiAccountLogin(context, ref),
                 leading: const _AccountLeading(child: Icon(Icons.functions)),
                 title: Text(l10n.settingsHuamiAccount),
@@ -111,7 +110,7 @@ class SettingsPage extends ConsumerWidget {
                   },
                 ),
               ),
-              SettingsTile.navigation(
+              SegmentedTile.navigation(
                 onPressed: (_) {
                   final account = ref.read(hostAccountsProvider).bandbbs;
                   if (account.isSignedIn) {
@@ -167,7 +166,7 @@ class SettingsPage extends ConsumerWidget {
             context,
             title: l10n.settingsGeneral,
             tiles: [
-              SettingsTile.navigation(
+              SegmentedTile.navigation(
                 onPressed: (context) => _showLanguageSelector(context, ref),
                 leading: const Icon(Icons.language_outlined),
                 title: Text(l10n.settingsGeneralLanguage),
@@ -179,7 +178,7 @@ class SettingsPage extends ConsumerWidget {
                   },
                 ),
               ),
-              SettingsTile.navigation(
+              SegmentedTile.navigation(
                 onPressed: (context) => _showThemeModeSelector(context, ref),
                 leading: const Icon(Icons.dark_mode_outlined),
                 title: Text(l10n.settingsThemeMode),
@@ -187,7 +186,7 @@ class SettingsPage extends ConsumerWidget {
                 value: Text(_themeModeLabel(l10n, themeSettings.themeMode)),
               ),
               if (!kIsWeb)
-                SettingsTile.switchTile(
+                SegmentedTile.switchTile(
                   onToggle: (value) async {
                     await ref
                         .read(themeSettingsProvider.notifier)
@@ -199,7 +198,7 @@ class SettingsPage extends ConsumerWidget {
                   description: Text(l10n.settingsDynamicColorDesc),
                 ),
               if (!kIsWeb && !themeSettings.useDynamicColor)
-                SettingsTile.navigation(
+                SegmentedTile.navigation(
                   onPressed: (context) =>
                       _showColorSchemeSelector(context, ref),
                   leading: const Icon(Icons.color_lens_outlined),
@@ -208,7 +207,7 @@ class SettingsPage extends ConsumerWidget {
                   value: _ColorDot(color: themeSettings.customSeedColor),
                 ),
               if (showDesktopAccentSource && themeSettings.useDynamicColor)
-                SettingsTile.navigation(
+                SegmentedTile.navigation(
                   onPressed: (context) =>
                       _showDesktopAccentSourceSelector(context, ref),
                   leading: const Icon(Icons.color_lens_outlined),
@@ -224,7 +223,7 @@ class SettingsPage extends ConsumerWidget {
                   ),
                 ),
               if (showWideNavigationPosition)
-                SettingsTile.navigation(
+                SegmentedTile.navigation(
                   onPressed: (context) =>
                       _showWideNavigationPositionSelector(context, ref),
                   leading: const Icon(Icons.vertical_split_outlined),
@@ -240,7 +239,7 @@ class SettingsPage extends ConsumerWidget {
                   ),
                 ),
               if (showDesktopWindowSettings)
-                SettingsTile.navigation(
+                SegmentedTile.navigation(
                   onPressed: (context) =>
                       _showDesktopExitBehaviorMenu(context, ref),
                   leading: const Icon(Icons.close_fullscreen_outlined),
@@ -253,7 +252,7 @@ class SettingsPage extends ConsumerWidget {
                     ),
                   ),
                 ),
-              SettingsTile.switchTile(
+              SegmentedTile.switchTile(
                 onToggle: (value) async {
                   await ref
                       .read(appSettingsProvider.notifier)
@@ -270,7 +269,7 @@ class SettingsPage extends ConsumerWidget {
             context,
             title: l10n.settingsSource,
             tiles: [
-              SettingsTile.navigation(
+              SegmentedTile.navigation(
                 onPressed: (context) => _showCdnMenu(context, ref),
                 leading: const Icon(Icons.cloud_outlined),
                 title: Text(l10n.settingsSourceOfficialCdn),
@@ -288,7 +287,7 @@ class SettingsPage extends ConsumerWidget {
             context,
             title: l10n.settingsInstall,
             tiles: [
-              SettingsTile.switchTile(
+              SegmentedTile.switchTile(
                 onToggle: (value) async {
                   await ref
                       .read(appSettingsProvider.notifier)
@@ -299,7 +298,7 @@ class SettingsPage extends ConsumerWidget {
                 title: Text(l10n.settingsQueueAutoInstall),
                 description: Text(l10n.settingsQueueAutoInstallDesc),
               ),
-              SettingsTile.switchTile(
+              SegmentedTile.switchTile(
                 onToggle: (value) async {
                   await ref
                       .read(appSettingsProvider.notifier)
@@ -316,45 +315,45 @@ class SettingsPage extends ConsumerWidget {
             context,
             title: l10n.settingsAbout,
             tiles: [
-              SettingsTile.navigation(
+              SegmentedTile.navigation(
                 onPressed: (_) => context.push('/settings/about'),
                 leading: const Icon(Icons.info_outline),
                 title: Text(l10n.settingsAboutSoftware),
                 description: Text(l10n.settingsAboutSoftwareDesc),
               ),
-              SettingsTile.navigation(
+              SegmentedTile.navigation(
                 onPressed: (_) => _showLicensePage(context),
                 leading: const Icon(Icons.description_outlined),
                 title: Text(l10n.openSourceLicenses),
                 description: Text(l10n.settingsAboutLicencesDesc),
               ),
-              SettingsTile.navigation(
+              SegmentedTile.navigation(
                 onPressed: (_) => context.push('/settings/acknowledgements'),
                 leading: const Icon(Icons.favorite_outline),
                 title: Text(l10n.acknowledgements),
                 description: Text(l10n.acknowledgementsDesc),
               ),
-              SettingsTile.navigation(
+              SegmentedTile.navigation(
                 onPressed: (_) =>
                     _launchUrl(context, 'https://oronbox.zxor.org'),
                 leading: const Icon(Icons.language_outlined),
                 title: Text(l10n.settingsAboutWebsite),
                 description: Text(l10n.settingsAboutWebsiteDesc),
               ),
-              SettingsTile.navigation(
+              SegmentedTile.navigation(
                 onPressed: (_) => context.push('/settings/feedback'),
                 leading: const Icon(Icons.feedback_outlined),
                 title: Text(l10n.feedbackTitle),
                 description: Text(l10n.feedbackDesc),
               ),
-              SettingsTile.navigation(
+              SegmentedTile.navigation(
                 onPressed: (_) => context.push('/oobe?replay=1'),
                 leading: const Icon(Icons.waving_hand_outlined),
                 title: Text(l10n.settingsReplayOobe),
                 description: Text(l10n.settingsReplayOobeDesc),
               ),
               if (showDebugWindowSettings)
-                SettingsTile.switchTile(
+                SegmentedTile.switchTile(
                   onToggle: (value) =>
                       _setDebugWindowEnabled(context, ref, value ?? false),
                   initialValue: debugWindowEnabled,
@@ -373,12 +372,12 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
-  SettingsSection _buildSection(
+  SegmentedSection _buildSection(
     BuildContext context, {
     required String title,
-    required List<AbstractSettingsTile> tiles,
+    required List<AbstractSegmentedTile> tiles,
   }) {
-    return SettingsSection(title: Text(title), tiles: tiles);
+    return SegmentedSection(title: Text(title), tiles: tiles);
   }
 
   Future<void> _setDebugWindowEnabled(

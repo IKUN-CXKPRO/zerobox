@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:card_settings_ui/tile/abstract_settings_tile.dart';
-import 'package:card_settings_ui/tile/settings_tile_info.dart';
+import 'package:segmented_list/tile/abstract_segmented_tile.dart';
+import 'package:segmented_list/tile/segmented_tile_info.dart';
 
 enum SettingsTileType {
   simpleTile,
@@ -10,8 +10,8 @@ enum SettingsTileType {
   radioTile,
 }
 
-class SettingsTile<T> extends AbstractSettingsTile {
-  SettingsTile({
+class SegmentedTile<T> extends AbstractSegmentedTile {
+  SegmentedTile({
     this.leading,
     this.trailing,
     required this.title,
@@ -27,7 +27,7 @@ class SettingsTile<T> extends AbstractSettingsTile {
     tileType = SettingsTileType.simpleTile;
   }
 
-  SettingsTile.navigation({
+  SegmentedTile.navigation({
     this.leading,
     this.trailing,
     this.value,
@@ -43,7 +43,7 @@ class SettingsTile<T> extends AbstractSettingsTile {
     tileType = SettingsTileType.navigationTile;
   }
 
-  SettingsTile.switchTile({
+  SegmentedTile.switchTile({
     required this.initialValue,
     required this.onToggle,
     this.leading,
@@ -59,7 +59,7 @@ class SettingsTile<T> extends AbstractSettingsTile {
     tileType = SettingsTileType.switchTile;
   }
 
-  SettingsTile.checkboxTile({
+  SegmentedTile.checkboxTile({
     required this.initialValue,
     required this.onToggle,
     this.leading,
@@ -75,7 +75,7 @@ class SettingsTile<T> extends AbstractSettingsTile {
     tileType = SettingsTileType.checkboxTile;
   }
 
-  SettingsTile.radioTile({
+  SegmentedTile.radioTile({
     required this.radioValue,
     required this.groupValue,
     required this.onChanged,
@@ -141,7 +141,7 @@ class SettingsTile<T> extends AbstractSettingsTile {
 
   @override
   Widget build(BuildContext context) {
-    final settingsTileInfo = SettingsTileInfo.of(context);
+    final settingsTileInfo = SegmentedTileInfo.of(context);
 
     return Column(
       mainAxisSize: MainAxisSize.min,

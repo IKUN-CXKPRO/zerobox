@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class SettingsTileInfo extends InheritedWidget {
-  const SettingsTileInfo({
+class SegmentedTileInfo extends InheritedWidget {
+  const SegmentedTileInfo({
     super.key,
     required this.needDivider,
     required this.isTopTile,
@@ -14,14 +14,14 @@ class SettingsTileInfo extends InheritedWidget {
   final bool isBottomTile;
 
   @override
-  bool updateShouldNotify(SettingsTileInfo oldWidget) => true;
+  bool updateShouldNotify(SegmentedTileInfo oldWidget) => true;
 
-  static SettingsTileInfo of(BuildContext context) {
-    final SettingsTileInfo? result =
-        context.dependOnInheritedWidgetOfExactType<SettingsTileInfo>();
+  static SegmentedTileInfo of(BuildContext context) {
+    final SegmentedTileInfo? result =
+        context.dependOnInheritedWidgetOfExactType<SegmentedTileInfo>();
     // assert(result != null, 'No IOSSettingsTileAdditionalInfo found in context');
     return result ??
-        const SettingsTileInfo(
+        const SegmentedTileInfo(
           needDivider: true,
           isBottomTile: true,
           isTopTile: true,

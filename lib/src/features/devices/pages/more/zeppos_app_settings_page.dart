@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:segmented_list/segmented_list.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
@@ -147,11 +147,11 @@ class _ZeppOsAppSettingsPageState extends State<ZeppOsAppSettingsPage> {
           }
           return ListView(
             children: [
-              SettingsSection(
+              SegmentedSection(
                 margin: EdgeInsetsDirectional.zero,
                 tiles: [
                   for (final item in items)
-                    SettingsTile.navigation(
+                    SegmentedTile.navigation(
                       leading: Icon(
                         item.hasSetting ? Icons.tune : Icons.extension_outlined,
                       ),

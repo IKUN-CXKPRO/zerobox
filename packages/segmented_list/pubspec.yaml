@@ -1,5 +1,5 @@
-name: card_settings_ui
-description: "A card based settings ui for flutter. (OronBox fork with web support.)"
+name: segmented_list
+description: "A segmented list ui for flutter. (OronBox fork of card-settings-ui with web support.)"
 version: 2.0.1+oronbox.1
 homepage: https://github.com/ErBWs/card-settings-ui
 

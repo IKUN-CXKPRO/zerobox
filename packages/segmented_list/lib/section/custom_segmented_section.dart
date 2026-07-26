@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:card_settings_ui/section/abstract_settings_section.dart';
+import 'package:segmented_list/section/abstract_segmented_section.dart';
 
-class CustomSettingsSection extends AbstractSettingsSection {
-  const CustomSettingsSection({
+class CustomSegmentedSection extends AbstractSegmentedSection {
+  const CustomSegmentedSection({
     required this.child,
     super.key,
   });

@@ -41,7 +41,54 @@ OronBox 提供功能完整且可脚本化的命令行界面，可在无 GUI 模�
 
 ## 从源码构建
 
-~~需要先安装 [Flutter](https://docs.flutter.dev/get-started/install)~~
+### 环境准备
+
+- Flutter stable（推荐用 [fvm](https://fvm.app) 管理，仓库根目录的 `.fvmrc` 已指定版本），然后 `flutter pub get`
+- 网络插件 `oronbox_network` 在构建时自动从 GitHub Release 下载预编译库，无需 Rust 工具链
+- 各平台额外依赖：
+  - **Linux**：`gtk3` `webkit2gtk-4.1` `bluez` `libblkid` `xz`；打包工具按需：`dpkg-deb`（deb）、`rpmbuild`（rpm）、`makepkg`（arch）、`linuxdeploy` 或 `appimagetool`（AppImage）、`flatpak-builder` 与 GNOME SDK（Flatpak）
+  - **Android**：Flutter 标配的 Android SDK/NDK
+  - **Windows**：Visual Studio 2022（C++ 桌面工作负载）；WebView2 SDK 可用脚本安装：`windows/scripts/install_webview2_sdk.ps1`
+  - **macOS**：Xcode，仅可在 macOS 主机构建
+  - **Web**：无额外依赖
+
+### 一键构建
+
+```bash
+tool/build_all.sh [--dev]
+```
+
+构建 Android + Web + 当前宿主桌面平台，产物统一输出到 `build/release/`，并生成 `sha256sums.txt`。
+
+### 分平台构建
+
+```bash
+# Android
+tool/build_android.sh [--format apk|appbundle|all] [--abi arm64-v8a|armeabi-v7a|x86_64]
+
+# Linux
+tool/build_linux.sh [--format tar.gz|deb|rpm|arch|appimage|flatpak|all] [--abi x86_64|aarch64]
+
+# macOS（仅 macOS 主机）
+tool/build_macos.sh
+
+# Windows（任选其一）
+tool\build_windows.bat [--dev]
+powershell -File tool/build_windows.ps1 [-Dev] [-SkipWebView2Sdk] [-WebView2SdkVersion <版本>]
+
+# Web
+tool/build_web.sh
+```
+
+- `--format` / `--abi` 缺省时构建全部格式 / 全部 ABI；Linux `--abi` 缺省取宿主架构
+- Android 发布签名通过环境变量配置：`ORONBOX_KEYSTORE_PATH`、`ORONBOX_KEYSTORE_PASSWORD`、`ORONBOX_KEY_ALIAS`、`ORONBOX_KEY_PASSWORD`；未设置时使用 debug 签名
+- Linux 交叉编译 aarch64（x86_64 宿主）需将 `ORONBOX_LINUX_ARM64_SYSROOT` 指向包含 gtk3/webkit2gtk 等开发包的 arm64 sysroot；交叉模式只产出 tar.gz / deb / rpm / arch
+
+### 版本与产物约定
+
+- 版本号取自 `pubspec.yaml` 的 `version` 字段
+- 默认要求 git 工作区干净；加 `--dev` 允许脏工作区并在版本号后附加 git 元数据（如 `1.0.0.dirty.abc1234`）
+- 产物命名：`oronbox-<version>-<platform>[-<arch>].<ext>`，符号表（如有）随包一并归档
 
 ## AI 开发声明
 
@@ -51,6 +98,7 @@ OronBox 提供功能完整且可脚本化的命令行界面，可在无 GUI 模�
 | 模型 | 协助的部分 |
 |------|------|
 | ChatGPT 5.5/5.6-Sol | Dart 蓝牙连接行为/协议、后端逻辑重写、部分前端 |
+| Kimi K3 | OOBE、创作者相关逻辑 |
 | Kimi K2.6 | 部分前端、UI/UX、初版后端 |
 
 ## 鸣谢

@@ -37,34 +37,6 @@ class AboutSoftwarePage extends ConsumerWidget {
               const _AboutHeader(),
               const SizedBox(height: 12),
               _Section(
-                icon: Icons.gavel_outlined,
-                title: l10n.legalAndPrivacy,
-                child: Column(
-                  children: [
-                    for (final document in [
-                      ('terms', l10n.termsTitle),
-                      ('privacy', l10n.privacyTitle),
-                      ('resource-publishing', l10n.resourcePublishingTitle),
-                      ('review-rules', l10n.reviewRulesTitle),
-                    ])
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.article_outlined),
-                        title: Text(document.$2),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => LegalDocumentPage(
-                              id: document.$1,
-                              title: document.$2,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              _Section(
                 icon: Icons.people_alt_outlined,
                 title: l10n.settingsAboutSoftwareTeam,
                 child: LayoutBuilder(
@@ -91,6 +63,34 @@ class AboutSoftwarePage extends ConsumerWidget {
                       },
                     );
                   },
+                ),
+              ),
+              _Section(
+                icon: Icons.gavel_outlined,
+                title: l10n.legalAndPrivacy,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final document in [
+                      ('terms', l10n.termsTitle),
+                      ('privacy', l10n.privacyTitle),
+                      ('resource-publishing', l10n.resourcePublishingTitle),
+                      ('review-rules', l10n.reviewRulesTitle),
+                    ])
+                      FilledButton.tonalIcon(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => LegalDocumentPage(
+                              id: document.$1,
+                              title: document.$2,
+                            ),
+                          ),
+                        ),
+                        icon: const Icon(Icons.article_outlined),
+                        label: Text(document.$2),
+                      ),
+                  ],
                 ),
               ),
               _Section(
@@ -136,11 +136,14 @@ class AboutSoftwarePage extends ConsumerWidget {
                 ),
               ),
               const _LogsSection(),
-              Text(
-                l10n.settingsAboutSoftwareCopyright,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+              Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: Text(
+                  l10n.settingsAboutSoftwareCopyright,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],

@@ -1,4 +1,4 @@
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:segmented_list/segmented_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -39,7 +39,8 @@ class OobeLoginBlocks extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      SettingsSection(
+                      SegmentedSection(
+                        margin: EdgeInsetsDirectional.zero,
                         tiles: [
                           _bandBbsTile(context, ref, l10n),
                           _xiaomiTile(context, ref, l10n),
@@ -82,12 +83,12 @@ Future<void> _startBandBbsLogin(BuildContext context, WidgetRef ref) async {
   }
 }
 
-SettingsTile _bandBbsTile(
+SegmentedTile _bandBbsTile(
   BuildContext context,
   WidgetRef ref,
   AppLocalizations l10n,
 ) {
-  return SettingsTile.navigation(
+  return SegmentedTile.navigation(
     onPressed: (_) {
       final account = ref.read(hostAccountsProvider).bandbbs;
       if (!account.isSignedIn && !account.isBusy) {
@@ -137,12 +138,12 @@ SettingsTile _bandBbsTile(
   );
 }
 
-SettingsTile _xiaomiTile(
+SegmentedTile _xiaomiTile(
   BuildContext context,
   WidgetRef ref,
   AppLocalizations l10n,
 ) {
-  return SettingsTile.navigation(
+  return SegmentedTile.navigation(
     onPressed: (_) => _showMiAccountLogin(context, ref),
     leading: const _MiLogo(),
     title: Text(l10n.settingsMiAccount),
@@ -181,12 +182,12 @@ SettingsTile _xiaomiTile(
   );
 }
 
-SettingsTile _huamiTile(
+SegmentedTile _huamiTile(
   BuildContext context,
   WidgetRef ref,
   AppLocalizations l10n,
 ) {
-  return SettingsTile.navigation(
+  return SegmentedTile.navigation(
     onPressed: (_) => _showHuamiAccountLogin(context, ref),
     leading: const _LeadingBox(child: Icon(Icons.functions)),
     title: Text(l10n.settingsHuamiAccount),

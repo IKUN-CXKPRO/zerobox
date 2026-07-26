@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:card_settings_ui/section/abstract_settings_section.dart';
+import 'package:segmented_list/section/abstract_segmented_section.dart';
 
-class SettingsList extends StatelessWidget {
-  const SettingsList({
+class SegmentedList extends StatelessWidget {
+  const SegmentedList({
     required this.sections,
     this.shrinkWrap = false,
     this.maxWidth,
@@ -15,7 +15,7 @@ class SettingsList extends StatelessWidget {
   final double? maxWidth;
   final ScrollPhysics? physics;
   final EdgeInsetsGeometry? contentPadding;
-  final List<AbstractSettingsSection> sections;
+  final List<AbstractSegmentedSection> sections;
 
   @override
   Widget build(BuildContext context) {

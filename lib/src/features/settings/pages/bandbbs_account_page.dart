@@ -1,4 +1,4 @@
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:segmented_list/segmented_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -74,9 +74,10 @@ class _BandBbsAccountPageState extends ConsumerState<BandBbsAccountPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SettingsSection(
+              SegmentedSection(
+                margin: EdgeInsetsDirectional.zero,
                 tiles: [
-                  SettingsTile(
+                  SegmentedTile(
                     leading: account.avatarUrl != null
                         ? NetworkImgLayer(
                             src: account.avatarUrl!,
@@ -117,10 +118,11 @@ class _BandBbsAccountPageState extends ConsumerState<BandBbsAccountPage> {
                   ),
                 ],
               ),
-              SettingsSection(
+              SegmentedSection(
+                margin: EdgeInsetsDirectional.zero,
                 title: Text(l10n.bandBbsResourceQueryTitle),
                 tiles: [
-                  SettingsTile(
+                  SegmentedTile(
                     leading: const Icon(Icons.tag),
                     title: Text(l10n.bandBbsResourceId),
                     description: Padding(
@@ -156,10 +158,11 @@ class _BandBbsAccountPageState extends ConsumerState<BandBbsAccountPage> {
                   ),
                 ],
               ),
-              SettingsSection(
+              SegmentedSection(
+                margin: EdgeInsetsDirectional.zero,
                 title: Text(l10n.settingsGeneral),
                 tiles: [
-                  SettingsTile.switchTile(
+                  SegmentedTile.switchTile(
                     onToggle: (value) async {
                       await ref
                           .read(appSettingsProvider.notifier)
@@ -172,7 +175,7 @@ class _BandBbsAccountPageState extends ConsumerState<BandBbsAccountPage> {
                     title: Text(l10n.bandBbsLoadPreviews),
                     description: Text(l10n.bandBbsLoadPreviewsDesc),
                   ),
-                  SettingsTile.switchTile(
+                  SegmentedTile.switchTile(
                     onToggle: (value) async {
                       await ref
                           .read(appSettingsProvider.notifier)

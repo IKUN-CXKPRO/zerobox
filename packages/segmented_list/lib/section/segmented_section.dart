@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:card_settings_ui/tile/abstract_settings_tile.dart';
-import 'package:card_settings_ui/tile/settings_tile_info.dart';
-import 'package:card_settings_ui/section/abstract_settings_section.dart';
+import 'package:segmented_list/tile/abstract_segmented_tile.dart';
+import 'package:segmented_list/tile/segmented_tile_info.dart';
+import 'package:segmented_list/section/abstract_segmented_section.dart';
 
-class SettingsSection extends AbstractSettingsSection {
-  const SettingsSection({
+class SegmentedSection extends AbstractSegmentedSection {
+  const SegmentedSection({
     required this.tiles,
     this.margin,
     this.title,
@@ -12,7 +12,7 @@ class SettingsSection extends AbstractSettingsSection {
     super.key,
   });
 
-  final List<AbstractSettingsTile> tiles;
+  final List<AbstractSegmentedTile> tiles;
   final EdgeInsetsDirectional? margin;
   final Widget? title;
   final Widget? bottomInfo;
@@ -62,7 +62,7 @@ class SettingsSection extends AbstractSettingsSection {
       padding: EdgeInsets.zero,
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (BuildContext context, int index) {
-        return SettingsTileInfo(
+        return SegmentedTileInfo(
           isTopTile: index == 0,
           isBottomTile: index == tiles.length - 1,
           needDivider: index != tiles.length - 1,

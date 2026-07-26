@@ -52,11 +52,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (onOobe && uri.queryParameters['replay'] != '1') {
         return '/resources';
       }
-      if (uri.scheme == 'oronbox' && uri.host == 'oauth') {
-        // OAuth callbacks are consumed by DeviceDeepLinkHandler; just land
-        // somewhere sensible instead of showing a "page not found".
-        return '/settings/bandbbs';
-      }
       final isDeviceShareLink =
           (uri.scheme == 'oronbox' && uri.host == 'open') ||
           ((uri.scheme == 'https' || uri.scheme == 'http') &&

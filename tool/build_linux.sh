@@ -4,12 +4,114 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/build_common.sh"
 
-init_build "$@"
-log_info "Building Linux release packages for version ${VERSION}"
+FORMAT="all"
+case "$(uname -m)" in
+  aarch64|arm64) ABI="aarch64" ;;
+  *) ABI="x86_64" ;;
+esac
+COMMON_ARGS=()
+
+print_help() {
+  cat <<EOF
+Usage: $(basename "$0") [options]
+
+Options:
+  --format <fmt>  Only build the given package format:
+                  tar.gz, deb, rpm, arch, appimage, flatpak, all (default: all)
+  --abi <abi>     Target architecture: x86_64, aarch64 (default: host)
+                  Cross-building aarch64 from x86_64 requires an arm64 sysroot
+                  in ORONBOX_LINUX_ARM64_SYSROOT, and only produces tar.gz,
+                  deb, rpm and arch packages
+  --dev           Allow a dirty worktree and append git metadata to the package version
+  -h, --help      Show this help
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --format)
+      FORMAT="${2:?--format requires a value}"
+      shift 2
+      ;;
+    --format=*)
+      FORMAT="${1#*=}"
+      shift
+      ;;
+    --abi)
+      ABI="${2:?--abi requires a value}"
+      shift 2
+      ;;
+    --abi=*)
+      ABI="${1#*=}"
+      shift
+      ;;
+    -h|--help)
+      print_help
+      exit 0
+      ;;
+    *)
+      COMMON_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+case "${FORMAT}" in
+  tar.gz|deb|rpm|arch|appimage|flatpak|all) ;;
+  *)
+    log_error "Unknown format: ${FORMAT} (expected tar.gz, deb, rpm, arch, appimage, flatpak or all)"
+    exit 1
+    ;;
+esac
+
+HOST_ARCH="$(uname -m)"
+case "${ABI}" in
+  x86_64)
+    FLUTTER_PLATFORM="linux-x64"
+    BUNDLE_ARCH_DIR="x64"
+    GENERIC_ARCH="amd64"
+    DEB_ARCH="amd64"
+    RPM_ARCH="x86_64"
+    ;;
+  aarch64)
+    FLUTTER_PLATFORM="linux-arm64"
+    BUNDLE_ARCH_DIR="arm64"
+    GENERIC_ARCH="arm64"
+    DEB_ARCH="arm64"
+    RPM_ARCH="aarch64"
+    ;;
+  *)
+    log_error "Unknown ABI: ${ABI} (expected x86_64 or aarch64)"
+    exit 1
+    ;;
+esac
+
+CROSS="false"
+TARGET_ARGS=(--target-platform="${FLUTTER_PLATFORM}")
+STRIP_CMD="strip"
+if [[ "${HOST_ARCH}" == "x86_64" && "${ABI}" == "aarch64" ]]; then
+  CROSS="true"
+  if [[ -z "${ORONBOX_LINUX_ARM64_SYSROOT:-}" ]]; then
+    log_error "Cross-building aarch64 requires ORONBOX_LINUX_ARM64_SYSROOT to point at an arm64 sysroot."
+    exit 1
+  fi
+  TARGET_ARGS+=(--target-sysroot="${ORONBOX_LINUX_ARM64_SYSROOT}")
+  if command -v aarch64-linux-gnu-strip >/dev/null 2>&1; then
+    STRIP_CMD="aarch64-linux-gnu-strip"
+  else
+    log_warn "aarch64-linux-gnu-strip not found; binaries will not be stripped"
+    STRIP_CMD="true"
+  fi
+elif [[ "${HOST_ARCH}" == "aarch64" && "${ABI}" == "x86_64" ]]; then
+  log_error "Cross-building x86_64 from an aarch64 host is not supported."
+  exit 1
+fi
+
+init_build "${COMMON_ARGS[@]}"
+log_info "Building Linux release packages for version ${VERSION} (format=${FORMAT}, abi=${ABI})"
 
 require_flutter
 require_command tar
-require_command dpkg-deb
 ensure_release_dir
 
 mapfile -t DART_DEFINES < <(flutter_release_defines)
@@ -18,26 +120,29 @@ run_cmd flutter build linux \
   --release \
   --obfuscate \
   --split-debug-info=symbols/linux \
+  "${TARGET_ARGS[@]}" \
   "${DART_DEFINES[@]}"
 
-BUNDLE_DIR="${PROJECT_ROOT}/build/linux/x64/release/bundle"
+BUNDLE_DIR="${PROJECT_ROOT}/build/linux/${BUNDLE_ARCH_DIR}/release/bundle"
 SYMBOLS_DIR="${PROJECT_ROOT}/symbols/linux"
 if [[ ! -d "${BUNDLE_DIR}" ]]; then
   log_error "Linux build bundle not found: ${BUNDLE_DIR}"
   exit 1
 fi
 
-TAR_DST="${RELEASE_DIR}/${APP_NAME}-${VERSION}-linux-amd64.tar.gz"
-rm -f "${TAR_DST}"
-(
-  cd "$(dirname "${BUNDLE_DIR}")"
-  tar czf "${TAR_DST}" "$(basename "${BUNDLE_DIR}")"
-)
-log_info "Produced ${TAR_DST}"
+if [[ "${FORMAT}" == "tar.gz" || "${FORMAT}" == "all" ]]; then
+  TAR_DST="${RELEASE_DIR}/${APP_NAME}-${VERSION}-linux-${GENERIC_ARCH}.tar.gz"
+  rm -f "${TAR_DST}"
+  (
+    cd "$(dirname "${BUNDLE_DIR}")"
+    tar czf "${TAR_DST}" "$(basename "${BUNDLE_DIR}")"
+  )
+  log_info "Produced ${TAR_DST}"
 
-archive_symbols_if_present \
-  "${SYMBOLS_DIR}" \
-  "${RELEASE_DIR}/${APP_NAME}-${VERSION}-linux-amd64.symbols.tar.gz"
+  archive_symbols_if_present \
+    "${SYMBOLS_DIR}" \
+    "${RELEASE_DIR}/${APP_NAME}-${VERSION}-linux-${GENERIC_ARCH}.symbols.tar.gz"
+fi
 
 STAGING_ROOT="${PROJECT_ROOT}/build/linux_staging"
 INSTALL_PREFIX="/opt/${APP_NAME}"
@@ -59,7 +164,7 @@ copy_bundle_to() {
   cp -a "${BUNDLE_DIR}/." "${root}${INSTALL_PREFIX}/"
   chmod +x "${root}${INSTALL_PREFIX}/${APP_NAME}"
   find "${root}${INSTALL_PREFIX}" -type f \( -name '*.so' -o -name "${APP_NAME}" \) \
-    -exec strip --strip-unneeded {} \; 2>/dev/null || true
+    -exec "${STRIP_CMD}" --strip-unneeded {} \; 2>/dev/null || true
 }
 
 copy_system_icons_to() {
@@ -69,6 +174,11 @@ copy_system_icons_to() {
 }
 
 build_deb() {
+  if ! command -v dpkg-deb >/dev/null 2>&1; then
+    log_warn "dpkg-deb not found; skipped DEB package"
+    return 0
+  fi
+
   local deb_root="${STAGING_ROOT}/deb"
   rm -rf "${deb_root}"
   copy_bundle_to "${deb_root}"
@@ -81,13 +191,13 @@ Package: ${APP_NAME}
 Version: ${VERSION}
 Section: utils
 Priority: optional
-Architecture: amd64
+Architecture: ${DEB_ARCH}
 Depends: libgtk-3-0, libblkid1, liblzma5, libwebkit2gtk-4.1-0, bluez
 Maintainer: ${MAINTAINER}
 Description: ${DESCRIPTION}
 EOF
 
-  local deb_out="${RELEASE_DIR}/${APP_NAME}_${VERSION}_amd64.deb"
+  local deb_out="${RELEASE_DIR}/${APP_NAME}_${VERSION}_${DEB_ARCH}.deb"
   rm -f "${deb_out}"
   run_cmd dpkg-deb --root-owner-group --build "${deb_root}" "${deb_out}"
   log_info "Produced ${deb_out}"
@@ -114,7 +224,7 @@ Release:        ${release_num}%{?dist}
 Summary:        ${DESCRIPTION}
 License:        ${LICENSE}
 URL:            ${HOMEPAGE}
-BuildArch:      x86_64
+BuildArch:      ${RPM_ARCH}
 
 %description
 ${DESCRIPTION}
@@ -148,7 +258,7 @@ EOF
     log_error "RPM build failed: no .rpm file produced"
     exit 1
   fi
-  copy_artifact "${rpm_src}" "${RELEASE_DIR}/${APP_NAME}-${VERSION}-${release_num}.x86_64.rpm"
+  copy_artifact "${rpm_src}" "${RELEASE_DIR}/${APP_NAME}-${VERSION}-${release_num}.${RPM_ARCH}.rpm"
 }
 
 build_arch() {
@@ -168,7 +278,7 @@ pkgname=${APP_NAME}
 pkgver=${VERSION}
 pkgrel=1
 pkgdesc="${DESCRIPTION}"
-arch=('x86_64')
+arch=('${RPM_ARCH}')
 url="${HOMEPAGE}"
 license=('${LICENSE}')
 depends=('gtk3' 'libblockdev' 'xz' 'webkit2gtk-4.1' 'bluez')
@@ -196,10 +306,14 @@ EOF
     log_error "Arch package build failed: no .pkg.tar.zst file produced"
     exit 1
   fi
-  copy_artifact "${arch_src}" "${RELEASE_DIR}/${APP_NAME}-${VERSION}-1-x86_64.pkg.tar.zst"
+  copy_artifact "${arch_src}" "${RELEASE_DIR}/${APP_NAME}-${VERSION}-1-${RPM_ARCH}.pkg.tar.zst"
 }
 
 build_appimage() {
+  if [[ "${CROSS}" == "true" ]]; then
+    log_warn "AppImage tools cannot cross-package aarch64 from ${HOST_ARCH}; skipped AppImage package"
+    return 0
+  fi
   local tool=""
   if command -v linuxdeploy >/dev/null 2>&1; then
     tool="linuxdeploy"
@@ -234,7 +348,7 @@ exec "\${HERE}/opt/${APP_NAME}/${APP_NAME}" "\$@"
 EOF
   chmod +x "${appdir}/AppRun"
 
-  local output="${RELEASE_DIR}/${APP_NAME}-${VERSION}-linux-amd64.AppImage"
+  local output="${RELEASE_DIR}/${APP_NAME}-${VERSION}-linux-${GENERIC_ARCH}.AppImage"
   rm -f "${output}"
   if [[ "${tool}" == "linuxdeploy" ]]; then
     (
@@ -258,6 +372,10 @@ EOF
 }
 
 build_flatpak() {
+  if [[ "${CROSS}" == "true" ]]; then
+    log_warn "Flatpak builds from source inside flatpak-builder and needs a matching-arch host; skipped Flatpak package"
+    return 0
+  fi
   if ! command -v flatpak-builder >/dev/null 2>&1; then
     log_warn "flatpak-builder not found; skipped Flatpak package"
     return 0
@@ -280,7 +398,7 @@ build_flatpak() {
   local flatpak_stage="${STAGING_ROOT}/flatpak"
   local flatpak_build="${STAGING_ROOT}/flatpak-build"
   local flatpak_repo="${STAGING_ROOT}/flatpak-repo"
-  local output="${RELEASE_DIR}/${APP_NAME}-${VERSION}-linux-amd64.flatpak"
+  local output="${RELEASE_DIR}/${APP_NAME}-${VERSION}-linux-${GENERIC_ARCH}.flatpak"
   rm -rf "${flatpak_stage}" "${flatpak_build}" "${flatpak_repo}"
   mkdir -p "${flatpak_stage}"
   prepare_desktop_file "${flatpak_stage}/${DESKTOP_FILE}" "${APP_NAME}"
@@ -301,10 +419,19 @@ build_flatpak() {
   log_info "Produced ${output}"
 }
 
-build_deb
-build_rpm
-build_arch
-build_appimage
-build_flatpak
+case "${FORMAT}" in
+  all)
+    build_deb
+    build_rpm
+    build_arch
+    build_appimage
+    build_flatpak
+    ;;
+  deb) build_deb ;;
+  rpm) build_rpm ;;
+  arch) build_arch ;;
+  appimage) build_appimage ;;
+  flatpak) build_flatpak ;;
+esac
 
 log_info "Linux build complete"

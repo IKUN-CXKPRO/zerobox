@@ -48,8 +48,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   freezed_annotation: ^3.1.0
   json_annotation: ^4.12.0
-  card_settings_ui:
-    path: packages/card_settings_ui
+  segmented_list:
+    path: packages/segmented_list
   flutter_svg: ^2.3.0
   shared_preferences: ^2.5.5
   universal_ble: ^2.1.0
@@ -98,8 +98,6 @@ dev_dependencies:
 # while its generated bindings remain compatible with the Freezed 3 runtime.
 dependency_overrides:
   freezed_annotation: ^3.1.0
-  oronbox_network:
-    path: /home/orpudding/Documents/ZeroBox-Package-Network
   # The published version extracts Windows binaries through Flutter's plugin
   # symlink. Keep the CMake fix local so `pub get` cannot overwrite it.
   wasm_run_flutter:

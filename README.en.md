@@ -41,7 +41,54 @@ OronBox provides a powerful, scriptable command-line interface for managing devi
 
 ## Build from source
 
-~~You need [Flutter](https://docs.flutter.dev/get-started/install) installed~~
+### Prerequisites
+
+- Flutter stable (we recommend managing it with [fvm](https://fvm.app); the repo root `.fvmrc` pins the version), then `flutter pub get`
+- The `oronbox_network` network plugin downloads prebuilt binaries from GitHub Releases at build time, so no Rust toolchain is required
+- Platform-specific dependencies:
+  - **Linux**: `gtk3` `webkit2gtk-4.1` `bluez` `libblkid` `xz`; packaging tools as needed: `dpkg-deb` (deb), `rpmbuild` (rpm), `makepkg` (arch), `linuxdeploy` or `appimagetool` (AppImage), `flatpak-builder` with the GNOME SDK (Flatpak)
+  - **Android**: the Android SDK/NDK bundled with a standard Flutter setup
+  - **Windows**: Visual Studio 2022 (Desktop development with C++); the WebView2 SDK can be installed via `windows/scripts/install_webview2_sdk.ps1`
+  - **macOS**: Xcode; can only be built on a macOS host
+  - **Web**: no extra dependencies
+
+### Build everything
+
+```bash
+tool/build_all.sh [--dev]
+```
+
+Builds Android + Web + the desktop platform of the current host. Artifacts land in `build/release/` along with a generated `sha256sums.txt`.
+
+### Per-platform builds
+
+```bash
+# Android
+tool/build_android.sh [--format apk|appbundle|all] [--abi arm64-v8a|armeabi-v7a|x86_64]
+
+# Linux
+tool/build_linux.sh [--format tar.gz|deb|rpm|arch|appimage|flatpak|all] [--abi x86_64|aarch64]
+
+# macOS (macOS hosts only)
+tool/build_macos.sh
+
+# Windows (either one)
+tool\build_windows.bat [--dev]
+powershell -File tool/build_windows.ps1 [-Dev] [-SkipWebView2Sdk] [-WebView2SdkVersion <version>]
+
+# Web
+tool/build_web.sh
+```
+
+- Without `--format` / `--abi`, every format / ABI is built; on Linux `--abi` defaults to the host architecture
+- Android release signing is configured through environment variables: `ORONBOX_KEYSTORE_PATH`, `ORONBOX_KEYSTORE_PASSWORD`, `ORONBOX_KEY_ALIAS`, `ORONBOX_KEY_PASSWORD`; without them the debug signing config is used
+- Cross-building Linux aarch64 from an x86_64 host requires `ORONBOX_LINUX_ARM64_SYSROOT` pointing to an arm64 sysroot with the gtk3/webkit2gtk development packages; cross mode only produces tar.gz / deb / rpm / arch packages
+
+### Versioning and artifact conventions
+
+- The version comes from the `version` field in `pubspec.yaml`
+- A clean git worktree is required by default; `--dev` allows a dirty worktree and appends git metadata to the version (e.g. `1.0.0.dirty.abc1234`)
+- Artifacts are named `oronbox-<version>-<platform>[-<arch>].<ext>`; symbol archives (when present) accompany the packages
 
 ## AI development disclosure
 
@@ -52,6 +99,7 @@ Usage:
 | Model | Areas assisted |
 |-------|----------------|
 | ChatGPT 5.5/5.6-Sol | Dart Bluetooth connection behavior/protocol, backend rewrite, parts of the frontend |
+| Kimi K3 | OOBE, creator-related logic |
 | Kimi K2.6 | Parts of the frontend, UI/UX, initial backend |
 
 ## Acknowledgements
