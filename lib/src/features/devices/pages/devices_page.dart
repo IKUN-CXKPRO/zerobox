@@ -13,6 +13,7 @@ import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/core/models/device.dart';
 import 'package:oronbox/src/core/utils/layout.dart';
+import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/devices/widgets/device_connection_text.dart';
 import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
@@ -143,7 +144,10 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
                 final featuresPanel = _DeviceFeaturesPanel(
                   enabled: isReady,
                   hasDevice: device != null,
-                  isZeppOs: device?.codename?.startsWith('zepp:') ?? false,
+                  isZeppOs:
+                      (device?.codename?.startsWith('zepp:') ?? false) ||
+                      (device != null &&
+                          zeppOsDeviceForBluetoothName(device.name) != null),
                 );
 
                 return PageContainer(

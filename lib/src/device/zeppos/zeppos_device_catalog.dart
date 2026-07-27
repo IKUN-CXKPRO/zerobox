@@ -53,6 +53,7 @@ const zeppOsDeviceCatalog = <ZeppOsDeviceCatalogEntry>[
   ZeppOsDeviceCatalogEntry(
     id: 'active-2-nfc-round',
     bluetoothNames: ['Active 2 NFC (Round)'],
+    connectionCapability: ZeppOsConnectionCapability.both,
   ),
   ZeppOsDeviceCatalogEntry(
     id: 'active-2-round',

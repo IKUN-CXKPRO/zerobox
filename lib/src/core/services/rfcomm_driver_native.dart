@@ -58,6 +58,14 @@ class NativeRfcommDriver implements RfcommDriver {
   final _connectionController = StreamController<bool>.broadcast();
   final _scanResults = <String, BluetoothEndpoint>{};
 
+  String _canonicalAddress(String address) {
+    final trimmed = address.trim();
+    final mac = RegExp(r'^[0-9a-fA-F]{2}([:-][0-9a-fA-F]{2}){5}$');
+    return mac.hasMatch(trimmed)
+        ? trimmed.replaceAll('-', ':').toLowerCase()
+        : trimmed;
+  }
+
   Stream<Uint8List> get incomingData {
     _ensureEventSubscription();
     return _incomingController.stream;
@@ -132,11 +140,12 @@ class NativeRfcommDriver implements RfcommDriver {
         throw StateError('SPP scan event missing address');
       }
       final rawName = event['name'] as String?;
+      final canonicalAddress = _canonicalAddress(addr);
       final endpoint = BluetoothEndpoint(
         name: rawName?.trim().isNotEmpty == true
             ? rawName!.trim()
             : 'Unknown device',
-        address: addr,
+        address: canonicalAddress,
         connectType: ConnectType.spp,
       );
       final previous = _scanResults[endpoint.address];
@@ -147,7 +156,8 @@ class NativeRfcommDriver implements RfcommDriver {
       if (shouldLog) {
         _log.fine(
           'device_identity platform.spp_scan '
-          'addr=$addr sppName="$rawName" displayName="${endpoint.name}"',
+          'addr=$canonicalAddress sppName="$rawName" '
+          'displayName="${endpoint.name}"',
         );
       }
       _scanResults[endpoint.address] = endpoint;
@@ -186,9 +196,10 @@ class NativeRfcommDriver implements RfcommDriver {
           'device_identity platform.spp_scan_result '
           'addr=$addr sppName="$rawName" displayName="$displayName"',
         );
-        _scanResults[addr] = BluetoothEndpoint(
+        final canonicalAddress = _canonicalAddress(addr);
+        _scanResults[canonicalAddress] = BluetoothEndpoint(
           name: displayName,
-          address: addr,
+          address: canonicalAddress,
           connectType: ConnectType.spp,
         );
       }
@@ -219,7 +230,13 @@ class NativeRfcommDriver implements RfcommDriver {
       _log.warning('[$deviceId] SPP connect failed: ${e.code} ${e.message}');
       throw StateError('SPP connect failed: ${e.code}: ${e.message}');
     }
-    _log.info('[$deviceId] SPP connected on channel ${result?['channel']}');
+    _log.info(
+      '[$deviceId] SPP connected '
+      'channel=${result?['channel']} '
+      'mode=${result?['connectionMode']} '
+      'discoveryMs=${result?['discoveryMs']} '
+      'connectMs=${result?['connectMs']}',
+    );
     final connection = NativeRfcommConnection(
       deviceId: deviceId,
       deviceName: deviceName,

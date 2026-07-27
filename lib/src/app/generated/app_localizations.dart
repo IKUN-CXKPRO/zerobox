@@ -1013,7 +1013,7 @@ abstract class AppLocalizations {
   /// No description provided for @errorBluetoothConnectFailed.
   ///
   /// In en, this message translates to:
-  /// **'Connection failed. Check that Bluetooth permission is granted and Bluetooth is on, the device is nearby and not occupied by another app or device, and VelaOS devices are in \"Connect new phone\" mode, then try again'**
+  /// **'Connection failed. Check that Bluetooth permission is granted, Bluetooth is on, the device is nearby, and it is not occupied by another app or device'**
   String get errorBluetoothConnectFailed;
 
   /// No description provided for @errorBluetoothDisconnected.

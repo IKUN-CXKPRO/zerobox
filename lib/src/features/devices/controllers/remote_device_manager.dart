@@ -9,6 +9,7 @@ import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/device/core/connect_type.dart';
 import 'package:oronbox/src/device/core/device_kind.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_app_side_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_voice_memos_system.dart';
 import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
@@ -453,6 +454,57 @@ class HostDeviceManager extends DeviceManager {
   }
 
   @override
+  Future<List<ZeppOsVoiceMemo>> downloadZeppOsVoiceMemos({
+    void Function(int completed, int total)? onProgress,
+  }) async {
+    final result = await _execute(
+      const OronBoxCommand(method: 'device.zeppos.voice_memos.download'),
+    );
+    final rows = (result.value as List).cast<Map>();
+    final memos = rows
+        .map(
+          (row) => ZeppOsVoiceMemo(
+            filename: row['filename'].toString(),
+            size: (row['size'] as num).toInt(),
+            durationMs: (row['durationMs'] as num).toInt(),
+            timestamp: DateTime.fromMillisecondsSinceEpoch(
+              (row['timestamp'] as num).toInt(),
+            ),
+            bytes: Uint8List.fromList(
+              (row['bytes'] as List)
+                  .map((value) => (value as num).toInt())
+                  .toList(),
+            ),
+          ),
+        )
+        .toList(growable: false);
+    onProgress?.call(memos.length, memos.length);
+    return memos;
+  }
+
+  @override
+  Future<void> uploadZeppOsMap(
+    Uint8List bytes, {
+    required String fileName,
+    void Function(double progress)? onProgress,
+  }) => _installBytes(bytes, 'map', 'zip', onProgress);
+
+  @override
+  Future<void> uploadZeppOsMusic(
+    Uint8List bytes, {
+    required String fileName,
+    required String title,
+    required String artist,
+    void Function(double progress)? onProgress,
+  }) => _installBytes(
+    bytes,
+    'music',
+    'mp3',
+    onProgress,
+    extraParams: {'fileName': fileName, 'title': title, 'artist': artist},
+  );
+
+  @override
   Future<List<int>> listZeppOsAppSides() async {
     final result = await _execute(
       const OronBoxCommand(method: 'device.zeppos.appside.list'),
@@ -612,8 +664,9 @@ class HostDeviceManager extends DeviceManager {
     Uint8List bytes,
     String type,
     String extension,
-    void Function(double progress)? onProgress,
-  ) async {
+    void Function(double progress)? onProgress, {
+    Map<String, Object?> extraParams = const {},
+  }) async {
     if (kIsWeb) {
       StreamSubscription<CommandEvent>? progressSubscription;
       try {
@@ -632,6 +685,7 @@ class HostDeviceManager extends DeviceManager {
               'payloadMode': 'memory',
               'bytes': bytes,
               'fileName': 'oronbox_web.$extension',
+              ...extraParams,
             },
           ),
         );
@@ -655,7 +709,12 @@ class HostDeviceManager extends DeviceManager {
           params: {
             'command': OronBoxCommand(
               method: 'install.local',
-              params: {'type': type, 'path': file.path, 'deleteAfter': true},
+              params: {
+                'type': type,
+                'path': file.path,
+                'deleteAfter': true,
+                ...extraParams,
+              },
             ).toJson(),
           },
         ),

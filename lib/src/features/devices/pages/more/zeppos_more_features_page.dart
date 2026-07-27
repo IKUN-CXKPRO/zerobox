@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:segmented_list/segmented_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +10,7 @@ import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
 
@@ -21,17 +24,78 @@ class ZeppOsMoreFeaturesPage extends ConsumerStatefulWidget {
 
 class _ZeppOsMoreFeaturesPageState
     extends ConsumerState<ZeppOsMoreFeaturesPage> {
+  static const _mirrorIntervalPreferenceKey =
+      'zeppos.mirror.frame_interval_ms';
+
   bool _finding = false;
   bool _busy = false;
+  bool _messagesExpanded = true;
+  bool _mirrorSettingsExpanded = false;
+  int _mirrorIntervalMs = 10;
+  late final TextEditingController _mirrorIntervalController;
+  late final FocusNode _mirrorIntervalFocusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _mirrorIntervalMs =
+        (SharedPrefsService.instance.getInt(_mirrorIntervalPreferenceKey) ?? 10)
+            .clamp(10, 250)
+            .toInt();
+    _mirrorIntervalController = TextEditingController(
+      text: '$_mirrorIntervalMs',
+    );
+    _mirrorIntervalFocusNode = FocusNode()
+      ..addListener(_handleMirrorIntervalFocus);
+  }
+
+  @override
+  void dispose() {
+    _mirrorIntervalFocusNode
+      ..removeListener(_handleMirrorIntervalFocus)
+      ..dispose();
+    _mirrorIntervalController.dispose();
+    super.dispose();
+  }
 
   Future<void> _showMirror() async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
-      builder: (_) => const _WatchMirrorSheet(),
+      builder: (_) => _WatchMirrorSheet(
+        frameIntervalMs: _mirrorIntervalMs,
+      ),
     );
+  }
+
+  void _setMirrorInterval(int interval) {
+    setState(() => _mirrorIntervalMs = interval);
+    unawaited(
+      SharedPrefsService.instance.setInt(
+        _mirrorIntervalPreferenceKey,
+        interval,
+      ),
+    );
+  }
+
+  void _handleMirrorIntervalFocus() {
+    if (!_mirrorIntervalFocusNode.hasFocus) {
+      _commitMirrorInterval();
+    }
+  }
+
+  void _commitMirrorInterval() {
+    final parsed = int.tryParse(_mirrorIntervalController.text);
+    final interval = (parsed ?? _mirrorIntervalMs).clamp(10, 250).toInt();
+    _mirrorIntervalController
+      ..text = '$interval'
+      ..selection = TextSelection.collapsed(offset: '$interval'.length);
+    if (interval != _mirrorIntervalMs) {
+      _setMirrorInterval(interval);
+    }
   }
 
   Future<void> _setFinding(bool finding) async {
@@ -80,6 +144,22 @@ class _ZeppOsMoreFeaturesPageState
                       context.push('/devices/zeppos-more/xiao-ai'),
                 ),
                 SegmentedTile.navigation(
+                  leading: const Icon(Icons.mic_none),
+                  title: const Text('手表录音'),
+                  description: const Text('接收并保存手表中的 Opus 录音'),
+                  enabled: ready,
+                  onPressed: (_) =>
+                      context.push('/devices/zeppos-more/voice-memos'),
+                ),
+                SegmentedTile.navigation(
+                  leading: const Icon(Icons.library_music_outlined),
+                  title: const Text('音乐上传'),
+                  description: const Text('通过 BT Classic 高速传输 MP3 到手表'),
+                  enabled: ready,
+                  onPressed: (_) =>
+                      context.push('/devices/zeppos-more/music'),
+                ),
+                SegmentedTile.navigation(
                   leading: const Icon(Icons.tune),
                   title: const Text('应用设置'),
                   description: const Text('打开已缓存的 Zepp OS 应用设置页'),
@@ -97,9 +177,93 @@ class _ZeppOsMoreFeaturesPageState
                 SegmentedTile.navigation(
                   leading: const Icon(Icons.watch_outlined),
                   title: const Text('屏幕镜像'),
-                  description: const Text('在手机上查看手表画面'),
+                  description: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('在手机上查看手表画面'),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 180),
+                        alignment: Alignment.topCenter,
+                        child: !_mirrorSettingsExpanded
+                            ? const SizedBox.shrink()
+                            : Padding(
+                                padding: const EdgeInsets.only(top: 10),
+                                child: Row(
+                                  children: [
+                                    const Text('画面间隔'),
+                                    const Spacer(),
+                                    SizedBox(
+                                      width: 112,
+                                      child: TextField(
+                                        controller: _mirrorIntervalController,
+                                        focusNode: _mirrorIntervalFocusNode,
+                                        enabled: ready,
+                                        keyboardType: TextInputType.number,
+                                        textInputAction: TextInputAction.done,
+                                        textAlign: TextAlign.end,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter
+                                              .digitsOnly,
+                                          TextInputFormatter.withFunction(
+                                            (oldValue, newValue) {
+                                              if (newValue.text.isEmpty) {
+                                                return newValue;
+                                              }
+                                              final value = int.tryParse(
+                                                newValue.text,
+                                              );
+                                              return value != null &&
+                                                      value <= 250
+                                                  ? newValue
+                                                  : oldValue;
+                                            },
+                                          ),
+                                        ],
+                                        decoration: const InputDecoration(
+                                          isDense: true,
+                                          suffixText: 'ms',
+                                          helperText: '10–250',
+                                        ),
+                                        onChanged: (text) {
+                                          final value = int.tryParse(text);
+                                          if (value != null &&
+                                              value >= 10 &&
+                                              value <= 250) {
+                                            _setMirrorInterval(value);
+                                          }
+                                        },
+                                        onEditingComplete: () {
+                                          _commitMirrorInterval();
+                                          _mirrorIntervalFocusNode.unfocus();
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                      ),
+                    ],
+                  ),
+                  trailing: IconButton(
+                    tooltip: _mirrorSettingsExpanded ? '收起设置' : '展开设置',
+                    onPressed: () => setState(
+                      () => _mirrorSettingsExpanded =
+                          !_mirrorSettingsExpanded,
+                    ),
+                    icon: AnimatedRotation(
+                      turns: _mirrorSettingsExpanded ? .5 : 0,
+                      duration: const Duration(milliseconds: 180),
+                      child: const Icon(Icons.keyboard_arrow_down),
+                    ),
+                  ),
                   enabled: ready,
                   onPressed: (_) => _showMirror(),
+                ),
+                SegmentedTile.navigation(
+                  leading: const Icon(Icons.map_outlined),
+                  title: const Text('离线地图'),
+                  description: const Text('传输已有地图包到手表'),
+                  onPressed: (_) => context.push('/devices/zeppos-more/maps'),
                 ),
               ],
             ),
@@ -129,16 +293,39 @@ class _ZeppOsMoreFeaturesPageState
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        Icons.bluetooth_searching,
-                        color: colorScheme.primary,
-                        size: 28,
-                      ),
-                      const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          '实时 Zepp OS 消息',
-                          style: Theme.of(context).textTheme.titleLarge,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () => setState(
+                            () => _messagesExpanded = !_messagesExpanded,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.bluetooth_searching,
+                                  color: colorScheme.primary,
+                                  size: 28,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    '实时 Zepp OS 消息',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleLarge,
+                                  ),
+                                ),
+                                Icon(
+                                  _messagesExpanded
+                                      ? Icons.expand_less
+                                      : Icons.expand_more,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                       IconButton(
@@ -152,15 +339,26 @@ class _ZeppOsMoreFeaturesPageState
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '显示现有分包层已经解码的设备上行 endpoint 消息，最多保留最近 200 条。',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                  AnimatedCrossFade(
+                    duration: const Duration(milliseconds: 200),
+                    crossFadeState: _messagesExpanded
+                        ? CrossFadeState.showFirst
+                        : CrossFadeState.showSecond,
+                    secondChild: const SizedBox.shrink(),
+                    firstChild: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 8),
+                        Text(
+                          '显示现有分包层已经解码的设备上行 endpoint 消息，最多保留最近 200 条。',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 12),
+                        _ZeppOsMessageList(messages: state.zeppOsMessages),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  _ZeppOsMessageList(messages: state.zeppOsMessages),
                 ],
               ),
             ),
@@ -172,7 +370,9 @@ class _ZeppOsMoreFeaturesPageState
 }
 
 class _WatchMirrorSheet extends ConsumerStatefulWidget {
-  const _WatchMirrorSheet();
+  const _WatchMirrorSheet({required this.frameIntervalMs});
+
+  final int frameIntervalMs;
 
   @override
   ConsumerState<_WatchMirrorSheet> createState() => _WatchMirrorSheetState();
@@ -200,6 +400,9 @@ class _WatchMirrorSheetState extends ConsumerState<_WatchMirrorSheet> {
           _frame = frame;
           _error = null;
         });
+        await Future<void>.delayed(
+          Duration(milliseconds: widget.frameIntervalMs),
+        );
       } catch (error) {
         if (!mounted || !_active) return;
         setState(() => _error = error);
@@ -318,7 +521,7 @@ class _WatchMirror extends StatelessWidget {
                                 gaplessPlayback: true,
                                 errorBuilder: (_, error, _) => _MirrorStatus(
                                   icon: Icons.broken_image_outlined,
-                                  text: '截图格式无法显示\n$error',
+                                  text: '画面格式无法显示\n$error',
                                 ),
                               ),
                             ),

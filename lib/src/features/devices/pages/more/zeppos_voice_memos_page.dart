@@ -1,0 +1,192 @@
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_voice_memos_system.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
+
+class ZeppOsVoiceMemosPage extends ConsumerStatefulWidget {
+  const ZeppOsVoiceMemosPage({super.key});
+
+  @override
+  ConsumerState<ZeppOsVoiceMemosPage> createState() =>
+      _ZeppOsVoiceMemosPageState();
+}
+
+class _ZeppOsVoiceMemosPageState
+    extends ConsumerState<ZeppOsVoiceMemosPage> {
+  List<ZeppOsVoiceMemo> _memos = const [];
+  bool _syncing = false;
+  int _completed = 0;
+  int _total = 0;
+  String? _error;
+
+  Future<void> _sync() async {
+    if (_syncing) return;
+    setState(() {
+      _syncing = true;
+      _completed = 0;
+      _total = 0;
+      _error = null;
+    });
+    try {
+      final result = await ref
+          .read(deviceManagerProvider.notifier)
+          .downloadZeppOsVoiceMemos(
+            onProgress: (completed, total) {
+              if (!mounted) return;
+              setState(() {
+                _completed = completed;
+                _total = total;
+              });
+            },
+          );
+      if (!mounted) return;
+      setState(() {
+        _memos = result;
+        _completed = result.length;
+        _total = result.length;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.isEmpty ? '手表中没有新的录音' : '已接收 ${result.length} 条录音',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _syncing = false);
+    }
+  }
+
+  Future<void> _save(ZeppOsVoiceMemo memo) async {
+    final bytes = memo.bytes;
+    if (bytes == null) return;
+    try {
+      await FilePicker.saveFile(
+        dialogTitle: '保存手表录音',
+        fileName: _safeFilename(memo.filename),
+        type: FileType.custom,
+        allowedExtensions: const ['opus'],
+        bytes: bytes,
+      );
+    } catch (error) {
+      if (mounted) setState(() => _error = '保存录音失败：$error');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ready =
+        ref.watch(deviceManagerProvider).protocolState ==
+        proto.ProtocolState.ready;
+    final colors = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: const SysAppBar(secondary: true, title: Text('手表录音')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: ready && !_syncing ? _sync : null,
+        icon: _syncing
+            ? const SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.sync),
+        label: Text(_syncing ? '正在接收' : '同步录音'),
+      ),
+      body: PageContainer(
+        child: ListView(
+          padding: const EdgeInsets.only(bottom: 88),
+          children: [
+            SectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '从手表接收 Opus 录音',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '应用会读取手表录音列表并逐条下载。原始 Opus 数据经过长度和 CRC 校验后，可单独保存。',
+                    style: TextStyle(color: colors.onSurfaceVariant),
+                  ),
+                  if (_syncing) ...[
+                    const SizedBox(height: 16),
+                    LinearProgressIndicator(
+                      value: _total == 0 ? null : _completed / _total,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _total == 0
+                          ? '正在读取录音列表'
+                          : '已接收 $_completed / $_total',
+                    ),
+                  ],
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(_error!, style: TextStyle(color: colors.error)),
+                  ],
+                ],
+              ),
+            ),
+            if (_memos.isEmpty && !_syncing)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 48),
+                child: Center(child: Text('连接手表后点击“同步录音”')),
+              )
+            else
+              ..._memos.map(
+                (memo) => Card(
+                  elevation: 0,
+                  child: ListTile(
+                    leading: const Icon(Icons.graphic_eq),
+                    title: Text(memo.filename.replaceAll('.opus', '')),
+                    subtitle: Text(
+                      '${_formatDate(memo.timestamp)}  ·  '
+                      '${_formatDuration(memo.durationMs)}  ·  '
+                      '${_formatBytes(memo.size)}',
+                    ),
+                    trailing: IconButton(
+                      tooltip: '保存 Opus',
+                      onPressed: memo.bytes == null ? null : () => _save(memo),
+                      icon: const Icon(Icons.save_alt),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _safeFilename(String value) {
+  final safe = value.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+  return safe.toLowerCase().endsWith('.opus') ? safe : '$safe.opus';
+}
+
+String _formatDuration(int milliseconds) {
+  final duration = Duration(milliseconds: milliseconds);
+  final minutes = duration.inMinutes;
+  final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+  return '$minutes:$seconds';
+}
+
+String _formatBytes(int bytes) {
+  if (bytes >= 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+  return '${(bytes / 1024).toStringAsFixed(1)} KB';
+}
+
+String _formatDate(DateTime value) {
+  final local = value.toLocal();
+  String two(int part) => part.toString().padLeft(2, '0');
+  return '${local.year}-${two(local.month)}-${two(local.day)} '
+      '${two(local.hour)}:${two(local.minute)}';
+}

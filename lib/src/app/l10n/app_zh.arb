@@ -160,7 +160,7 @@
   "protocol": "协议",
   "error": "错误",
   "errorBluetoothUnavailable": "蓝牙不可用，请检查蓝牙是否已开启，并确认系统权限已允许 OronBox 使用蓝牙",
-  "errorBluetoothConnectFailed": "连接失败，请确认蓝牙权限已授予且蓝牙已开启、设备在附近且未被其他工具或设备占用；VelaOS 设备请先在设备上进入「连接新手机」状态，然后重试",
+  "errorBluetoothConnectFailed": "连接失败，请确认蓝牙权限已授予且蓝牙已开启、设备在附近，并且未被其他工具或设备占用",
   "errorBluetoothDisconnected": "蓝牙连接已断开，请重新连接设备",
   "errorOperationTimeout": "操作超时，请确认设备仍在附近并重试",
   "errorDeviceNotReady": "设备尚未准备好，请先连接并完成认证",

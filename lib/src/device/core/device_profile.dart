@@ -113,6 +113,10 @@ class DeviceRegistry {
       // bond is not a prerequisite and can leave UniversalBle.pair hanging.
       bleAttemptPair: false,
       classicServiceUuid: '00000022-0000-3512-2118-0009af100700',
+      // BTBR is discovered through its Zepp OS service UUID. Guessed RFCOMM
+      // channels belong to unrelated SPP implementations and only turn one
+      // failed BTBR attempt into a long sequence of timeouts.
+      classicFallbackChannels: const [],
     ),
   ];
 

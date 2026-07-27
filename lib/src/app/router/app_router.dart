@@ -14,6 +14,9 @@ import 'package:oronbox/src/features/devices/pages/more/zeppos_more_features_pag
 import 'package:oronbox/src/features/devices/pages/more/zeppos_xiao_ai_page.dart';
 import 'package:oronbox/src/features/devices/pages/more/zeppos_app_side_debug_page.dart';
 import 'package:oronbox/src/features/devices/pages/more/zeppos_app_settings_page.dart';
+import 'package:oronbox/src/features/devices/pages/more/zeppos_maps_page.dart';
+import 'package:oronbox/src/features/devices/pages/more/zeppos_music_upload_page.dart';
+import 'package:oronbox/src/features/devices/pages/more/zeppos_voice_memos_page.dart';
 import 'package:oronbox/src/features/devices/pages/switch/device_switch_page.dart';
 import 'package:oronbox/src/features/debug/pages/debug_window_app.dart';
 import 'package:oronbox/src/features/oobe/oobe_state.dart';
@@ -162,6 +165,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         builder: (context, state) => const ZeppOsXiaoAiPage(),
                       ),
                       GoRoute(
+                        path: 'voice-memos',
+                        builder: (context, state) =>
+                            const ZeppOsVoiceMemosPage(),
+                      ),
+                      GoRoute(
+                        path: 'music',
+                        builder: (context, state) =>
+                            const ZeppOsMusicUploadPage(),
+                      ),
+                      GoRoute(
                         path: 'app-side',
                         builder: (context, state) =>
                             const ZeppOsAppSideDebugPage(),
@@ -170,6 +183,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         path: 'settings',
                         builder: (context, state) =>
                             const ZeppOsAppSettingsPage(),
+                      ),
+                      GoRoute(
+                        path: 'maps',
+                        builder: (context, state) => const ZeppOsMapsPage(),
                       ),
                     ],
                   ),

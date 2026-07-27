@@ -37,10 +37,14 @@ import 'package:oronbox/src/device/zeppos/app_side/zeppos_app_side_storage.dart'
 import 'package:oronbox/src/device/zeppos/systems/zeppos_battery_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_device_info_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_find_device_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_map_upload_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_music_upload_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_services_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_screenshot_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_xiao_ai_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_watchface_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_voice_memos_system.dart';
+import 'package:oronbox/src/device/zeppos/zeppos_btbr_transport.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_factory.dart';
 import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
@@ -247,6 +251,21 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
   Future<void> setXiaoAiContinuousCapture(bool enabled);
   Future<void> setXiaoAiEndpoint(int endpoint);
   Future<Uint8List> requestZeppOsScreenshot();
+  Future<List<ZeppOsVoiceMemo>> downloadZeppOsVoiceMemos({
+    void Function(int completed, int total)? onProgress,
+  });
+  Future<void> uploadZeppOsMap(
+    Uint8List bytes, {
+    required String fileName,
+    void Function(double progress)? onProgress,
+  });
+  Future<void> uploadZeppOsMusic(
+    Uint8List bytes, {
+    required String fileName,
+    required String title,
+    required String artist,
+    void Function(double progress)? onProgress,
+  });
   void clearZeppOsMessages();
   Future<List<int>> listZeppOsAppSides();
   Future<List<int>> observedZeppOsAppSideIds();
@@ -385,6 +404,7 @@ class LocalDeviceManager extends DeviceManager {
   Timer? _scanTimer;
   Timer? _batteryRefreshTimer;
   bool _batteryRefreshInProgress = false;
+  int _activeZeppOsTransfers = 0;
   BluetoothConnection? _bluetoothConnection;
   DeviceEntity? _currentEntity;
   final _pooledConnections = <String, BluetoothConnection>{};
@@ -509,9 +529,6 @@ class LocalDeviceManager extends DeviceManager {
     final endpointName = endpoint.name.trim();
     if (endpointName.isEmpty || endpointName == 'Unknown device') return;
 
-    final savedAddrs = state.pairedDevices.map((d) => d.addr).toSet();
-    if (savedAddrs.contains(endpoint.address)) return;
-
     final resolvedProfile = _resolveEndpointProfile(endpoint);
     if (resolvedProfile.id != DeviceRegistry.unknown.id &&
         endpoint.connectType != resolvedProfile.preferredConnectType) {
@@ -519,23 +536,33 @@ class LocalDeviceManager extends DeviceManager {
       // discover and pair the device. The actual connect flow picks the right
       // transport later anyway.
     }
-    // A discovered endpoint must retain its real transport. Previously a
-    // ZeppOS Classic/RFCOMM result was relabelled with the profile's preferred
-    // BLE transport, causing its Classic address to be passed to GATT. BTBR is
-    // not protocol-ready yet, so do not offer those endpoints as connectable.
+    // A discovered endpoint must retain its real transport. Only expose a
+    // ZeppOS Classic/RFCOMM endpoint when the device catalog says BTBR is
+    // supported; phone-call-only Classic advertisements must not be treated
+    // as a ZeppOS data transport.
+    final zeppCatalogDevice = zeppOsDeviceForBluetoothName(endpointName);
     if (resolvedProfile.kind == DeviceKind.zepp &&
-        endpoint.connectType != ConnectType.ble) {
+        endpoint.connectType != ConnectType.ble &&
+        (zeppCatalogDevice == null ||
+            zeppCatalogDevice.connectionCapability ==
+                ZeppOsConnectionCapability.ble)) {
       _log.fine(
         'scan ignore ZeppOS ${endpoint.connectType.name} endpoint '
-        '${endpoint.address}; BTBR is not implemented',
+        '${endpoint.address}; device does not advertise BTBR support',
       );
       return;
     }
-    _scannedProfiles[endpoint.address] = resolvedProfile;
+    _scannedProfiles[_endpointTransportKey(
+          endpoint.address,
+          endpoint.connectType,
+        )] =
+        resolvedProfile;
     final rawDisplayName = xiaomiDisplayNameForIdentity(name: endpointName);
     final displayName = _scanDisplayName(endpoint, rawDisplayName);
     final existingIndex = state.scannedDevices.indexWhere(
-      (d) => d.addr == endpoint.address,
+      (device) =>
+          device.addr == endpoint.address &&
+          device.connectType.toLowerCase() == endpoint.connectType.name,
     );
     if (existingIndex >= 0) {
       final existing = state.scannedDevices[existingIndex];
@@ -586,6 +613,9 @@ class LocalDeviceManager extends DeviceManager {
     return sorted;
   }
 
+  String _endpointTransportKey(String address, ConnectType connectType) =>
+      '${connectType.name}:${address.trim().toLowerCase()}';
+
   DeviceProfile _resolveEndpointProfile(BluetoothEndpoint endpoint) {
     final profile = DeviceRegistry.resolveIdentity(name: endpoint.name);
     if (profile.kind == DeviceKind.zepp) return profile;
@@ -617,6 +647,10 @@ class LocalDeviceManager extends DeviceManager {
   }
 
   MiWearState _normalizeDeviceIdentity(MiWearState device) {
+    final zeppDevice = zeppOsDeviceForBluetoothName(device.name);
+    if (zeppDevice != null) {
+      return device.copyWith(codename: 'zepp:${zeppDevice.id}');
+    }
     final identity =
         xiaomiWearableIdentityForCodename(device.codename) ??
         normalizeXiaomiWearableIdentity(device.name);
@@ -640,10 +674,14 @@ class LocalDeviceManager extends DeviceManager {
     final isMacOsSpp =
         defaultTargetPlatform == TargetPlatform.macOS &&
         connectType == ConnectType.spp;
+    final isZeppOsSpp =
+        profile.kind == DeviceKind.zepp && connectType == ConnectType.spp;
     final isLinuxBle =
         defaultTargetPlatform == TargetPlatform.linux &&
         connectType == ConnectType.ble;
-    final maxAttempts = isLinuxBle
+    final maxAttempts = isZeppOsSpp
+        ? 1
+        : isLinuxBle
         ? 1
         : isMacOsSpp
         ? _macOsSppConnectMaxAttempts
@@ -749,7 +787,12 @@ class LocalDeviceManager extends DeviceManager {
       codename: effectiveCodename,
     );
     final profile =
-        _scannedProfiles[addr] ??
+        _scannedProfiles[_endpointTransportKey(
+          addr,
+          connectType.toLowerCase() == ConnectType.spp.name
+              ? ConnectType.spp
+              : ConnectType.ble,
+        )] ??
         DeviceRegistry.resolveIdentity(
           name: displayName,
           codename: effectiveCodename,
@@ -758,12 +801,15 @@ class LocalDeviceManager extends DeviceManager {
         ? 'codename:${identity.codename}'
         : 'name';
     var effectiveKind = kind == DeviceKind.xiaomi ? profile.kind : kind;
+    final normalizedConnectType = connectType.toLowerCase();
     final requestedConnectType =
-        connectType.toLowerCase().isEmpty ||
-            (profile.preferredConnectType.name.isNotEmpty &&
-                profile.preferredConnectType.name != connectType.toLowerCase())
+        effectiveKind == DeviceKind.zepp && normalizedConnectType.isNotEmpty
+        ? normalizedConnectType
+        : normalizedConnectType.isEmpty ||
+              (profile.preferredConnectType.name.isNotEmpty &&
+                  profile.preferredConnectType.name != normalizedConnectType)
         ? profile.preferredConnectType.name
-        : connectType.toLowerCase();
+        : normalizedConnectType;
     final effectiveConnectType = requestedConnectType;
     _log.info(
       'connect request $addr rawName="$name" displayName="$displayName" '
@@ -804,9 +850,24 @@ class LocalDeviceManager extends DeviceManager {
       state = state.copyWith(
         connectionPhase: DeviceConnectionPhase.connectingTransport,
       );
-      final existingConnection = _pooledConnections[addr];
-      final existingEntity = _pooledEntities[addr];
-      if (existingConnection != null && existingEntity != null) {
+      var existingConnection = _pooledConnections[addr];
+      var existingEntity = _pooledEntities[addr];
+      final pooledTransportMatches =
+          existingConnection?.connectType == transportType;
+      if ((existingConnection != null || existingEntity != null) &&
+          !pooledTransportMatches) {
+        _log.info(
+          'discarding pooled ${existingConnection?.connectType.name ?? "unknown"} '
+          'session for $addr before ${transportType.name} connect',
+        );
+        await _disconnectPooledDevice(addr);
+        _throwIfConnectCancelled(generation);
+        existingConnection = null;
+        existingEntity = null;
+      }
+      if (existingConnection != null &&
+          existingEntity != null &&
+          pooledTransportMatches) {
         _log.info('restoring pooled session for $addr');
         _pooledConnections.remove(addr);
         _pooledEntities.remove(addr);
@@ -881,12 +942,19 @@ class LocalDeviceManager extends DeviceManager {
 
       final Transport transport;
       if (transportType == ConnectType.spp) {
-        final sppTransport = effectiveKind == DeviceKind.zepp
-            ? SppTransport.zeppBtbrBluetooth(_bluetoothConnection!)
-            : SppTransport.xiaomiBluetooth(_bluetoothConnection!);
-        await sppTransport.start();
-        _throwIfConnectCancelled(generation);
-        transport = sppTransport;
+        if (effectiveKind == DeviceKind.zepp) {
+          final btbrTransport = ZeppOsBtbrTransport(_bluetoothConnection!);
+          await btbrTransport.start();
+          _throwIfConnectCancelled(generation);
+          transport = btbrTransport;
+        } else {
+          final sppTransport = SppTransport.xiaomiBluetooth(
+            _bluetoothConnection!,
+          );
+          await sppTransport.start();
+          _throwIfConnectCancelled(generation);
+          transport = sppTransport;
+        }
       } else {
         final bleTransport = effectiveKind == DeviceKind.zepp
             ? BleTransport.zeppBluetooth(_bluetoothConnection!)
@@ -911,11 +979,6 @@ class LocalDeviceManager extends DeviceManager {
       );
 
       if (effectiveKind == DeviceKind.zepp) {
-        if (transportType == ConnectType.spp) {
-          throw UnsupportedError(
-            'ZeppOS BTBR transport is discovered but channel/session auth is not implemented yet',
-          );
-        }
         state = state.copyWith(
           connectionPhase: DeviceConnectionPhase.authenticating,
           protocolState: ProtocolState.authenticating,
@@ -1050,6 +1113,7 @@ class LocalDeviceManager extends DeviceManager {
 
   Future<void> _refreshBatteryInBackground() async {
     if (_batteryRefreshInProgress ||
+        _activeZeppOsTransfers > 0 ||
         _currentEntity == null ||
         state.protocolState != ProtocolState.ready) {
       return;
@@ -1704,11 +1768,98 @@ class LocalDeviceManager extends DeviceManager {
     if (entity == null || state.protocolState != ProtocolState.ready) {
       throw ProtocolException('Device not ready');
     }
-    final system = entity.system<ZeppOsScreenshotSystem>();
-    if (system == null) {
-      throw UnsupportedError('Screenshot service unavailable');
+    _activeZeppOsTransfers += 1;
+    try {
+      final system = entity.system<ZeppOsScreenshotSystem>();
+      if (system == null) {
+        throw UnsupportedError('Screenshot service unavailable');
+      }
+      return await system.requestScreenshot();
+    } finally {
+      _activeZeppOsTransfers -= 1;
     }
-    return system.requestScreenshot();
+  }
+
+  @override
+  Future<List<ZeppOsVoiceMemo>> downloadZeppOsVoiceMemos({
+    void Function(int completed, int total)? onProgress,
+  }) async {
+    final entity = _currentEntity;
+    if (entity == null || state.protocolState != ProtocolState.ready) {
+      throw ProtocolException('Device not ready');
+    }
+    final system = entity.system<ZeppOsVoiceMemosSystem>();
+    if (system == null) {
+      throw UnsupportedError('Voice memo service unavailable');
+    }
+    _activeZeppOsTransfers += 1;
+    try {
+      return await system.downloadAll(onProgress: onProgress);
+    } finally {
+      _activeZeppOsTransfers -= 1;
+    }
+  }
+
+  @override
+  Future<void> uploadZeppOsMap(
+    Uint8List bytes, {
+    required String fileName,
+    void Function(double progress)? onProgress,
+  }) async {
+    final entity = _currentEntity;
+    if (entity == null || state.protocolState != ProtocolState.ready) {
+      throw ProtocolException('Device not ready');
+    }
+    final connectType = _bluetoothConnection?.connectType;
+    if (connectType != ConnectType.ble && connectType != ConnectType.spp) {
+      throw UnsupportedError('离线地图需要 BLE 或 BT Classic 连接');
+    }
+    if (connectType == ConnectType.ble && bytes.length > 2 * 1024 * 1024) {
+      throw UnsupportedError(
+        'BLE LE 地图传输目前仅支持不超过 2 MB 的压缩包；'
+        '请切换到 BT Classic 后再传输',
+      );
+    }
+    final system = entity.system<ZeppOsMapUploadSystem>();
+    if (system == null) throw UnsupportedError('地图传输服务不可用');
+    _activeZeppOsTransfers += 1;
+    try {
+      await system.upload(bytes, fileName: fileName, onProgress: onProgress);
+    } finally {
+      _activeZeppOsTransfers -= 1;
+    }
+  }
+
+  @override
+  Future<void> uploadZeppOsMusic(
+    Uint8List bytes, {
+    required String fileName,
+    required String title,
+    required String artist,
+    void Function(double progress)? onProgress,
+  }) async {
+    final entity = _currentEntity;
+    if (entity == null || state.protocolState != ProtocolState.ready) {
+      throw ProtocolException('Device not ready');
+    }
+    final connectType = _bluetoothConnection?.connectType;
+    if (connectType != ConnectType.ble && connectType != ConnectType.spp) {
+      throw UnsupportedError('音乐上传需要 BLE 或 BT Classic 连接');
+    }
+    final system = entity.system<ZeppOsMusicUploadSystem>();
+    if (system == null) throw UnsupportedError('音乐传输服务不可用');
+    _activeZeppOsTransfers++;
+    try {
+      await system.upload(
+        bytes: bytes,
+        filename: fileName,
+        title: title,
+        artist: artist,
+        onProgress: onProgress,
+      );
+    } finally {
+      _activeZeppOsTransfers--;
+    }
   }
 
   @override

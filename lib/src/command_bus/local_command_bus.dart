@@ -265,6 +265,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     ),
     'device.zeppos.messages.clear' => Future.value(_clearZeppOsMessages()),
     'device.zeppos.screenshot' => _manager.requestZeppOsScreenshot(),
+    'device.zeppos.voice_memos.download' => _downloadVoiceMemos(),
     'device.zeppos.appside.list' => _manager.listZeppOsAppSides(),
     'device.zeppos.appside.observed' => _manager.observedZeppOsAppSideIds(),
     'device.zeppos.appside.sessions' => _appSideSessions(),
@@ -446,6 +447,21 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       'Unknown command: ${command.method}',
     ),
   };
+
+  Future<List<Map<String, Object?>>> _downloadVoiceMemos() async {
+    final memos = await _manager.downloadZeppOsVoiceMemos();
+    return memos
+        .map(
+          (memo) => <String, Object?>{
+            'filename': memo.filename,
+            'size': memo.size,
+            'durationMs': memo.durationMs,
+            'timestamp': memo.timestamp.millisecondsSinceEpoch,
+            'bytes': memo.bytes?.toList(growable: false) ?? const <int>[],
+          },
+        )
+        .toList(growable: false);
+  }
 
   String _requiredCreatorId(Map<String, Object?> params, String key) {
     final value = params[key]?.toString().trim() ?? '';
@@ -1153,6 +1169,44 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     );
     var installed = false;
     try {
+      if (typeName == 'map') {
+        _throwIfCancelled();
+        await _ensureConnected(params['device']?.toString());
+        _throwIfCancelled();
+        await _manager.uploadZeppOsMap(
+          bytes,
+          fileName: fileName,
+          onProgress: (progress) => _events.add(
+            CommandEvent(
+              'progress',
+              data: {'progress': progress, 'path': path},
+            ),
+          ),
+        );
+        installed = true;
+        _events.add(CommandEvent('completed', data: {'path': path}));
+        return {'installed': true, 'path': path, 'type': 'map'};
+      }
+      if (typeName == 'music') {
+        _throwIfCancelled();
+        await _ensureConnected(params['device']?.toString());
+        _throwIfCancelled();
+        await _manager.uploadZeppOsMusic(
+          bytes,
+          fileName: fileName,
+          title: params['title']?.toString() ?? '',
+          artist: params['artist']?.toString() ?? '',
+          onProgress: (progress) => _events.add(
+            CommandEvent(
+              'progress',
+              data: {'progress': progress, 'path': path},
+            ),
+          ),
+        );
+        installed = true;
+        _events.add(CommandEvent('completed', data: {'path': path}));
+        return {'installed': true, 'path': path, 'type': 'music'};
+      }
       final service = container.read(resourceInstallServiceProvider);
       final type = switch (typeName) {
         'auto' => service.detectLocalInstallType(fileName, bytes),

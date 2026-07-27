@@ -32,6 +32,10 @@ target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_BUILD=${FLUTT
 
 # Disable Windows macros that collide with C++ standard library functions.
 target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
+target_compile_definitions(
+  ${BINARY_NAME}
+  PRIVATE "_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
+)
 
 # quickjs_engine 0.1.1 declares QuickjsEnginePlugin in its manifest but only
 # exports the C API registration symbol. Correct the generated registrant call
@@ -43,7 +47,12 @@ target_compile_definitions(${BINARY_NAME} PRIVATE
 # Add dependency libraries and include directories. Add any application-specific
 # dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
-target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib" "ws2_32.lib" "bthprops.lib")
+target_link_libraries(${BINARY_NAME} PRIVATE
+  "dwmapi.lib"
+  "ws2_32.lib"
+  "bthprops.lib"
+  "windowsapp.lib"
+)
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 set(WEBVIEW2_SDK_DIR "" CACHE PATH "Path to the Microsoft.Web.WebView2 NuGet package root")

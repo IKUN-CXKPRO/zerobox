@@ -10,17 +10,26 @@
 #include <flutter/event_stream_handler_functions.h>
 #include <flutter/method_channel.h>
 #include <flutter/standard_method_codec.h>
+#include <winrt/Windows.Devices.Bluetooth.h>
+#include <winrt/Windows.Devices.Bluetooth.Rfcomm.h>
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.Foundation.h>
+#include <winrt/base.h>
 
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <chrono>
+#include <cstdio>
+#include <cstring>
 #include <iomanip>
 #include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
 #include <thread>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace {
@@ -39,6 +48,8 @@ std::atomic_uint64_t g_connect_generation(0);
 std::atomic_uint64_t g_scan_generation(0);
 std::unique_ptr<flutter::EventSink<EncodableValue>> g_event_sink;
 std::unique_ptr<flutter::EventSink<EncodableValue>> g_scan_event_sink;
+constexpr char kZeppBtbrServiceUuid[] =
+    "00000022-0000-3512-2118-0009af100700";
 
 std::string WideToUtf8(const wchar_t* text) {
   if (text == nullptr || text[0] == L'\0') {
@@ -84,6 +95,229 @@ bool ParseAddress(const std::string& text, BTH_ADDR* out) {
   }
   *out = static_cast<BTH_ADDR>(value);
   return true;
+}
+
+bool ParseUuid(const std::string& text, GUID* out) {
+  if (out == nullptr) {
+    return false;
+  }
+  unsigned int data1 = 0;
+  unsigned int data2 = 0;
+  unsigned int data3 = 0;
+  unsigned int data4[8] = {};
+  const int matched = sscanf_s(
+      text.c_str(),
+      "%8x-%4x-%4x-%2x%2x-%2x%2x%2x%2x%2x%2x",
+      &data1, &data2, &data3, &data4[0], &data4[1], &data4[2], &data4[3],
+      &data4[4], &data4[5], &data4[6], &data4[7]);
+  if (matched != 11) {
+    return false;
+  }
+  out->Data1 = static_cast<unsigned long>(data1);
+  out->Data2 = static_cast<unsigned short>(data2);
+  out->Data3 = static_cast<unsigned short>(data3);
+  for (size_t i = 0; i < 8; ++i) {
+    out->Data4[i] = static_cast<unsigned char>(data4[i]);
+  }
+  return true;
+}
+
+int DiscoverRfcommChannel(BTH_ADDR address, const GUID& service_uuid,
+                          int* error_out);
+int DiscoverRfcommChannelWinRt(BTH_ADDR address, const GUID& service_uuid,
+                               int* error_out);
+
+DWORD AuthenticateClassicDevice(BTH_ADDR address) {
+  BLUETOOTH_DEVICE_INFO device = {};
+  device.dwSize = sizeof(device);
+  device.Address.ullLong = address;
+  const DWORD status = BluetoothAuthenticateDeviceEx(
+      nullptr, nullptr, &device, nullptr, MITMProtectionNotRequired);
+  // ERROR_NO_MORE_ITEMS means Windows already considers this device
+  // authenticated, so the RFCOMM service connection may proceed.
+  return status == ERROR_NO_MORE_ITEMS ? ERROR_SUCCESS : status;
+}
+
+int DiscoverRfcommChannel(BTH_ADDR address, const GUID& service_uuid,
+                          int* error_out) {
+  if (error_out != nullptr) {
+    *error_out = 0;
+  }
+
+  SOCKADDR_BTH context_address = {};
+  context_address.addressFamily = AF_BTH;
+  context_address.btAddr = address;
+  wchar_t context[64] = {};
+  DWORD context_length = 64;
+  if (WSAAddressToStringW(
+          reinterpret_cast<LPSOCKADDR>(&context_address),
+          sizeof(context_address), nullptr, context, &context_length) ==
+      SOCKET_ERROR) {
+    if (error_out != nullptr) {
+      *error_out = WSAGetLastError();
+    }
+    return -1;
+  }
+
+  WSAQUERYSETW query = {};
+  query.dwSize = sizeof(query);
+  query.lpServiceClassId = const_cast<GUID*>(&service_uuid);
+  query.dwNameSpace = NS_BTH;
+  query.lpszContext = context;
+
+  HANDLE lookup = nullptr;
+  const DWORD flags = LUP_FLUSHCACHE | LUP_RETURN_ADDR;
+  if (WSALookupServiceBeginW(&query, flags, &lookup) == SOCKET_ERROR) {
+    if (error_out != nullptr) {
+      *error_out = WSAGetLastError();
+    }
+    return -1;
+  }
+
+  int channel = -1;
+  std::vector<uint8_t> buffer(4096);
+  while (channel < 0) {
+    DWORD buffer_length = static_cast<DWORD>(buffer.size());
+    auto* result = reinterpret_cast<WSAQUERYSETW*>(buffer.data());
+    ZeroMemory(result, buffer_length);
+    result->dwSize = sizeof(WSAQUERYSETW);
+    if (WSALookupServiceNextW(lookup, LUP_RETURN_ADDR, &buffer_length, result) ==
+        SOCKET_ERROR) {
+      const int error = WSAGetLastError();
+      if (error == WSAEFAULT && buffer_length > buffer.size()) {
+        buffer.resize(buffer_length);
+        continue;
+      }
+      if (error_out != nullptr && error != WSA_E_NO_MORE) {
+        *error_out = error;
+      }
+      break;
+    }
+
+    for (DWORD i = 0; i < result->dwNumberOfCsAddrs; ++i) {
+      const auto& address_info = result->lpcsaBuffer[i];
+      const SOCKET_ADDRESS candidates[] = {
+          address_info.RemoteAddr,
+          address_info.LocalAddr,
+      };
+      for (const auto& candidate : candidates) {
+        if (candidate.lpSockaddr == nullptr ||
+            candidate.iSockaddrLength < sizeof(SOCKADDR_BTH) ||
+            candidate.lpSockaddr->sa_family != AF_BTH) {
+          continue;
+        }
+        const auto* rfcomm =
+            reinterpret_cast<const SOCKADDR_BTH*>(candidate.lpSockaddr);
+        if (rfcomm->port >= 1 && rfcomm->port <= 30) {
+          channel = static_cast<int>(rfcomm->port);
+          break;
+        }
+      }
+      if (channel >= 0) {
+        break;
+      }
+    }
+  }
+  WSALookupServiceEnd(lookup);
+  return channel;
+}
+
+int DiscoverRfcommChannelWinRt(BTH_ADDR address, const GUID& service_uuid,
+                               int* error_out) {
+  if (error_out != nullptr) {
+    *error_out = 0;
+  }
+  try {
+    winrt::init_apartment(winrt::apartment_type::multi_threaded);
+    const auto device =
+        winrt::Windows::Devices::Bluetooth::BluetoothDevice::
+            FromBluetoothAddressAsync(address)
+                .get();
+    if (device == nullptr) {
+      return -1;
+    }
+    const auto service_id =
+        winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId::
+            FromUuid(service_uuid);
+    const auto channel_from_services = [](const auto& services) {
+      for (const auto& service : services) {
+        const std::wstring service_name =
+            service.ConnectionServiceName().c_str();
+        try {
+          const int channel = std::stoi(service_name);
+          if (channel >= 1 && channel <= 30) {
+            return channel;
+          }
+        } catch (...) {
+          // A non-numeric service name is not a connectable RFCOMM channel.
+        }
+      }
+      return -1;
+    };
+
+    const auto cache_modes = {
+        winrt::Windows::Devices::Bluetooth::BluetoothCacheMode::Cached,
+        winrt::Windows::Devices::Bluetooth::BluetoothCacheMode::Uncached,
+    };
+    for (const auto cache_mode : cache_modes) {
+      const auto query =
+          device.GetRfcommServicesForIdAsync(service_id, cache_mode).get();
+      if (query.Error() ==
+          winrt::Windows::Devices::Bluetooth::BluetoothError::Success) {
+        const int channel = channel_from_services(query.Services());
+        if (channel >= 0) {
+          return channel;
+        }
+      } else if (error_out != nullptr) {
+        *error_out = static_cast<int>(query.Error());
+      }
+    }
+
+    // Some Windows Bluetooth stacks return an empty result for a targeted
+    // custom 128-bit UUID query, while exposing the same record when all
+    // RFCOMM services are enumerated. Enumerate uncached records but accept
+    // only the exact Zepp OS UUID; never infer or probe a channel.
+    for (const auto cache_mode : cache_modes) {
+      const auto all_services =
+          device.GetRfcommServicesAsync(cache_mode).get();
+      if (all_services.Error() !=
+          winrt::Windows::Devices::Bluetooth::BluetoothError::Success) {
+        if (error_out != nullptr) {
+          *error_out = static_cast<int>(all_services.Error());
+        }
+        continue;
+      }
+      for (const auto& service : all_services.Services()) {
+        const auto discovered_uuid = service.ServiceId().Uuid();
+        if (std::memcmp(&discovered_uuid, &service_uuid, sizeof(GUID)) != 0) {
+          continue;
+        }
+        const std::wstring service_name =
+            service.ConnectionServiceName().c_str();
+        try {
+          const int channel = std::stoi(service_name);
+          if (channel >= 1 && channel <= 30) {
+            return channel;
+          }
+        } catch (...) {
+          // A non-numeric service name is not a connectable RFCOMM channel.
+        }
+      }
+    }
+  } catch (const winrt::hresult_error& error) {
+    if (error_out != nullptr) {
+      *error_out = static_cast<int>(error.code().value);
+    }
+  }
+  return -1;
+}
+
+std::string ArgString(const EncodableMap& args, const char* key) {
+  auto it = args.find(EncodableValue(key));
+  if (it == args.end() || !std::holds_alternative<std::string>(it->second)) {
+    return "";
+  }
+  return std::get<std::string>(it->second);
 }
 
 EncodableMap DeviceToMap(const BLUETOOTH_DEVICE_INFO& info) {
@@ -232,10 +466,17 @@ void StartReadThread() {
   });
 }
 
-SOCKET ConnectRfcomm(BTH_ADDR address, int channel, uint64_t generation,
-                     int timeout_ms) {
+SOCKET ConnectRfcomm(BTH_ADDR address, int channel, const GUID* service_uuid,
+                     uint64_t generation, int timeout_ms,
+                     int* error_out = nullptr) {
+  if (error_out != nullptr) {
+    *error_out = 0;
+  }
   SOCKET socket = ::socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
   if (socket == INVALID_SOCKET) {
+    if (error_out != nullptr) {
+      *error_out = WSAGetLastError();
+    }
     return INVALID_SOCKET;
   }
   {
@@ -251,7 +492,24 @@ SOCKET ConnectRfcomm(BTH_ADDR address, int channel, uint64_t generation,
   SOCKADDR_BTH remote = {};
   remote.addressFamily = AF_BTH;
   remote.btAddr = address;
-  remote.port = static_cast<ULONG>(channel);
+  if (service_uuid != nullptr) {
+    remote.serviceClassId = *service_uuid;
+    // For a client connect using serviceClassId, Windows requires port zero
+    // so Winsock performs SDP resolution. BT_PORT_ANY is only for server bind.
+    remote.port = 0;
+    BOOL authenticate = TRUE;
+    if (setsockopt(socket, SOL_RFCOMM, SO_BTH_AUTHENTICATE,
+                   reinterpret_cast<const char*>(&authenticate),
+                   sizeof(authenticate)) == SOCKET_ERROR) {
+      if (error_out != nullptr) {
+        *error_out = WSAGetLastError();
+      }
+      CloseConnectSocketIfOwned(socket);
+      return INVALID_SOCKET;
+    }
+  } else {
+    remote.port = static_cast<ULONG>(channel);
+  }
 
   u_long non_blocking = 1;
   ioctlsocket(socket, FIONBIO, &non_blocking);
@@ -261,6 +519,9 @@ SOCKET ConnectRfcomm(BTH_ADDR address, int channel, uint64_t generation,
     const int error = WSAGetLastError();
     if (error != WSAEWOULDBLOCK && error != WSAEINPROGRESS &&
         error != WSAEINVAL) {
+      if (error_out != nullptr) {
+        *error_out = error;
+      }
       CloseConnectSocketIfOwned(socket);
       return INVALID_SOCKET;
     }
@@ -274,6 +535,9 @@ SOCKET ConnectRfcomm(BTH_ADDR address, int channel, uint64_t generation,
       }
       const auto now = std::chrono::steady_clock::now();
       if (now >= deadline) {
+        if (error_out != nullptr) {
+          *error_out = WSAETIMEDOUT;
+        }
         CloseConnectSocketIfOwned(socket);
         return INVALID_SOCKET;
       }
@@ -289,6 +553,9 @@ SOCKET ConnectRfcomm(BTH_ADDR address, int channel, uint64_t generation,
       tv.tv_usec = static_cast<long>((wait.count() % 1000) * 1000);
       rc = select(0, nullptr, &write_fds, nullptr, &tv);
       if (rc == SOCKET_ERROR) {
+        if (error_out != nullptr) {
+          *error_out = WSAGetLastError();
+        }
         CloseConnectSocketIfOwned(socket);
         return INVALID_SOCKET;
       }
@@ -300,8 +567,17 @@ SOCKET ConnectRfcomm(BTH_ADDR address, int channel, uint64_t generation,
       int len = sizeof(socket_error);
       if (getsockopt(socket, SOL_SOCKET, SO_ERROR,
                      reinterpret_cast<char*>(&socket_error), &len) ==
-              SOCKET_ERROR ||
-          socket_error != 0) {
+          SOCKET_ERROR) {
+        if (error_out != nullptr) {
+          *error_out = WSAGetLastError();
+        }
+        CloseConnectSocketIfOwned(socket);
+        return INVALID_SOCKET;
+      }
+      if (socket_error != 0) {
+        if (error_out != nullptr) {
+          *error_out = socket_error;
+        }
         CloseConnectSocketIfOwned(socket);
         return INVALID_SOCKET;
       }
@@ -324,6 +600,124 @@ SOCKET ConnectRfcomm(BTH_ADDR address, int channel, uint64_t generation,
   return socket;
 }
 
+uint16_t BtbrCrc16(const uint8_t* data, size_t length) {
+  uint16_t crc = 0xffff;
+  for (size_t i = 0; i < length; ++i) {
+    crc = static_cast<uint16_t>((crc >> 8) | (crc << 8));
+    crc ^= data[i];
+    crc ^= static_cast<uint16_t>((crc & 0xff) >> 4);
+    crc ^= static_cast<uint16_t>(crc << 12);
+    crc ^= static_cast<uint16_t>((crc & 0xff) << 5);
+  }
+  return crc;
+}
+
+bool ValidateZeppBtbrChannel(SOCKET socket, uint64_t generation,
+                             int timeout_ms) {
+  // CMD_CHANNELS_GET with an otherwise unused sequence number. The Dart BTBR
+  // transport performs a fresh channel request after this probe succeeds.
+  uint8_t request[] = {0x55, 0x01, 0xfe, 0x00, 0x00, 0x00, 0x00, 0xaa};
+  const uint16_t request_crc = BtbrCrc16(request + 1, 4);
+  request[5] = static_cast<uint8_t>(request_crc & 0xff);
+  request[6] = static_cast<uint8_t>((request_crc >> 8) & 0xff);
+  if (send(socket, reinterpret_cast<const char*>(request), sizeof(request), 0) !=
+      sizeof(request)) {
+    return false;
+  }
+
+  std::vector<uint8_t> received;
+  received.reserve(4096);
+  const auto deadline =
+      std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
+  while (std::chrono::steady_clock::now() < deadline) {
+    if (generation != g_connect_generation.load()) {
+      return false;
+    }
+    const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
+        deadline - std::chrono::steady_clock::now());
+    fd_set read_fds;
+    FD_ZERO(&read_fds);
+    FD_SET(socket, &read_fds);
+    timeval wait = {};
+    const auto wait_ms = std::min<int64_t>(remaining.count(), 200);
+    wait.tv_sec = static_cast<long>(wait_ms / 1000);
+    wait.tv_usec = static_cast<long>((wait_ms % 1000) * 1000);
+    const int ready = select(0, &read_fds, nullptr, nullptr, &wait);
+    if (ready == SOCKET_ERROR) {
+      return false;
+    }
+    if (ready == 0) {
+      continue;
+    }
+
+    uint8_t chunk[4096];
+    const int count =
+        recv(socket, reinterpret_cast<char*>(chunk), sizeof(chunk), 0);
+    if (count <= 0) {
+      return false;
+    }
+    received.insert(received.end(), chunk, chunk + count);
+
+    size_t offset = 0;
+    while (received.size() - offset >= 8) {
+      if (received[offset] != 0x55) {
+        ++offset;
+        continue;
+      }
+      const size_t payload_length =
+          received[offset + 3] | (received[offset + 4] << 8);
+      const size_t frame_length = payload_length + 8;
+      if (received.size() - offset < frame_length) {
+        break;
+      }
+      if (received[offset + frame_length - 1] == 0xaa) {
+        const uint16_t expected_crc =
+            received[offset + 5 + payload_length] |
+            (received[offset + 6 + payload_length] << 8);
+        const uint16_t actual_crc =
+            BtbrCrc16(received.data() + offset + 1, payload_length + 4);
+        if (received[offset + 1] == 0x02 && expected_crc == actual_crc) {
+          return true;
+        }
+      }
+      offset += frame_length;
+    }
+    if (offset > 0) {
+      received.erase(received.begin(), received.begin() + offset);
+    }
+  }
+  return false;
+}
+
+SOCKET ProbeZeppBtbrChannels(BTH_ADDR address, uint64_t generation,
+                             int* connected_channel) {
+  // Try common RFCOMM assignments first, then exhaust the valid range. A
+  // socket is accepted only after a valid Zepp BTBR channel-table response.
+  std::vector<int> channels = {1, 5};
+  for (int channel = 2; channel <= 30; ++channel) {
+    if (channel != 5) {
+      channels.push_back(channel);
+    }
+  }
+  for (const int channel : channels) {
+    if (generation != g_connect_generation.load()) {
+      break;
+    }
+    SOCKET candidate =
+        ConnectRfcomm(address, channel, nullptr, generation, 900);
+    if (candidate == INVALID_SOCKET) {
+      continue;
+    }
+    if (ValidateZeppBtbrChannel(candidate, generation, 1500)) {
+      *connected_channel = channel;
+      return candidate;
+    }
+    shutdown(candidate, SD_BOTH);
+    closesocket(candidate);
+  }
+  return INVALID_SOCKET;
+}
+
 std::vector<int> FallbackChannels(const EncodableMap& args) {
   auto it = args.find(EncodableValue("fallbackChannels"));
   if (it == args.end() || !std::holds_alternative<EncodableList>(it->second)) {
@@ -339,9 +733,6 @@ std::vector<int> FallbackChannels(const EncodableMap& args) {
         std::find(channels.begin(), channels.end(), channel) == channels.end()) {
       channels.push_back(channel);
     }
-  }
-  if (channels.empty()) {
-    channels = {5, 1};
   }
   return channels;
 }
@@ -395,18 +786,63 @@ void HandleMethodCall(
       result->Error("INVALID_ARGUMENT", "addr is invalid");
       return;
     }
+    GUID service_uuid = {};
+    const std::string service_uuid_text = ArgString(args, "serviceUuid");
+    const bool has_service_uuid =
+        !service_uuid_text.empty() && ParseUuid(service_uuid_text, &service_uuid);
+    const bool is_zepp_btbr =
+        service_uuid_text == kZeppBtbrServiceUuid;
+    if (!service_uuid_text.empty() && !has_service_uuid) {
+      result->Error("INVALID_ARGUMENT", "serviceUuid is invalid");
+      return;
+    }
     const auto channels = FallbackChannels(args);
     const uint64_t generation = g_connect_generation.fetch_add(1) + 1;
     StopReadThread();
-    std::thread([address, channels, generation,
+    std::thread([address, channels, generation, has_service_uuid, is_zepp_btbr,
+                 service_uuid,
                  result = std::move(result)]() mutable {
       SOCKET connected = INVALID_SOCKET;
-      int connected_channel = 0;
+      int connected_channel = -1;
+      int connect_error = 0;
+      DWORD authentication_error = ERROR_SUCCESS;
+      const auto started_at = std::chrono::steady_clock::now();
+      auto discovery_finished_at = started_at;
+      if (has_service_uuid) {
+        if (is_zepp_btbr) {
+          authentication_error = AuthenticateClassicDevice(address);
+          if (authentication_error != ERROR_SUCCESS) {
+            result->Error(
+                "PAIRING_FAILED",
+                "Windows Classic authentication failed (Win32 error " +
+                    std::to_string(authentication_error) + ")");
+            return;
+          }
+        }
+        // Match Gadgetbridge's BTBR connection sequence exactly:
+        // getRemoteDevice(address) -> createRfcommSocketToServiceRecord(UUID)
+        // -> socket.connect(). On Windows, serviceClassId + port zero is the
+        // WinSock equivalent and lets the OS perform service resolution and
+        // any required pairing as part of the actual RFCOMM connection.
+        connected = ConnectRfcomm(
+            address, 0, &service_uuid, generation, 10000, &connect_error);
+        discovery_finished_at = std::chrono::steady_clock::now();
+        connected_channel = connected == INVALID_SOCKET ? -1 : 0;
+      }
       for (int channel : channels) {
+        // Zepp BTBR must use the channel published for the official service.
+        // Do not turn a failed precise lookup into a blind RFCOMM probe.
+        if (is_zepp_btbr) {
+          break;
+        }
+        if (connected != INVALID_SOCKET) {
+          break;
+        }
         if (generation != g_connect_generation.load()) {
           break;
         }
-        connected = ConnectRfcomm(address, channel, generation, 10000);
+        connected =
+            ConnectRfcomm(address, channel, nullptr, generation, 10000);
         if (connected != INVALID_SOCKET) {
           connected_channel = channel;
           break;
@@ -417,11 +853,17 @@ void HandleMethodCall(
         if (connected != INVALID_SOCKET) {
           closesocket(connected);
         }
+        std::string failure_message = "No RFCOMM channel available";
+        if (has_service_uuid) {
+          failure_message =
+              "Direct RFCOMM service connection failed for the official "
+              "BTBR UUID (WSA error " + std::to_string(connect_error) + ")";
+        }
         result->Error(
             generation == g_connect_generation.load() ? "CONNECT_FAILED"
                                                       : "CONNECT_CANCELLED",
             generation == g_connect_generation.load()
-                ? "No RFCOMM channel available"
+                ? failure_message
                 : "SPP connect was cancelled");
         return;
       }
@@ -430,8 +872,21 @@ void HandleMethodCall(
         g_socket = connected;
       }
       StartReadThread();
+      const auto connected_at = std::chrono::steady_clock::now();
       result->Success(EncodableValue(EncodableMap{
           {EncodableValue("channel"), EncodableValue(connected_channel)},
+          {EncodableValue("connectionMode"),
+           EncodableValue(has_service_uuid ? "serviceUuid" : "channel")},
+          {EncodableValue("discoveryMs"),
+           EncodableValue(static_cast<int64_t>(
+               std::chrono::duration_cast<std::chrono::milliseconds>(
+                   discovery_finished_at - started_at)
+                   .count()))},
+          {EncodableValue("connectMs"),
+           EncodableValue(static_cast<int64_t>(
+               std::chrono::duration_cast<std::chrono::milliseconds>(
+                   connected_at - discovery_finished_at)
+                   .count()))},
       }));
     }).detach();
     return;

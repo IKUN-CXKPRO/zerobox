@@ -574,7 +574,6 @@ class MainActivity : FlutterActivity() {
         val fallbackChannels = call.argument<List<Int>>("fallbackChannels")
             ?.mapNotNull { it.takeIf { channel -> channel in 1..30 } }
             ?.distinct()
-            ?.takeIf { it.isNotEmpty() }
             ?: listOf(5, 1)
         if (!hasBluetoothConnectPermission()) {
             requestBluetoothPermissionsIfNeeded()

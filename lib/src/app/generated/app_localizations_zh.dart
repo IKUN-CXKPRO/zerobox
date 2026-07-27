@@ -486,7 +486,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get errorBluetoothConnectFailed =>
-      '连接失败，请确认蓝牙权限已授予且蓝牙已开启、设备在附近且未被其他工具或设备占用；VelaOS 设备请先在设备上进入「连接新手机」状态，然后重试';
+      '连接失败，请确认蓝牙权限已授予且蓝牙已开启、设备在附近，并且未被其他工具或设备占用';
 
   @override
   String get errorBluetoothDisconnected => '蓝牙连接已断开，请重新连接设备';

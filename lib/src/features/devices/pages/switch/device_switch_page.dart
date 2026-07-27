@@ -15,12 +15,37 @@ import 'package:oronbox/src/core/models/device.dart';
 import 'package:oronbox/src/core/utils/layout.dart';
 import 'package:oronbox/src/device/core/connect_type.dart';
 import 'package:oronbox/src/device/core/device_profile.dart';
+import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/devices/utils/device_address.dart';
 import 'package:oronbox/src/features/devices/widgets/device_connection_text.dart';
 import 'package:oronbox/src/features/devices/services/device_share_link.dart';
 import 'package:oronbox/src/features/devices/providers/pending_shared_device_provider.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
+
+List<BTDeviceInfo> _visibleScannedDevices(DeviceManagerState state) {
+  final visible = <BTDeviceInfo>[];
+  final seenZeppDevices = <String>{};
+  final scans = [...state.scannedDevices]
+    ..sort((a, b) {
+      final aBle = a.connectType.toLowerCase() == ConnectType.ble.name ? 0 : 1;
+      final bBle = b.connectType.toLowerCase() == ConnectType.ble.name ? 0 : 1;
+      return aBle.compareTo(bBle);
+    });
+
+  for (final scan in scans) {
+    final scanIdentity = zeppOsDeviceForBluetoothName(scan.name);
+    final alreadyPaired = state.pairedDevices.any((paired) {
+      if (deviceAddressEquals(scan.addr, paired.addr)) return true;
+      final pairedIdentity = zeppOsDeviceForBluetoothName(paired.name);
+      return scanIdentity != null && pairedIdentity?.id == scanIdentity.id;
+    });
+    if (alreadyPaired) continue;
+    if (scanIdentity != null && !seenZeppDevices.add(scanIdentity.id)) continue;
+    visible.add(scan);
+  }
+  return visible;
+}
 
 class DeviceSwitchPage extends ConsumerStatefulWidget {
   const DeviceSwitchPage({super.key});
@@ -503,13 +528,7 @@ class _ScanDeviceListState extends ConsumerState<_ScanDeviceList> {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(deviceManagerProvider);
     // Already-paired devices show up on the left; don't list them again here.
-    final visibleDevices = state.scannedDevices
-        .where(
-          (scan) => !state.pairedDevices.any(
-            (paired) => deviceAddressEquals(scan.addr, paired.addr),
-          ),
-        )
-        .toList(growable: false);
+    final visibleDevices = _visibleScannedDevices(state);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -649,13 +668,7 @@ class _SliverScanDeviceListState extends ConsumerState<_SliverScanDeviceList> {
   Widget build(BuildContext context) {
     final state = ref.watch(deviceManagerProvider);
     // Already-paired devices show up in the saved list; don't repeat them.
-    final visibleDevices = state.scannedDevices
-        .where(
-          (scan) => !state.pairedDevices.any(
-            (paired) => deviceAddressEquals(scan.addr, paired.addr),
-          ),
-        )
-        .toList(growable: false);
+    final visibleDevices = _visibleScannedDevices(state);
 
     if (!state.scanning && visibleDevices.isEmpty) {
       return const SliverToBoxAdapter(
@@ -763,9 +776,7 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
       name: widget.device.name,
       codename: widget.device.codename,
     );
-    _connectType = profile.preferredConnectType.name.isNotEmpty
-        ? profile.preferredConnectType.name
-        : widget.device.connectType;
+    _connectType = _initialConnectType(profile);
   }
 
   @override
@@ -780,9 +791,7 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
         name: widget.device.name,
         codename: widget.device.codename,
       );
-      _connectType = profile.preferredConnectType.name.isNotEmpty
-          ? profile.preferredConnectType.name
-          : widget.device.connectType;
+      _connectType = _initialConnectType(profile);
     } else if (oldWidget.device.authkey != widget.device.authkey &&
         !_showInput) {
       _authController.text = widget.device.authkey ?? '';
@@ -797,6 +806,14 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
 
   Future<void> _connect() async {
     final authKey = _authController.text;
+    final endpoint = _connectionEndpointFor(
+      _connectType,
+      ref.read(deviceManagerProvider),
+    );
+    if (endpoint == null) {
+      _showMissingEndpoint(_connectType);
+      return;
+    }
     setState(() {
       _showInput = false;
       _showConnectionError = false;
@@ -805,8 +822,8 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
     await ref
         .read(deviceManagerProvider.notifier)
         .connect(
-          widget.device.addr,
-          widget.device.name,
+          endpoint.addr,
+          endpoint.name,
           authKey,
           connectType: _connectType,
         );
@@ -814,14 +831,76 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
     if (mounted) {
       final state = ref.read(deviceManagerProvider);
       final connectedThisDevice =
-          state.protocolState == proto.ProtocolState.ready &&
-          state.currentDevice?.addr == widget.device.addr;
+           state.protocolState == proto.ProtocolState.ready &&
+           state.currentDevice?.addr == endpoint.addr;
       if (connectedThisDevice) {
         if (context.canPop()) {
           context.pop();
         }
       }
     }
+  }
+
+  String _initialConnectType(DeviceProfile profile) {
+    final stored = widget.device.connectType.toLowerCase();
+    if (stored == ConnectType.ble.name || stored == ConnectType.spp.name) {
+      return stored;
+    }
+    return profile.preferredConnectType.name;
+  }
+
+  ({String addr, String name})? _endpointFor(
+    String connectType,
+    DeviceManagerState state,
+  ) {
+    if (!widget.saved &&
+        widget.device.connectType.toLowerCase() == connectType) {
+      return (addr: widget.device.addr, name: widget.device.name);
+    }
+    final sourceIdentity = zeppOsDeviceForBluetoothName(widget.device.name);
+    if (sourceIdentity == null) {
+      return (addr: widget.device.addr, name: widget.device.name);
+    }
+    for (final endpoint in state.scannedDevices) {
+      if (endpoint.connectType.toLowerCase() != connectType) continue;
+      final candidateIdentity = zeppOsDeviceForBluetoothName(endpoint.name);
+      if (candidateIdentity?.id == sourceIdentity.id) {
+        return (addr: endpoint.addr, name: endpoint.name);
+      }
+    }
+    return null;
+  }
+
+  ({String addr, String name})? _connectionEndpointFor(
+    String connectType,
+    DeviceManagerState state,
+  ) {
+    final discovered = _endpointFor(connectType, state);
+    if (discovered != null) return discovered;
+    if (connectType != ConnectType.spp.name) return null;
+
+    final zeppDevice = zeppOsDeviceForBluetoothName(widget.device.name);
+    if (zeppDevice == null ||
+        zeppDevice.connectionCapability == ZeppOsConnectionCapability.ble) {
+      return null;
+    }
+    // BTBR is the only transport allowed to use the saved Zepp identity to
+    // reach native pairing. BLE continues to require its discovered endpoint.
+    return (addr: widget.device.addr, name: widget.device.name);
+  }
+
+  void _showMissingEndpoint(String connectType) {
+    if (!mounted) return;
+    final target = connectType == ConnectType.spp.name
+        ? 'BT Classic'
+        : 'BLE';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '未发现已配对的 $target 设备，请先在 Windows 蓝牙设置中完成配对，然后重新扫描。',
+        ),
+      ),
+    );
   }
 
   @override
@@ -842,6 +921,10 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
     );
     final isUnrecognized =
         !widget.saved && profile.id == DeviceRegistry.unknown.id;
+    final zeppDevice = zeppOsDeviceForBluetoothName(widget.device.name);
+    final supportsBtbr =
+        zeppDevice != null &&
+        zeppDevice.connectionCapability != ZeppOsConnectionCapability.ble;
     final transportLabel = _connectType == ConnectType.spp.name
         ? l10n.deviceTransportSpp
         : l10n.deviceTransportBle;
@@ -972,6 +1055,26 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
                           if (context.mounted) {
                             await _showQrDialog(context, widget.device);
                           }
+                        } else if (value == 'connect_ble' ||
+                            value == 'connect_btbr') {
+                          final selected = value == 'connect_btbr'
+                              ? ConnectType.spp.name
+                              : ConnectType.ble.name;
+                          final endpoint = _connectionEndpointFor(
+                            selected,
+                            state,
+                          );
+                          if (endpoint == null) {
+                            _showMissingEndpoint(selected);
+                            return;
+                          }
+                          setState(() => _connectType = selected);
+                          await manager.connect(
+                            endpoint.addr,
+                            endpoint.name,
+                            widget.device.authkey ?? '',
+                            connectType: selected,
+                          );
                         }
                         widget.onComplete?.call();
                       },
@@ -1008,6 +1111,34 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
                             ],
                           ),
                         ),
+                        if (supportsBtbr) ...[
+                          PopupMenuItem(
+                            value: 'connect_ble',
+                            enabled:
+                                !state.connecting &&
+                                (widget.device.authkey?.isNotEmpty ?? false),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.bluetooth_outlined),
+                                SizedBox(width: 8),
+                                Text('使用 BLE 连接'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'connect_btbr',
+                            enabled:
+                                !state.connecting &&
+                                (widget.device.authkey?.isNotEmpty ?? false),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.cable_outlined),
+                                SizedBox(width: 8),
+                                Text('使用 BT Classic 连接'),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                 ],
@@ -1027,6 +1158,29 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (_showInput && supportsBtbr) ...[
+                          SegmentedButton<String>(
+                            segments: const [
+                              ButtonSegment(
+                                value: 'ble',
+                                icon: Icon(Icons.bluetooth_outlined),
+                                label: Text('BLE'),
+                              ),
+                              ButtonSegment(
+                                value: 'spp',
+                                icon: Icon(Icons.cable_outlined),
+                                label: Text('BT Classic'),
+                              ),
+                            ],
+                            selected: {_connectType},
+                            onSelectionChanged: state.connecting
+                                ? null
+                                : (selection) => setState(
+                                    () => _connectType = selection.single,
+                                  ),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
                         if (_showInput)
                           TextField(
                             controller: _authController,

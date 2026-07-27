@@ -501,7 +501,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorBluetoothConnectFailed =>
-      'Connection failed. Check that Bluetooth permission is granted and Bluetooth is on, the device is nearby and not occupied by another app or device, and VelaOS devices are in \"Connect new phone\" mode, then try again';
+      'Connection failed. Check that Bluetooth permission is granted, Bluetooth is on, the device is nearby, and it is not occupied by another app or device';
 
   @override
   String get errorBluetoothDisconnected =>

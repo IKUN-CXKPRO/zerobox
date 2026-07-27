@@ -13,6 +13,7 @@ class ZeppOsScreenshotSystem extends System {
   static const appsEndpoint = 0x00a0;
   static const fileTransferEndpoint = 0x000d;
   static const _maxScreenshotBytes = 8 * 1024 * 1024;
+  static const _maxIncomingFileBytes = 128 * 1024 * 1024;
   static const _firmwareService = '00001530-0000-3512-2118-0009af100700';
   static const _v3Receive = BleRequiredCharacteristic(
     serviceUuid: _firmwareService,
@@ -33,6 +34,7 @@ class ZeppOsScreenshotSystem extends System {
   Completer<int>? _screenshotAck;
   Completer<void>? _fileRequest;
   Completer<Uint8List>? _pendingScreenshot;
+  _PendingIncomingFile? _pendingIncomingFile;
   bool _requestRunning = false;
   _Download? _download;
   StreamSubscription<Uint8List>? _v3Subscription;
@@ -175,6 +177,28 @@ class ZeppOsScreenshotSystem extends System {
     }
   }
 
+  Future<ZeppOsReceivedFile> waitForIncomingFile({
+    required bool Function(String url, String filename) matches,
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
+    if (_pendingIncomingFile != null) {
+      throw StateError('Another Zepp OS file download is already pending');
+    }
+    await initialize();
+    final completer = Completer<ZeppOsReceivedFile>();
+    final pending = _PendingIncomingFile(matches, completer);
+    _pendingIncomingFile = pending;
+    try {
+      return await completer.future.timeout(timeout);
+    } finally {
+      if (identical(_pendingIncomingFile, pending)) {
+        _pendingIncomingFile = null;
+      }
+      _download = null;
+      _resetV3Chunk();
+    }
+  }
+
   Future<int> _ensureCapabilities() async {
     final current = _fileTransferVersion;
     if (current != null) return current;
@@ -263,11 +287,20 @@ class ZeppOsScreenshotSystem extends System {
           'Invalid screenshot compression flag: ${payload[offset]}',
         );
       }
-      if (length <= 0 || length > _maxScreenshotBytes) {
-        throw FormatException('Invalid screenshot size: $length');
+      final isScreenshot = filename.startsWith('screenshot-');
+      final incoming = _pendingIncomingFile;
+      final isExpectedFile = incoming?.matches(url, filename) ?? false;
+      if (!isScreenshot && !isExpectedFile) {
+        if (_pendingScreenshot != null) {
+          throw FormatException('Unexpected screenshot file: $filename');
+        }
+        return;
       }
-      if (!filename.startsWith('screenshot-')) {
-        throw FormatException('Unexpected file: $filename');
+      final maximumLength = isScreenshot
+          ? _maxScreenshotBytes
+          : _maxIncomingFileBytes;
+      if (length <= 0 || length > maximumLength) {
+        throw FormatException('Invalid incoming file size: $length');
       }
       _download = _Download(
         session,
@@ -278,7 +311,7 @@ class ZeppOsScreenshotSystem extends System {
         compressed: compressed,
       );
       _log.info(
-        'incoming screenshot: session=$session, url=$url, '
+        'incoming Zepp OS file: session=$session, url=$url, '
         'filename=$filename, length=$length, compressed=$compressed',
       );
       final fileRequest = _fileRequest;
@@ -449,7 +482,20 @@ class ZeppOsScreenshotSystem extends System {
       }
       _log.info('screenshot $protocol completed: ${screenshot.length} bytes');
       final pending = _pendingScreenshot;
-      if (pending != null && !pending.isCompleted) pending.complete(screenshot);
+      if (download.filename.startsWith('screenshot-')) {
+        if (pending != null && !pending.isCompleted) pending.complete(screenshot);
+      } else {
+        final incoming = _pendingIncomingFile?.completer;
+        if (incoming != null && !incoming.isCompleted) {
+          incoming.complete(
+            ZeppOsReceivedFile(
+              url: download.url,
+              filename: download.filename,
+              bytes: screenshot,
+            ),
+          );
+        }
+      }
     } catch (error, stackTrace) {
       final pending = _pendingScreenshot;
       if (pending != null && !pending.isCompleted) {
@@ -477,6 +523,10 @@ class ZeppOsScreenshotSystem extends System {
     final pending = _pendingScreenshot;
     if (pending != null && !pending.isCompleted) {
       pending.completeError(error, stackTrace);
+    }
+    final incoming = _pendingIncomingFile?.completer;
+    if (incoming != null && !incoming.isCompleted) {
+      incoming.completeError(error, stackTrace);
     }
   }
 
@@ -507,6 +557,25 @@ class ZeppOsScreenshotSystem extends System {
     await _v3SendSubscription?.cancel();
     _v3SendSubscription = null;
   }
+}
+
+class ZeppOsReceivedFile {
+  const ZeppOsReceivedFile({
+    required this.url,
+    required this.filename,
+    required this.bytes,
+  });
+
+  final String url;
+  final String filename;
+  final Uint8List bytes;
+}
+
+class _PendingIncomingFile {
+  const _PendingIncomingFile(this.matches, this.completer);
+
+  final bool Function(String url, String filename) matches;
+  final Completer<ZeppOsReceivedFile> completer;
 }
 
 class _Download {
