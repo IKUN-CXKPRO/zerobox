@@ -9,6 +9,7 @@ import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/widgets/resource_media_hero.dart';
 
 /// List-style resource card for the BandBBS source, modeled after the
 /// bandbbs.cn resource list: author + time, title + tagline, lazily loaded
@@ -48,8 +49,8 @@ class BandBbsResourceCard extends ConsumerWidget {
                   children: [
                     Row(
                       children: [
-                        if (item.ref.source !=
-                            CommunitySourceId.huamiAppStore) ...[
+                        if (item.ref.source != CommunitySourceId.astroboxRepo &&
+                            author?.avatarUrl != null) ...[
                           NetworkImgLayer(
                             src: author?.avatarUrl?.toString() ?? '',
                             width: 20,
@@ -147,10 +148,14 @@ class BandBbsResourceCard extends ConsumerWidget {
               ),
               if (item.iconUrl != null) ...[
                 const SizedBox(width: 12),
-                NetworkImgLayer(
-                  src: item.iconUrl!.toString(),
+                ResourceMediaHero(
+                  tag: resourceMediaHeroTag(item.ref, 'icon'),
+                  url: item.iconUrl!.toString(),
                   width: 64,
                   height: 64,
+                  style: const ResourceMediaHeroStyle(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
                 ),
               ],
             ],
@@ -187,6 +192,9 @@ class _LazyPreviews extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (item.ref.source != CommunitySourceId.bandbbs) {
+      return const SizedBox.shrink();
+    }
     final loadPreviews = ref.watch(
       appSettingsProvider.select((settings) => settings.bandbbsLoadPreviews),
     );

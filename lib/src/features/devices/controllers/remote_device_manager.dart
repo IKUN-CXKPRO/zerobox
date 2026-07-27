@@ -505,6 +505,25 @@ class HostDeviceManager extends DeviceManager {
   );
 
   @override
+  Future<DeviceLogPullResult> pullDeviceLogs({
+    void Function(double progress, String fileName)? onProgress,
+  }) async {
+    final result = await _execute(
+      const OronBoxCommand(method: 'device.logs.pull'),
+    );
+    final value = (result.value as Map).cast<String, Object?>();
+    return DeviceLogPullResult(
+      fileName: value['name']?.toString() ?? '',
+      data: Uint8List(0),
+    );
+  }
+
+  @override
+  Future<void> cancelDeviceLogPull() async {
+    await _execute(const OronBoxCommand(method: 'device.logs.cancel'));
+  }
+
+  @override
   Future<List<int>> listZeppOsAppSides() async {
     final result = await _execute(
       const OronBoxCommand(method: 'device.zeppos.appside.list'),

@@ -31,6 +31,9 @@ class ResourceRef {
   int get hashCode => Object.hash(source, id);
 }
 
+String resourceMediaHeroTag(ResourceRef ref, String role) =>
+    'resource-media:${ref.key}:$role';
+
 class CommunityResourceAuthor {
   const CommunityResourceAuthor({required this.name, this.url, this.avatarUrl});
 

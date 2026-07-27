@@ -33,10 +33,15 @@ void main() {
 
       await container
           .read(creatorWorkspaceProvider.notifier)
-          .create('demo-resource', CreatorResourceKind.quickApp);
+          .create(
+            'demo-resource',
+            'Demo resource',
+            CreatorResourceKind.quickApp,
+          );
       final state = container.read(creatorWorkspaceProvider);
       expect(state.resources, hasLength(1));
       expect(state.selected?.resource.slug, 'demo-resource');
+      expect(state.selected?.resource.draftName, 'Demo resource');
       expect(state.selected?.revisions, isEmpty);
     },
   );
@@ -58,6 +63,31 @@ void main() {
       expect(host.methods, contains('creator.list'));
       expect(host.methods, contains('creator.devices'));
       expect(host.methods, contains('creator.grants'));
+    },
+  );
+
+  test(
+    'workspace refresh starts primary and secondary requests together',
+    () async {
+      final listGate = Completer<void>();
+      final host = _CreatorHost(listGate: listGate);
+      final container = ProviderContainer(
+        overrides: [applicationHostProvider.overrideWithValue(host)],
+      );
+      addTearDown(container.dispose);
+
+      container.read(creatorWorkspaceProvider);
+      await _eventually(
+        () => host.methods.toSet().containsAll({
+          'creator.list',
+          'creator.devices',
+          'creator.grants',
+        }),
+      );
+      listGate.complete();
+      await _eventually(
+        () => !container.read(creatorWorkspaceProvider).loading,
+      );
     },
   );
 
@@ -96,13 +126,15 @@ void main() {
         () => !container.read(creatorWorkspaceProvider).loading,
       );
       final controller = container.read(creatorWorkspaceProvider.notifier);
-      await controller.create('demo-resource', CreatorResourceKind.quickApp);
+      await controller.create(
+        'demo-resource',
+        'Demo resource',
+        CreatorResourceKind.quickApp,
+      );
 
       Object? thrown;
       try {
-        await controller.publish(
-          bundle: Uint8List.fromList(const [1, 2, 3]),
-        );
+        await controller.publish(bundle: Uint8List.fromList(const [1, 2, 3]));
       } catch (error) {
         thrown = error;
       }
@@ -142,11 +174,13 @@ class _CreatorHost implements OronBoxCommandBus {
     this.publishFailure,
     this.grantsFailure = false,
     this.includeResource = false,
+    this.listGate,
   });
 
   final CommandError? publishFailure;
   final bool grantsFailure;
   final bool includeResource;
+  final Completer<void>? listGate;
   final _events = StreamController<CommandEvent>.broadcast();
   final methods = <String>[];
 
@@ -157,6 +191,7 @@ class _CreatorHost implements OronBoxCommandBus {
   Future<CommandResult> execute(OronBoxCommand command) async {
     methods.add(command.method);
     if (command.method == 'creator.list') {
+      await listGate?.future;
       return CommandResult.success({
         'resources': [
           if (includeResource)
@@ -183,6 +218,7 @@ class _CreatorHost implements OronBoxCommandBus {
         'resource': {
           'id': 'resource-1',
           'slug': command.params['slug'],
+          'draft_name': command.params['name'],
           'kind': command.params['kind'],
           'state': 'active',
         },

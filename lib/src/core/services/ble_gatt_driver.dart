@@ -475,7 +475,7 @@ class BleGattDriver {
     // replayed by every UniversalBle backend and must not gate initialization.
     _log.info('[$effectiveDeviceId] platform connection established');
 
-    if (attemptPair) {
+    if (attemptPair && !kIsWeb) {
       try {
         _log.info('[$effectiveDeviceId] attempting pair');
         await UniversalBle.pair(
@@ -487,7 +487,7 @@ class BleGattDriver {
       }
     } else {
       _log.info(
-        '[$effectiveDeviceId] skipping OS pairing for protocol-auth device',
+        '[$effectiveDeviceId] skipping OS pairing for web/protocol-auth device',
       );
     }
 

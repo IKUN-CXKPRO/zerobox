@@ -24,6 +24,8 @@ import 'package:oronbox/src/device/xiaomi/components/auth_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/info_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/install_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/network_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/mass_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/report_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/resource_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/thirdparty_app_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/xiaomi_device_component.dart';
@@ -53,6 +55,16 @@ import 'package:oronbox/src/protocols/common/device_protocol.dart'
 import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
 import 'package:oronbox/src/protocols/generated/xiaomi/wear_watch_face.pb.dart'
     as pb_watchface;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_system.pb.dart'
+    as pb_system;
+import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
+
+class DeviceLogPullResult {
+  const DeviceLogPullResult({required this.fileName, required this.data});
+
+  final String fileName;
+  final Uint8List data;
+}
 
 class ZeppOsMessageRecord {
   const ZeppOsMessageRecord({
@@ -266,6 +278,10 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
     required String artist,
     void Function(double progress)? onProgress,
   });
+  Future<DeviceLogPullResult> pullDeviceLogs({
+    void Function(double progress, String fileName)? onProgress,
+  });
+  Future<void> cancelDeviceLogPull();
   void clearZeppOsMessages();
   Future<List<int>> listZeppOsAppSides();
   Future<List<int>> observedZeppOsAppSideIds();
@@ -510,7 +526,7 @@ class LocalDeviceManager extends DeviceManager {
   }
 
   Set<ConnectType> _scanConnectTypes(ConnectType connectType) {
-    if (kIsWeb) return const {ConnectType.spp};
+    if (kIsWeb) return const {ConnectType.ble};
     if (connectType == ConnectType.ble) {
       return const {ConnectType.ble, ConnectType.spp};
     }
@@ -569,6 +585,18 @@ class LocalDeviceManager extends DeviceManager {
       final existingProfile = DeviceRegistry.resolveIdentity(
         name: existing.name,
       );
+      if (existingProfile.id == DeviceRegistry.unknown.id &&
+          endpoint.connectType == ConnectType.spp &&
+          existing.connectType != ConnectType.spp.name) {
+        final updated = List<BTDeviceInfo>.from(state.scannedDevices);
+        updated[existingIndex] = BTDeviceInfo(
+          name: displayName,
+          addr: endpoint.address,
+          connectType: endpoint.connectType.name,
+        );
+        state = state.copyWith(scannedDevices: _sortScannedDevices(updated));
+        return;
+      }
       if (existingProfile.kind == DeviceKind.zepp ||
           resolvedProfile.kind != DeviceKind.zepp) {
         return;
@@ -806,7 +834,8 @@ class LocalDeviceManager extends DeviceManager {
         effectiveKind == DeviceKind.zepp && normalizedConnectType.isNotEmpty
         ? normalizedConnectType
         : normalizedConnectType.isEmpty ||
-              (profile.preferredConnectType.name.isNotEmpty &&
+              (profile.id != DeviceRegistry.unknown.id &&
+                  profile.preferredConnectType.name.isNotEmpty &&
                   profile.preferredConnectType.name != normalizedConnectType)
         ? profile.preferredConnectType.name
         : normalizedConnectType;
@@ -966,7 +995,12 @@ class LocalDeviceManager extends DeviceManager {
 
       final entity = _runtime.spawnDevice(
         id: addr,
-        kind: deviceKindString(effectiveKind),
+        kind:
+            effectiveKind == DeviceKind.xiaomi &&
+                transportType == ConnectType.spp &&
+                identity?.protocol == XiaomiWearableProtocol.sppV1
+            ? 'xiaomi-spp-v1'
+            : deviceKindString(effectiveKind),
         transport: transport,
         factory: effectiveKind == DeviceKind.zepp
             ? ZeppOsDeviceFactory()
@@ -1860,6 +1894,58 @@ class LocalDeviceManager extends DeviceManager {
     } finally {
       _activeZeppOsTransfers--;
     }
+  }
+
+  @override
+  Future<DeviceLogPullResult> pullDeviceLogs({
+    void Function(double progress, String fileName)? onProgress,
+  }) async {
+    final entity = _currentEntity;
+    if (entity == null || state.protocolState != ProtocolState.ready) {
+      throw ProtocolException('Device not ready');
+    }
+    final report = entity.system<XiaomiReportSystem>();
+    final mass = entity.system<XiaomiMassSystem>();
+    if (report == null || mass == null) {
+      throw UnsupportedError(
+        'Device log export is only available for Xiaomi wearables',
+      );
+    }
+    const channels = [
+      L2Channel.mass,
+      L2Channel.fileSensor,
+      L2Channel.fileFitness,
+    ];
+    final receive = mass
+        .beginReverseMassReceiveMulti(
+          channels,
+          progressCb: (value) =>
+              onProgress?.call(value.progress.clamp(0, 1), value.fileName),
+        )
+        .timeout(const Duration(minutes: 5));
+    try {
+      final response = await report.requestDeviceLogExport();
+      if (response.status != pb_system.ReportData_Status.SUCCESS &&
+          response.status != pb_system.ReportData_Status.URL_DIRECT) {
+        throw ProtocolException(
+          'Device rejected log export: ${response.status.name}',
+        );
+      }
+      final result = await receive;
+      return DeviceLogPullResult(fileName: result.fileName, data: result.data);
+    } finally {
+      report.clearDeviceLogWait();
+      mass.clearReverseMassWait(L2Channel.mass);
+    }
+  }
+
+  @override
+  Future<void> cancelDeviceLogPull() async {
+    final entity = _currentEntity;
+    entity?.system<XiaomiReportSystem>()?.cancelDeviceLogExport();
+    entity?.system<XiaomiMassSystem>()?.cancelReverseMassReceive(
+      L2Channel.mass,
+    );
   }
 
   @override

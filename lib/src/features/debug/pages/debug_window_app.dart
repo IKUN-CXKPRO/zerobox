@@ -211,10 +211,7 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
           tabAlignment: TabAlignment.start,
           tabs: const [
             Tab(icon: Icon(Icons.terminal), text: 'Console'),
-            Tab(
-              icon: Icon(Icons.account_tree_outlined),
-              text: 'Layout',
-            ),
+            Tab(icon: Icon(Icons.account_tree_outlined), text: 'Layout'),
             Tab(icon: Icon(Icons.memory), text: 'Runtime'),
             Tab(icon: Icon(Icons.folder_outlined), text: 'Storage'),
           ],
@@ -228,10 +225,7 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
                   children: [
                     DebugConsole(records: _visibleRecords),
                     DebugLayoutInspector(
-                      nodes: (_selectedPlugin?['layout'] as List? ?? const [])
-                          .whereType<Map>()
-                          .map((node) => node.cast<String, Object?>())
-                          .toList(growable: false),
+                      nodes: debugLayoutNodes(_selectedPlugin?['layout']),
                     ),
                     DebugRuntimeInspector(
                       host: _host,
@@ -285,6 +279,17 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
             ),
     );
   }
+}
+
+List<Map<String, Object?>> debugLayoutNodes(Object? layout) {
+  final nodes = layout is List
+      ? layout.whereType<Map>()
+      : layout is Map
+      ? <Map>[layout]
+      : const <Map>[];
+  return nodes
+      .map((node) => node.cast<String, Object?>())
+      .toList(growable: false);
 }
 
 class _SourceChips extends StatelessWidget {

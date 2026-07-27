@@ -6,6 +6,7 @@ import 'package:oronbox/src/device/xiaomi/components/xiaomi_device_component.dar
 import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
 import 'package:oronbox/src/protocols/xiaomi/packet/l1_packet.dart';
 import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/spp_v1_packet.dart';
 
 class XiaomiDispatcher extends Dispatcher {
   XiaomiDispatcher(this._component) : _log = getLogger('XiaomiDispatcher');
@@ -25,6 +26,33 @@ class XiaomiDispatcher extends Dispatcher {
 
   @override
   void dispatch(Uint8List data) {
+    if (_component.sppV1) {
+      for (final packet in _component.decodeSppV1(data)) {
+        switch (packet.channel) {
+          case XiaomiSppV1Channel.version:
+            _component.completeSppV1Hello();
+          case XiaomiSppV1Channel.protobuf:
+            onL2Payload(
+              L2Packet(
+                channel: L2Channel.pb,
+                opcode: L2OpCode.write,
+                payload: packet.payload,
+              ).toBytes(),
+            );
+          case XiaomiSppV1Channel.data:
+            onL2Payload(
+              L2Packet(
+                channel: L2Channel.mass,
+                opcode: L2OpCode.write,
+                payload: packet.payload,
+              ).toBytes(),
+            );
+          case XiaomiSppV1Channel.activity:
+            break;
+        }
+      }
+      return;
+    }
     if (_component.handleSppHello(data)) {
       return;
     }

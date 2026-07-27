@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +11,7 @@ import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
 import 'package:oronbox/src/features/resources/widgets/resource_install_confirmation.dart';
+import 'package:oronbox/src/features/devices/pages/install/local_file_picker_policy.dart';
 
 class InstallLocalPage extends ConsumerStatefulWidget {
   const InstallLocalPage({super.key, required this.type});
@@ -26,7 +26,8 @@ enum InstallType { app, watchface, firmware }
 
 class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
   String? _fileName;
-  Uint8List? _fileBytes;
+  XFile? _file;
+  int? _fileSize;
   bool _installing = false;
   double _progress = 0;
   String? _error;
@@ -36,16 +37,19 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
       // Package contents are authoritative. Extensions are often renamed and
       // must not prevent a valid package from being selected.
       type: FileType.any,
-      withData: true,
+      withData: shouldLoadPickedFileData,
     );
     if (result == null || result.files.isEmpty) return;
     final file = result.files.first;
-    final bytes = file.bytes;
-    if (bytes == null) return;
+    if (file.bytes == null && file.path == null) return;
+    final selected = file.bytes == null
+        ? XFile(file.path!, name: file.name)
+        : XFile.fromData(file.bytes!, name: file.name);
 
     setState(() {
       _fileName = file.name;
-      _fileBytes = bytes;
+      _file = selected;
+      _fileSize = file.size;
       _error = null;
       _progress = 0;
     });
@@ -59,17 +63,16 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
   };
 
   Future<void> _install() async {
-    final bytes = _fileBytes;
+    final file = _file;
     final fileName = _fileName;
-    if (bytes == null || fileName == null) return;
+    if (file == null || fileName == null) return;
     try {
       setState(() => _installing = true);
       final enqueued = await confirmAndEnqueueResourceFile(
         context: context,
         ref: ref,
         selectedType: _selectedType,
-        fileName: fileName,
-        bytes: bytes,
+        file: file,
       );
       if (!mounted) return;
       if (enqueued) {
@@ -116,9 +119,7 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
                   child: Column(
                     children: [
                       Icon(
-                        _fileBytes == null
-                            ? Icons.upload_file
-                            : Icons.description,
+                        _file == null ? Icons.upload_file : Icons.description,
                         size: 48,
                         color: Theme.of(context).colorScheme.primary,
                       ),
@@ -128,11 +129,11 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
                         style: Theme.of(context).textTheme.titleMedium,
                         textAlign: TextAlign.center,
                       ),
-                      if (_fileBytes != null)
+                      if (_fileSize != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
-                            '${(_fileBytes!.length / 1024).toStringAsFixed(1)} KB',
+                            '${(_fileSize! / 1024).toStringAsFixed(1)} KB',
                             style: TextStyle(
                               color: Theme.of(
                                 context,
@@ -162,7 +163,7 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
             ],
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: _fileBytes != null && !_installing ? _install : null,
+              onPressed: _file != null && !_installing ? _install : null,
               child: Text(l10n.install),
             ),
           ],

@@ -8,6 +8,7 @@ import 'package:oronbox/src/command_bus/command_observability.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/core/logging/file_log_sink.dart';
 import 'package:oronbox/src/core/logging/diagnostic_event.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
@@ -170,6 +171,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       method.startsWith('app.') ||
       method.startsWith('watchface.') ||
       (method.startsWith('device.') &&
+          method != 'device.logs.cancel' &&
           method != 'device.snapshot' &&
           method != 'device.paired' &&
           method != 'device.status');
@@ -266,6 +268,8 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'device.zeppos.messages.clear' => Future.value(_clearZeppOsMessages()),
     'device.zeppos.screenshot' => _manager.requestZeppOsScreenshot(),
     'device.zeppos.voice_memos.download' => _downloadVoiceMemos(),
+    'device.logs.pull' => _pullDeviceLogs(),
+    'device.logs.cancel' => _cancelDeviceLogPull(),
     'device.zeppos.appside.list' => _manager.listZeppOsAppSides(),
     'device.zeppos.appside.observed' => _manager.observedZeppOsAppSideIds(),
     'device.zeppos.appside.sessions' => _appSideSessions(),
@@ -341,6 +345,38 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       '/api/feedback/${_requiredCreatorId(command.params, 'ticket')}/replies',
       data: {'message': command.params['message']},
     ),
+    'account.grants' => _creatorRequest('GET', '/api/me/grants'),
+    'comment.list' => _creatorApi.publicRequest(
+      'GET',
+      '/api/resources/${_requiredCreatorId(command.params, 'resource')}/comments',
+      query: {
+        if (command.params['before'] != null)
+          'before': command.params['before'],
+      },
+    ),
+    'comment.create' => _creatorRequest(
+      'POST',
+      '/api/resources/${_requiredCreatorId(command.params, 'resource')}/comments',
+      data: {
+        'body': command.params['body'],
+        'parent_id': command.params['parentId'] ?? '',
+      },
+    ),
+    'comment.delete' => _creatorRequest(
+      'DELETE',
+      '/api/comments/${_requiredCreatorId(command.params, 'comment')}',
+    ),
+    'message.list' => _creatorRequest('GET', '/api/messages'),
+    'message.clear' => _creatorRequest('DELETE', '/api/messages'),
+    'message.read' => _creatorRequest(
+      'POST',
+      '/api/messages/${_requiredCreatorId(command.params, 'message')}/read',
+    ),
+    'announcement.unread' => _creatorRequest(
+      'GET',
+      '/api/announcements/unread',
+    ),
+    'announcement.read' => _creatorRequest('POST', '/api/announcements/read'),
     'creator.list' => _creatorRequest('GET', '/api/creator/resources'),
     'creator.devices' => _creatorRequest('GET', '/api/devices'),
     'creator.grants' => _creatorRequest('GET', '/api/me/grants'),
@@ -353,6 +389,10 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       '/api/oauth/github/web/status',
       data: {'flow_id': command.params['flowId']},
     ),
+    'creator.github.disconnect' => _creatorRequest(
+      'DELETE',
+      '/api/oauth/github/grant',
+    ),
     'creator.get' => _creatorRequest(
       'GET',
       '/api/creator/resources/${_requiredCreatorId(command.params, 'resource')}',
@@ -360,14 +400,21 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'creator.create' => _creatorRequest(
       'POST',
       '/api/creator/resources',
-      data: {'slug': command.params['slug'], 'kind': command.params['kind']},
+      data: {
+        'slug': command.params['slug'],
+        'name': command.params['name'],
+        'kind': command.params['kind'],
+      },
     ),
     'creator.publish' => _creatorPublish(command.params),
     'creator.blob' => _creatorBlob(command.params),
-    'creator.archive' => _creatorRequest(
-      'PATCH',
-      '/api/creator/resources/${_requiredCreatorId(command.params, 'resource')}/archive',
-      query: {'archived': command.params['archived'] == true},
+    'creator.takedown' => _creatorRequest(
+      'POST',
+      '/api/creator/resources/${_requiredCreatorId(command.params, 'resource')}/takedown',
+    ),
+    'creator.restore' => _creatorRequest(
+      'POST',
+      '/api/creator/resources/${_requiredCreatorId(command.params, 'resource')}/restore',
     ),
     'creator.delete' => _creatorRequest(
       'DELETE',
@@ -832,6 +879,44 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
             },
         },
     };
+  }
+
+  Future<Object?> _pullDeviceLogs() async {
+    final pulled = await _manager.pullDeviceLogs(
+      onProgress: (progress, fileName) {
+        _events.add(
+          CommandEvent(
+            'device.log.progress',
+            data: {'progress': progress, 'fileName': fileName},
+          ),
+        );
+      },
+    );
+    final directory = await getLogDirectoryPath();
+    if (directory == null) {
+      throw const CommandFailure(
+        'storage_unavailable',
+        'The runtime log directory is unavailable',
+      );
+    }
+    final sourceName = pulled.fileName.trim();
+    final safeName = sourceName
+        .split(RegExp(r'[/\\]'))
+        .last
+        .replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    final now = DateTime.now();
+    final stamp =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-'
+        '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+    final name = 'device-$stamp-${safeName.isEmpty ? 'logs.zip' : safeName}';
+    final file = File('$directory${Platform.pathSeparator}$name');
+    await file.writeAsBytes(pulled.data, flush: true);
+    return {'name': name, 'path': file.path, 'size': pulled.data.length};
+  }
+
+  Future<Object?> _cancelDeviceLogPull() async {
+    await _manager.cancelDeviceLogPull();
+    return const {'cancelled': true};
   }
 
   Future<Object?> _refreshBattery() async {

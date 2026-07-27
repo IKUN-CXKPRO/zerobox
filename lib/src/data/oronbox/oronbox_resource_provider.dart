@@ -80,6 +80,7 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
       summary: summary.summary,
       updatedAt: summary.updatedAt,
       version: summary.version,
+      downloadCount: summary.downloadCount,
       content: CommunityResourceContent(
         format: ResourceContentFormat.plainText,
         value: summary.summary,
@@ -228,14 +229,21 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
     final preview = json['preview_sha256']?.toString() ?? '';
     final icon = json['icon_sha256']?.toString() ?? '';
     final cover = json['cover_sha256']?.toString() ?? '';
+    final owner = json['owner']?.toString() ?? '';
+    final ownerAvatar = Uri.tryParse(
+      json['owner_avatar_url']?.toString() ?? '',
+    );
     return CommunityResource(
       ref: ResourceRef(source: sourceId, id: id),
       name: json['name']?.toString() ?? '',
       type: _parseType(json['kind']?.toString()),
       paidType: CommunityPaidType.free,
       authors: [
-        if (json['owner']?.toString().isNotEmpty == true)
-          CommunityResourceAuthor(name: json['owner']!.toString()),
+        if (owner.isNotEmpty)
+          CommunityResourceAuthor(
+            name: owner,
+            avatarUrl: ownerAvatar?.hasScheme == true ? ownerAvatar : null,
+          ),
       ],
       supportedDevices: (json['devices'] as List? ?? const [])
           .map((value) => value.toString())
@@ -244,6 +252,7 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
       coverUrl: _blobUri(cover.isNotEmpty ? cover : preview),
       summary: json['summary']?.toString() ?? '',
       version: json['version']?.toString(),
+      downloadCount: (json['download_count'] as num?)?.toInt(),
       updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? ''),
     );
   }

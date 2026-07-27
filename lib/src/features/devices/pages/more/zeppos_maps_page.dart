@@ -48,6 +48,7 @@ class _ZeppOsMapsPageState extends ConsumerState<ZeppOsMapsPage> {
     final previewTiles = package.tiles
         .map((tile) => (x: tile.x, y: tile.y, url: tile.openStreetMapUrl))
         .toList();
+    if (!mounted) return;
     final confirmed =
         await showDialog<bool>(
           context: context,
@@ -80,9 +81,7 @@ class _ZeppOsMapsPageState extends ConsumerState<ZeppOsMapsPage> {
                       ZeppOsMapPreview(tiles: previewTiles, maxWidth: 420),
                     ],
                     const SizedBox(height: 12),
-                    const Text(
-                      '开始后还需要在手表上接受安装，传输期间请保持手表靠近电脑。',
-                    ),
+                    const Text('开始后还需要在手表上接受安装，传输期间请保持手表靠近电脑。'),
                   ],
                 ),
               ),

@@ -159,7 +159,6 @@ CreatorWorkspace _workspace({required Map<String, List<String>> artifacts}) =>
         id: 'resource',
         slug: 'resource',
         kind: CreatorResourceKind.quickApp,
-        state: 'active',
       ),
       artifacts: [
         for (final entry in artifacts.entries)

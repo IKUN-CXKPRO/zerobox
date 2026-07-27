@@ -96,6 +96,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get search => 'Search';
 
   @override
+  String get resourceListView => 'List view';
+
+  @override
+  String get resourceGridView => 'Card view';
+
+  @override
   String get refresh => 'Refresh';
 
   @override
@@ -224,7 +230,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Delisting hides this resource from the store. You can restore it anytime.';
 
   @override
-  String get creatorRestoreAction => 'Restore';
+  String get creatorRestoreAction => 'Relist';
 
   @override
   String get creatorDeleteConfirm =>
@@ -339,6 +345,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloads => 'Downloads';
 
   @override
+  String downloadTimes(int count) {
+    return '$count downloads';
+  }
+
+  @override
   String get changelog => 'Changelog';
 
   @override
@@ -372,7 +383,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get published => 'Published';
 
   @override
-  String get creatorArchived => 'Archived';
+  String get creatorStateSuspended => 'Delisted';
+
+  @override
+  String get creatorStateFrozen => 'Frozen';
+
+  @override
+  String get creatorSuspendedByOwnerNotice =>
+      'The resource is delisted. Keep editing and resubmit for review, or restore it directly';
+
+  @override
+  String get creatorSuspendedByAdminNotice =>
+      'An administrator delisted this resource. Edit and resubmit for review; it is restored once approved';
+
+  @override
+  String get creatorFrozenNotice =>
+      'An administrator froze this resource. It can no longer be edited and only an administrator can lift the freeze';
+
+  @override
+  String creatorModerationReason(Object reason) {
+    return 'Reason: $reason';
+  }
+
+  @override
+  String get creatorBannedTitle => 'Account banned';
+
+  @override
+  String get creatorBannedDescription =>
+      'Your account was banned by an administrator and the creator center is unavailable. Contact the team through a support ticket if you believe this is a mistake';
+
+  @override
+  String get creatorFrozenTitle => 'Creator capability frozen';
+
+  @override
+  String get creatorFrozenDescription =>
+      'An administrator froze your creator capability, so you cannot submit or manage resources for now. The rest of your account is unaffected';
 
   @override
   String get creatorBandBbsNoDevices =>
@@ -501,7 +546,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorBluetoothConnectFailed =>
-      'Connection failed. Check that Bluetooth permission is granted, Bluetooth is on, the device is nearby, and it is not occupied by another app or device';
+      'Connection failed. Check Bluetooth permission, keep the device nearby and unoccupied, enable Connect new phone on the device, then try again';
 
   @override
   String get errorBluetoothDisconnected =>
@@ -576,6 +621,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get devices => 'Devices';
+
+  @override
+  String creatorCompatibleDeviceCount(int count) {
+    return '$count devices';
+  }
 
   @override
   String get categories => 'Categories';
@@ -1084,6 +1134,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bandBbsLoggedOut => 'Signed out';
+
+  @override
+  String accountSignOutTitle(Object accountName) {
+    return 'Sign out of $accountName?';
+  }
+
+  @override
+  String get accountSignOutMessage =>
+      'You will need to sign in again to use related features.';
 
   @override
   String get bandBbsLoadPreviews => 'Load post previews';
@@ -1607,14 +1666,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAccountBandBbsAccount => 'BandBBS Account';
 
   @override
+  String get settingsAccountGitHub => 'GitHub account';
+
+  @override
+  String get settingsAccountGitHubDesc =>
+      'Connect to publish AstroBox resources as yourself';
+
+  @override
+  String get githubAccountNeedsBandBbs => 'Sign in to BandBBS first';
+
+  @override
+  String get bandBbsPublishAuthTitle => 'Publish authorization';
+
+  @override
   String get bandBbsResourceQueryTitle => 'Install purchased resources';
 
   @override
-  String get settingsAboutLogs => 'Logs';
+  String get settingsAboutLogs => 'Runtime logs';
 
   @override
   String get settingsAboutLogsDescription =>
-      'Logs stay on this device for diagnostics and are kept for the last 7 days';
+      'View, export, and manage runtime logs from the app and connected devices';
 
   @override
   String settingsAboutLogsSize(Object size) {
@@ -1636,6 +1708,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAboutLogsClear => 'Clear';
 
   @override
+  String get settingsDeviceLogsPull => 'Pull device logs';
+
+  @override
+  String get settingsDeviceLogsTip =>
+      'This pulls logs from the connected Xiaomi wearable and may take a while. Keep the app in the foreground and the device screen on until it finishes.';
+
+  @override
+  String get settingsDeviceLogsStart => 'Start';
+
+  @override
+  String get settingsDeviceLogsPulling => 'Pulling device logs';
+
+  @override
+  String settingsDeviceLogsProgress(Object progress) {
+    return 'Received $progress%';
+  }
+
+  @override
+  String settingsDeviceLogsSaved(Object name) {
+    return 'Device logs saved as $name';
+  }
+
+  @override
+  String settingsDeviceLogsFailed(Object error) {
+    return 'Unable to pull device logs: $error';
+  }
+
+  @override
   String get settingsAboutLogsClearConfirm =>
       'All log files except the current session will be deleted.';
 
@@ -1644,6 +1744,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAboutLogsOpenFailed => 'Unable to open the logs folder';
+
+  @override
+  String get settingsLogsFileList => 'Log files';
 
   @override
   String get settingsAboutLogsWarningTitle => 'Sensitive information warning';
@@ -1888,6 +1991,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Required. Resources are reviewed by OronBox';
 
   @override
+  String get creatorOpenInOronBox => 'View in OronBox';
+
+  @override
   String get creatorAstroTags => 'AstroBox tags';
 
   @override
@@ -2061,6 +2167,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportResource => 'Report resource';
+
+  @override
+  String get reportComment => 'Report comment';
 
   @override
   String get report => 'Report';
@@ -2270,4 +2379,153 @@ class AppLocalizationsEn extends AppLocalizations {
   String creatorReviewItemsProgress(Object done, Object total) {
     return 'Requested changes ($done/$total resolved)';
   }
+
+  @override
+  String get comments => 'Comments';
+
+  @override
+  String get commentEmpty => 'No comments yet';
+
+  @override
+  String get commentHint => 'Write a comment';
+
+  @override
+  String get commentLoginRequired => 'Sign in with BandBBS to comment';
+
+  @override
+  String get commentPending => 'Pending review';
+
+  @override
+  String get commentDeleted => 'Deleted';
+
+  @override
+  String get commentBlocked =>
+      'This comment did not meet the community guidelines';
+
+  @override
+  String get commentModerationUnavailable =>
+      'Comment moderation is temporarily unavailable';
+
+  @override
+  String get commentRateLimited => 'You are commenting too quickly';
+
+  @override
+  String get commentReplying => 'Replying to this comment';
+
+  @override
+  String get loadMore => 'Load more';
+
+  @override
+  String get reply => 'Reply';
+
+  @override
+  String get inbox => 'Inbox';
+
+  @override
+  String get inboxEmpty => 'No messages';
+
+  @override
+  String get inboxClear => 'Clear messages';
+
+  @override
+  String get inboxClearFailed => 'Could not clear messages. Try again later.';
+
+  @override
+  String get cleanMode => 'Feature switches';
+
+  @override
+  String get cleanModeDescription =>
+      'Manage main navigation, community features, and resource sources';
+
+  @override
+  String get cleanPluginsEntry => 'Plugins entry';
+
+  @override
+  String get cleanSourceHuamiAppStore => 'Amazfit App Store';
+
+  @override
+  String get announcementAcknowledge => 'Got it';
+
+  @override
+  String get cleanHomeFeed => 'Home feed';
+
+  @override
+  String get cleanExplore => 'Resource library';
+
+  @override
+  String get cleanInbox => 'Inbox';
+
+  @override
+  String get cleanAnnouncements => 'Announcement popups';
+
+  @override
+  String get cleanComments => 'Comments';
+
+  @override
+  String get cleanCreator => 'Creator center';
+
+  @override
+  String get cleanBandBbsLogin => 'BandBBS sign-in';
+
+  @override
+  String get cleanGitHubLogin => 'GitHub sign-in';
+
+  @override
+  String get cleanSourceOronBox => 'OronBox source';
+
+  @override
+  String get cleanSourceBandBbs => 'BandBBS source';
+
+  @override
+  String get cleanSourceAstroBox => 'AstroBox source';
+
+  @override
+  String get cleanExploreEntry => 'Explore entry';
+
+  @override
+  String get cleanNavigationGroup => 'Main navigation';
+
+  @override
+  String get cleanExploreContentGroup => 'Explore content';
+
+  @override
+  String get cleanResourceSourcesGroup => 'Resource sources';
+
+  @override
+  String get cleanCommunityGroup => 'Community features';
+
+  @override
+  String get settingsCategoryAccounts => 'Accounts and authorization';
+
+  @override
+  String get settingsCategoryAccountsDescription =>
+      'Manage Xiaomi, Amazfit, BandBBS, and GitHub accounts';
+
+  @override
+  String get settingsCategoryAppearance => 'Appearance and navigation';
+
+  @override
+  String get settingsCategoryAppearanceDescription =>
+      'Language, theme, navigation layout, and clean mode';
+
+  @override
+  String get settingsCategoryConnection => 'Connections and downloads';
+
+  @override
+  String get settingsCategoryConnectionDescription =>
+      'Device connections, download behavior, and network endpoints';
+
+  @override
+  String get settingsCategorySupport => 'Support and information';
+
+  @override
+  String get settingsCategorySupportDescription =>
+      'Feedback, about, licenses, acknowledgements, and website';
+
+  @override
+  String get settingsCategoryAdvanced => 'Advanced settings';
+
+  @override
+  String get settingsCategoryAdvancedDescription =>
+      'Window behavior, onboarding, and developer tools';
 }

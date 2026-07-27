@@ -6,6 +6,7 @@ import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/core/utils/layout.dart';
 import 'package:oronbox/src/features/resources/services/download_queue_notifier.dart';
 import 'package:oronbox/src/features/resources/services/install_queue_notifier.dart';
+import 'package:oronbox/src/features/messages/widgets/announcement_gate.dart';
 
 class AppScaffold extends ConsumerWidget {
   const AppScaffold({super.key, required this.navigationShell});
@@ -17,65 +18,80 @@ class AppScaffold extends ConsumerWidget {
     final width = MediaQuery.sizeOf(context).width;
     final l10n = AppLocalizations.of(context)!;
     final badgeCount = _queueBadgeCount(ref);
+    final showExplore = ref.watch(
+      appSettingsProvider.select((state) => state.clean.exploreEnabled),
+    );
+    final showPlugins = ref.watch(
+      appSettingsProvider.select((state) => state.clean.pluginsEnabled),
+    );
+    final branchIndices = [if (showExplore) 0, 1, 2, if (showPlugins) 3, 4];
+    if (!branchIndices.contains(navigationShell.currentIndex)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        navigationShell.goBranch(branchIndices.first);
+      });
+    }
     final railPosition = ref.watch(
       appSettingsProvider.select((state) => state.wideNavigationRailPosition),
     );
 
     if (useWideLayout(width)) {
-      return _buildSideMenu(context, l10n, badgeCount, railPosition);
+      return _buildSideMenu(
+        context,
+        l10n,
+        badgeCount,
+        railPosition,
+        branchIndices,
+      );
     }
-    return _buildBottomMenu(context, l10n, badgeCount);
+    final path = GoRouterState.of(context).uri.path;
+    const primaryPaths = {
+      '/resources',
+      '/devices',
+      '/queue',
+      '/plugins',
+      '/settings',
+    };
+    return _buildBottomMenu(
+      context,
+      l10n,
+      badgeCount,
+      branchIndices,
+      showNavigation:
+          primaryPaths.contains(path) || path.startsWith('/resources/detail/'),
+    );
   }
 
   Widget _buildBottomMenu(
     BuildContext context,
     AppLocalizations l10n,
     int badgeCount,
-  ) {
+    List<int> branchIndices, {
+    required bool showNavigation,
+  }) {
+    final navigationBar = NavigationBar(
+      destinations: branchIndices
+          .map((index) => _bottomDestination(l10n, badgeCount, index))
+          .toList(growable: false),
+      selectedIndex: branchIndices
+          .indexOf(navigationShell.currentIndex)
+          .clamp(0, branchIndices.length - 1),
+      onDestinationSelected: (index) {
+        final branch = branchIndices[index];
+        if (branch != navigationShell.currentIndex) {
+          navigationShell.goBranch(branch);
+        }
+      },
+    );
     return Scaffold(
       body: Container(
         color: Theme.of(context).colorScheme.surfaceContainer,
-        child: navigationShell,
+        child: AnnouncementGate(child: navigationShell),
       ),
-      bottomNavigationBar: NavigationBar(
-        destinations: [
-          NavigationDestination(
-            selectedIcon: const Icon(Icons.apps),
-            icon: const Icon(Icons.apps_outlined),
-            label: l10n.exploreTab,
-          ),
-          NavigationDestination(
-            selectedIcon: const Icon(Icons.watch),
-            icon: const Icon(Icons.watch_outlined),
-            label: l10n.devicesTab,
-          ),
-          NavigationDestination(
-            selectedIcon: const Icon(Icons.format_list_bulleted),
-            icon: badgeCount > 0
-                ? Badge(
-                    label: Text('$badgeCount'),
-                    child: const Icon(Icons.format_list_bulleted),
-                  )
-                : const Icon(Icons.format_list_bulleted),
-            label: l10n.settingsQueue,
-          ),
-          NavigationDestination(
-            selectedIcon: const Icon(Icons.extension),
-            icon: const Icon(Icons.extension_outlined),
-            label: l10n.pluginsTab,
-          ),
-          NavigationDestination(
-            selectedIcon: const Icon(Icons.settings),
-            icon: const Icon(Icons.settings_outlined),
-            label: l10n.settingsTab,
-          ),
-        ],
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (index) {
-          if (index != navigationShell.currentIndex) {
-            navigationShell.goBranch(index);
-          }
-        },
+      bottomNavigationBar: AnimatedSize(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.topCenter,
+        child: showNavigation ? navigationBar : const SizedBox.shrink(),
       ),
     );
   }
@@ -85,8 +101,12 @@ class AppScaffold extends ConsumerWidget {
     AppLocalizations l10n,
     int badgeCount,
     WideNavigationRailPosition railPosition,
+    List<int> branchIndices,
   ) {
-    final destinations = _navigationRailDestinations(l10n, badgeCount);
+    final destinations = branchIndices
+        .map((index) => _railDestination(l10n, badgeCount, index))
+        .toList(growable: false);
+    final selectedIndex = branchIndices.indexOf(navigationShell.currentIndex);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
       body: Row(
@@ -96,10 +116,11 @@ class AppScaffold extends ConsumerWidget {
             child: _WideNavigationRail(
               position: railPosition,
               destinations: destinations,
-              selectedIndex: navigationShell.currentIndex,
+              selectedIndex: selectedIndex < 0 ? null : selectedIndex,
               onDestinationSelected: (index) {
-                if (index != navigationShell.currentIndex) {
-                  navigationShell.goBranch(index);
+                final branch = branchIndices[index];
+                if (branch != navigationShell.currentIndex) {
+                  navigationShell.goBranch(branch);
                 }
               },
             ),
@@ -118,7 +139,7 @@ class AppScaffold extends ConsumerWidget {
                   topLeft: Radius.circular(28),
                   bottomLeft: Radius.circular(28),
                 ),
-                child: navigationShell,
+                child: AnnouncementGate(child: navigationShell),
               ),
             ),
           ),
@@ -127,43 +148,79 @@ class AppScaffold extends ConsumerWidget {
     );
   }
 
-  List<NavigationRailDestination> _navigationRailDestinations(
+  NavigationDestination _bottomDestination(
     AppLocalizations l10n,
     int badgeCount,
-  ) {
-    return [
-      NavigationRailDestination(
-        selectedIcon: const Icon(Icons.apps),
-        icon: const Icon(Icons.apps_outlined),
-        label: Text(l10n.exploreTab),
-      ),
-      NavigationRailDestination(
-        selectedIcon: const Icon(Icons.watch),
-        icon: const Icon(Icons.watch_outlined),
-        label: Text(l10n.devicesTab),
-      ),
-      NavigationRailDestination(
-        selectedIcon: const Icon(Icons.format_list_bulleted),
-        icon: badgeCount > 0
-            ? Badge(
-                label: Text('$badgeCount'),
-                child: const Icon(Icons.format_list_bulleted),
-              )
-            : const Icon(Icons.format_list_bulleted),
-        label: Text(l10n.settingsQueue),
-      ),
-      NavigationRailDestination(
-        selectedIcon: const Icon(Icons.extension),
-        icon: const Icon(Icons.extension_outlined),
-        label: Text(l10n.pluginsTab),
-      ),
-      NavigationRailDestination(
-        selectedIcon: const Icon(Icons.settings),
-        icon: const Icon(Icons.settings_outlined),
-        label: Text(l10n.settingsTab),
-      ),
-    ];
-  }
+    int branch,
+  ) => switch (branch) {
+    0 => NavigationDestination(
+      selectedIcon: const Icon(Icons.apps),
+      icon: const Icon(Icons.apps_outlined),
+      label: l10n.exploreTab,
+    ),
+    1 => NavigationDestination(
+      selectedIcon: const Icon(Icons.watch),
+      icon: const Icon(Icons.watch_outlined),
+      label: l10n.devicesTab,
+    ),
+    2 => NavigationDestination(
+      selectedIcon: const Icon(Icons.format_list_bulleted),
+      icon: badgeCount > 0
+          ? Badge(
+              label: Text('$badgeCount'),
+              child: const Icon(Icons.format_list_bulleted),
+            )
+          : const Icon(Icons.format_list_bulleted),
+      label: l10n.settingsQueue,
+    ),
+    3 => NavigationDestination(
+      selectedIcon: const Icon(Icons.extension),
+      icon: const Icon(Icons.extension_outlined),
+      label: l10n.pluginsTab,
+    ),
+    _ => NavigationDestination(
+      selectedIcon: const Icon(Icons.settings),
+      icon: const Icon(Icons.settings_outlined),
+      label: l10n.settingsTab,
+    ),
+  };
+
+  NavigationRailDestination _railDestination(
+    AppLocalizations l10n,
+    int badgeCount,
+    int branch,
+  ) => switch (branch) {
+    0 => NavigationRailDestination(
+      selectedIcon: const Icon(Icons.apps),
+      icon: const Icon(Icons.apps_outlined),
+      label: Text(l10n.exploreTab),
+    ),
+    1 => NavigationRailDestination(
+      selectedIcon: const Icon(Icons.watch),
+      icon: const Icon(Icons.watch_outlined),
+      label: Text(l10n.devicesTab),
+    ),
+    2 => NavigationRailDestination(
+      selectedIcon: const Icon(Icons.format_list_bulleted),
+      icon: badgeCount > 0
+          ? Badge(
+              label: Text('$badgeCount'),
+              child: const Icon(Icons.format_list_bulleted),
+            )
+          : const Icon(Icons.format_list_bulleted),
+      label: Text(l10n.settingsQueue),
+    ),
+    3 => NavigationRailDestination(
+      selectedIcon: const Icon(Icons.extension),
+      icon: const Icon(Icons.extension_outlined),
+      label: Text(l10n.pluginsTab),
+    ),
+    _ => NavigationRailDestination(
+      selectedIcon: const Icon(Icons.settings),
+      icon: const Icon(Icons.settings_outlined),
+      label: Text(l10n.settingsTab),
+    ),
+  };
 
   int _queueBadgeCount(WidgetRef ref) {
     final downloadCount = ref.watch(
@@ -183,6 +240,32 @@ class AppScaffold extends ConsumerWidget {
   }
 }
 
+/// Places a root-level secondary route over the shell without changing the
+/// shell's geometry. Compact layouts cover the bottom navigation naturally;
+/// wide layouts leave the navigation rail visible.
+class AdaptiveSecondarySurface extends StatelessWidget {
+  const AdaptiveSecondarySurface({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      if (!useWideLayout(constraints.maxWidth)) return child;
+      return Padding(
+        padding: const EdgeInsets.only(left: 80),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            bottomLeft: Radius.circular(28),
+          ),
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
 class _WideNavigationRail extends StatelessWidget {
   const _WideNavigationRail({
     required this.position,
@@ -193,7 +276,7 @@ class _WideNavigationRail extends StatelessWidget {
 
   final WideNavigationRailPosition position;
   final List<NavigationRailDestination> destinations;
-  final int selectedIndex;
+  final int? selectedIndex;
   final ValueChanged<int> onDestinationSelected;
 
   @override
@@ -213,6 +296,8 @@ class _WideNavigationRail extends StatelessWidget {
       );
     }
 
+    final primaryCount = destinations.length - 1;
+
     return Material(
       color: color,
       child: SafeArea(
@@ -223,8 +308,13 @@ class _WideNavigationRail extends StatelessWidget {
                 backgroundColor: color,
                 groupAlignment: 0,
                 labelType: NavigationRailLabelType.selected,
-                destinations: destinations.take(4).toList(growable: false),
-                selectedIndex: selectedIndex < 4 ? selectedIndex : null,
+                destinations: destinations
+                    .take(primaryCount)
+                    .toList(growable: false),
+                selectedIndex:
+                    selectedIndex != null && selectedIndex! < primaryCount
+                    ? selectedIndex
+                    : null,
                 onDestinationSelected: onDestinationSelected,
               ),
             ),
@@ -238,9 +328,10 @@ class _WideNavigationRail extends StatelessWidget {
                   backgroundColor: color,
                   groupAlignment: 0,
                   labelType: NavigationRailLabelType.selected,
-                  destinations: [destinations[4]],
-                  selectedIndex: selectedIndex == 4 ? 0 : null,
-                  onDestinationSelected: (_) => onDestinationSelected(4),
+                  destinations: [destinations.last],
+                  selectedIndex: selectedIndex == primaryCount ? 0 : null,
+                  onDestinationSelected: (_) =>
+                      onDestinationSelected(primaryCount),
                 ),
               ),
             ),

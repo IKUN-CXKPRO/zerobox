@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/layout/app_scaffold.dart';
+import 'package:oronbox/src/app/theme/app_theme.dart';
 import 'package:oronbox/src/app/widgets/dialog_helper.dart';
+import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
@@ -24,6 +26,8 @@ import 'package:oronbox/src/features/oobe/pages/oobe_page.dart';
 import 'package:oronbox/src/features/devices/pages/watchfaces/device_watchfaces_page.dart';
 import 'package:oronbox/src/features/devices/providers/pending_shared_device_provider.dart';
 import 'package:oronbox/src/features/devices/services/device_share_link.dart';
+import 'package:oronbox/src/features/resources/pages/creator/creator_center_page.dart';
+import 'package:oronbox/src/features/resources/pages/creator/creator_resource_page.dart';
 import 'package:oronbox/src/features/resources/pages/huami_publisher_page.dart';
 import 'package:oronbox/src/features/resources/pages/queue_page.dart';
 import 'package:oronbox/src/features/resources/pages/resource_detail_page.dart';
@@ -31,10 +35,13 @@ import 'package:oronbox/src/features/resources/pages/resources_page.dart';
 import 'package:oronbox/src/features/settings/pages/acknowledgements_page.dart';
 import 'package:oronbox/src/features/settings/pages/about_software_page.dart';
 import 'package:oronbox/src/features/settings/pages/settings_page.dart';
+import 'package:oronbox/src/features/settings/pages/clean_mode_page.dart';
 import 'package:oronbox/src/features/settings/pages/bandbbs_account_page.dart';
 import 'package:oronbox/src/features/settings/pages/feedback_page.dart';
+import 'package:oronbox/src/features/settings/services/oronbox_support_api.dart';
 import 'package:oronbox/src/features/plugins/pages/plugin_detail_page.dart';
 import 'package:oronbox/src/features/plugins/pages/plugins_page.dart';
+import 'package:oronbox/src/features/messages/pages/inbox_page.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -55,6 +62,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (onOobe && uri.queryParameters['replay'] != '1') {
         return '/resources';
       }
+      final clean = ref.read(appSettingsProvider).clean;
+      if (uri.path == '/inbox' && !clean.inboxEnabled) {
+        return clean.exploreEnabled ? '/resources' : '/devices';
+      }
+      if (uri.path.startsWith('/plugins') && !clean.pluginsEnabled) {
+        return clean.exploreEnabled ? '/resources' : '/devices';
+      }
+      if (uri.path.startsWith('/resources')) {
+        if (!clean.exploreEnabled) return '/devices';
+        if (uri.path.startsWith('/resources/creator') &&
+            !clean.creatorEnabled) {
+          return '/resources';
+        }
+        if (uri.path.startsWith('/resources/detail') &&
+            !clean.resourceLibraryEnabled) {
+          return '/resources';
+        }
+      }
       final isDeviceShareLink =
           (uri.scheme == 'oronbox' && uri.host == 'open') ||
           ((uri.scheme == 'https' || uri.scheme == 'http') &&
@@ -73,6 +98,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/home', redirect: (context, state) => '/resources'),
       GoRoute(path: '/oobe', builder: (context, state) => const OobePage()),
       GoRoute(
+        path: '/inbox',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const InboxPage(),
+      ),
+      GoRoute(
         path: '/debug',
         builder: (context, state) => const DebugWindowPage(embedded: true),
       ),
@@ -89,27 +119,47 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'detail/:id',
-                    builder: (context, state) {
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) {
                       final resource = state.extra as CommunityResource?;
+                      late final Widget child;
                       if (resource != null) {
-                        return ResourceDetailPage(resource: resource);
-                      }
-                      return ResourceDetailPage(
-                        resource: CommunityResource(
-                          ref: ResourceRef(
-                            source:
-                                communitySourceIdByName(
-                                  state.uri.queryParameters['source'] ?? '',
-                                ) ??
-                                ref.read(selectedCommunitySourceProvider),
-                            id: state.pathParameters['id']!,
+                        child = ResourceDetailPage(
+                          resource: resource,
+                          targetCommentId:
+                              state.uri.queryParameters['comment'] ?? '',
+                        );
+                      } else {
+                        child = ResourceDetailPage(
+                          targetCommentId:
+                              state.uri.queryParameters['comment'] ?? '',
+                          resource: CommunityResource(
+                            ref: ResourceRef(
+                              source:
+                                  communitySourceIdByName(
+                                    state.uri.queryParameters['source'] ?? '',
+                                  ) ??
+                                  ref.read(selectedCommunitySourceProvider),
+                              id: state.pathParameters['id']!,
+                            ),
+                            name: '',
+                            type: CommunityResourceType.quickApp,
+                            paidType: CommunityPaidType.free,
+                            authors: const [],
+                            supportedDevices: const {},
                           ),
-                          name: 'Unknown',
-                          type: CommunityResourceType.quickApp,
-                          paidType: CommunityPaidType.free,
-                          authors: const [],
-                          supportedDevices: const {},
+                        );
+                      }
+                      return CustomTransitionPage<void>(
+                        key: state.pageKey,
+                        opaque: false,
+                        transitionDuration: const Duration(milliseconds: 320),
+                        reverseTransitionDuration: const Duration(
+                          milliseconds: 300,
                         ),
+                        child: AdaptiveSecondarySurface(child: child),
+                        transitionsBuilder:
+                            AppTheme.buildPlatformPageTransition,
                       );
                     },
                   ),
@@ -118,6 +168,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => HuamiPublisherPage(
                       publisherName: state.uri.queryParameters['name'] ?? '',
                     ),
+                  ),
+                  GoRoute(
+                    path: 'creator',
+                    builder: (context, state) => const CreatorCenterPage(),
+                    routes: [
+                      GoRoute(
+                        path: 'resource',
+                        builder: (context, state) =>
+                            const CreatorResourcePage(),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -223,9 +284,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: '/settings',
                 builder: (context, state) => const SettingsPage(),
                 routes: [
+                  for (final category in SettingsCategory.values)
+                    GoRoute(
+                      path: category.name,
+                      builder: (context, state) =>
+                          SettingsPage(category: category),
+                    ),
+                  GoRoute(
+                    path: 'clean-mode',
+                    builder: (context, state) => const CleanModePage(),
+                  ),
                   GoRoute(
                     path: 'about',
                     builder: (context, state) => const AboutSoftwarePage(),
+                  ),
+                  GoRoute(
+                    path: 'logs',
+                    builder: (context, state) => const RuntimeLogsPage(),
                   ),
                   GoRoute(
                     path: 'bandbbs',
@@ -240,9 +315,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => const AcknowledgementsPage(),
                   ),
                   GoRoute(
+                    path: 'licenses',
+                    builder: (context, state) =>
+                        const LicensePage(applicationName: 'OronBox'),
+                  ),
+                  GoRoute(
                     path: 'feedback',
                     builder: (context, state) =>
                         FeedbackPage(target: state.extra as FeedbackTarget?),
+                    routes: [
+                      GoRoute(
+                        path: 'ticket',
+                        builder: (context, state) => FeedbackTicketPage(
+                          ticket: state.extra! as FeedbackTicket,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -27,7 +27,10 @@ class OronBoxSupportApi {
       )).data ??
       '';
 
-  Future<AppReleaseInfo> latestRelease({required String language}) async {
+  Future<AppReleaseInfo> latestRelease({
+    required String language,
+    required String currentVersion,
+  }) async {
     try {
       final response = await _dio.get<Object?>(
         '$oronBoxServerBaseUrl/api/app/releases',
@@ -36,6 +39,7 @@ class OronBoxSupportApi {
           'arch': '',
           'channel': 'stable',
           'lang': language,
+          'version': currentVersion,
         },
       );
       return AppReleaseInfo.fromJson(_map(response.data));

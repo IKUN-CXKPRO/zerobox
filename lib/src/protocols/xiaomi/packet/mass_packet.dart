@@ -50,7 +50,10 @@ class MassPacket {
     );
   }
 
-  Uint8List encodeWithCrc32({int sentLength = 0}) {
+  Uint8List encodeWithCrc32({
+    int sentLength = 0,
+    bool preserveOriginalLength = false,
+  }) {
     final start = sentLength.clamp(0, originalFileData.length);
     final remaining = Uint8List.sublistView(originalFileData, start);
 
@@ -58,7 +61,10 @@ class MassPacket {
     crcPayload.addByte(0x00);
     crcPayload.addByte(dataType.value);
     crcPayload.add(md5);
-    _writeUint32LE(crcPayload, remaining.length);
+    _writeUint32LE(
+      crcPayload,
+      preserveOriginalLength ? originalFileData.length : remaining.length,
+    );
     crcPayload.add(remaining);
 
     final crc32Val = _crc32(Uint8List.fromList(crcPayload.toBytes()));

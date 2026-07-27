@@ -10,6 +10,7 @@ import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/window/debug_window_preference.dart';
 import 'package:oronbox/src/app/window/window_launcher.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/app/widgets/dialog_helper.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/core/providers/theme_locale_providers.dart';
@@ -17,6 +18,8 @@ import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/core/utils/layout.dart';
 import 'package:oronbox/src/data/astrobox/astrobox_cdn.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
+import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
+import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/accounts/services/mi_account_two_factor_resolver.dart';
 
@@ -24,8 +27,21 @@ final _desktopExitBehaviorProvider = Provider<int?>((ref) {
   return SharedPrefsService.instance.getInt('desktop.exit_behavior');
 });
 
+enum SettingsCategory { accounts, appearance, connection, support, advanced }
+
+String _categoryTitle(AppLocalizations l10n, SettingsCategory category) =>
+    switch (category) {
+      SettingsCategory.accounts => l10n.settingsCategoryAccounts,
+      SettingsCategory.appearance => l10n.settingsCategoryAppearance,
+      SettingsCategory.connection => l10n.settingsCategoryConnection,
+      SettingsCategory.support => l10n.settingsCategorySupport,
+      SettingsCategory.advanced => l10n.settingsCategoryAdvanced,
+    };
+
 class SettingsPage extends ConsumerWidget {
-  const SettingsPage({super.key});
+  const SettingsPage({super.key, this.category});
+
+  final SettingsCategory? category;
 
   static const _colorSchemes = <Color>[
     Color(0xFFE91E63),
@@ -54,319 +70,376 @@ class SettingsPage extends ConsumerWidget {
         (!kIsWeb && defaultTargetPlatform == TargetPlatform.android);
     final themeSettings = ref.watch(themeSettingsProvider);
     final debugWindowEnabled = ref.watch(debugWindowEnabledProvider);
+    final clean = ref.watch(appSettingsProvider).clean;
 
     return Scaffold(
-      appBar: SysAppBar(title: Text(l10n.settingsTab)),
+      appBar: SysAppBar(
+        secondary: category != null,
+        title: Text(
+          category == null ? l10n.settingsTab : _categoryTitle(l10n, category!),
+        ),
+      ),
       body: SegmentedList(
         maxWidth: StyleConstants.pageMaxWidth,
         contentPadding: const EdgeInsets.symmetric(
           vertical: StyleConstants.pagePadding,
         ),
         sections: [
-          _buildSection(
-            context,
-            title: l10n.settingsAccount,
-            tiles: [
-              SegmentedTile.navigation(
-                onPressed: (_) => _showMiAccountLogin(context, ref),
-                leading: const _MiLogo(),
-                title: Text(l10n.settingsMiAccount),
-                description: Text(l10n.settingsMiAccountDesc),
-              ),
-              SegmentedTile.navigation(
-                onPressed: (_) => _showHuamiAccountLogin(context, ref),
-                leading: const _AccountLeading(child: Icon(Icons.functions)),
-                title: Text(l10n.settingsHuamiAccount),
-                description: Consumer(
-                  builder: (context, ref, _) {
-                    final account = ref.watch(hostAccountsProvider).amazfit;
-                    if (account.isBusy) {
-                      return Text(l10n.settingsHuamiAccountSigningIn);
-                    }
-                    if (account.isSignedIn) {
-                      return Text(
-                        account.username?.isNotEmpty == true
-                            ? account.username!
-                            : l10n.settingsConnected,
-                      );
-                    }
-                    return Text(l10n.settingsHuamiAccountDesc);
-                  },
+          if (category == null || category == SettingsCategory.accounts)
+            _buildSection(
+              context,
+              title: l10n.settingsAccount,
+              tiles: [
+                SegmentedTile.navigation(
+                  onPressed: (_) => _showMiAccountLogin(context, ref),
+                  leading: const _MiLogo(),
+                  title: Text(l10n.settingsMiAccount),
+                  description: Text(l10n.settingsMiAccountDesc),
                 ),
-                value: Consumer(
-                  builder: (context, ref, _) {
-                    final account = ref.watch(hostAccountsProvider).amazfit;
-                    if (account.isBusy) {
-                      return const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      );
-                    }
-                    return Text(
-                      account.isSignedIn
-                          ? l10n.settingsConnected
-                          : l10n.settingsTapToSignIn,
-                    );
-                  },
-                ),
-              ),
-              SegmentedTile.navigation(
-                onPressed: (_) {
-                  final account = ref.read(hostAccountsProvider).bandbbs;
-                  if (account.isSignedIn) {
-                    context.push('/settings/bandbbs');
-                  } else if (!account.isBusy) {
-                    _startBandBbsLogin(context, ref);
-                  }
-                },
-                leading: _AccountBrandLogo(
-                  asset: 'assets/images/brands/bandbbs.svg',
-                  semanticsLabel: 'BandBBS',
-                ),
-                title: Text(l10n.settingsAccountBandBbsAccount),
-                description: Consumer(
-                  builder: (context, ref, _) {
-                    final account = ref.watch(hostAccountsProvider).bandbbs;
-                    if (account.isBusy) {
-                      return Text(l10n.settingsAccountBandBbsSigningIn);
-                    }
-                    if (account.isSignedIn) {
-                      final username = account.username?.trim() ?? '';
-                      final userId = account.userId?.trim() ?? '';
-                      if (username.isNotEmpty && userId.isNotEmpty) {
-                        return Text('$username · $userId');
+                SegmentedTile.navigation(
+                  onPressed: (_) => _showHuamiAccountLogin(context, ref),
+                  leading: const _AccountLeading(child: Icon(Icons.functions)),
+                  title: Text(l10n.settingsHuamiAccount),
+                  description: Consumer(
+                    builder: (context, ref, _) {
+                      final account = ref.watch(hostAccountsProvider).amazfit;
+                      if (account.isBusy) {
+                        return Text(l10n.settingsHuamiAccountSigningIn);
                       }
-                      if (username.isNotEmpty) return Text(username);
-                      if (userId.isNotEmpty) return Text(userId);
-                      return Text(l10n.settingsConnected);
-                    }
-                    return Text(l10n.settingsAccountLoginBBSDesc);
-                  },
-                ),
-                value: Consumer(
-                  builder: (context, ref, _) {
-                    final account = ref.watch(hostAccountsProvider).bandbbs;
-                    if (account.isBusy) {
-                      return const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                      if (account.isSignedIn) {
+                        return Text(
+                          account.username?.isNotEmpty == true
+                              ? account.username!
+                              : l10n.settingsConnected,
+                        );
+                      }
+                      return Text(l10n.settingsHuamiAccountDesc);
+                    },
+                  ),
+                  value: Consumer(
+                    builder: (context, ref, _) {
+                      final account = ref.watch(hostAccountsProvider).amazfit;
+                      if (account.isBusy) {
+                        return const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        );
+                      }
+                      return Text(
+                        account.isSignedIn
+                            ? l10n.settingsConnected
+                            : l10n.settingsTapToSignIn,
                       );
-                    }
-                    return Text(
-                      account.isSignedIn
-                          ? l10n.settingsConnected
-                          : l10n.settingsTapToSignIn,
-                    );
-                  },
+                    },
+                  ),
                 ),
-              ),
-            ],
-          ),
-          _buildSection(
-            context,
-            title: l10n.settingsGeneral,
-            tiles: [
-              SegmentedTile.navigation(
-                onPressed: (context) => _showLanguageSelector(context, ref),
-                leading: const Icon(Icons.language_outlined),
-                title: Text(l10n.settingsGeneralLanguage),
-                description: Text(l10n.settingsGeneralLanguageDesc),
-                value: Consumer(
-                  builder: (context, ref, _) {
-                    final locale = ref.watch(localeSettingsProvider).locale;
-                    return Text(_localeLabel(l10n, locale));
-                  },
+                if (clean.bandBbsLoginEnabled)
+                  SegmentedTile.navigation(
+                    onPressed: (_) {
+                      final account = ref.read(hostAccountsProvider).bandbbs;
+                      if (account.isSignedIn) {
+                        context.push('/settings/bandbbs');
+                      } else if (!account.isBusy) {
+                        _startBandBbsLogin(context, ref);
+                      }
+                    },
+                    leading: _AccountBrandLogo(
+                      asset: 'assets/images/brands/bandbbs.svg',
+                      semanticsLabel: 'BandBBS',
+                    ),
+                    title: Text(l10n.settingsAccountBandBbsAccount),
+                    description: Consumer(
+                      builder: (context, ref, _) {
+                        final account = ref.watch(hostAccountsProvider).bandbbs;
+                        if (account.isBusy) {
+                          return Text(l10n.settingsAccountBandBbsSigningIn);
+                        }
+                        if (account.isSignedIn) {
+                          final username = account.username?.trim() ?? '';
+                          final userId = account.userId?.trim() ?? '';
+                          if (username.isNotEmpty && userId.isNotEmpty) {
+                            return Text('$username · $userId');
+                          }
+                          if (username.isNotEmpty) return Text(username);
+                          if (userId.isNotEmpty) return Text(userId);
+                          return Text(l10n.settingsConnected);
+                        }
+                        return Text(l10n.settingsAccountLoginBBSDesc);
+                      },
+                    ),
+                    value: Consumer(
+                      builder: (context, ref, _) {
+                        final account = ref.watch(hostAccountsProvider).bandbbs;
+                        if (account.isBusy) {
+                          return const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          );
+                        }
+                        return Text(
+                          account.isSignedIn
+                              ? l10n.settingsConnected
+                              : l10n.settingsTapToSignIn,
+                        );
+                      },
+                    ),
+                  ),
+                if (clean.githubLoginEnabled)
+                  SegmentedTile.navigation(
+                    onPressed: (_) => _connectGitHub(context, ref),
+                    leading: _AccountBrandLogo(
+                      asset: 'assets/images/brands/github.svg',
+                      semanticsLabel: 'GitHub',
+                    ),
+                    title: Text(l10n.settingsAccountGitHub),
+                    description: Consumer(
+                      builder: (context, ref, _) {
+                        final signedIn = ref.watch(
+                          hostAccountsProvider.select(
+                            (value) => value.bandbbs.isSignedIn,
+                          ),
+                        );
+                        if (!signedIn) {
+                          return Text(l10n.githubAccountNeedsBandBbs);
+                        }
+                        final login =
+                            ref
+                                .watch(
+                                  creatorWorkspaceProvider.select(
+                                    (state) => state.grants['github_login'],
+                                  ),
+                                )
+                                ?.toString() ??
+                            '';
+                        return Text(
+                          login.isNotEmpty
+                              ? login
+                              : l10n.settingsAccountGitHubDesc,
+                        );
+                      },
+                    ),
+                    value: Consumer(
+                      builder: (context, ref, _) {
+                        final workspace = ref.watch(creatorWorkspaceProvider);
+                        if (workspace.operation ==
+                            CreatorOperation.authorizing) {
+                          return const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          );
+                        }
+                        final connected =
+                            (workspace.grants['github_login']?.toString() ?? '')
+                                .isNotEmpty;
+                        return Text(
+                          connected
+                              ? l10n.settingsConnected
+                              : l10n.settingsTapToSignIn,
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          if (category == null || category == SettingsCategory.appearance)
+            _buildSection(
+              context,
+              title: l10n.settingsGeneral,
+              tiles: [
+                SegmentedTile.navigation(
+                  onPressed: (context) => _showLanguageSelector(context, ref),
+                  leading: const Icon(Icons.language_outlined),
+                  title: Text(l10n.settingsGeneralLanguage),
+                  description: Text(l10n.settingsGeneralLanguageDesc),
+                  value: Consumer(
+                    builder: (context, ref, _) {
+                      final locale = ref.watch(localeSettingsProvider).locale;
+                      return Text(_localeLabel(l10n, locale));
+                    },
+                  ),
                 ),
-              ),
-              SegmentedTile.navigation(
-                onPressed: (context) => _showThemeModeSelector(context, ref),
-                leading: const Icon(Icons.dark_mode_outlined),
-                title: Text(l10n.settingsThemeMode),
-                description: Text(l10n.settingsThemeModeDesc),
-                value: Text(_themeModeLabel(l10n, themeSettings.themeMode)),
-              ),
-              if (!kIsWeb)
+                SegmentedTile.navigation(
+                  onPressed: (context) => _showThemeModeSelector(context, ref),
+                  leading: const Icon(Icons.dark_mode_outlined),
+                  title: Text(l10n.settingsThemeMode),
+                  description: Text(l10n.settingsThemeModeDesc),
+                  value: Text(_themeModeLabel(l10n, themeSettings.themeMode)),
+                ),
+                if (!kIsWeb)
+                  SegmentedTile.switchTile(
+                    onToggle: (value) async {
+                      await ref
+                          .read(themeSettingsProvider.notifier)
+                          .setDynamicColor(value ?? true);
+                    },
+                    initialValue: themeSettings.useDynamicColor,
+                    leading: const Icon(Icons.palette_outlined),
+                    title: Text(l10n.settingsDynamicColor),
+                    description: Text(l10n.settingsDynamicColorDesc),
+                  ),
+                SegmentedTile.navigation(
+                  onPressed: (context) => context.push('/settings/clean-mode'),
+                  leading: const Icon(Icons.filter_alt_outlined),
+                  title: Text(l10n.cleanMode),
+                  description: Text(l10n.cleanModeDescription),
+                ),
+                if (!kIsWeb && !themeSettings.useDynamicColor)
+                  SegmentedTile.navigation(
+                    onPressed: (context) =>
+                        _showColorSchemeSelector(context, ref),
+                    leading: const Icon(Icons.color_lens_outlined),
+                    title: Text(l10n.settingsColorScheme),
+                    description: Text(l10n.settingsColorSchemeDesc),
+                    value: _ColorDot(color: themeSettings.customSeedColor),
+                  ),
+                if (showDesktopAccentSource && themeSettings.useDynamicColor)
+                  SegmentedTile.navigation(
+                    onPressed: (context) =>
+                        _showDesktopAccentSourceSelector(context, ref),
+                    leading: const Icon(Icons.color_lens_outlined),
+                    title: Text(l10n.settingsDesktopAccentSource),
+                    description: Text(l10n.settingsDesktopAccentSourceDesc),
+                    value: Consumer(
+                      builder: (context, ref, _) {
+                        final source = ref
+                            .watch(themeSettingsProvider)
+                            .desktopAccentColorSource;
+                        return Text(_desktopAccentSourceLabel(l10n, source));
+                      },
+                    ),
+                  ),
+                if (showWideNavigationPosition)
+                  SegmentedTile.navigation(
+                    onPressed: (context) =>
+                        _showWideNavigationPositionSelector(context, ref),
+                    leading: const Icon(Icons.vertical_split_outlined),
+                    title: Text(l10n.settingsWideNavigationPosition),
+                    description: Text(l10n.settingsWideNavigationPositionDesc),
+                    value: Consumer(
+                      builder: (context, ref, _) {
+                        final position = ref
+                            .watch(appSettingsProvider)
+                            .wideNavigationRailPosition;
+                        return Text(
+                          _wideNavigationPositionLabel(l10n, position),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          if (category == null || category == SettingsCategory.connection)
+            _buildSection(
+              context,
+              title: l10n.settingsCategoryConnection,
+              tiles: [
                 SegmentedTile.switchTile(
                   onToggle: (value) async {
                     await ref
-                        .read(themeSettingsProvider.notifier)
-                        .setDynamicColor(value ?? true);
+                        .read(appSettingsProvider.notifier)
+                        .setAutoReconnect(value ?? false);
                   },
-                  initialValue: themeSettings.useDynamicColor,
-                  leading: const Icon(Icons.palette_outlined),
-                  title: Text(l10n.settingsDynamicColor),
-                  description: Text(l10n.settingsDynamicColorDesc),
+                  initialValue: ref.watch(appSettingsProvider).autoReconnect,
+                  leading: const Icon(Icons.bluetooth_connected_outlined),
+                  title: Text(l10n.settingsAutoReconnectTitle),
+                  description: Text(l10n.settingsAutoReconnectDesc),
                 ),
-              if (!kIsWeb && !themeSettings.useDynamicColor)
                 SegmentedTile.navigation(
-                  onPressed: (context) =>
-                      _showColorSchemeSelector(context, ref),
-                  leading: const Icon(Icons.color_lens_outlined),
-                  title: Text(l10n.settingsColorScheme),
-                  description: Text(l10n.settingsColorSchemeDesc),
-                  value: _ColorDot(color: themeSettings.customSeedColor),
+                  onPressed: (context) => _showCdnMenu(context, ref),
+                  leading: const Icon(Icons.cloud_outlined),
+                  title: Text(l10n.settingsSourceOfficialCdn),
+                  description: Text(l10n.settingsSourceOfficialCdnDesc),
+                  value: Text(ref.watch(appSettingsProvider).cdn.displayName),
                 ),
-              if (showDesktopAccentSource && themeSettings.useDynamicColor)
-                SegmentedTile.navigation(
-                  onPressed: (context) =>
-                      _showDesktopAccentSourceSelector(context, ref),
-                  leading: const Icon(Icons.color_lens_outlined),
-                  title: Text(l10n.settingsDesktopAccentSource),
-                  description: Text(l10n.settingsDesktopAccentSourceDesc),
-                  value: Consumer(
-                    builder: (context, ref, _) {
-                      final source = ref
-                          .watch(themeSettingsProvider)
-                          .desktopAccentColorSource;
-                      return Text(_desktopAccentSourceLabel(l10n, source));
-                    },
-                  ),
+                SegmentedTile.switchTile(
+                  onToggle: (value) async {
+                    await ref
+                        .read(appSettingsProvider.notifier)
+                        .setAutoInstall(value ?? true);
+                  },
+                  initialValue: ref.watch(appSettingsProvider).autoInstall,
+                  leading: const Icon(Icons.task_alt_outlined),
+                  title: Text(l10n.settingsQueueAutoInstall),
+                  description: Text(l10n.settingsQueueAutoInstallDesc),
                 ),
-              if (showWideNavigationPosition)
-                SegmentedTile.navigation(
-                  onPressed: (context) =>
-                      _showWideNavigationPositionSelector(context, ref),
-                  leading: const Icon(Icons.vertical_split_outlined),
-                  title: Text(l10n.settingsWideNavigationPosition),
-                  description: Text(l10n.settingsWideNavigationPositionDesc),
-                  value: Consumer(
-                    builder: (context, ref, _) {
-                      final position = ref
-                          .watch(appSettingsProvider)
-                          .wideNavigationRailPosition;
-                      return Text(_wideNavigationPositionLabel(l10n, position));
-                    },
-                  ),
+                SegmentedTile.switchTile(
+                  onToggle: (value) async {
+                    await ref
+                        .read(appSettingsProvider.notifier)
+                        .setDisableAutoClean(value ?? false);
+                  },
+                  initialValue: ref.watch(appSettingsProvider).disableAutoClean,
+                  leading: const Icon(Icons.playlist_add_check_outlined),
+                  title: Text(l10n.settingsQueueDontClear),
+                  description: Text(l10n.settingsQueueDontClearDesc),
                 ),
-              if (showDesktopWindowSettings)
+              ],
+            ),
+          if (category == null || category == SettingsCategory.support)
+            _buildSection(
+              context,
+              title: l10n.settingsAbout,
+              tiles: [
                 SegmentedTile.navigation(
-                  onPressed: (context) =>
-                      _showDesktopExitBehaviorMenu(context, ref),
-                  leading: const Icon(Icons.close_fullscreen_outlined),
-                  title: Text(l10n.settingsDesktopCloseBehavior),
-                  description: Text(l10n.settingsDesktopCloseBehaviorDesc),
-                  value: Text(
-                    _desktopExitBehaviorLabel(
-                      l10n,
-                      ref.watch(_desktopExitBehaviorProvider),
+                  onPressed: (_) => context.push('/settings/about'),
+                  leading: const Icon(Icons.info_outline),
+                  title: Text(l10n.settingsAboutSoftware),
+                  description: Text(l10n.settingsAboutSoftwareDesc),
+                ),
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/settings/feedback'),
+                  leading: const Icon(Icons.feedback_outlined),
+                  title: Text(l10n.feedbackTitle),
+                  description: Text(l10n.feedbackDesc),
+                ),
+              ],
+            ),
+          if (category == null || category == SettingsCategory.advanced)
+            _buildSection(
+              context,
+              title: l10n.settingsCategoryAdvanced,
+              tiles: [
+                if (showDesktopWindowSettings)
+                  SegmentedTile.navigation(
+                    onPressed: (context) =>
+                        _showDesktopExitBehaviorMenu(context, ref),
+                    leading: const Icon(Icons.close_fullscreen_outlined),
+                    title: Text(l10n.settingsDesktopCloseBehavior),
+                    description: Text(l10n.settingsDesktopCloseBehaviorDesc),
+                    value: Text(
+                      _desktopExitBehaviorLabel(
+                        l10n,
+                        ref.watch(_desktopExitBehaviorProvider),
+                      ),
                     ),
                   ),
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/oobe?replay=1'),
+                  leading: const Icon(Icons.waving_hand_outlined),
+                  title: Text(l10n.settingsReplayOobe),
+                  description: Text(l10n.settingsReplayOobeDesc),
                 ),
-              SegmentedTile.switchTile(
-                onToggle: (value) async {
-                  await ref
-                      .read(appSettingsProvider.notifier)
-                      .setAutoReconnect(value ?? false);
-                },
-                initialValue: ref.watch(appSettingsProvider).autoReconnect,
-                leading: const Icon(Icons.bluetooth_connected_outlined),
-                title: Text(l10n.settingsAutoReconnectTitle),
-                description: Text(l10n.settingsAutoReconnectDesc),
-              ),
-            ],
-          ),
-          _buildSection(
-            context,
-            title: l10n.settingsSource,
-            tiles: [
-              SegmentedTile.navigation(
-                onPressed: (context) => _showCdnMenu(context, ref),
-                leading: const Icon(Icons.cloud_outlined),
-                title: Text(l10n.settingsSourceOfficialCdn),
-                description: Text(l10n.settingsSourceOfficialCdnDesc),
-                value: Consumer(
-                  builder: (context, ref, _) {
-                    final cdn = ref.watch(appSettingsProvider).cdn;
-                    return Text(cdn.displayName);
-                  },
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/settings/logs'),
+                  leading: const Icon(Icons.folder_outlined),
+                  title: Text(l10n.settingsAboutLogs),
+                  description: Text(l10n.settingsAboutLogsDescription),
                 ),
-              ),
-            ],
-          ),
-          _buildSection(
-            context,
-            title: l10n.settingsInstall,
-            tiles: [
-              SegmentedTile.switchTile(
-                onToggle: (value) async {
-                  await ref
-                      .read(appSettingsProvider.notifier)
-                      .setAutoInstall(value ?? true);
-                },
-                initialValue: ref.watch(appSettingsProvider).autoInstall,
-                leading: const Icon(Icons.task_alt_outlined),
-                title: Text(l10n.settingsQueueAutoInstall),
-                description: Text(l10n.settingsQueueAutoInstallDesc),
-              ),
-              SegmentedTile.switchTile(
-                onToggle: (value) async {
-                  await ref
-                      .read(appSettingsProvider.notifier)
-                      .setDisableAutoClean(value ?? false);
-                },
-                initialValue: ref.watch(appSettingsProvider).disableAutoClean,
-                leading: const Icon(Icons.playlist_add_check_outlined),
-                title: Text(l10n.settingsQueueDontClear),
-                description: Text(l10n.settingsQueueDontClearDesc),
-              ),
-            ],
-          ),
-          _buildSection(
-            context,
-            title: l10n.settingsAbout,
-            tiles: [
-              SegmentedTile.navigation(
-                onPressed: (_) => context.push('/settings/about'),
-                leading: const Icon(Icons.info_outline),
-                title: Text(l10n.settingsAboutSoftware),
-                description: Text(l10n.settingsAboutSoftwareDesc),
-              ),
-              SegmentedTile.navigation(
-                onPressed: (_) => _showLicensePage(context),
-                leading: const Icon(Icons.description_outlined),
-                title: Text(l10n.openSourceLicenses),
-                description: Text(l10n.settingsAboutLicencesDesc),
-              ),
-              SegmentedTile.navigation(
-                onPressed: (_) => context.push('/settings/acknowledgements'),
-                leading: const Icon(Icons.favorite_outline),
-                title: Text(l10n.acknowledgements),
-                description: Text(l10n.acknowledgementsDesc),
-              ),
-              SegmentedTile.navigation(
-                onPressed: (_) =>
-                    _launchUrl(context, 'https://oronbox.zxor.org'),
-                leading: const Icon(Icons.language_outlined),
-                title: Text(l10n.settingsAboutWebsite),
-                description: Text(l10n.settingsAboutWebsiteDesc),
-              ),
-              SegmentedTile.navigation(
-                onPressed: (_) => context.push('/settings/feedback'),
-                leading: const Icon(Icons.feedback_outlined),
-                title: Text(l10n.feedbackTitle),
-                description: Text(l10n.feedbackDesc),
-              ),
-              SegmentedTile.navigation(
-                onPressed: (_) => context.push('/oobe?replay=1'),
-                leading: const Icon(Icons.waving_hand_outlined),
-                title: Text(l10n.settingsReplayOobe),
-                description: Text(l10n.settingsReplayOobeDesc),
-              ),
-              if (showDebugWindowSettings)
-                SegmentedTile.switchTile(
-                  onToggle: (value) =>
-                      _setDebugWindowEnabled(context, ref, value ?? false),
-                  initialValue: debugWindowEnabled,
-                  leading: const Icon(Icons.developer_mode_outlined),
-                  title: Text(l10n.devTools),
-                  description: Text(
-                    showDesktopWindowSettings
-                        ? l10n.devToolsDescriptionDesktop
-                        : l10n.devToolsDescriptionEntry,
+                if (showDebugWindowSettings)
+                  SegmentedTile.switchTile(
+                    onToggle: (value) =>
+                        _setDebugWindowEnabled(context, ref, value ?? false),
+                    initialValue: debugWindowEnabled,
+                    leading: const Icon(Icons.developer_mode_outlined),
+                    title: Text(l10n.devTools),
+                    description: Text(
+                      showDesktopWindowSettings
+                          ? l10n.devToolsDescriptionDesktop
+                          : l10n.devToolsDescriptionEntry,
+                    ),
                   ),
-                ),
-            ],
-          ),
+              ],
+            ),
         ],
       ),
     );
@@ -1161,6 +1234,78 @@ class SettingsPage extends ConsumerWidget {
     }
   }
 
+  Future<void> _connectGitHub(BuildContext context, WidgetRef ref) async {
+    if (!ref.read(hostAccountsProvider).bandbbs.isSignedIn) return;
+    final controller = ref.read(creatorWorkspaceProvider.notifier);
+    final state = ref.read(creatorWorkspaceProvider);
+    final githubLogin = state.grants['github_login']?.toString() ?? '';
+    if (githubLogin.isNotEmpty) {
+      await _confirmAccountLogout(
+        context,
+        accountName: 'GitHub',
+        onLogout: controller.disconnectGitHub,
+      );
+      return;
+    }
+    if (state.operation == CreatorOperation.authorizing || state.loading) {
+      return;
+    }
+    try {
+      final started = await controller.startGitHubAuthorization();
+      final flowId = started['flow_id']?.toString() ?? '';
+      final uri = Uri.tryParse(started['authorization_url']?.toString() ?? '');
+      if (flowId.isEmpty || uri == null || !await launchUrl(uri)) {
+        controller.finishAuthorization();
+        return;
+      }
+      for (var attempt = 0; attempt < 60 && context.mounted; attempt++) {
+        await Future<void>.delayed(const Duration(seconds: 2));
+        if (await controller.pollGitHubAuthorization(flowId)) return;
+      }
+      controller.finishAuthorization();
+    } catch (error) {
+      controller.finishAuthorization();
+      if (context.mounted) showCreatorFailure(context, error);
+    }
+  }
+
+  Future<void> _confirmAccountLogout(
+    BuildContext context, {
+    required String accountName,
+    required Future<void> Function() onLogout,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.accountSignOutTitle(accountName)),
+        content: Text(l10n.accountSignOutMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l10n.bandBbsLogout),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await onLogout();
+      if (context.mounted) {
+        OronBoxDialog.showToast(
+          message: l10n.bandBbsLoggedOut,
+          context: context,
+        );
+      }
+    } catch (error) {
+      if (context.mounted) showCreatorFailure(context, error);
+    }
+  }
+
   Future<void> _showDesktopExitBehaviorMenu(
     BuildContext context,
     WidgetRef ref,
@@ -1204,17 +1349,6 @@ class SettingsPage extends ConsumerWidget {
       );
     }
     ref.invalidate(_desktopExitBehaviorProvider);
-  }
-
-  void _showLicensePage(BuildContext context) {
-    showLicensePage(context: context);
-  }
-
-  Future<void> _launchUrl(BuildContext context, String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
   }
 }
 

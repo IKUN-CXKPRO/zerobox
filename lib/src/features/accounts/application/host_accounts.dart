@@ -4,6 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
+final currentUserRoleProvider = FutureProvider<String>((ref) async {
+  final result = await ref
+      .watch(applicationHostProvider)
+      .execute(const OronBoxCommand(method: 'account.grants'));
+  if (!result.ok || result.value is! Map) return 'user';
+  return (result.value as Map)['role']?.toString() ?? 'user';
+});
+
 class HostAccount {
   const HostAccount({
     required this.provider,

@@ -14,7 +14,7 @@ void main() {
     await SharedPrefsService.instance.init();
   });
 
-  testWidgets('log disclosure can be acknowledged immediately', (tester) async {
+  testWidgets('runtime logs moved out of about software', (tester) async {
     final router = GoRouter(
       routes: [
         GoRoute(path: '/', builder: (_, _) => const AboutSoftwarePage()),
@@ -31,12 +31,31 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
 
     expect(
       find.textContaining('BUILD_USER: ${BuildInfoService.buildUser}'),
       findsOneWidget,
     );
+    expect(find.text('打开日志文件夹'), findsNothing);
+  });
+
+  testWidgets('log disclosure can be acknowledged immediately', (tester) async {
+    final router = GoRouter(
+      routes: [GoRoute(path: '/', builder: (_, _) => const RuntimeLogsPage())],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp.router(
+          locale: const Locale('zh'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pump();
 
     final openLogs = find.text('打开日志文件夹');
     await tester.ensureVisible(openLogs);
@@ -54,5 +73,35 @@ void main() {
 
     await tester.tap(cancel);
     await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('device log pull explains the uninterrupted transfer first', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      routes: [GoRoute(path: '/', builder: (_, _) => const RuntimeLogsPage())],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp.router(
+          locale: const Locale('zh'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final pull = find.text('拉取设备日志');
+    await tester.ensureVisible(pull.first);
+    await tester.tap(pull.first);
+    await tester.pump();
+
+    expect(find.textContaining('请勿将应用切换到后台'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '开始'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, '取消'));
+    await tester.pump();
   });
 }

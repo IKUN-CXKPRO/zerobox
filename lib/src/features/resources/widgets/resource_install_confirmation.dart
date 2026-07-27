@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:cross_file/cross_file.dart';
@@ -17,10 +18,16 @@ enum _InstallDecision { cancel, selectedType, detectedType, forceDetectedType }
 Future<bool> confirmAndEnqueueResourceFile({
   required BuildContext context,
   required WidgetRef ref,
-  required String fileName,
-  required Uint8List bytes,
+  required XFile file,
   required LocalDeviceInstallType selectedType,
 }) async {
+  final fileName = file.name;
+  final fileLength = await file.length();
+  final probe = await file
+      .openRead(0, math.min(fileLength, 4096))
+      .fold<List<int>>(<int>[], (bytes, chunk) => bytes..addAll(chunk));
+  final isZip = probe.length >= 2 && probe[0] == 0x50 && probe[1] == 0x4b;
+  final bytes = isZip ? await file.readAsBytes() : Uint8List.fromList(probe);
   final service = ResourceInstallService();
   final analysis = service.analyzePayload(
     fileName: fileName,
@@ -28,13 +35,14 @@ Future<bool> confirmAndEnqueueResourceFile({
     hint: selectedType,
     source: 'manual-picker',
   );
+  if (!context.mounted) return false;
   final decision = await _confirmInstall(
     context,
     ref,
     analysis,
     selectedType: selectedType,
     fileName: fileName,
-    fileSize: _formatFileSize(bytes.length),
+    fileSize: _formatFileSize(fileLength),
   );
   if (!context.mounted || decision == _InstallDecision.cancel) return false;
 
@@ -53,7 +61,7 @@ Future<bool> confirmAndEnqueueResourceFile({
   await ref
       .read(installQueueProvider.notifier)
       .enqueueConfirmedLocalFile(
-        XFile.fromData(bytes, name: fileName),
+        file,
         type: effectiveType,
         installMode: installMode,
       );

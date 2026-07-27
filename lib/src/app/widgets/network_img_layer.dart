@@ -17,6 +17,7 @@ class NetworkImgLayer extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.memCacheWidth,
     this.memCacheHeight,
+    this.borderRadius,
   });
 
   final String? src;
@@ -31,24 +32,7 @@ class NetworkImgLayer extends StatelessWidget {
   final BoxFit fit;
   final int? memCacheWidth;
   final int? memCacheHeight;
-
-  static Widget heroFlightShuttleBuilder(
-    BuildContext flightContext,
-    Animation<double> animation,
-    HeroFlightDirection flightDirection,
-    BuildContext fromHeroContext,
-    BuildContext toHeroContext,
-  ) {
-    final fromHero = fromHeroContext.widget as Hero;
-    final heroContext = flightDirection == HeroFlightDirection.push
-        ? fromHeroContext
-        : toHeroContext;
-
-    return InheritedTheme.captureAll(
-      heroContext,
-      Material(type: MaterialType.transparency, child: fromHero.child),
-    );
-  }
+  final BorderRadius? borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -57,13 +41,15 @@ class NetworkImgLayer extends StatelessWidget {
     return imageUrl.isNotEmpty
         ? ClipRRect(
             clipBehavior: Clip.antiAlias,
-            borderRadius: BorderRadius.circular(
-              type == 'avatar'
-                  ? 50
-                  : type == 'emote'
-                  ? 0
-                  : style.StyleConstants.imgRadius.x,
-            ),
+            borderRadius:
+                borderRadius ??
+                BorderRadius.circular(
+                  type == 'avatar'
+                      ? 50
+                      : type == 'emote'
+                      ? 0
+                      : style.StyleConstants.imgRadius.x,
+                ),
             child: CachedNetworkImage(
               imageUrl: imageUrl,
               width: width,
@@ -94,13 +80,15 @@ class NetworkImgLayer extends StatelessWidget {
         color: Theme.of(
           context,
         ).colorScheme.onInverseSurface.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(
-          type == 'avatar'
-              ? 50
-              : type == 'emote'
-              ? 0
-              : style.StyleConstants.imgRadius.x,
-        ),
+        borderRadius:
+            borderRadius ??
+            BorderRadius.circular(
+              type == 'avatar'
+                  ? 50
+                  : type == 'emote'
+                  ? 0
+                  : style.StyleConstants.imgRadius.x,
+            ),
       ),
       child: const Center(child: Icon(Icons.image_outlined)),
     );

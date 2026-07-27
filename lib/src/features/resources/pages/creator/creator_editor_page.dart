@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image/image.dart' as img;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
@@ -46,7 +47,7 @@ Widget _publicationLogo(String target) => switch (target) {
     asset: 'assets/images/brands/astrobox.svg',
     label: 'AstroBox',
   ),
-  _ => const Icon(Icons.inventory_2_outlined),
+  _ => const CreatorOronBoxLogo(),
 };
 
 // BandBBS fan-out publishes one resource per category; the URLs live in
@@ -72,7 +73,9 @@ List<String> _publicationLinkUrls(Map<String, Object?> publication) {
 
 class _CreatorEditorViewState extends State<CreatorEditorView> {
   late final TextEditingController _name = TextEditingController(
-    text: widget.workspace.latestRevision?.name ?? '',
+    text:
+        widget.workspace.latestRevision?.name ??
+        widget.workspace.resource.draftName,
   );
   late final TextEditingController _summary = TextEditingController(
     text: widget.workspace.latestRevision?.summary ?? '',
@@ -228,202 +231,237 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     return Column(
       children: [
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            children: [
-              if (widget.state.error != null) ...[
-                MaterialBanner(
-                  content: Text(widget.state.error!),
-                  actions: [
-                    TextButton(
-                      onPressed: widget.controller.refresh,
-                      child: Text(l10n.refresh),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-              ],
-              if (workspace.review case final review?) ...[
-                CreatorReviewFeedback(review: review),
-                const SizedBox(height: 16),
-              ],
-              if (workspace.publications.isNotEmpty) ...[
-                Card(
-                  color: colors.surfaceContainerHigh,
-                  margin: EdgeInsets.zero,
-                  child: Column(
-                    children: [
-                      for (final publication in workspace.publications)
-                        ListTile(
-                          dense: true,
-                          leading: _publicationLogo(
-                            publication['target']?.toString() ?? '',
+          child: SafeArea(
+            top: false,
+            bottom: false,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  children: [
+                    if (widget.state.error != null) ...[
+                      MaterialBanner(
+                        content: Text(widget.state.error!),
+                        actions: [
+                          TextButton(
+                            onPressed: widget.controller.refresh,
+                            child: Text(l10n.refresh),
                           ),
-                          title: Text(
-                            creatorTargetLabel(
-                              l10n,
-                              publication['target']?.toString() ?? '',
-                            ),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (publication['error_message']
-                                      ?.toString()
-                                      .isNotEmpty ==
-                                  true)
-                                Text(publication['error_message'].toString()),
-                              for (final url in _publicationLinkUrls(
-                                publication,
-                              ))
-                                InkWell(
-                                  onTap: () => launchUrl(Uri.parse(url)),
-                                  child: Text(
-                                    url,
-                                    style: TextStyle(
-                                      color: colors.primary,
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    if (workspace.resource.moderationState != 'visible') ...[
+                      CreatorModerationNotice(resource: workspace.resource),
+                      const SizedBox(height: 12),
+                    ],
+                    if (workspace.review case final review?) ...[
+                      CreatorReviewFeedback(review: review),
+                      const SizedBox(height: 16),
+                    ],
+                    if (workspace.publications.isNotEmpty) ...[
+                      Card(
+                        color: colors.surfaceContainerHigh,
+                        margin: EdgeInsets.zero,
+                        child: Column(
+                          children: [
+                            for (final publication in workspace.publications)
+                              ListTile(
+                                dense: true,
+                                leading: _publicationLogo(
+                                  publication['target']?.toString() ?? '',
+                                ),
+                                title: Text(
+                                  creatorTargetLabel(
+                                    l10n,
+                                    publication['target']?.toString() ?? '',
                                   ),
                                 ),
-                            ],
-                          ),
-                          trailing: CreatorStateBadge(
-                            state: publication['state']?.toString() ?? '',
-                          ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (publication['error_message']
+                                            ?.toString()
+                                            .isNotEmpty ==
+                                        true)
+                                      Text(
+                                        publication['error_message'].toString(),
+                                      ),
+                                    for (final url in _publicationLinkUrls(
+                                      publication,
+                                    ))
+                                      InkWell(
+                                        onTap: () => launchUrl(Uri.parse(url)),
+                                        child: Text(
+                                          url,
+                                          style: TextStyle(
+                                            color: colors.primary,
+                                            decoration:
+                                                TextDecoration.underline,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    if (publication['target'] == 'oronbox' &&
+                                        publication['state'] == 'published')
+                                      InkWell(
+                                        onTap: () => context.push(
+                                          '/resources/detail/${workspace.resource.id}?source=oronbox',
+                                        ),
+                                        child: Text(
+                                          l10n.creatorOpenInOronBox,
+                                          style: TextStyle(
+                                            color: colors.primary,
+                                            decoration:
+                                                TextDecoration.underline,
+                                            decorationColor: colors.primary,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                trailing: CreatorStateBadge(
+                                  state: publication['state']?.toString() ?? '',
+                                ),
+                              ),
+                          ],
                         ),
+                      ),
+                      const SizedBox(height: 16),
                     ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-              CreatorSectionTitle(
-                icon: Icons.description_outlined,
-                title: l10n.basicInfo,
-              ),
-              const SizedBox(height: 8),
-              _EditorCard(
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _name,
-                      decoration: InputDecoration(
-                        labelText: l10n.creatorResourceName,
+                    CreatorSectionTitle(
+                      icon: Icons.description_outlined,
+                      title: l10n.basicInfo,
+                    ),
+                    const SizedBox(height: 8),
+                    _EditorCard(
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: _name,
+                            decoration: InputDecoration(
+                              labelText: l10n.creatorResourceName,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _summary,
+                            minLines: 3,
+                            maxLines: 8,
+                            decoration: InputDecoration(
+                              labelText: l10n.creatorResourceSummary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(height: 24),
+                    CreatorSectionTitle(
+                      icon: Icons.collections_outlined,
+                      title: l10n.creatorIconCover,
+                    ),
+                    const SizedBox(height: 8),
+                    Builder(
+                      builder: (context) {
+                        const iconWidth = 208.0;
+                        const previewHeight = iconWidth - 24;
+                        const coverWidth = previewHeight * 1.5 + 24;
+                        return Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            SizedBox(
+                              width: iconWidth,
+                              child: _mediaRoleCard(
+                                l10n,
+                                'icon',
+                                previewHeight: previewHeight,
+                              ),
+                            ),
+                            SizedBox(
+                              width: coverWidth,
+                              child: _mediaRoleCard(
+                                l10n,
+                                'cover',
+                                previewHeight: previewHeight,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    CreatorSectionTitle(
+                      icon: Icons.photo_library_outlined,
+                      title: l10n.previewImages,
+                    ),
+                    const SizedBox(height: 8),
+                    if (_previews.isNotEmpty)
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          for (var index = 0; index < _previews.length; index++)
+                            _previewCard(l10n, index),
+                        ],
+                      ),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: _summary,
-                      minLines: 3,
-                      maxLines: 8,
-                      decoration: InputDecoration(
-                        labelText: l10n.creatorResourceSummary,
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: FilledButton.tonalIcon(
+                        onPressed: widget.state.loading ? null : _pickPreview,
+                        icon: const Icon(Icons.add_photo_alternate_outlined),
+                        label: Text(l10n.add),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              CreatorSectionTitle(
-                icon: Icons.collections_outlined,
-                title: l10n.creatorIconCover,
-              ),
-              const SizedBox(height: 8),
-              Builder(
-                builder: (context) {
-                  const iconWidth = 168.0;
-                  const previewHeight = iconWidth - 24;
-                  const coverWidth = previewHeight * 1.5 + 24;
-                  return Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      SizedBox(
-                        width: iconWidth,
-                        child: _mediaRoleCard(
-                          l10n,
-                          'icon',
-                          previewHeight: previewHeight,
-                        ),
-                      ),
-                      SizedBox(
-                        width: coverWidth,
-                        child: _mediaRoleCard(
-                          l10n,
-                          'cover',
-                          previewHeight: previewHeight,
-                        ),
-                      ),
+                    const SizedBox(height: 24),
+                    CreatorSectionTitle(
+                      icon: Icons.inventory_2_outlined,
+                      title: l10n.packageFiles,
+                    ),
+                    const SizedBox(height: 8),
+                    for (var index = 0; index < _artifacts.length; index++) ...[
+                      _artifactCard(l10n, index),
+                      const SizedBox(height: 12),
                     ],
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-              CreatorSectionTitle(
-                icon: Icons.photo_library_outlined,
-                title: l10n.previewImages,
-              ),
-              const SizedBox(height: 8),
-              if (_previews.isNotEmpty)
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    for (var index = 0; index < _previews.length; index++)
-                      _previewCard(l10n, index),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: FilledButton.tonalIcon(
+                        onPressed: widget.state.loading ? null : _pickArtifact,
+                        icon: const Icon(Icons.upload_file_outlined),
+                        label: Text(l10n.creatorAddArtifact),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    CreatorSectionTitle(
+                      icon: Icons.publish_outlined,
+                      title: l10n.publishTargets,
+                    ),
+                    const SizedBox(height: 8),
+                    _publicationEditor(l10n),
                   ],
                 ),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: FilledButton.tonalIcon(
-                  onPressed: widget.state.loading ? null : _pickPreview,
-                  icon: const Icon(Icons.add_photo_alternate_outlined),
-                  label: Text(l10n.add),
-                ),
               ),
-              const SizedBox(height: 24),
-              CreatorSectionTitle(
-                icon: Icons.inventory_2_outlined,
-                title: l10n.packageFiles,
-              ),
-              const SizedBox(height: 8),
-              for (var index = 0; index < _artifacts.length; index++) ...[
-                _artifactCard(l10n, index),
-                const SizedBox(height: 12),
-              ],
-              Align(
-                alignment: Alignment.centerLeft,
-                child: FilledButton.tonalIcon(
-                  onPressed: widget.state.loading ? null : _pickArtifact,
-                  icon: const Icon(Icons.upload_file_outlined),
-                  label: Text(l10n.creatorAddArtifact),
-                ),
-              ),
-              const SizedBox(height: 24),
-              CreatorSectionTitle(
-                icon: Icons.publish_outlined,
-                title: l10n.publishTargets,
-              ),
-              const SizedBox(height: 8),
-              _publicationEditor(l10n),
-            ],
+            ),
           ),
         ),
         CreatorBottomBar(
           children: [
-            if (widget.workspace.revisions.isNotEmpty)
+            if (widget.workspace.revisions.isNotEmpty &&
+                !widget.workspace.resource.isFrozen &&
+                (widget.workspace.resource.moderationState == 'visible' ||
+                    widget.workspace.resource.canRestore))
               TextButton.icon(
-                onPressed: widget.state.loading ? null : _toggleArchive,
+                onPressed: widget.state.loading ? null : _toggleTakedown,
                 icon: Icon(
-                  widget.workspace.resource.state == 'archived'
+                  widget.workspace.resource.isSuspended
                       ? Icons.unarchive_outlined
                       : Icons.archive_outlined,
                 ),
                 label: Text(
-                  widget.workspace.resource.state == 'archived'
+                  widget.workspace.resource.isSuspended
                       ? l10n.creatorRestoreAction
                       : l10n.creatorArchiveAction,
                 ),
@@ -473,7 +511,12 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                 ),
               ),
             FilledButton.icon(
-              onPressed: widget.state.loading || !_canPublish ? null : _publish,
+              onPressed:
+                  widget.state.loading ||
+                      !_canPublish ||
+                      widget.workspace.resource.isFrozen
+                  ? null
+                  : _publish,
               icon: Icon(
                 widget.state.loading
                     ? Icons.hourglass_top_rounded
@@ -671,9 +714,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
         _artifacts.add(asset);
         _deviceSelections[asset.key] = <String>{};
       } else {
-        final index = _artifacts.indexWhere(
-          (item) => item.key == replace.key,
-        );
+        final index = _artifacts.indexWhere((item) => item.key == replace.key);
         if (index >= 0) _artifacts[index] = asset;
       }
     });
@@ -982,12 +1023,12 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
             !_publishAstroBox
         ? null
         : switch (role) {
-            'icon' => asset.width != asset.height
-                ? l10n.creatorIconShapeHint
-                : null,
-            _ => (asset.width / asset.height - 1.5).abs() > 0.02
-                ? l10n.creatorCoverShapeHint
-                : null,
+            'icon' =>
+              asset.width != asset.height ? l10n.creatorIconShapeHint : null,
+            _ =>
+              (asset.width / asset.height - 1.5).abs() > 0.02
+                  ? l10n.creatorCoverShapeHint
+                  : null,
           };
     return Container(
       decoration: BoxDecoration(
@@ -1007,9 +1048,9 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
           const SizedBox(height: 2),
           Text(
             _assetMeta(asset) ?? ' ',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
           ),
           if (shapeHint != null) ...[
             const SizedBox(height: 2),
@@ -1022,26 +1063,31 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
           ],
           Row(
             children: [
-              TextButton.icon(
-                onPressed: widget.state.loading
-                    ? null
-                    : () => _pickMediaRole(role),
-                icon: const Icon(Icons.file_upload_outlined, size: 18),
-                label: Text(asset == null ? l10n.add : l10n.replace),
-              ),
-              if (asset != null)
-                TextButton(
+              Expanded(
+                child: TextButton.icon(
                   onPressed: widget.state.loading
                       ? null
-                      : () => setState(() {
-                          if (role == 'icon') {
-                            _icon = null;
-                          } else {
-                            _cover = null;
-                          }
-                        }),
-                  style: TextButton.styleFrom(foregroundColor: colors.error),
-                  child: Text(l10n.delete),
+                      : () => _pickMediaRole(role),
+                  icon: const Icon(Icons.file_upload_outlined, size: 18),
+                  label: Text(asset == null ? l10n.add : l10n.replace),
+                ),
+              ),
+              if (asset != null)
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: widget.state.loading
+                        ? null
+                        : () => setState(() {
+                            if (role == 'icon') {
+                              _icon = null;
+                            } else {
+                              _cover = null;
+                            }
+                          }),
+                    style: TextButton.styleFrom(foregroundColor: colors.error),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: Text(l10n.delete),
+                  ),
                 ),
             ],
           ),
@@ -1050,11 +1096,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     );
   }
 
-  Widget _mediaPreviewBox(
-    ColorScheme colors,
-    String role,
-    _DraftAsset? asset,
-  ) {
+  Widget _mediaPreviewBox(ColorScheme colors, String role, _DraftAsset? asset) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: ColoredBox(
@@ -1081,13 +1123,11 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
 
   Widget _previewCard(AppLocalizations l10n, int index) {
     const previewHeight = 144.0;
+    const cardWidth = 220.0;
     final colors = Theme.of(context).colorScheme;
     final asset = _previews[index];
-    final aspect = asset.width > 0 && asset.height > 0
-        ? asset.width / asset.height
-        : 16 / 10;
     return SizedBox(
-      width: previewHeight * aspect + 16,
+      width: cardWidth,
       child: Container(
         decoration: BoxDecoration(
           color: colors.surfaceContainerLow,
@@ -1108,7 +1148,8 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                       child: asset.bytes != null
                           ? Image.memory(
                               asset.bytes!,
-                              fit: BoxFit.cover,
+                              fit: BoxFit.contain,
+                              alignment: Alignment.center,
                               width: double.infinity,
                               height: double.infinity,
                             )
@@ -1149,15 +1190,15 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                 Expanded(
                   child: Text(
                     _assetMeta(asset) ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: colors.onSurfaceVariant,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 _cardAction(
-                  icon: Icons.sync,
+                  icon: Icons.file_upload_outlined,
                   tooltip: l10n.replace,
                   onPressed: widget.state.loading
                       ? null
@@ -1277,7 +1318,8 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                   label: Text(device.name),
                   onSelected: widget.state.loading
                       ? null
-                      : (checked) => _toggleDevice(asset.key, device.id, checked),
+                      : (checked) =>
+                            _toggleDevice(asset.key, device.id, checked),
                 ),
             ],
           ),
@@ -1295,7 +1337,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
       child: Column(
         children: [
           ListTile(
-            leading: const Icon(Icons.inventory_2_outlined),
+            leading: const CreatorOronBoxLogo(),
             title: const Text('OronBox'),
             subtitle: Text(l10n.creatorOronBoxRequired),
             trailing: const Switch(value: true, onChanged: null),
@@ -1431,9 +1473,8 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                   ),
                   CheckboxListTile(
                     value: _astroBindABAccount,
-                    onChanged: (value) => setState(
-                      () => _astroBindABAccount = value == true,
-                    ),
+                    onChanged: (value) =>
+                        setState(() => _astroBindABAccount = value == true),
                     contentPadding: EdgeInsets.zero,
                     controlAffinity: ListTileControlAffinity.leading,
                     title: Text(l10n.creatorAstroBoxBindAccount),
@@ -1547,11 +1588,10 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     });
   }
 
-  Future<void> _toggleArchive() async {
+  Future<void> _toggleTakedown() async {
     final l10n = AppLocalizations.of(context)!;
-    final archived = widget.workspace.resource.state == 'archived';
-    if (archived) {
-      await _run(() => widget.controller.archive(false));
+    if (widget.workspace.resource.canRestore) {
+      await _run(() => widget.controller.restore());
       return;
     }
     final accepted = await showDialog<bool>(
@@ -1572,7 +1612,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
       ),
     );
     if (accepted == true) {
-      await _run(() => widget.controller.archive(true));
+      await _run(() => widget.controller.takedown());
     }
   }
 
@@ -1658,6 +1698,5 @@ class _DraftAsset {
   final String version;
   final String type;
 
-  int? get size =>
-      bytes?.length ?? (sizeBytes > 0 ? sizeBytes : null);
+  int? get size => bytes?.length ?? (sizeBytes > 0 ? sizeBytes : null);
 }

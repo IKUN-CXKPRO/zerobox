@@ -48,21 +48,40 @@ class CreatorResource {
     required this.id,
     required this.slug,
     required this.kind,
-    required this.state,
+    this.draftName = '',
+    this.moderationState = 'visible',
+    this.moderationBy = '',
+    this.moderationReason = '',
+    this.downloadCount = 0,
+    this.updatedAt,
   });
   final String id;
   final String slug;
+  final String draftName;
   final CreatorResourceKind kind;
-  final String state;
+  final String moderationState;
+  final String moderationBy;
+  final String moderationReason;
+  final int downloadCount;
+  final DateTime? updatedAt;
+
+  bool get isSuspended => moderationState == 'suspended';
+  bool get isFrozen => moderationState == 'frozen';
+  bool get canRestore => isSuspended && moderationBy == 'owner';
 
   factory CreatorResource.fromJson(Map<String, Object?> json) =>
       CreatorResource(
         id: json['id']?.toString() ?? '',
         slug: json['slug']?.toString() ?? '',
+        draftName: json['draft_name']?.toString() ?? '',
         kind: json['kind'] == 'watchface'
             ? CreatorResourceKind.watchface
             : CreatorResourceKind.quickApp,
-        state: json['state']?.toString() ?? 'active',
+        moderationState: json['moderation_state']?.toString() ?? 'visible',
+        moderationBy: json['moderation_by']?.toString() ?? '',
+        moderationReason: json['moderation_reason']?.toString() ?? '',
+        downloadCount: (json['download_count'] as num?)?.toInt() ?? 0,
+        updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? ''),
       );
 }
 
@@ -122,8 +141,7 @@ class CreatorArtifact {
             .map((value) => value.toString())
             .toList(),
         sizeBytes: (json['size_bytes'] as num?)?.toInt() ?? 0,
-        analysisKind:
-            (json['analysis'] as Map?)?['kind']?.toString() ?? '',
+        analysisKind: (json['analysis'] as Map?)?['kind']?.toString() ?? '',
       );
 }
 

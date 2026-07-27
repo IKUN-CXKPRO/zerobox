@@ -7,9 +7,13 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.app.Dialog
 import android.content.BroadcastReceiver
+import android.content.ClipData
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Environment
+import android.provider.MediaStore
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -125,27 +129,87 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             "oronbox/logs",
         ).setMethodCallHandler { call, result ->
-            if (call.method == "open") {
-                try {
-                    val authority = "${applicationContext.packageName}.logs"
-                    val logsUri = android.provider.DocumentsContract.buildDocumentUri(
-                        authority,
-                        "logs",
-                    )
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(
-                            logsUri,
-                            android.provider.DocumentsContract.Document.MIME_TYPE_DIR,
-                        )
+            val authority = "${applicationContext.packageName}.logs"
+            when (call.method) {
+                "open" -> {
+                    val rootUri = android.provider.DocumentsContract.buildRootUri(authority, "logs")
+                    val browse = Intent("android.provider.action.BROWSE").apply {
+                        setDataAndType(rootUri, android.provider.DocumentsContract.Root.MIME_TYPE_ITEM)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
-                    startActivity(intent)
-                    result.success(true)
-                } catch (error: Exception) {
-                    result.error("OPEN_LOGS_FAILED", error.message, null)
+                    try {
+                        startActivity(browse)
+                        result.success(true)
+                    } catch (_: Exception) {
+                        try {
+                            startActivity(Intent(Intent.ACTION_VIEW, rootUri))
+                            result.success(true)
+                        } catch (error: Exception) {
+                            result.error("OPEN_LOGS_FAILED", error.message, null)
+                        }
+                    }
                 }
-            } else {
-                result.notImplemented()
+                "share" -> {
+                    val name = call.argument<String>("name")
+                    val file = name?.takeIf {
+                        !it.contains('/') && !it.contains('\\') &&
+                            (it.endsWith(".log") || it.endsWith(".zip"))
+                    }?.let { java.io.File(filesDir, "logs/$it") }
+                    if (file == null || !file.isFile) {
+                        result.error("LOG_NOT_FOUND", name, null)
+                    } else {
+                        val uri = android.provider.DocumentsContract.buildDocumentUri(authority, file.name)
+                        val share = Intent(Intent.ACTION_SEND).apply {
+                            type = if (file.extension == "zip") "application/zip" else "text/plain"
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            clipData = ClipData.newRawUri(file.name, uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        try {
+                            startActivity(Intent.createChooser(share, file.name))
+                            result.success(true)
+                        } catch (error: Exception) {
+                            result.error("SHARE_LOG_FAILED", error.message, null)
+                        }
+                    }
+                }
+                "export" -> {
+                    val name = call.argument<String>("name")
+                    val source = name?.takeIf {
+                        !it.contains('/') && !it.contains('\\') && it.endsWith(".zip")
+                    }?.let { java.io.File(filesDir, "logs/$it") }
+                    if (source == null || !source.isFile) {
+                        result.error("LOG_EXPORT_NOT_FOUND", name, null)
+                    } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                        result.error("LOG_EXPORT_UNSUPPORTED", "Android 10 or newer is required", null)
+                    } else {
+                        val values = ContentValues().apply {
+                            put(MediaStore.MediaColumns.DISPLAY_NAME, source.name)
+                            put(MediaStore.MediaColumns.MIME_TYPE, "application/zip")
+                            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOCUMENTS)
+                            put(MediaStore.MediaColumns.IS_PENDING, 1)
+                        }
+                        var uri: android.net.Uri? = null
+                        try {
+                            uri = contentResolver.insert(
+                                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                                values,
+                            ) ?: throw java.io.IOException("Unable to create exported log file")
+                            contentResolver.openOutputStream(uri, "w").use { output ->
+                                if (output == null) throw java.io.IOException("Unable to open exported log file")
+                                source.inputStream().use { input -> input.copyTo(output) }
+                            }
+                            values.clear()
+                            values.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                            contentResolver.update(uri, values, null, null)
+                            result.success("${Environment.getExternalStorageDirectory().path}/${Environment.DIRECTORY_DOCUMENTS}/${source.name}")
+                        } catch (error: Exception) {
+                            if (uri != null) contentResolver.delete(uri, null, null)
+                            result.error("LOG_EXPORT_FAILED", error.message, null)
+                        }
+                    }
+                }
+                else -> result.notImplemented()
             }
         }
         MethodChannel(

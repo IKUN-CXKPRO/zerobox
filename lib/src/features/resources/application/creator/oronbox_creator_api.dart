@@ -32,6 +32,29 @@ class OronBoxCreatorApi {
     return response.data;
   }
 
+  Future<Object?> publicRequest(
+    String method,
+    String path, {
+    Map<String, Object?>? query,
+  }) async {
+    final session = await auth.sessionIfNeeded();
+    final response = await _send(
+      () => _dio.request<Object?>(
+        path,
+        queryParameters: query,
+        options: Options(
+          method: method,
+          headers: {
+            if (session != null)
+              'Authorization': 'Bearer ${session.accessToken}',
+          },
+        ),
+      ),
+      stage: 'public',
+    );
+    return response.data;
+  }
+
   Future<Response<Object?>> _requestResponse(
     String method,
     String path, {
@@ -228,4 +251,3 @@ class CreatorApiException implements Exception {
   @override
   String toString() => message;
 }
-

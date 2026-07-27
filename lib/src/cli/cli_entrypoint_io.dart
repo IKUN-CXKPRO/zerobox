@@ -331,18 +331,12 @@ Future<OronBoxCommand> buildCliCommand(CliInvocation invocation) async {
       },
     ),
     'creator.archive' => OronBoxCommand(
-      method: 'creator.archive',
-      params: {
-        'resource': invocation.requiredArgument('resource ID'),
-        'archived': true,
-      },
+      method: 'creator.takedown',
+      params: {'resource': invocation.requiredArgument('resource ID')},
     ),
     'creator.unarchive' => OronBoxCommand(
-      method: 'creator.archive',
-      params: {
-        'resource': invocation.requiredArgument('resource ID'),
-        'archived': false,
-      },
+      method: 'creator.restore',
+      params: {'resource': invocation.requiredArgument('resource ID')},
     ),
     'creator.delete' => OronBoxCommand(
       method: 'creator.delete',

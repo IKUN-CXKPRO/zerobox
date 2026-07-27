@@ -2,17 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
-import 'package:oronbox/src/core/utils/layout.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
-import 'package:oronbox/src/features/resources/pages/creator/creator_editor_page.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_resource_list.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
 import 'package:oronbox/src/features/settings/pages/legal_documents_page.dart';
@@ -36,133 +36,49 @@ class CreatorCenterPage extends ConsumerWidget {
         }
       },
     );
-    if (!bandBbs.isSignedIn) {
-      return _CreatorLoginGate(
-        busy: bandBbs.isBusy,
-        onLogin: ref.read(hostAccountsProvider.notifier).startBandBbsLogin,
-      );
-    }
-    return _CreatorTermsGate(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = useWideLayout(constraints.maxWidth);
-          final listPane = Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      l10n.myResources,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  IconButton.filledTonal(
-                    onPressed: state.loading
-                        ? null
-                        : () => _create(context, controller),
-                    icon: const Icon(Icons.add),
-                    tooltip: l10n.creatorNewResource,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Expanded(
+    return Scaffold(
+      appBar: SysAppBar(
+        secondary: true,
+        title: Text(l10n.creatorCenter),
+        actions: [
+          IconButton(
+            tooltip: l10n.refresh,
+            icon: const Icon(Icons.refresh),
+            onPressed: state.loading
+                ? null
+                : () => unawaited(controller.refresh()),
+          ),
+        ],
+      ),
+      body: !bandBbs.isSignedIn
+          ? _CreatorLoginGate(
+              busy: bandBbs.isBusy,
+              onLogin: ref
+                  .read(hostAccountsProvider.notifier)
+                  .startBandBbsLogin,
+            )
+          : state.governance != null
+          ? _CreatorGovernanceGate(code: state.governance!)
+          : _CreatorTermsGate(
+              loading: state.loading,
+              onCreate: () => _create(context, controller),
+              child: PageContainer(
+                maxWidth: 1000,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: StyleConstants.pagePadding,
+                ),
                 child: CreatorResourceList(
                   state: state,
                   controller: controller,
                   onCreate: () => _create(context, controller),
+                  onOpen: (workspace) {
+                    controller.select(workspace);
+                    context.push('/resources/creator/resource');
+                  },
                 ),
               ),
-              const SizedBox(height: 12),
-              _CreatorAuthorizationStatus(
-                grants: state.grants,
-                busy:
-                    bandBbs.isBusy ||
-                    state.operation == CreatorOperation.authorizing,
-                onBandBbsAuthorize: () => _authorizeBandBbs(context, ref),
-                onGitHubAuthorize: () => _authorizeGitHub(context, controller),
-              ),
-              const SizedBox(height: 12),
-            ],
-          );
-          final selected = state.selected;
-          if (!wide && selected == null) {
-            return PageContainer(
-              maxWidth: 1000,
-              padding: const EdgeInsets.symmetric(
-                horizontal: StyleConstants.pagePadding,
-              ),
-              child: listPane,
-            );
-          }
-          if (!wide) {
-            return _CreatorWorkspaceView(
-              workspace: selected!,
-              state: state,
-              controller: controller,
-              showBack: true,
-            );
-          }
-          return PageContainer(
-            maxWidth: 1400,
-            padding: const EdgeInsets.symmetric(
-              horizontal: StyleConstants.pagePadding,
             ),
-            child: Row(
-              children: [
-                SizedBox(width: 360, child: listPane),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: selected == null
-                      ? _CreatorSelectionPlaceholder(
-                          text: l10n.creatorSelectHint,
-                        )
-                      : _CreatorWorkspaceView(
-                          workspace: selected,
-                          state: state,
-                          controller: controller,
-                          showBack: false,
-                        ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
     );
-  }
-
-  Future<void> _authorizeGitHub(
-    BuildContext context,
-    CreatorWorkspaceController controller,
-  ) async {
-    try {
-      final started = await controller.startGitHubAuthorization();
-      final flowId = started['flow_id']?.toString() ?? '';
-      final uri = Uri.tryParse(started['authorization_url']?.toString() ?? '');
-      if (flowId.isEmpty || uri == null || !await launchUrl(uri)) {
-        controller.finishAuthorization();
-        return;
-      }
-      for (var attempt = 0; attempt < 60 && context.mounted; attempt++) {
-        await Future<void>.delayed(const Duration(seconds: 2));
-        if (await controller.pollGitHubAuthorization(flowId)) return;
-      }
-      controller.finishAuthorization();
-    } catch (error) {
-      controller.finishAuthorization();
-      if (context.mounted) showCreatorFailure(context, error);
-    }
-  }
-
-  Future<void> _authorizeBandBbs(BuildContext context, WidgetRef ref) async {
-    try {
-      await ref
-          .read(hostAccountsProvider.notifier)
-          .startBandBbsPublishingAuthorization();
-    } catch (error) {
-      if (context.mounted) showCreatorFailure(context, error);
-    }
   }
 
   Future<void> _create(
@@ -171,6 +87,7 @@ class CreatorCenterPage extends ConsumerWidget {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     var kind = CreatorResourceKind.quickApp;
+    final name = TextEditingController();
     final accepted = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -196,6 +113,19 @@ class CreatorCenterPage extends ConsumerWidget {
                 onSelectionChanged: (value) =>
                     setState(() => kind = value.single),
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: name,
+                autofocus: true,
+                maxLength: 120,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  labelText: l10n.creatorResourceName,
+                ),
+                onSubmitted: (value) {
+                  if (value.trim().isNotEmpty) Navigator.pop(context, true);
+                },
+              ),
             ],
           ),
           actions: [
@@ -204,13 +134,17 @@ class CreatorCenterPage extends ConsumerWidget {
               child: Text(l10n.cancel),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () {
+                if (name.text.trim().isNotEmpty) Navigator.pop(context, true);
+              },
               child: Text(l10n.creatorNewResource),
             ),
           ],
         ),
       ),
     );
+    final resourceName = name.text.trim();
+    name.dispose();
     if (accepted == true) {
       const rulesSeenKey = 'creator.reviewRules.seen';
       final rulesSeen =
@@ -226,7 +160,7 @@ class CreatorCenterPage extends ConsumerWidget {
       }
       try {
         final slug = 'resource-${DateTime.now().microsecondsSinceEpoch}';
-        await controller.create(slug, kind);
+        await controller.create(slug, resourceName, kind);
       } catch (error) {
         if (context.mounted) showCreatorFailure(context, error);
       }
@@ -234,64 +168,53 @@ class CreatorCenterPage extends ConsumerWidget {
   }
 }
 
-class _CreatorWorkspaceView extends ConsumerWidget {
-  const _CreatorWorkspaceView({
-    required this.workspace,
-    required this.state,
-    required this.controller,
-    required this.showBack,
-  });
+class _CreatorGovernanceGate extends StatelessWidget {
+  const _CreatorGovernanceGate({required this.code});
 
-  final CreatorWorkspace workspace;
-  final CreatorWorkspaceState state;
-  final CreatorWorkspaceController controller;
-  final bool showBack;
+  final String code;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, right: 4, bottom: 8),
-          child: Row(
-            children: [
-              if (showBack) ...[
-                IconButton(
-                  onPressed: () => controller.select(null),
-                  icon: const Icon(Icons.arrow_back),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = Theme.of(context).colorScheme;
+    final banned = code == 'banned';
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Card(
+          color: colors.surfaceContainerHigh,
+          margin: const EdgeInsets.all(24),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  banned ? Icons.block : Icons.lock_outline,
+                  size: 56,
+                  color: colors.error,
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(height: 20),
+                Text(
+                  banned ? l10n.creatorBannedTitle : l10n.creatorFrozenTitle,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  banned
+                      ? l10n.creatorBannedDescription
+                      : l10n.creatorFrozenDescription,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ],
-              Expanded(
-                child: Text(
-                  creatorWorkspaceTitle(workspace),
-                  style: Theme.of(context).textTheme.titleLarge,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              CreatorStateBadge(state: creatorWorkspaceState(workspace)),
-            ],
-          ),
-        ),
-        Expanded(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 900),
-              child: CreatorEditorView(
-                key: ValueKey(
-                  '${workspace.resource.id}:${workspace.latestRevision?.id ?? 'new'}',
-                ),
-                workspace: workspace,
-                state: state,
-                controller: controller,
-                ref: ref,
-              ),
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -356,127 +279,57 @@ class _CreatorLoginGate extends StatelessWidget {
   }
 }
 
-class _CreatorSelectionPlaceholder extends StatelessWidget {
-  const _CreatorSelectionPlaceholder({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.edit_note_outlined,
-          size: 56,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          text,
-          style: Theme.of(context).textTheme.titleMedium,
-          textAlign: TextAlign.center,
-        ),
-      ],
-    ),
-  );
-}
-
-class _CreatorAuthorizationStatus extends StatelessWidget {
-  const _CreatorAuthorizationStatus({
-    required this.grants,
-    required this.busy,
-    required this.onBandBbsAuthorize,
-    required this.onGitHubAuthorize,
+class _CreatorTermsGate extends ConsumerStatefulWidget {
+  const _CreatorTermsGate({
+    required this.child,
+    required this.loading,
+    required this.onCreate,
   });
 
-  final Map<String, Object?> grants;
-  final bool busy;
-  final Future<void> Function() onBandBbsAuthorize;
-  final Future<void> Function() onGitHubAuthorize;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final colors = Theme.of(context).colorScheme;
-    final bandBbsReady = grants['bandbbs_publish'] == true;
-    final githubLogin = grants['github_login']?.toString() ?? '';
-    return Card(
-      color: colors.surfaceContainerHigh,
-      margin: EdgeInsets.zero,
-      child: Column(
-        children: [
-          ListTile(
-            leading: const CreatorBrandLogo(
-              asset: 'assets/images/brands/bandbbs.svg',
-              label: 'BandBBS',
-            ),
-            title: const Text('BandBBS'),
-            subtitle: Text(
-              bandBbsReady
-                  ? l10n.creatorBandBbsWriteReady
-                  : l10n.creatorBandBbsWriteMissing,
-            ),
-            trailing: bandBbsReady
-                ? Icon(Icons.check_circle_outline, color: colors.primary)
-                : FilledButton.tonal(
-                    onPressed: busy ? null : onBandBbsAuthorize,
-                    child: Text(l10n.creatorAuthorize),
-                  ),
-          ),
-          ListTile(
-            leading: const CreatorBrandLogo(
-              asset: 'assets/images/brands/github.svg',
-              label: 'GitHub',
-            ),
-            title: const Text('GitHub'),
-            subtitle: Text(
-              githubLogin.isEmpty
-                  ? l10n.creatorGitHubOwnPublishMissing
-                  : l10n.creatorGitHubOwnPublishReady(githubLogin),
-            ),
-            trailing: githubLogin.isNotEmpty
-                ? Icon(Icons.check_circle_outline, color: colors.primary)
-                : FilledButton.tonal(
-                    onPressed: busy ? null : onGitHubAuthorize,
-                    child: Text(l10n.creatorConnect),
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CreatorTermsGate extends ConsumerStatefulWidget {
-  const _CreatorTermsGate({required this.child});
-
   final Widget child;
+  final bool loading;
+  final VoidCallback onCreate;
 
   @override
   ConsumerState<_CreatorTermsGate> createState() => _CreatorTermsGateState();
 }
 
 class _CreatorTermsGateState extends ConsumerState<_CreatorTermsGate> {
-  static const _keyAccepted = 'creator.terms.accepted';
+  static const keyAccepted = 'creator.terms.accepted';
   bool _accepted = false;
   bool _checked = false;
 
   @override
   void initState() {
     super.initState();
-    _accepted = SharedPrefsService.instance.getBool(_keyAccepted) ?? false;
+    _accepted = SharedPrefsService.instance.getBool(keyAccepted) ?? false;
   }
 
   Future<void> _continue() async {
-    await SharedPrefsService.instance.setBool(_keyAccepted, true);
+    await SharedPrefsService.instance.setBool(keyAccepted, true);
     if (mounted) setState(() => _accepted = true);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_accepted) return widget.child;
     final l10n = AppLocalizations.of(context)!;
+    if (_accepted) {
+      return Stack(
+        children: [
+          widget.child,
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton.extended(
+              heroTag: 'creator-new-resource',
+              onPressed: widget.loading ? null : widget.onCreate,
+              icon: const Icon(Icons.add),
+              label: Text(l10n.creatorNewResource),
+            ),
+          ),
+        ],
+      );
+    }
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final language = Localizations.localeOf(context).languageCode == 'en'
@@ -489,11 +342,10 @@ class _CreatorTermsGateState extends ConsumerState<_CreatorTermsGate> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 840),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: 12),
                     Expanded(
                       child: DecoratedBox(
                         decoration: BoxDecoration(
@@ -592,7 +444,6 @@ class _CreatorTermsGateState extends ConsumerState<_CreatorTermsGate> {
     );
   }
 }
-
 
 class _ReviewRulesDialog extends ConsumerWidget {
   const _ReviewRulesDialog();

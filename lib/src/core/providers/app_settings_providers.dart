@@ -9,6 +9,96 @@ import 'package:oronbox/src/host/application_host_provider.dart';
 
 enum WideNavigationRailPosition { bottom, center, split }
 
+class CleanSettings {
+  const CleanSettings({
+    this.exploreEntry = true,
+    this.pluginsEntry = true,
+    this.homeFeed = true,
+    this.explore = true,
+    this.inbox = true,
+    this.announcements = true,
+    this.comments = true,
+    this.creator = true,
+    this.bandBbsLogin = true,
+    this.githubLogin = true,
+    this.oronBox = true,
+    this.bandBbs = true,
+    this.astroBox = true,
+    this.huamiAppStore = true,
+  });
+  final bool exploreEntry,
+      pluginsEntry,
+      homeFeed,
+      explore,
+      inbox,
+      announcements,
+      comments,
+      creator,
+      bandBbsLogin,
+      githubLogin,
+      oronBox,
+      bandBbs,
+      astroBox,
+      huamiAppStore;
+  bool get exploreEnabled => exploreEntry;
+  bool get pluginsEnabled => pluginsEntry;
+  bool get homeFeedEnabled => exploreEnabled && homeFeed;
+  bool get resourceLibraryEnabled => exploreEnabled && explore;
+  bool get inboxEnabled => exploreEnabled && inbox;
+  bool get creatorEnabled => exploreEnabled && creator;
+  bool get commentsEnabled => resourceLibraryEnabled && comments;
+  bool get oronBoxSourceEnabled => resourceLibraryEnabled && oronBox;
+  bool get bandBbsSourceEnabled => resourceLibraryEnabled && bandBbs;
+  bool get astroBoxSourceEnabled => resourceLibraryEnabled && astroBox;
+  bool get huamiAppStoreSourceEnabled =>
+      resourceLibraryEnabled && huamiAppStore;
+  bool get bandBbsLoginEnabled => bandBbsLogin;
+  bool get githubLoginEnabled => bandBbsLoginEnabled && githubLogin;
+  bool get announcementsEnabled => announcements;
+  bool get hasResourceSource =>
+      oronBoxSourceEnabled ||
+      bandBbsSourceEnabled ||
+      astroBoxSourceEnabled ||
+      huamiAppStoreSourceEnabled;
+
+  CleanSettings get normalized {
+    if (oronBox || bandBbs || astroBox || huamiAppStore) return this;
+    return copyWith(oronBox: true);
+  }
+
+  CleanSettings copyWith({
+    bool? exploreEntry,
+    bool? pluginsEntry,
+    bool? homeFeed,
+    bool? explore,
+    bool? inbox,
+    bool? announcements,
+    bool? comments,
+    bool? creator,
+    bool? bandBbsLogin,
+    bool? githubLogin,
+    bool? oronBox,
+    bool? bandBbs,
+    bool? astroBox,
+    bool? huamiAppStore,
+  }) => CleanSettings(
+    exploreEntry: exploreEntry ?? this.exploreEntry,
+    pluginsEntry: pluginsEntry ?? this.pluginsEntry,
+    homeFeed: homeFeed ?? this.homeFeed,
+    explore: explore ?? this.explore,
+    inbox: inbox ?? this.inbox,
+    announcements: announcements ?? this.announcements,
+    comments: comments ?? this.comments,
+    creator: creator ?? this.creator,
+    bandBbsLogin: bandBbsLogin ?? this.bandBbsLogin,
+    githubLogin: githubLogin ?? this.githubLogin,
+    oronBox: oronBox ?? this.oronBox,
+    bandBbs: bandBbs ?? this.bandBbs,
+    astroBox: astroBox ?? this.astroBox,
+    huamiAppStore: huamiAppStore ?? this.huamiAppStore,
+  );
+}
+
 class AppSettings {
   const AppSettings({
     required this.cdn,
@@ -19,6 +109,7 @@ class AppSettings {
     required this.wideNavigationRailPosition,
     required this.bandbbsLoadPreviews,
     required this.bandbbsShowAllCategories,
+    this.clean = const CleanSettings(),
   });
 
   final AstroBoxCdn cdn;
@@ -29,6 +120,7 @@ class AppSettings {
   final WideNavigationRailPosition wideNavigationRailPosition;
   final bool bandbbsLoadPreviews;
   final bool bandbbsShowAllCategories;
+  final CleanSettings clean;
 
   AppSettings copyWith({
     AstroBoxCdn? cdn,
@@ -39,6 +131,7 @@ class AppSettings {
     WideNavigationRailPosition? wideNavigationRailPosition,
     bool? bandbbsLoadPreviews,
     bool? bandbbsShowAllCategories,
+    CleanSettings? clean,
   }) {
     return AppSettings(
       cdn: cdn ?? this.cdn,
@@ -51,6 +144,7 @@ class AppSettings {
       bandbbsLoadPreviews: bandbbsLoadPreviews ?? this.bandbbsLoadPreviews,
       bandbbsShowAllCategories:
           bandbbsShowAllCategories ?? this.bandbbsShowAllCategories,
+      clean: clean ?? this.clean,
     );
   }
 
@@ -86,6 +180,22 @@ class AppSettings {
       bandbbsLoadPreviews: prefs.getBool(_keyBandBbsLoadPreviews) ?? false,
       bandbbsShowAllCategories:
           prefs.getBool(_keyBandBbsShowAllCategories) ?? false,
+      clean: CleanSettings(
+        exploreEntry: prefs.getBool('clean_explore_entry') ?? true,
+        pluginsEntry: prefs.getBool('clean_plugins_entry') ?? true,
+        homeFeed: prefs.getBool('clean_home_feed') ?? true,
+        explore: prefs.getBool('clean_explore') ?? true,
+        inbox: prefs.getBool('clean_inbox') ?? true,
+        announcements: prefs.getBool('clean_announcements') ?? true,
+        comments: prefs.getBool('clean_comments') ?? true,
+        creator: prefs.getBool('clean_creator') ?? true,
+        bandBbsLogin: prefs.getBool('clean_bandbbs_login') ?? true,
+        githubLogin: prefs.getBool('clean_github_login') ?? true,
+        oronBox: prefs.getBool('clean_source_oronbox') ?? true,
+        bandBbs: prefs.getBool('clean_source_bandbbs') ?? true,
+        astroBox: prefs.getBool('clean_source_astrobox') ?? true,
+        huamiAppStore: prefs.getBool('clean_source_huami_app_store') ?? true,
+      ),
     );
   }
 
@@ -113,6 +223,20 @@ class AppSettings {
     );
     await prefs.setBool(_keyBandBbsLoadPreviews, bandbbsLoadPreviews);
     await prefs.setBool(_keyBandBbsShowAllCategories, bandbbsShowAllCategories);
+    await prefs.setBool('clean_explore_entry', clean.exploreEntry);
+    await prefs.setBool('clean_plugins_entry', clean.pluginsEntry);
+    await prefs.setBool('clean_home_feed', clean.homeFeed);
+    await prefs.setBool('clean_explore', clean.explore);
+    await prefs.setBool('clean_inbox', clean.inbox);
+    await prefs.setBool('clean_announcements', clean.announcements);
+    await prefs.setBool('clean_comments', clean.comments);
+    await prefs.setBool('clean_creator', clean.creator);
+    await prefs.setBool('clean_bandbbs_login', clean.bandBbsLogin);
+    await prefs.setBool('clean_github_login', clean.githubLogin);
+    await prefs.setBool('clean_source_oronbox', clean.oronBox);
+    await prefs.setBool('clean_source_bandbbs', clean.bandBbs);
+    await prefs.setBool('clean_source_astrobox', clean.astroBox);
+    await prefs.setBool('clean_source_huami_app_store', clean.huamiAppStore);
   }
 
   static T _enumByName<T extends Enum>(
@@ -137,6 +261,7 @@ abstract class AppSettingsNotifier extends Notifier<AppSettings> {
   Future<void> setWideNavigationRailPosition(WideNavigationRailPosition value);
   Future<void> setBandBbsLoadPreviews(bool value);
   Future<void> setBandBbsShowAllCategories(bool value);
+  Future<void> setClean(CleanSettings value);
 }
 
 class LocalAppSettingsNotifier extends AppSettingsNotifier {
@@ -192,6 +317,12 @@ class LocalAppSettingsNotifier extends AppSettingsNotifier {
     state = state.copyWith(bandbbsShowAllCategories: value);
     await state.save();
   }
+
+  @override
+  Future<void> setClean(CleanSettings value) async {
+    state = state.copyWith(clean: value.normalized);
+    await state.save();
+  }
 }
 
 class HostAppSettingsNotifier extends AppSettingsNotifier {
@@ -229,6 +360,7 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
       bandbbsLoadPreviews: json['bandbbs_load_previews'] as bool? ?? false,
       bandbbsShowAllCategories:
           json['bandbbs_show_all_categories'] as bool? ?? false,
+      clean: state.clean,
     );
   }
 
@@ -291,6 +423,11 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
     value,
     state.copyWith(bandbbsShowAllCategories: value),
   );
+  @override
+  Future<void> setClean(CleanSettings value) async {
+    state = state.copyWith(clean: value.normalized);
+    await state.save();
+  }
 }
 
 final appSettingsProvider = NotifierProvider<AppSettingsNotifier, AppSettings>(

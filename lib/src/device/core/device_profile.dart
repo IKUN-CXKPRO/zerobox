@@ -79,7 +79,7 @@ class DeviceRegistry {
       id: 'xiaomi-watch-s',
       kind: DeviceKind.xiaomi,
       namePattern: RegExp(
-        r'Xiaomi Watch S\w (eSIM )?\S{4}',
+        r'Xiaomi Watch S\w(?: Pro)? (?:eSIM )?\S{4}',
         caseSensitive: false,
       ),
       illustrationAsset: _xiaomiWatchAsset,
@@ -194,7 +194,7 @@ class DeviceRegistry {
     kind: DeviceKind.xiaomi,
     namePattern: RegExp(r'.*'),
     illustrationAsset: _xiaomiWatchAsset,
-    preferredConnectType: ConnectType.ble,
+    preferredConnectType: ConnectType.spp,
     // Unknown BLE devices must be connected far enough to discover services;
     // their protocol is selected from actual characteristics afterwards.
     bleRequiredCharacteristics: const [],

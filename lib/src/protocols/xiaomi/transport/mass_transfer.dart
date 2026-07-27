@@ -346,6 +346,18 @@ class MassTransfer {
     }
   }
 
+  void cancelReverseMassReceive(L2Channel channel) {
+    final key = channel.value;
+    final waiter = _reverseMassWaits[key];
+    if (waiter == null) return;
+    if (!waiter.completer.isCompleted) {
+      waiter.completer.completeError(
+        const ProtocolException('Device log transfer was cancelled'),
+      );
+    }
+    clearReverseMassWait(channel);
+  }
+
   void handleReverseMassPayload(L2Channel channel, Uint8List payload) {
     final key = channel.value;
     final waiter = _reverseMassWaits[key];

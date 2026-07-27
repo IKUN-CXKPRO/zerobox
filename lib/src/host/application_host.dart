@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/daemon/daemon_task_queue.dart';
 
 /// Owns OronBox application state and long-running tasks independently from
@@ -34,33 +35,46 @@ class ApplicationHost implements OronBoxCommandBus {
   Stream<CommandEvent> get events => _events.stream;
 
   @override
-  Future<CommandResult> execute(OronBoxCommand command) async {
-    return switch (command.method) {
-      'task.enqueue' => CommandResult.success({
-        'taskId': tasks.enqueue(
-          OronBoxCommand.fromJson(
-            (command.params['command'] as Map).cast<String, Object?>(),
-          ),
-          held: command.params['held'] == true,
-        ),
-      }),
-      'queue.list' => CommandResult.success(tasks.list()),
-      'queue.get' => _taskResult(command.params['id']?.toString()),
-      'queue.wait' => _waitResult(command.params['id']?.toString()),
-      'queue.cancel' => CommandResult.success({
-        'cancelled': tasks.cancel(command.params['id']?.toString() ?? ''),
-      }),
-      'queue.clear' => _clearTasks(),
-      'queue.start' => CommandResult.success({'started': tasks.startHeld()}),
-      'queue.pause' => CommandResult.success({'held': tasks.holdPending()}),
-      'queue.retry' => CommandResult.success({
-        'retried': tasks.retry(command.params['id']?.toString() ?? ''),
-      }),
-      'queue.remove' => CommandResult.success({
-        'removed': tasks.remove(command.params['id']?.toString() ?? ''),
-      }),
-      _ => core.execute(command),
-    };
+  Future<CommandResult> execute(OronBoxCommand command) {
+    return runAsDiagnosticBackend(() async {
+      switch (command.method) {
+        case 'task.enqueue':
+          return CommandResult.success({
+            'taskId': tasks.enqueue(
+              OronBoxCommand.fromJson(
+                (command.params['command'] as Map).cast<String, Object?>(),
+              ),
+              held: command.params['held'] == true,
+            ),
+          });
+        case 'queue.list':
+          return CommandResult.success(tasks.list());
+        case 'queue.get':
+          return _taskResult(command.params['id']?.toString());
+        case 'queue.wait':
+          return _waitResult(command.params['id']?.toString());
+        case 'queue.cancel':
+          return CommandResult.success({
+            'cancelled': tasks.cancel(command.params['id']?.toString() ?? ''),
+          });
+        case 'queue.clear':
+          return _clearTasks();
+        case 'queue.start':
+          return CommandResult.success({'started': tasks.startHeld()});
+        case 'queue.pause':
+          return CommandResult.success({'held': tasks.holdPending()});
+        case 'queue.retry':
+          return CommandResult.success({
+            'retried': tasks.retry(command.params['id']?.toString() ?? ''),
+          });
+        case 'queue.remove':
+          return CommandResult.success({
+            'removed': tasks.remove(command.params['id']?.toString() ?? ''),
+          });
+        default:
+          return core.execute(command);
+      }
+    });
   }
 
   Future<void> cancelActiveOperation() async {

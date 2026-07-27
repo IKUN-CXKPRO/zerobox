@@ -1,4 +1,6 @@
 import 'package:segmented_list/segmented_list.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +15,8 @@ import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
+import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
+import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/services/download_queue_notifier.dart';
@@ -28,10 +32,31 @@ class _BandBbsAccountPageState extends ConsumerState<BandBbsAccountPage> {
   CommunityResourceDetail? _resource;
   Object? _error;
   var _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(ref.read(creatorWorkspaceProvider.notifier).refresh());
+    });
+  }
+
   @override
   void dispose() {
     _id.dispose();
     super.dispose();
+  }
+
+  Future<void> _authorizePublishing() async {
+    try {
+      await ref
+          .read(hostAccountsProvider.notifier)
+          .startBandBbsPublishingAuthorization();
+      unawaited(ref.read(creatorWorkspaceProvider.notifier).refresh());
+    } catch (error) {
+      if (mounted) showCreatorFailure(context, error);
+    }
   }
 
   Future<void> _query() async {
@@ -66,6 +91,13 @@ class _BandBbsAccountPageState extends ConsumerState<BandBbsAccountPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final account = ref.watch(hostAccountsProvider).bandbbs;
+    final publishGranted =
+        ref.watch(
+          creatorWorkspaceProvider.select(
+            (state) => state.grants['bandbbs_publish'],
+          ),
+        ) ==
+        true;
     return Scaffold(
       appBar: SysAppBar(secondary: true, title: Text(l10n.bandBbsAccountTitle)),
       body: SingleChildScrollView(
@@ -115,6 +147,30 @@ class _BandBbsAccountPageState extends ConsumerState<BandBbsAccountPage> {
                       },
                       child: Text(l10n.bandBbsLogout),
                     ),
+                  ),
+                ],
+              ),
+              SegmentedSection(
+                margin: EdgeInsetsDirectional.zero,
+                title: Text(l10n.bandBbsPublishAuthTitle),
+                tiles: [
+                  SegmentedTile(
+                    leading: const Icon(Icons.publish_outlined),
+                    title: Text(l10n.bandBbsPublishAuthTitle),
+                    description: Text(
+                      publishGranted
+                          ? l10n.creatorBandBbsAuthorized
+                          : l10n.creatorBandBbsAuthorizationRequired,
+                    ),
+                    trailing: publishGranted
+                        ? Icon(
+                            Icons.check_circle_outline,
+                            color: Theme.of(context).colorScheme.primary,
+                          )
+                        : FilledButton.tonal(
+                            onPressed: _authorizePublishing,
+                            child: Text(l10n.creatorAuthorize),
+                          ),
                   ),
                 ],
               ),

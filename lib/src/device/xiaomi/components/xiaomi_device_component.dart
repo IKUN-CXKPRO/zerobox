@@ -6,6 +6,7 @@ import 'package:oronbox/src/device/core/transport.dart';
 import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
 import 'package:oronbox/src/protocols/xiaomi/commands/xiaomi_request_pool.dart';
 import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/spp_v1_packet.dart';
 import 'package:oronbox/src/protocols/xiaomi/transport/xiaomi_sar_controller.dart';
 import 'package:oronbox/src/device/xiaomi/utils/auth_utils.dart';
 
@@ -30,16 +31,18 @@ class _Mutex {
 }
 
 class XiaomiDeviceComponent {
-  XiaomiDeviceComponent({required this.transport})
+  XiaomiDeviceComponent({required this.transport, required this.sppV1})
     : _log = getLogger('XiaomiDeviceComponent');
 
   final Transport transport;
+  final bool sppV1;
   final Logger _log;
 
   XiaomiAuthKeys? authKeys;
   void Function(Uint8List l2Payload)? onL2Payload;
   void Function(Object error, StackTrace stackTrace)? onTransportFailure;
   Completer<void>? _sppHelloCompleter;
+  final XiaomiSppV1Codec _sppV1Codec = XiaomiSppV1Codec();
   final _massSendLock = _Mutex();
 
   static final Uint8List _sppHelloPacket = Uint8List.fromList([
@@ -82,15 +85,18 @@ class XiaomiDeviceComponent {
     if (spp) {
       _log.info('starting SPP hello');
       _sppHelloCompleter = Completer<void>();
-      await transport.send(_sppHelloPacket);
+      await transport.send(
+        sppV1 ? _sppV1Codec.versionRequest() : _sppHelloPacket,
+      );
       await _sppHelloCompleter!.future.timeout(const Duration(seconds: 10));
       _sppHelloCompleter = null;
       _log.info('SPP hello completed');
     }
-    sar.start();
+    if (!sppV1) sar.start();
   }
 
   bool handleSppHello(Uint8List data) {
+    if (sppV1) return false;
     if (data.length < 3 ||
         data[0] != 0xba ||
         data[1] != 0xdc ||
@@ -104,11 +110,23 @@ class XiaomiDeviceComponent {
     return true;
   }
 
+  void completeSppV1Hello() {
+    final completer = _sppHelloCompleter;
+    if (completer != null && !completer.isCompleted) completer.complete();
+  }
+
   Future<void> sendPbPacket(pb.WearPacket packet) async {
     final encrypted = authKeys != null;
     _log.fine(
       'sending PB packet type=${packet.type} id=${packet.id} encrypted=$encrypted',
     );
+    if (sppV1) {
+      _sppV1Codec.authKeys = authKeys;
+      await transport.send(
+        _sppV1Codec.encodeProtobuf(packet.writeToBuffer(), authenticate: false),
+      );
+      return;
+    }
     final l2 = encrypted
         ? L2Packet.pbWriteEnc(packet, authKeys!.cipher)
         : L2Packet.pbWrite(packet);
@@ -119,8 +137,25 @@ class XiaomiDeviceComponent {
     _log.fine(
       'sending unencrypted PB packet type=${packet.type} id=${packet.id}',
     );
+    if (sppV1) {
+      _sppV1Codec.authKeys = authKeys;
+      await transport.send(
+        _sppV1Codec.encodeProtobuf(packet.writeToBuffer(), authenticate: true),
+      );
+      return;
+    }
     final l2 = L2Packet.pbWrite(packet);
     await sar.sendData(l2.toBytes());
+  }
+
+  Future<void> sendSppV1MassChunk(Uint8List payload) async {
+    _sppV1Codec.authKeys = authKeys;
+    await transport.send(_sppV1Codec.encodeData(payload));
+  }
+
+  List<XiaomiSppV1Packet> decodeSppV1(Uint8List data) {
+    _sppV1Codec.authKeys = authKeys;
+    return _sppV1Codec.add(data);
   }
 
   Future<void> sendL2MassData(Uint8List l2Payload) async {

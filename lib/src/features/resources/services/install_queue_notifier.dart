@@ -233,8 +233,8 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     required LocalDeviceInstallType type,
     required ResourceInstallMode installMode,
   }) async {
-    final bytes = await file.readAsBytes();
     if (kIsWeb) {
+      final bytes = await file.readAsBytes();
       _addWebTask(
         InstallTask(
           id: '${file.path}:${DateTime.now().microsecondsSinceEpoch}',
@@ -249,7 +249,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
       start();
       return;
     }
-    final path = await _stage(file.name, bytes);
+    final path = await _stageFile(file);
     await _enqueue(
       OronBoxCommand(
         method: 'install.local',
@@ -277,6 +277,27 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     );
     await file.writeAsBytes(bytes, flush: true);
     return file.path;
+  }
+
+  Future<String> _stageFile(XFile source) async {
+    final directory = await getTemporaryDirectory();
+    final safeName = source.name.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+    final target = File(
+      '${directory.path}${Platform.pathSeparator}'
+      'oronbox_queue_${DateTime.now().microsecondsSinceEpoch}_$safeName',
+    );
+    final sink = target.openWrite();
+    try {
+      await for (final chunk in source.openRead()) {
+        sink.add(chunk);
+      }
+      await sink.flush();
+      await sink.close();
+    } catch (_) {
+      await sink.close();
+      rethrow;
+    }
+    return target.path;
   }
 
   Future<void> _enqueue(OronBoxCommand command) async {

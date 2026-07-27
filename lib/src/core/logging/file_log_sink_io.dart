@@ -8,8 +8,29 @@ import 'package:oronbox/src/core/services/build_info_service.dart';
 
 const _androidLogsChannel = MethodChannel('oronbox/logs');
 
+bool _isManagedLogFile(File file) {
+  final name = file.uri.pathSegments.last;
+  return name.endsWith('.log') ||
+      (name.startsWith('device-') && name.endsWith('.zip'));
+}
+
+class LogFileInfo {
+  const LogFileInfo({
+    required this.name,
+    required this.path,
+    required this.size,
+    required this.modifiedAt,
+  });
+
+  final String name;
+  final String path;
+  final int size;
+  final DateTime modifiedAt;
+}
+
 Directory? _logDirectory;
 SerialFileLogWriter? _writer;
+String? _currentLogPath;
 
 class SerialFileLogWriter {
   SerialFileLogWriter(this._sink);
@@ -60,6 +81,7 @@ Future<void> initializeFileLogSink({List<String> arguments = const []}) async {
   );
   await _writer?.close();
   _writer = SerialFileLogWriter(file.openWrite(mode: FileMode.write));
+  _currentLogPath = file.path;
   final commit = await BuildInfoService.resolveCommitHash();
   _writer!.writeLine('OronBox ${BuildInfoService.appVersion} ($commit)');
   _writer!.writeLine('Builder: ${BuildInfoService.buildUser}');
@@ -96,11 +118,55 @@ Future<int> logDirectorySize() async {
   if (path == null) return 0;
   var total = 0;
   await for (final entity in Directory(path).list()) {
-    if (entity is File && entity.path.endsWith('.log')) {
+    if (entity is File && _isManagedLogFile(entity)) {
       total += await entity.length();
     }
   }
   return total;
+}
+
+Future<List<LogFileInfo>> listLogFiles() async {
+  final path = await getLogDirectoryPath();
+  if (path == null) return const [];
+  final result = <LogFileInfo>[];
+  await for (final entity in Directory(path).list()) {
+    if (entity is! File || !_isManagedLogFile(entity)) continue;
+    result.add(
+      LogFileInfo(
+        name: entity.uri.pathSegments.last,
+        path: entity.path,
+        size: await entity.length(),
+        modifiedAt: await entity.lastModified(),
+      ),
+    );
+  }
+  result.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+  return result;
+}
+
+Future<bool> openLogFile(LogFileInfo file) async {
+  if (Platform.isAndroid) {
+    try {
+      return await _androidLogsChannel.invokeMethod<bool>('share', {
+            'name': file.name,
+          }) ??
+          false;
+    } catch (_) {
+      return false;
+    }
+  }
+  try {
+    final result = Platform.isWindows
+        ? await Process.run('explorer.exe', ['/select,${file.path}'])
+        : Platform.isMacOS
+        ? await Process.run('open', ['-R', file.path])
+        : Platform.isLinux
+        ? await Process.run('xdg-open', [File(file.path).parent.path])
+        : null;
+    return result?.exitCode == 0;
+  } catch (_) {
+    return false;
+  }
 }
 
 Future<int> clearLogFiles() async {
@@ -108,12 +174,11 @@ Future<int> clearLogFiles() async {
   if (path == null) return 0;
   final files = <File>[];
   await for (final entity in Directory(path).list()) {
-    if (entity is File && entity.path.endsWith('.log')) files.add(entity);
+    if (entity is File && _isManagedLogFile(entity)) files.add(entity);
   }
-  // Keep the current session's file so the live writer keeps a valid sink.
-  files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
   var removed = 0;
-  for (final file in files.skip(1)) {
+  for (final file in files) {
+    if (file.path == _currentLogPath) continue;
     try {
       await file.delete();
       removed++;
@@ -127,7 +192,7 @@ Future<String?> exportLogsZip() async {
   if (path == null) return null;
   final archive = Archive();
   await for (final entity in Directory(path).list()) {
-    if (entity is! File || !entity.path.endsWith('.log')) continue;
+    if (entity is! File || !_isManagedLogFile(entity)) continue;
     final bytes = await entity.readAsBytes();
     archive.addFile(
       ArchiveFile(entity.uri.pathSegments.last, bytes.length, bytes),
@@ -144,10 +209,33 @@ Future<String?> exportLogsZip() async {
     '${directory.path}${Platform.pathSeparator}oronbox-logs-$timestamp.zip',
   );
   await target.writeAsBytes(zipped);
+  if (Platform.isAndroid) {
+    try {
+      final exportedPath = await _androidLogsChannel.invokeMethod<String>(
+        'export',
+        {'name': target.uri.pathSegments.last},
+      );
+      if (exportedPath != null && exportedPath.isNotEmpty) {
+        return exportedPath;
+      }
+    } catch (_) {
+      return null;
+    } finally {
+      try {
+        await target.delete();
+      } catch (_) {}
+    }
+  }
   return target.path;
 }
 
 Future<Directory> _exportDirectory() async {
+  // On mobile the zip lands next to the logs so the DocumentsProvider
+  // (Android) / Files app (iOS) can reach it.
+  if (Platform.isAndroid || Platform.isIOS) {
+    final path = await getLogDirectoryPath();
+    if (path != null) return Directory(path);
+  }
   if (!Platform.isAndroid && !Platform.isIOS) {
     final home =
         Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
@@ -162,6 +250,7 @@ Future<Directory> _exportDirectory() async {
 Future<void> closeFileLogSink() async {
   final writer = _writer;
   _writer = null;
+  _currentLogPath = null;
   await writer?.close();
 }
 

@@ -5,23 +5,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
-import 'package:oronbox/src/app/widgets/network_img_layer.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/data/bandbbs/bandbbs_resource_provider.dart';
 import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
+import 'package:oronbox/src/features/messages/application/message_center.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
 import 'package:oronbox/src/features/resources/controllers/resource_filter_controller.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 import 'package:oronbox/src/features/resources/widgets/bandbbs_category_sidebar.dart';
 import 'package:oronbox/src/features/resources/widgets/bandbbs_resource_card.dart';
-import 'package:oronbox/src/features/resources/pages/creator/creator_center_page.dart';
-import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
+import 'package:oronbox/src/features/resources/widgets/resource_media_hero.dart';
 
 class ResourcesPage extends ConsumerWidget {
   const ResourcesPage({super.key});
@@ -30,23 +30,31 @@ class ResourcesPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final mode = ref.watch(resourceModeControllerProvider);
+    final clean = ref.watch(appSettingsProvider).clean;
+    final showHome = clean.homeFeedEnabled;
+    final showExplore = clean.resourceLibraryEnabled;
+    final showCreator = clean.creatorEnabled;
+    if (!showHome && !showExplore) {
+      return Scaffold(
+        appBar: SysAppBar(title: Text(l10n.exploreTab)),
+        body: Center(child: Text(l10n.cleanModeDescription)),
+      );
+    }
+    final displayMode = switch (mode) {
+      ResourceMode.home when showHome => ResourceMode.home,
+      ResourceMode.library when showExplore => ResourceMode.library,
+      _ when showHome => ResourceMode.home,
+      _ => ResourceMode.library,
+    };
     return Scaffold(
       appBar: SysAppBar(
-        title: Text(
-          mode == ResourceMode.creator ? l10n.creatorCenter : l10n.exploreTab,
-        ),
+        title: Text(l10n.exploreTab),
         actions: [
-          if (mode == ResourceMode.library) const _CommunitySourceMenu(),
+          if (displayMode == ResourceMode.library) const _CommunitySourceMenu(),
           IconButton(
             tooltip: l10n.refresh,
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              if (mode == ResourceMode.creator) {
-                unawaited(
-                  ref.read(creatorWorkspaceProvider.notifier).refresh(),
-                );
-                return;
-              }
               final catalog = ref.read(communityCatalogProvider);
               if (catalog is BandBbsCatalog) {
                 catalog.clearCategoryCache();
@@ -56,6 +64,10 @@ class ResourcesPage extends ConsumerWidget {
               ref.read(resourceRefreshProvider.notifier).refresh();
             },
           ),
+          if (clean.inboxEnabled)
+            _InboxAction(
+              unread: ref.watch(messageCenterProvider).value?.unread ?? 0,
+            ),
         ],
       ),
       body: Column(
@@ -73,26 +85,36 @@ class ResourcesPage extends ConsumerWidget {
                 child: SegmentedButton<ResourceMode>(
                   showSelectedIcon: false,
                   segments: [
-                    ButtonSegment(
-                      value: ResourceMode.home,
-                      label: Text(l10n.homeTab),
-                      icon: const Icon(Icons.home_outlined),
-                    ),
-                    ButtonSegment(
-                      value: ResourceMode.library,
-                      label: Text(l10n.resourceLibrary),
-                      icon: const Icon(Icons.library_books_outlined),
-                    ),
-                    ButtonSegment(
-                      value: ResourceMode.creator,
-                      label: Text(l10n.creatorCenter),
-                      icon: const Icon(Icons.create_outlined),
-                    ),
+                    if (showHome)
+                      ButtonSegment(
+                        value: ResourceMode.home,
+                        label: Text(l10n.homeTab),
+                        icon: const Icon(Icons.home_outlined),
+                      ),
+                    if (showExplore)
+                      ButtonSegment(
+                        value: ResourceMode.library,
+                        label: Text(l10n.resourceLibrary),
+                        icon: const Icon(Icons.library_books_outlined),
+                      ),
+                    if (showCreator)
+                      ButtonSegment(
+                        value: ResourceMode.creator,
+                        label: Text(l10n.creatorCenter),
+                        icon: const Icon(Icons.create_outlined),
+                      ),
                   ],
-                  selected: {mode},
-                  onSelectionChanged: (value) => ref
-                      .read(resourceModeControllerProvider.notifier)
-                      .setMode(value.first),
+                  selected: {displayMode},
+                  onSelectionChanged: (value) {
+                    final selected = value.first;
+                    if (selected == ResourceMode.creator) {
+                      context.push('/resources/creator');
+                      return;
+                    }
+                    ref
+                        .read(resourceModeControllerProvider.notifier)
+                        .setMode(selected);
+                  },
                 ),
               ),
             ),
@@ -100,16 +122,11 @@ class ResourcesPage extends ConsumerWidget {
           Expanded(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
-              child: switch (mode) {
+              child: switch (displayMode) {
                 ResourceMode.home => const _ResourceHomePlaceholder(
                   key: ValueKey('home'),
                 ),
-                ResourceMode.library => const _ResourceLibraryView(
-                  key: ValueKey('library'),
-                ),
-                ResourceMode.creator => const CreatorCenterPage(
-                  key: ValueKey('creator'),
-                ),
+                _ => const _ResourceLibraryView(key: ValueKey('library')),
               },
             ),
           ),
@@ -117,6 +134,24 @@ class ResourcesPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _InboxAction extends StatelessWidget {
+  const _InboxAction({required this.unread});
+
+  final int unread;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    tooltip: AppLocalizations.of(context)!.inbox,
+    onPressed: () => context.push('/inbox'),
+    icon: unread > 0
+        ? Badge(
+            label: Text('$unread'),
+            child: const Icon(Icons.notifications_outlined),
+          )
+        : const Icon(Icons.notifications_outlined),
+  );
 }
 
 class _ResourceHomePlaceholder extends ConsumerWidget {
@@ -181,25 +216,37 @@ class _ResourceLibraryView extends ConsumerStatefulWidget {
       _ResourceLibraryViewState();
 }
 
-class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView> {
+class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
+    with SingleTickerProviderStateMixin {
   static const _pageSize = 30;
   final _scrollController = ScrollController();
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
   var _searchText = '';
   bool? _sidebarExpanded;
+  var _gridView =
+      SharedPrefsService.instance.getBool('resource_grid_view') ?? true;
+  late final AnimationController _layoutAnimation;
+  final _resourceLayoutKeys = <String, GlobalKey>{};
+  var _resourceLayoutMotions = const <String, _ResourceLayoutMotion>{};
+  var _preparingLayoutMotion = false;
   final _items = <CommunityResource>[];
   var _page = 0;
   var _hasMore = true;
   var _loading = true;
   var _loadingMore = false;
   var _waitingForSidebarLoad = false;
+  var _fillCheckScheduled = false;
   Object? _error;
   var _generation = 0;
 
   @override
   void initState() {
     super.initState();
+    _layoutAnimation = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 360),
+    );
     _scrollController.addListener(_onScroll);
     _searchFocus.addListener(() {
       if (!_searchFocus.hasFocus) _commitSearch();
@@ -209,10 +256,72 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView> {
 
   @override
   void dispose() {
+    _layoutAnimation.dispose();
     _searchFocus.dispose();
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  GlobalKey _resourceLayoutKey(CommunityResource item) => _resourceLayoutKeys
+      .putIfAbsent(item.ref.key, () => GlobalKey(debugLabel: item.ref.key));
+
+  Map<String, Rect> _captureResourceRects() {
+    final result = <String, Rect>{};
+    for (final entry in _resourceLayoutKeys.entries) {
+      final renderObject = entry.value.currentContext?.findRenderObject();
+      if (renderObject case final RenderBox box when box.hasSize) {
+        result[entry.key] = box.localToGlobal(Offset.zero) & box.size;
+      }
+    }
+    return result;
+  }
+
+  void _toggleLayout() {
+    final sourceRects = _captureResourceRects();
+    _layoutAnimation.stop();
+    final widthProgress = ((MediaQuery.sizeOf(context).width - 600) / 800)
+        .clamp(0.0, 1.0);
+    _layoutAnimation.duration = Duration(
+      milliseconds: (240 + 240 * widthProgress).round(),
+    );
+    setState(() {
+      _gridView = !_gridView;
+      _resourceLayoutMotions = const {};
+      _preparingLayoutMotion = true;
+    });
+    unawaited(
+      SharedPrefsService.instance.setBool('resource_grid_view', _gridView),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final targetRects = _captureResourceRects();
+      final motions = <String, _ResourceLayoutMotion>{};
+      for (final entry in sourceRects.entries) {
+        final target = targetRects[entry.key];
+        if (target != null && target.width > 0 && target.height > 0) {
+          motions[entry.key] = _ResourceLayoutMotion(
+            source: entry.value,
+            target: target,
+          );
+        }
+      }
+      setState(() {
+        _resourceLayoutMotions = motions;
+        _preparingLayoutMotion = false;
+      });
+      _layoutAnimation.forward(from: 0);
+    });
+  }
+
+  Widget _animateResourceLayout(CommunityResource item, Widget child) {
+    return _ResourceLayoutTransition(
+      key: _resourceLayoutKey(item),
+      animation: _layoutAnimation,
+      motion: _resourceLayoutMotions[item.ref.key],
+      hidden: _preparingLayoutMotion,
+      child: child,
+    );
   }
 
   void _commitSearch() {
@@ -226,6 +335,22 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView> {
         _scrollController.position.extentAfter < 600) {
       _load(_generation);
     }
+  }
+
+  void _scheduleViewportFill(int generation) {
+    if (_fillCheckScheduled) return;
+    _fillCheckScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fillCheckScheduled = false;
+      if (!mounted ||
+          generation != _generation ||
+          !_scrollController.hasClients) {
+        return;
+      }
+      if (_scrollController.position.extentAfter < 600) {
+        _load(generation);
+      }
+    });
   }
 
   Future<void> _reset() async {
@@ -269,10 +394,11 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView> {
           ),
         );
         _page += 1;
-        _hasMore = result.hasMore;
+        _hasMore = result.hasMore && result.items.isNotEmpty;
         _loading = false;
         _loadingMore = false;
       });
+      _scheduleViewportFill(generation);
     } catch (error) {
       if (!mounted || generation != _generation) return;
       setState(() {
@@ -341,43 +467,138 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView> {
     }
     return LayoutBuilder(
       builder: (context, constraints) {
+        _scheduleViewportFill(_generation);
         final isBandBbs = source == CommunitySourceId.bandbbs;
         final expanded =
             isBandBbs && (_sidebarExpanded ?? constraints.maxWidth >= 900);
-        final list = _buildList(
-          context,
-          l10n,
-          filters,
-          source,
-          capabilities,
-          sidebarExpanded: expanded,
-          onToggleSidebar: isBandBbs
-              ? () => setState(() => _sidebarExpanded = !expanded)
-              : null,
-        );
-        if (!isBandBbs) {
-          return list;
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        final list = _buildList(context, l10n, filters, source);
+        return Column(
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              width: expanded ? 260 : 0,
-              clipBehavior: Clip.hardEdge,
-              decoration: const BoxDecoration(),
-              child: const OverflowBox(
-                alignment: Alignment.topLeft,
-                minWidth: 260,
-                maxWidth: 260,
-                child: BandBbsCategorySidebar(),
-              ),
+            _buildToolbar(
+              context,
+              l10n,
+              capabilities,
+              sidebarExpanded: expanded,
+              onToggleSidebar: isBandBbs
+                  ? () => setState(() => _sidebarExpanded = !expanded)
+                  : null,
             ),
-            Expanded(child: list),
+            Expanded(
+              child: !isBandBbs
+                  ? list
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeInOut,
+                          width: expanded ? 260 : 0,
+                          clipBehavior: Clip.hardEdge,
+                          decoration: const BoxDecoration(),
+                          child: const OverflowBox(
+                            alignment: Alignment.topLeft,
+                            minWidth: 260,
+                            maxWidth: 260,
+                            child: BandBbsCategorySidebar(),
+                          ),
+                        ),
+                        Expanded(child: list),
+                      ],
+                    ),
+            ),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildToolbar(
+    BuildContext context,
+    AppLocalizations l10n,
+    CommunityCatalogCapabilities capabilities, {
+    required bool sidebarExpanded,
+    VoidCallback? onToggleSidebar,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    final toolbarButtonStyle = IconButton.styleFrom(
+      backgroundColor: colors.surfaceContainerHigh,
+      foregroundColor: colors.onSurfaceVariant,
+      hoverColor: colors.surfaceContainerHighest,
+      highlightColor: colors.surfaceContainerHighest,
+    );
+    return PageContainer(
+      padding: const EdgeInsets.all(StyleConstants.pagePadding),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              if (onToggleSidebar != null) ...[
+                IconButton.filled(
+                  style: toolbarButtonStyle,
+                  icon: Icon(sidebarExpanded ? Icons.menu_open : Icons.menu),
+                  tooltip: l10n.categories,
+                  onPressed: onToggleSidebar,
+                ),
+                const SizedBox(width: 4),
+              ],
+              Expanded(
+                child: SearchBar(
+                  enabled: capabilities.search,
+                  elevation: const WidgetStatePropertyAll(0),
+                  controller: _searchController,
+                  focusNode: _searchFocus,
+                  hintText: l10n.search,
+                  leading: const Icon(Icons.search),
+                  trailing: [
+                    if (_searchText.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchText = '');
+                          ref
+                              .read(resourceFiltersProvider.notifier)
+                              .setQuery('');
+                        },
+                      ),
+                  ],
+                  onChanged: (value) => setState(() => _searchText = value),
+                  onSubmitted: (_) => _commitSearch(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filled(
+                style: toolbarButtonStyle,
+                tooltip: _gridView
+                    ? l10n.resourceListView
+                    : l10n.resourceGridView,
+                onPressed: _toggleLayout,
+                icon: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: RotationTransition(
+                      turns: Tween<double>(begin: -.12, end: 0).animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        ),
+                      ),
+                      child: child,
+                    ),
+                  ),
+                  child: Icon(
+                    _gridView ? Icons.view_list : Icons.grid_view,
+                    key: ValueKey(_gridView),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const _FilterBar(),
+        ],
+      ),
     );
   }
 
@@ -386,69 +607,13 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView> {
     AppLocalizations l10n,
     ResourceFilters filters,
     CommunitySourceId source,
-    CommunityCatalogCapabilities capabilities, {
-    bool sidebarExpanded = false,
-    VoidCallback? onToggleSidebar,
-  }) {
+  ) {
     return RefreshIndicator(
       onRefresh: _reset,
       child: CustomScrollView(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          SliverToBoxAdapter(
-            child: PageContainer(
-              padding: const EdgeInsets.all(StyleConstants.pagePadding),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      if (onToggleSidebar != null) ...[
-                        IconButton(
-                          icon: Icon(
-                            sidebarExpanded ? Icons.menu_open : Icons.menu,
-                          ),
-                          tooltip: l10n.categories,
-                          onPressed: onToggleSidebar,
-                        ),
-                        const SizedBox(width: 4),
-                      ],
-                      Expanded(
-                        child: SearchBar(
-                          enabled: capabilities.search,
-                          elevation: const WidgetStatePropertyAll(0),
-                          controller: _searchController,
-                          focusNode: _searchFocus,
-                          hintText: capabilities.search
-                              ? l10n.search
-                              : l10n.search,
-                          leading: const Icon(Icons.search),
-                          trailing: [
-                            if (_searchText.isNotEmpty)
-                              IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() => _searchText = '');
-                                  ref
-                                      .read(resourceFiltersProvider.notifier)
-                                      .setQuery('');
-                                },
-                              ),
-                          ],
-                          onChanged: (value) =>
-                              setState(() => _searchText = value),
-                          onSubmitted: (_) => _commitSearch(),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  const _FilterBar(),
-                ],
-              ),
-            ),
-          ),
           if (_loading)
             const SliverFillRemaining(
               child: Center(child: CircularProgressIndicator()),
@@ -458,8 +623,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView> {
               child: Center(child: Text(localizedErrorMessage(l10n, _error!))),
             )
           else ...[
-            if (source == CommunitySourceId.bandbbs ||
-                source == CommunitySourceId.huamiAppStore)
+            if (!_gridView)
               SliverPadding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: StyleConstants.pagePadding,
@@ -470,9 +634,12 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView> {
                     padding: EdgeInsets.only(
                       bottom: index == _items.length - 1 ? 0 : 10,
                     ),
-                    child: BandBbsResourceCard(
-                      key: ValueKey(_items[index].ref.key),
-                      item: _items[index],
+                    child: _animateResourceLayout(
+                      _items[index],
+                      BandBbsResourceCard(
+                        key: ValueKey(_items[index].ref.key),
+                        item: _items[index],
+                      ),
                     ),
                   ),
                 ),
@@ -483,7 +650,10 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView> {
                   padding: const EdgeInsets.symmetric(
                     horizontal: StyleConstants.pagePadding,
                   ),
-                  child: _ResourceGrid(items: _items),
+                  child: _ResourceGrid(
+                    items: _items,
+                    animateItem: _animateResourceLayout,
+                  ),
                 ),
               ),
             if (_loadingMore)
@@ -512,11 +682,26 @@ class _CommunitySourceMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final source = ref.watch(selectedCommunitySourceProvider);
     final loadedSources = ref.watch(communitySourcesProvider).value;
+    final clean = ref.watch(appSettingsProvider).clean;
     final sourceById = <String, CommunitySourceId>{
       for (final candidate in loadedSources ?? CommunitySourceId.values)
-        candidate.storageKey: candidate,
-      source.storageKey: source,
+        if ((candidate != CommunitySourceId.oronBox ||
+                clean.oronBoxSourceEnabled) &&
+            (candidate != CommunitySourceId.bandbbs ||
+                clean.bandBbsSourceEnabled) &&
+            (candidate != CommunitySourceId.astroboxRepo ||
+                clean.astroBoxSourceEnabled) &&
+            (candidate != CommunitySourceId.huamiAppStore ||
+                clean.huamiAppStoreSourceEnabled))
+          candidate.storageKey: candidate,
     };
+    if (!sourceById.containsKey(source.storageKey) && sourceById.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref
+            .read(appSettingsProvider.notifier)
+            .setCommunitySource(sourceById.values.first);
+      });
+    }
     final l10n = AppLocalizations.of(context)!;
     return MenuAnchor(
       menuChildren: sourceById.values
@@ -1020,8 +1205,9 @@ String _communitySourceLabel(AppLocalizations l10n, CommunitySourceId source) =>
     };
 
 class _ResourceGrid extends StatelessWidget {
-  const _ResourceGrid({required this.items});
+  const _ResourceGrid({required this.items, required this.animateItem});
   final List<CommunityResource> items;
+  final Widget Function(CommunityResource item, Widget child) animateItem;
 
   @override
   Widget build(BuildContext context) {
@@ -1033,7 +1219,7 @@ class _ResourceGrid extends StatelessWidget {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final spacing = 10.0;
-        final minTrackWidth = 170.0;
+        final minTrackWidth = 150.0;
         final crossAxisCount = ((width + spacing) / (minTrackWidth + spacing))
             .floor()
             .clamp(1, 1000);
@@ -1046,18 +1232,79 @@ class _ResourceGrid extends StatelessWidget {
           alignment: WrapAlignment.start,
           spacing: spacing,
           runSpacing: spacing,
-          children: items.map((item) {
+          children: items.indexed.map((entry) {
+            final (index, item) = entry;
             return SizedBox(
               width: trackWidth,
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: SizedBox(
                   width: cardWidth,
-                  child: _ResourceCard(item: item, coverHeight: coverHeight),
+                  child: animateItem(
+                    item,
+                    _ResourceCard(item: item, coverHeight: coverHeight),
+                  ),
                 ),
               ),
             );
           }).toList(),
+        );
+      },
+    );
+  }
+}
+
+class _ResourceLayoutMotion {
+  const _ResourceLayoutMotion({required this.source, required this.target});
+
+  final Rect source;
+  final Rect target;
+}
+
+class _ResourceLayoutTransition extends StatelessWidget {
+  const _ResourceLayoutTransition({
+    super.key,
+    required this.animation,
+    required this.motion,
+    required this.hidden,
+    required this.child,
+  });
+
+  final Animation<double> animation;
+  final _ResourceLayoutMotion? motion;
+  final bool hidden;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      child: child,
+      builder: (context, child) {
+        if (hidden) return Opacity(opacity: 0, child: child);
+        final currentMotion = motion;
+        if (currentMotion == null) return child!;
+        final progress = Curves.easeInOutCubic.transform(animation.value);
+        final remaining = 1 - progress;
+        final target = currentMotion.target;
+        final source = currentMotion.source;
+        final scaleX = 1 + (source.width / target.width - 1) * remaining;
+        final scaleY = 1 + (source.height / target.height - 1) * remaining;
+        final opacityDistance = progress * 2 - 1;
+        final mediaOpacity = opacityDistance * opacityDistance;
+        final transform = Matrix4.diagonal3Values(scaleX, scaleY, 1)
+          ..setTranslationRaw(
+            (source.left - target.left) * remaining,
+            (source.top - target.top) * remaining,
+            0,
+          );
+        return ResourceLayoutMediaOpacity(
+          opacity: mediaOpacity,
+          child: Transform(
+            alignment: Alignment.topLeft,
+            transform: transform,
+            child: child,
+          ),
         );
       },
     );
@@ -1073,6 +1320,7 @@ class _ResourceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
     final image = item.coverUrl ?? item.iconUrl;
+    final heroRole = item.coverUrl != null ? 'cover' : 'icon';
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
@@ -1083,10 +1331,14 @@ class _ResourceCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            NetworkImgLayer(
-              src: image?.toString() ?? '',
+            ResourceMediaHero(
+              tag: resourceMediaHeroTag(item.ref, heroRole),
+              url: image?.toString() ?? '',
               width: double.infinity,
               height: coverHeight,
+              style: const ResourceMediaHeroStyle(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(12),

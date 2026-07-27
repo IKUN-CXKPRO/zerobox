@@ -59,6 +59,12 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="oronbox.zxor.org" android:pathPrefix="/open" />
             </intent-filter>
+            <!-- Read by FlutterActivity.shouldHandleDeeplinking(), which only
+                 looks at activity-level meta-data: links stay with app_links
+                 and never reach go_router. -->
+            <meta-data
+                android:name="flutter_deeplinking_enabled"
+                android:value="false" />
         </activity>
         <provider
             android:name=".LogDocumentsProvider"
@@ -79,11 +85,6 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <!-- Deep links are handled by the app_links plugin; keep them away
-             from go_router so OAuth callbacks don't yank the current page. -->
-        <meta-data
-            android:name="flutter_deeplinking_enabled"
-            android:value="false" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

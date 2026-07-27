@@ -32,7 +32,10 @@ class XiaomiDeviceFactory implements DeviceEntityFactory {
       eventBus: eventBus,
     );
 
-    final component = XiaomiDeviceComponent(transport: transport);
+    final component = XiaomiDeviceComponent(
+      transport: transport,
+      sppV1: kind == 'xiaomi-spp-v1',
+    );
     component.onTransportFailure = (error, stackTrace) {
       entity.emit(DeviceError(deviceId: id, error: error.toString()));
       entity.emit(TransportDisconnected(deviceId: id));

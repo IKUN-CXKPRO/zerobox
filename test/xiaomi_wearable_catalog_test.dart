@@ -37,5 +37,17 @@ void main() {
         expect(identity?.displayName, 'REDMI Watch 5 eSIM');
       }
     });
+
+    test('groups only Xiaomi Watch S3 and S4 variants as series', () {
+      final grouped = xiaomiWearableIdentities.values
+          .where((identity) => identity.seriesName != null)
+          .map((identity) => identity.codename)
+          .toSet();
+
+      expect(grouped, {'n62', 'o62', 'o62m', 'o63'});
+      expect(xiaomiWearableIdentities['l61']?.seriesName, isNull);
+      expect(xiaomiWearableIdentities['p62']?.seriesName, isNull);
+      expect(xiaomiWearableIdentities['o65']?.seriesName, isNull);
+    });
   });
 }

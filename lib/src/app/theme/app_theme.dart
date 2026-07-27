@@ -21,12 +21,33 @@ abstract final class AppTheme {
 
   static const pageTransitionsTheme = PageTransitionsTheme(
     builders: {
+      TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),
       TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
       TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
       TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
       TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
     },
   );
+
+  static Widget buildPlatformPageTransition(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final route = ModalRoute.of(context);
+    if (route is! PageRoute<dynamic>) return child;
+    final theme = Theme.of(context);
+    final builder = theme.pageTransitionsTheme.builders[theme.platform];
+    return builder?.buildTransitions(
+          route,
+          context,
+          animation,
+          secondaryAnimation,
+          child,
+        ) ??
+        child;
+  }
 
   static ThemeData buildLightTheme({ColorScheme? colorScheme}) {
     return _buildTheme(Brightness.light, colorScheme: colorScheme);

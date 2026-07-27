@@ -8,7 +8,14 @@ import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
-enum CreatorOperation { refreshing, creating, saving, publishing, deleting, authorizing }
+enum CreatorOperation {
+  refreshing,
+  creating,
+  saving,
+  publishing,
+  deleting,
+  authorizing,
+}
 
 class CreatorWorkspaceState {
   const CreatorWorkspaceState({
@@ -20,6 +27,7 @@ class CreatorWorkspaceState {
     this.operation,
     this.publishProgress,
     this.error,
+    this.governance,
   });
   final List<CreatorWorkspace> resources;
   final List<CreatorDevice> devices;
@@ -29,6 +37,9 @@ class CreatorWorkspaceState {
   final CreatorOperation? operation;
   final double? publishProgress;
   final String? error;
+
+  /// 'banned' or 'creator_frozen' when the server rejected the account.
+  final String? governance;
 
   CreatorWorkspaceState copyWith({
     List<CreatorWorkspace>? resources,
@@ -43,6 +54,8 @@ class CreatorWorkspaceState {
     bool clearProgress = false,
     String? error,
     bool clearError = false,
+    String? governance,
+    bool clearGovernance = false,
   }) => CreatorWorkspaceState(
     resources: resources ?? this.resources,
     devices: devices ?? this.devices,
@@ -54,6 +67,7 @@ class CreatorWorkspaceState {
         ? null
         : publishProgress ?? this.publishProgress,
     error: clearError ? null : error ?? this.error,
+    governance: clearGovernance ? null : governance ?? this.governance,
   );
 }
 
@@ -87,13 +101,14 @@ class CreatorWorkspaceController extends Notifier<CreatorWorkspaceState> {
       loading: true,
       operation: CreatorOperation.refreshing,
       clearError: true,
+      clearGovernance: true,
     );
     try {
-      final root = _map(await _execute('creator.list'));
+      final resourcesRequest = _execute('creator.list');
       Object? devicesValue;
       Object? grantsValue;
       Object? secondaryError;
-      await Future.wait([
+      final secondaryRequests = Future.wait([
         () async {
           try {
             devicesValue = await _execute('creator.devices');
@@ -109,6 +124,8 @@ class CreatorWorkspaceController extends Notifier<CreatorWorkspaceState> {
           }
         }(),
       ]);
+      final root = _map(await resourcesRequest);
+      await secondaryRequests;
       if (!ref.mounted || generation != _refreshGeneration) return;
       final deviceRoot = _map(devicesValue);
       final grants = grantsValue == null ? state.grants : _map(grantsValue);
@@ -154,10 +171,18 @@ class CreatorWorkspaceController extends Notifier<CreatorWorkspaceState> {
       );
     } catch (error) {
       if (!ref.mounted || generation != _refreshGeneration) return;
+      final code = switch (error) {
+        CreatorCommandException exception => exception.code,
+        _ => '',
+      };
+      final governed = code == 'banned' || code == 'creator_frozen';
       state = state.copyWith(
         loading: false,
         clearOperation: true,
-        error: creatorFailureMessage(error),
+        error: governed ? null : creatorFailureMessage(error),
+        clearError: governed,
+        governance: governed ? code : null,
+        clearGovernance: !governed,
       );
     }
   }
@@ -167,9 +192,14 @@ class CreatorWorkspaceController extends Notifier<CreatorWorkspaceState> {
     clearSelected: workspace == null,
   );
 
-  Future<void> create(String slug, CreatorResourceKind kind) async {
+  Future<void> create(
+    String slug,
+    String name,
+    CreatorResourceKind kind,
+  ) async {
     await _mutate('creator.create', {
       'slug': slug,
+      'name': name,
       'kind': kind == CreatorResourceKind.watchface ? 'watchface' : 'quickapp',
     }, operation: CreatorOperation.creating);
     logDiagnostic(
@@ -217,10 +247,7 @@ class CreatorWorkspaceController extends Notifier<CreatorWorkspaceState> {
         _log,
         Level.INFO,
         'Creator resource published',
-        fields: {
-          'resource': workspace.resource.id,
-          'bytes': bundle.length,
-        },
+        fields: {'resource': workspace.resource.id, 'bytes': bundle.length},
       );
     } catch (error) {
       if (!ref.mounted) return;
@@ -304,16 +331,38 @@ class CreatorWorkspaceController extends Notifier<CreatorWorkspaceState> {
     state = state.copyWith(loading: false, clearOperation: true);
   }
 
-  Future<void> archive(bool archived) async {
+  Future<void> disconnectGitHub() async {
+    state = state.copyWith(
+      loading: true,
+      operation: CreatorOperation.authorizing,
+      clearError: true,
+    );
+    try {
+      await _execute('creator.github.disconnect');
+      await refresh();
+    } catch (error) {
+      if (ref.mounted) {
+        state = state.copyWith(
+          loading: false,
+          clearOperation: true,
+          error: creatorFailureMessage(error),
+        );
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> takedown() => _moderate('creator.takedown', 'takedown');
+
+  Future<void> restore() => _moderate('creator.restore', 'restored');
+
+  Future<void> _moderate(String method, String verb) async {
     final resourceId = state.selected!.resource.id;
-    await _mutate('creator.archive', {
-      'resource': resourceId,
-      'archived': archived,
-    });
+    await _mutate(method, {'resource': resourceId});
     logDiagnostic(
       _log,
       Level.INFO,
-      archived ? 'Creator resource archived' : 'Creator resource unarchived',
+      'Creator resource $verb',
       fields: {'resource': resourceId},
     );
   }

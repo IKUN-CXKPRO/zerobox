@@ -11,11 +11,13 @@ const creatorStateOrder = [
   'failed',
   'approved',
   'published',
-  'archived',
+  'suspended',
+  'frozen',
 ];
 
 String creatorWorkspaceState(CreatorWorkspace workspace) {
-  if (workspace.resource.state == 'archived') return 'archived';
+  if (workspace.resource.isFrozen) return 'frozen';
+  if (workspace.resource.isSuspended) return 'suspended';
   if (workspace.revisions.isEmpty) return 'draft';
   final review = workspace.review?['state']?.toString();
   if (review == 'pending') return 'pending';
@@ -36,7 +38,8 @@ String creatorWorkspaceState(CreatorWorkspace workspace) {
 String creatorStateLabel(AppLocalizations l10n, String state) =>
     switch (state) {
       'draft' => l10n.drafts,
-      'archived' => l10n.creatorArchived,
+      'suspended' => l10n.creatorStateSuspended,
+      'frozen' => l10n.creatorStateFrozen,
       'pending' || 'submitted' => l10n.pendingReview,
       'approved' => l10n.creatorStateApproved,
       'rejected' => l10n.creatorReviewRejected,
@@ -75,6 +78,9 @@ String creatorKindLabel(AppLocalizations l10n, CreatorResourceKind kind) =>
 String creatorWorkspaceTitle(CreatorWorkspace workspace) {
   final latest = workspace.latestRevision;
   if (latest != null && latest.name.isNotEmpty) return latest.name;
+  if (workspace.resource.draftName.isNotEmpty) {
+    return workspace.resource.draftName;
+  }
   return workspace.resource.slug;
 }
 
@@ -144,6 +150,24 @@ class CreatorBrandLogo extends StatelessWidget {
   }
 }
 
+class CreatorOronBoxLogo extends StatelessWidget {
+  const CreatorOronBoxLogo({super.key, this.size = 24});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => SvgPicture.asset(
+    'assets/images/brands/oronbox.svg',
+    width: size,
+    height: size,
+    colorFilter: ColorFilter.mode(
+      Theme.of(context).colorScheme.onSurface,
+      BlendMode.srcIn,
+    ),
+    semanticsLabel: 'OronBox',
+  );
+}
+
 class CreatorStateBadge extends StatelessWidget {
   const CreatorStateBadge({super.key, required this.state});
 
@@ -153,12 +177,12 @@ class CreatorStateBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final (background, foreground) = switch (state) {
-      'rejected' || 'failed' => (colors.errorContainer, colors.onErrorContainer),
+      'rejected' ||
+      'failed' ||
+      'frozen' => (colors.errorContainer, colors.onErrorContainer),
       'pending' => (colors.tertiaryContainer, colors.onTertiaryContainer),
-      'published' || 'approved' => (
-        colors.primaryContainer,
-        colors.onPrimaryContainer,
-      ),
+      'published' ||
+      'approved' => (colors.primaryContainer, colors.onPrimaryContainer),
       _ => (colors.surfaceContainerHighest, colors.onSurfaceVariant),
     };
     return Container(
@@ -172,6 +196,87 @@ class CreatorStateBadge extends StatelessWidget {
         style: Theme.of(
           context,
         ).textTheme.labelSmall?.copyWith(color: foreground),
+      ),
+    );
+  }
+}
+
+class CreatorModerationNotice extends StatelessWidget {
+  const CreatorModerationNotice({super.key, required this.resource});
+
+  final CreatorResource resource;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = Theme.of(context).colorScheme;
+    final (icon, message) = switch ((
+      resource.moderationState,
+      resource.moderationBy,
+    )) {
+      ('frozen', _) => (Icons.ac_unit_outlined, l10n.creatorFrozenNotice),
+      ('suspended', 'admin') => (
+        Icons.gpp_maybe_outlined,
+        l10n.creatorSuspendedByAdminNotice,
+      ),
+      _ => (Icons.visibility_off_outlined, l10n.creatorSuspendedByOwnerNotice),
+    };
+    return Card(
+      color: resource.isFrozen
+          ? colors.errorContainer
+          : colors.surfaceContainerHigh,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: resource.isFrozen
+                  ? colors.onErrorContainer
+                  : colors.onSurfaceVariant,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    creatorStateLabel(l10n, resource.moderationState),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: resource.isFrozen
+                          ? colors.onErrorContainer
+                          : colors.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: resource.isFrozen
+                          ? colors.onErrorContainer
+                          : colors.onSurfaceVariant,
+                    ),
+                  ),
+                  if (resource.moderationReason.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        l10n.creatorModerationReason(resource.moderationReason),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: resource.isFrozen
+                              ? colors.onErrorContainer
+                              : colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -213,8 +318,10 @@ class CreatorBottomBar extends StatelessWidget {
       color: Theme.of(context).colorScheme.surfaceContainer,
       child: SafeArea(
         top: false,
+        left: false,
+        right: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: Row(children: children),
         ),
       ),

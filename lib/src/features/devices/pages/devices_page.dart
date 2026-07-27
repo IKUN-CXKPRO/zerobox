@@ -1,4 +1,5 @@
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:cross_file/cross_file.dart';
 import 'package:segmented_list/segmented_list.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/devices/widgets/device_connection_text.dart';
 import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
 import 'package:oronbox/src/features/resources/widgets/resource_install_confirmation.dart';
+import 'package:oronbox/src/features/devices/pages/install/local_file_picker_policy.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
 
 class DevicesPage extends ConsumerStatefulWidget {
@@ -85,21 +87,14 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
         if (files.isEmpty) return;
         var enqueued = 0;
         for (final file in files) {
-          final bytes = await file.readAsBytes();
-          final detectedType = ResourceInstallService()
-              .analyzePayload(
-                fileName: file.name,
-                bytes: bytes,
-                source: 'device-page-drop',
-              )
-              ?.type;
           if (!context.mounted) return;
           if (await confirmAndEnqueueResourceFile(
             context: context,
             ref: ref,
-            fileName: file.name,
-            bytes: bytes,
-            selectedType: detectedType ?? LocalDeviceInstallType.app,
+            file: file,
+            selectedType: file.name.toLowerCase().endsWith('.bin')
+                ? LocalDeviceInstallType.firmware
+                : LocalDeviceInstallType.app,
           )) {
             enqueued++;
           }
@@ -487,19 +482,20 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
   ) async {
     final result = await FilePicker.pickFiles(
       type: FileType.any,
-      withData: true,
+      withData: shouldLoadPickedFileData,
     );
     if (result == null || result.files.isEmpty) return;
     final file = result.files.first;
-    final bytes = file.bytes;
-    if (bytes == null) return;
+    if (file.bytes == null && file.path == null) return;
+    final selected = file.bytes == null
+        ? XFile(file.path!, name: file.name)
+        : XFile.fromData(file.bytes!, name: file.name);
     if (!context.mounted) return;
 
     await confirmAndEnqueueResourceFile(
       context: context,
       ref: ref,
-      fileName: file.name,
-      bytes: bytes,
+      file: selected,
       selectedType: selectedType,
     );
   }

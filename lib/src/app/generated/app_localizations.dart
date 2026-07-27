@@ -266,6 +266,18 @@ abstract class AppLocalizations {
   /// **'Search'**
   String get search;
 
+  /// No description provided for @resourceListView.
+  ///
+  /// In en, this message translates to:
+  /// **'List view'**
+  String get resourceListView;
+
+  /// No description provided for @resourceGridView.
+  ///
+  /// In en, this message translates to:
+  /// **'Card view'**
+  String get resourceGridView;
+
   /// No description provided for @refresh.
   ///
   /// In en, this message translates to:
@@ -509,7 +521,7 @@ abstract class AppLocalizations {
   /// No description provided for @creatorRestoreAction.
   ///
   /// In en, this message translates to:
-  /// **'Restore'**
+  /// **'Relist'**
   String get creatorRestoreAction;
 
   /// No description provided for @creatorDeleteConfirm.
@@ -710,6 +722,12 @@ abstract class AppLocalizations {
   /// **'Downloads'**
   String get downloads;
 
+  /// No description provided for @downloadTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} downloads'**
+  String downloadTimes(int count);
+
   /// No description provided for @changelog.
   ///
   /// In en, this message translates to:
@@ -776,11 +794,65 @@ abstract class AppLocalizations {
   /// **'Published'**
   String get published;
 
-  /// No description provided for @creatorArchived.
+  /// No description provided for @creatorStateSuspended.
   ///
   /// In en, this message translates to:
-  /// **'Archived'**
-  String get creatorArchived;
+  /// **'Delisted'**
+  String get creatorStateSuspended;
+
+  /// No description provided for @creatorStateFrozen.
+  ///
+  /// In en, this message translates to:
+  /// **'Frozen'**
+  String get creatorStateFrozen;
+
+  /// No description provided for @creatorSuspendedByOwnerNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'The resource is delisted. Keep editing and resubmit for review, or restore it directly'**
+  String get creatorSuspendedByOwnerNotice;
+
+  /// No description provided for @creatorSuspendedByAdminNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'An administrator delisted this resource. Edit and resubmit for review; it is restored once approved'**
+  String get creatorSuspendedByAdminNotice;
+
+  /// No description provided for @creatorFrozenNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'An administrator froze this resource. It can no longer be edited and only an administrator can lift the freeze'**
+  String get creatorFrozenNotice;
+
+  /// No description provided for @creatorModerationReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason: {reason}'**
+  String creatorModerationReason(Object reason);
+
+  /// No description provided for @creatorBannedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account banned'**
+  String get creatorBannedTitle;
+
+  /// No description provided for @creatorBannedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account was banned by an administrator and the creator center is unavailable. Contact the team through a support ticket if you believe this is a mistake'**
+  String get creatorBannedDescription;
+
+  /// No description provided for @creatorFrozenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Creator capability frozen'**
+  String get creatorFrozenTitle;
+
+  /// No description provided for @creatorFrozenDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'An administrator froze your creator capability, so you cannot submit or manage resources for now. The rest of your account is unaffected'**
+  String get creatorFrozenDescription;
 
   /// No description provided for @creatorBandBbsNoDevices.
   ///
@@ -1013,7 +1085,7 @@ abstract class AppLocalizations {
   /// No description provided for @errorBluetoothConnectFailed.
   ///
   /// In en, this message translates to:
-  /// **'Connection failed. Check that Bluetooth permission is granted, Bluetooth is on, the device is nearby, and it is not occupied by another app or device'**
+  /// **'Connection failed. Check Bluetooth permission, keep the device nearby and unoccupied, enable Connect new phone on the device, then try again'**
   String get errorBluetoothConnectFailed;
 
   /// No description provided for @errorBluetoothDisconnected.
@@ -1141,6 +1213,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Devices'**
   String get devices;
+
+  /// No description provided for @creatorCompatibleDeviceCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} devices'**
+  String creatorCompatibleDeviceCount(int count);
 
   /// No description provided for @categories.
   ///
@@ -2108,6 +2186,18 @@ abstract class AppLocalizations {
   /// **'Signed out'**
   String get bandBbsLoggedOut;
 
+  /// No description provided for @accountSignOutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out of {accountName}?'**
+  String accountSignOutTitle(Object accountName);
+
+  /// No description provided for @accountSignOutMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You will need to sign in again to use related features.'**
+  String get accountSignOutMessage;
+
   /// No description provided for @bandBbsLoadPreviews.
   ///
   /// In en, this message translates to:
@@ -3038,6 +3128,30 @@ abstract class AppLocalizations {
   /// **'BandBBS Account'**
   String get settingsAccountBandBbsAccount;
 
+  /// No description provided for @settingsAccountGitHub.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub account'**
+  String get settingsAccountGitHub;
+
+  /// No description provided for @settingsAccountGitHubDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to publish AstroBox resources as yourself'**
+  String get settingsAccountGitHubDesc;
+
+  /// No description provided for @githubAccountNeedsBandBbs.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to BandBBS first'**
+  String get githubAccountNeedsBandBbs;
+
+  /// No description provided for @bandBbsPublishAuthTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish authorization'**
+  String get bandBbsPublishAuthTitle;
+
   /// No description provided for @bandBbsResourceQueryTitle.
   ///
   /// In en, this message translates to:
@@ -3047,13 +3161,13 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAboutLogs.
   ///
   /// In en, this message translates to:
-  /// **'Logs'**
+  /// **'Runtime logs'**
   String get settingsAboutLogs;
 
   /// No description provided for @settingsAboutLogsDescription.
   ///
   /// In en, this message translates to:
-  /// **'Logs stay on this device for diagnostics and are kept for the last 7 days'**
+  /// **'View, export, and manage runtime logs from the app and connected devices'**
   String get settingsAboutLogsDescription;
 
   /// No description provided for @settingsAboutLogsSize.
@@ -3086,6 +3200,48 @@ abstract class AppLocalizations {
   /// **'Clear'**
   String get settingsAboutLogsClear;
 
+  /// No description provided for @settingsDeviceLogsPull.
+  ///
+  /// In en, this message translates to:
+  /// **'Pull device logs'**
+  String get settingsDeviceLogsPull;
+
+  /// No description provided for @settingsDeviceLogsTip.
+  ///
+  /// In en, this message translates to:
+  /// **'This pulls logs from the connected Xiaomi wearable and may take a while. Keep the app in the foreground and the device screen on until it finishes.'**
+  String get settingsDeviceLogsTip;
+
+  /// No description provided for @settingsDeviceLogsStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get settingsDeviceLogsStart;
+
+  /// No description provided for @settingsDeviceLogsPulling.
+  ///
+  /// In en, this message translates to:
+  /// **'Pulling device logs'**
+  String get settingsDeviceLogsPulling;
+
+  /// No description provided for @settingsDeviceLogsProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Received {progress}%'**
+  String settingsDeviceLogsProgress(Object progress);
+
+  /// No description provided for @settingsDeviceLogsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Device logs saved as {name}'**
+  String settingsDeviceLogsSaved(Object name);
+
+  /// No description provided for @settingsDeviceLogsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to pull device logs: {error}'**
+  String settingsDeviceLogsFailed(Object error);
+
   /// No description provided for @settingsAboutLogsClearConfirm.
   ///
   /// In en, this message translates to:
@@ -3103,6 +3259,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to open the logs folder'**
   String get settingsAboutLogsOpenFailed;
+
+  /// No description provided for @settingsLogsFileList.
+  ///
+  /// In en, this message translates to:
+  /// **'Log files'**
+  String get settingsLogsFileList;
 
   /// No description provided for @settingsAboutLogsWarningTitle.
   ///
@@ -3511,6 +3673,12 @@ abstract class AppLocalizations {
   /// **'Required. Resources are reviewed by OronBox'**
   String get creatorOronBoxRequired;
 
+  /// No description provided for @creatorOpenInOronBox.
+  ///
+  /// In en, this message translates to:
+  /// **'View in OronBox'**
+  String get creatorOpenInOronBox;
+
   /// No description provided for @creatorAstroTags.
   ///
   /// In en, this message translates to:
@@ -3822,6 +3990,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Report resource'**
   String get reportResource;
+
+  /// No description provided for @reportComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Report comment'**
+  String get reportComment;
 
   /// No description provided for @report.
   ///
@@ -4206,6 +4380,288 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Requested changes ({done}/{total} resolved)'**
   String creatorReviewItemsProgress(Object done, Object total);
+
+  /// No description provided for @comments.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get comments;
+
+  /// No description provided for @commentEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No comments yet'**
+  String get commentEmpty;
+
+  /// No description provided for @commentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a comment'**
+  String get commentHint;
+
+  /// No description provided for @commentLoginRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with BandBBS to comment'**
+  String get commentLoginRequired;
+
+  /// No description provided for @commentPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending review'**
+  String get commentPending;
+
+  /// No description provided for @commentDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted'**
+  String get commentDeleted;
+
+  /// No description provided for @commentBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This comment did not meet the community guidelines'**
+  String get commentBlocked;
+
+  /// No description provided for @commentModerationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment moderation is temporarily unavailable'**
+  String get commentModerationUnavailable;
+
+  /// No description provided for @commentRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'You are commenting too quickly'**
+  String get commentRateLimited;
+
+  /// No description provided for @commentReplying.
+  ///
+  /// In en, this message translates to:
+  /// **'Replying to this comment'**
+  String get commentReplying;
+
+  /// No description provided for @loadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get loadMore;
+
+  /// No description provided for @reply.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get reply;
+
+  /// No description provided for @inbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Inbox'**
+  String get inbox;
+
+  /// No description provided for @inboxEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No messages'**
+  String get inboxEmpty;
+
+  /// No description provided for @inboxClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear messages'**
+  String get inboxClear;
+
+  /// No description provided for @inboxClearFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not clear messages. Try again later.'**
+  String get inboxClearFailed;
+
+  /// No description provided for @cleanMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Feature switches'**
+  String get cleanMode;
+
+  /// No description provided for @cleanModeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage main navigation, community features, and resource sources'**
+  String get cleanModeDescription;
+
+  /// No description provided for @cleanPluginsEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Plugins entry'**
+  String get cleanPluginsEntry;
+
+  /// No description provided for @cleanSourceHuamiAppStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Amazfit App Store'**
+  String get cleanSourceHuamiAppStore;
+
+  /// No description provided for @announcementAcknowledge.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get announcementAcknowledge;
+
+  /// No description provided for @cleanHomeFeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Home feed'**
+  String get cleanHomeFeed;
+
+  /// No description provided for @cleanExplore.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource library'**
+  String get cleanExplore;
+
+  /// No description provided for @cleanInbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Inbox'**
+  String get cleanInbox;
+
+  /// No description provided for @cleanAnnouncements.
+  ///
+  /// In en, this message translates to:
+  /// **'Announcement popups'**
+  String get cleanAnnouncements;
+
+  /// No description provided for @cleanComments.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get cleanComments;
+
+  /// No description provided for @cleanCreator.
+  ///
+  /// In en, this message translates to:
+  /// **'Creator center'**
+  String get cleanCreator;
+
+  /// No description provided for @cleanBandBbsLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'BandBBS sign-in'**
+  String get cleanBandBbsLogin;
+
+  /// No description provided for @cleanGitHubLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub sign-in'**
+  String get cleanGitHubLogin;
+
+  /// No description provided for @cleanSourceOronBox.
+  ///
+  /// In en, this message translates to:
+  /// **'OronBox source'**
+  String get cleanSourceOronBox;
+
+  /// No description provided for @cleanSourceBandBbs.
+  ///
+  /// In en, this message translates to:
+  /// **'BandBBS source'**
+  String get cleanSourceBandBbs;
+
+  /// No description provided for @cleanSourceAstroBox.
+  ///
+  /// In en, this message translates to:
+  /// **'AstroBox source'**
+  String get cleanSourceAstroBox;
+
+  /// No description provided for @cleanExploreEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore entry'**
+  String get cleanExploreEntry;
+
+  /// No description provided for @cleanNavigationGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Main navigation'**
+  String get cleanNavigationGroup;
+
+  /// No description provided for @cleanExploreContentGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore content'**
+  String get cleanExploreContentGroup;
+
+  /// No description provided for @cleanResourceSourcesGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource sources'**
+  String get cleanResourceSourcesGroup;
+
+  /// No description provided for @cleanCommunityGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Community features'**
+  String get cleanCommunityGroup;
+
+  /// No description provided for @settingsCategoryAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounts and authorization'**
+  String get settingsCategoryAccounts;
+
+  /// No description provided for @settingsCategoryAccountsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Xiaomi, Amazfit, BandBBS, and GitHub accounts'**
+  String get settingsCategoryAccountsDescription;
+
+  /// No description provided for @settingsCategoryAppearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance and navigation'**
+  String get settingsCategoryAppearance;
+
+  /// No description provided for @settingsCategoryAppearanceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Language, theme, navigation layout, and clean mode'**
+  String get settingsCategoryAppearanceDescription;
+
+  /// No description provided for @settingsCategoryConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Connections and downloads'**
+  String get settingsCategoryConnection;
+
+  /// No description provided for @settingsCategoryConnectionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Device connections, download behavior, and network endpoints'**
+  String get settingsCategoryConnectionDescription;
+
+  /// No description provided for @settingsCategorySupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Support and information'**
+  String get settingsCategorySupport;
+
+  /// No description provided for @settingsCategorySupportDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback, about, licenses, acknowledgements, and website'**
+  String get settingsCategorySupportDescription;
+
+  /// No description provided for @settingsCategoryAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced settings'**
+  String get settingsCategoryAdvanced;
+
+  /// No description provided for @settingsCategoryAdvancedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Window behavior, onboarding, and developer tools'**
+  String get settingsCategoryAdvancedDescription;
 }
 
 class _AppLocalizationsDelegate

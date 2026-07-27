@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 
 class DaemonTaskQueue {
@@ -68,7 +69,9 @@ class DaemonTaskQueue {
     _schedulePump();
   }
 
-  Future<void> _run(String id) async {
+  Future<void> _run(String id) => runAsDiagnosticBackend(() => _runTask(id));
+
+  Future<void> _runTask(String id) async {
     var task = _tasks[id];
     if (task == null || task.status != 'pending') return;
     task = task.copyWith(status: 'running', startedAt: DateTime.now());

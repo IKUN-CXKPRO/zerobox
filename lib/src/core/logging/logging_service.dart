@@ -27,7 +27,7 @@ void logDiagnostic(
       time: DateTime.now(),
       level: level,
       source: logger.fullName,
-      process: diagnosticProcess,
+      process: _effectiveProcess,
       message: message,
       fields: fields,
       error: error,
@@ -39,6 +39,20 @@ void logDiagnostic(
 final _diagnostics = StreamController<DiagnosticEvent>.broadcast();
 final _recentDiagnostics = <DiagnosticEvent>[];
 DiagnosticProcess diagnosticProcess = DiagnosticProcess.frontend;
+
+final _processZoneKey = Object();
+
+/// Tags logs emitted by host-side code as backend. Mobile and web keep the
+/// host inside the GUI process, so the backend boundary is a zone rather
+/// than a real process.
+R runAsDiagnosticBackend<R>(R Function() body) =>
+    runZoned(body, zoneValues: {_processZoneKey: DiagnosticProcess.backend});
+
+DiagnosticProcess get _effectiveProcess {
+  final override = Zone.current[_processZoneKey];
+  return override is DiagnosticProcess ? override : diagnosticProcess;
+}
+
 Stream<DiagnosticEvent> get oronBoxDiagnosticStream => _diagnostics.stream;
 List<DiagnosticEvent> get recentOronBoxDiagnostics =>
     List.unmodifiable(_recentDiagnostics);
@@ -131,7 +145,7 @@ Future<void> initLogging({
         time: record.time,
         level: record.level,
         source: record.loggerName,
-        process: diagnosticProcess,
+        process: _effectiveProcess,
         message: record.message.toString(),
         error: record.error,
         stackTrace: record.stackTrace,

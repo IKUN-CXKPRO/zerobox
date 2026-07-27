@@ -28,6 +28,14 @@ class XiaomiReportSystem extends XiaomiPbSystem {
     _deviceLogWaiter = null;
   }
 
+  void cancelDeviceLogExport() {
+    final waiter = _deviceLogWaiter;
+    if (waiter != null && !waiter.isCompleted) {
+      waiter.completeError(StateError('Device log export was cancelled'));
+    }
+    _deviceLogWaiter = null;
+  }
+
   @override
   void onWearPacket(pb.WearPacket packet) {
     if (packet.whichPayload() != pb.WearPacket_Payload.system) return;

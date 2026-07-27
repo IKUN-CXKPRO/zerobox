@@ -93,6 +93,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get search => '搜索';
 
   @override
+  String get resourceListView => '列表视图';
+
+  @override
+  String get resourceGridView => '卡片视图';
+
+  @override
   String get refresh => '刷新';
 
   @override
@@ -217,7 +223,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorArchiveConfirm => '下架后该资源将从商店隐藏，可随时恢复';
 
   @override
-  String get creatorRestoreAction => '恢复';
+  String get creatorRestoreAction => '恢复上架';
 
   @override
   String get creatorDeleteConfirm => '将永久删除该草稿资源，无法恢复';
@@ -330,6 +336,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get downloads => '下载包';
 
   @override
+  String downloadTimes(int count) {
+    return '$count 次下载';
+  }
+
+  @override
   String get changelog => '更新日志';
 
   @override
@@ -363,7 +374,38 @@ class AppLocalizationsZh extends AppLocalizations {
   String get published => '已发布';
 
   @override
-  String get creatorArchived => '已归档';
+  String get creatorStateSuspended => '已下架';
+
+  @override
+  String get creatorStateFrozen => '已冻结';
+
+  @override
+  String get creatorSuspendedByOwnerNotice => '资源已下架，可继续编辑并重新提交审核，或直接恢复上架';
+
+  @override
+  String get creatorSuspendedByAdminNotice =>
+      '资源已被管理员下架，可修改后重新提交审核，审核通过后自动恢复上架';
+
+  @override
+  String get creatorFrozenNotice => '资源已被管理员冻结，内容不可修改，仅管理员可解除';
+
+  @override
+  String creatorModerationReason(Object reason) {
+    return '原因：$reason';
+  }
+
+  @override
+  String get creatorBannedTitle => '账号已被封禁';
+
+  @override
+  String get creatorBannedDescription => '你的账号已被管理员封禁，无法使用创作者中心。如有疑问请通过工单联系管理员';
+
+  @override
+  String get creatorFrozenTitle => '创作者功能已被冻结';
+
+  @override
+  String get creatorFrozenDescription =>
+      '你的创作者功能已被管理员冻结，暂时无法提交或管理资源。账号的其它功能不受影响';
 
   @override
   String get creatorBandBbsNoDevices => '请先为资源文件选择支持的设备';
@@ -486,7 +528,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get errorBluetoothConnectFailed =>
-      '连接失败，请确认蓝牙权限已授予且蓝牙已开启、设备在附近，并且未被其他工具或设备占用';
+      '连接失败，请确认蓝牙权限已授予且蓝牙已开启、设备在附近、未被其他工具或设备占用，并在设备端开启“连接新手机”模式后重试';
 
   @override
   String get errorBluetoothDisconnected => '蓝牙连接已断开，请重新连接设备';
@@ -555,6 +597,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get devices => '设备';
+
+  @override
+  String creatorCompatibleDeviceCount(int count) {
+    return '$count 个设备';
+  }
 
   @override
   String get categories => '分区';
@@ -1053,6 +1100,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bandBbsLoggedOut => '已退出登录';
 
   @override
+  String accountSignOutTitle(Object accountName) {
+    return '退出 $accountName？';
+  }
+
+  @override
+  String get accountSignOutMessage => '退出后，如需继续使用相关功能，需要重新登录。';
+
+  @override
   String get bandBbsLoadPreviews => '加载资源帖预览图';
 
   @override
@@ -1535,13 +1590,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAccountBandBbsAccount => '米坛账号';
 
   @override
+  String get settingsAccountGitHub => 'GitHub 账号';
+
+  @override
+  String get settingsAccountGitHubDesc => '连接以用自己的账号发布 AstroBox 资源';
+
+  @override
+  String get githubAccountNeedsBandBbs => '登录米坛账号后可连接';
+
+  @override
+  String get bandBbsPublishAuthTitle => '发布授权';
+
+  @override
   String get bandBbsResourceQueryTitle => '安装已购付费资源';
 
   @override
-  String get settingsAboutLogs => '日志';
+  String get settingsAboutLogs => '运行日志';
 
   @override
-  String get settingsAboutLogsDescription => '运行日志仅保存在本机，用于诊断问题，保留最近 7 天';
+  String get settingsAboutLogsDescription => '查看、导出和管理应用与设备的运行日志';
 
   @override
   String settingsAboutLogsSize(Object size) {
@@ -1563,6 +1630,34 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAboutLogsClear => '清理';
 
   @override
+  String get settingsDeviceLogsPull => '拉取设备日志';
+
+  @override
+  String get settingsDeviceLogsTip =>
+      '开始后将从当前连接的小米穿戴设备拉取日志，过程可能需要较长时间。请勿将应用切换到后台或关闭设备屏幕，以免操作中断。';
+
+  @override
+  String get settingsDeviceLogsStart => '开始';
+
+  @override
+  String get settingsDeviceLogsPulling => '正在拉取设备日志';
+
+  @override
+  String settingsDeviceLogsProgress(Object progress) {
+    return '已接收 $progress%';
+  }
+
+  @override
+  String settingsDeviceLogsSaved(Object name) {
+    return '设备日志已保存为 $name';
+  }
+
+  @override
+  String settingsDeviceLogsFailed(Object error) {
+    return '设备日志拉取失败：$error';
+  }
+
+  @override
   String get settingsAboutLogsClearConfirm => '将删除当前会话之外的全部日志文件。';
 
   @override
@@ -1570,6 +1665,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsAboutLogsOpenFailed => '无法打开日志文件夹';
+
+  @override
+  String get settingsLogsFileList => '日志文件';
 
   @override
   String get settingsAboutLogsWarningTitle => '敏感信息警告';
@@ -1807,6 +1905,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorOronBoxRequired => '必选，资源需经过 OronBox 审核';
 
   @override
+  String get creatorOpenInOronBox => '在 OronBox 中查看';
+
+  @override
   String get creatorAstroTags => 'AstroBox 标签';
 
   @override
@@ -1969,6 +2070,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reportResource => '举报资源';
+
+  @override
+  String get reportComment => '举报评论';
 
   @override
   String get report => '举报';
@@ -2167,4 +2271,145 @@ class AppLocalizationsZh extends AppLocalizations {
   String creatorReviewItemsProgress(Object done, Object total) {
     return '需要修改（已解决 $done/$total）';
   }
+
+  @override
+  String get comments => '评论';
+
+  @override
+  String get commentEmpty => '还没有评论';
+
+  @override
+  String get commentHint => '写下评论';
+
+  @override
+  String get commentLoginRequired => '登录米坛账号后参与评论';
+
+  @override
+  String get commentPending => '待审核';
+
+  @override
+  String get commentDeleted => '已删除';
+
+  @override
+  String get commentBlocked => '评论未通过社区规范';
+
+  @override
+  String get commentModerationUnavailable => '审核服务暂不可用';
+
+  @override
+  String get commentRateLimited => '评论过于频繁，请稍后再试';
+
+  @override
+  String get commentReplying => '正在回复这条评论';
+
+  @override
+  String get loadMore => '加载更多';
+
+  @override
+  String get reply => '回复';
+
+  @override
+  String get inbox => '消息箱';
+
+  @override
+  String get inboxEmpty => '暂无消息';
+
+  @override
+  String get inboxClear => '清空消息';
+
+  @override
+  String get inboxClearFailed => '清空消息失败，请稍后重试';
+
+  @override
+  String get cleanMode => '功能开关';
+
+  @override
+  String get cleanModeDescription => '管理主导航、社区功能与资源源';
+
+  @override
+  String get cleanPluginsEntry => '插件主入口';
+
+  @override
+  String get cleanSourceHuamiAppStore => '华米应用商店';
+
+  @override
+  String get announcementAcknowledge => '知道了';
+
+  @override
+  String get cleanHomeFeed => '首页信息流';
+
+  @override
+  String get cleanExplore => '资源库';
+
+  @override
+  String get cleanInbox => '消息箱';
+
+  @override
+  String get cleanAnnouncements => '公告弹窗';
+
+  @override
+  String get cleanComments => '评论区';
+
+  @override
+  String get cleanCreator => '创作者中心';
+
+  @override
+  String get cleanBandBbsLogin => '米坛登录';
+
+  @override
+  String get cleanGitHubLogin => 'GitHub 登录';
+
+  @override
+  String get cleanSourceOronBox => 'OronBox 资源源';
+
+  @override
+  String get cleanSourceBandBbs => '米坛资源源';
+
+  @override
+  String get cleanSourceAstroBox => 'AstroBox 资源源';
+
+  @override
+  String get cleanExploreEntry => '探索主入口';
+
+  @override
+  String get cleanNavigationGroup => '主导航';
+
+  @override
+  String get cleanExploreContentGroup => '探索内容';
+
+  @override
+  String get cleanResourceSourcesGroup => '资源源';
+
+  @override
+  String get cleanCommunityGroup => '社区能力';
+
+  @override
+  String get settingsCategoryAccounts => '账号与授权';
+
+  @override
+  String get settingsCategoryAccountsDescription => '管理小米、华米、米坛和 GitHub 账号';
+
+  @override
+  String get settingsCategoryAppearance => '外观与导航';
+
+  @override
+  String get settingsCategoryAppearanceDescription => '语言、主题、导航布局与纯净模式';
+
+  @override
+  String get settingsCategoryConnection => '连接与下载';
+
+  @override
+  String get settingsCategoryConnectionDescription => '设备连接、下载行为与网络节点';
+
+  @override
+  String get settingsCategorySupport => '支持与信息';
+
+  @override
+  String get settingsCategorySupportDescription => '反馈、关于、许可、致谢与官方网站';
+
+  @override
+  String get settingsCategoryAdvanced => '高级设置';
+
+  @override
+  String get settingsCategoryAdvancedDescription => '窗口行为、重新引导与开发工具';
 }

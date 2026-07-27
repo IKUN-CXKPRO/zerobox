@@ -1,21 +1,41 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/features/settings/services/oronbox_support_api.dart';
 
+enum FeedbackTargetType { resource, comment }
+
 class FeedbackTarget {
   const FeedbackTarget({
+    required this.type,
     required this.source,
     required this.id,
     required this.name,
     this.url = '',
   });
 
+  final FeedbackTargetType type;
   final String source, id, name, url;
+
+  String get reportKind => switch (type) {
+    FeedbackTargetType.resource => 'resource_report',
+    FeedbackTargetType.comment => 'comment_report',
+  };
 }
+
+bool _isReportKind(String kind) =>
+    kind == 'report' || kind == 'resource_report' || kind == 'comment_report';
+
+String _reportTitle(AppLocalizations l10n, FeedbackTarget target) =>
+    target.type == FeedbackTargetType.comment
+    ? l10n.reportComment
+    : l10n.reportResource;
 
 class FeedbackPage extends ConsumerStatefulWidget {
   const FeedbackPage({super.key, this.target});
@@ -28,7 +48,6 @@ class FeedbackPage extends ConsumerStatefulWidget {
 
 class _FeedbackPageState extends ConsumerState<FeedbackPage> {
   List<FeedbackTicket>? _tickets;
-  FeedbackTicket? _selected;
   bool _loading = true;
   Object? _error;
 
@@ -50,21 +69,9 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
     }
     try {
       final tickets = await ref.read(oronBoxSupportApiProvider).feedback();
-      FeedbackTicket? selected;
-      if (_selected != null) {
-        selected = tickets
-            .where((item) => item.id == _selected!.id)
-            .firstOrNull;
-        if (selected != null) {
-          selected = await ref
-              .read(oronBoxSupportApiProvider)
-              .feedbackDetail(selected.id);
-        }
-      }
       if (!mounted) return;
       setState(() {
         _tickets = tickets;
-        _selected = selected;
         _loading = false;
       });
     } catch (error) {
@@ -76,18 +83,12 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
     }
   }
 
-  Future<void> _open(FeedbackTicket ticket) async {
-    setState(() => _selected = ticket);
-    try {
-      final detail = await ref
-          .read(oronBoxSupportApiProvider)
-          .feedbackDetail(ticket.id);
-      if (mounted && _selected?.id == ticket.id) {
-        setState(() => _selected = detail);
-      }
-    } catch (error) {
-      if (mounted) _showError(error);
-    }
+  void _open(FeedbackTicket ticket) {
+    unawaited(
+      context
+          .push<void>('/settings/feedback/ticket', extra: ticket)
+          .then((_) => _reload()),
+    );
   }
 
   Future<void> _compose() async {
@@ -96,15 +97,8 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
       builder: (context) => _FeedbackComposer(target: widget.target),
     );
     if (created == null || !mounted) return;
-    setState(() => _selected = created);
     await _reload();
-    if (mounted) setState(() => _selected = created);
-  }
-
-  void _showError(Object error) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(error.toString())));
+    if (mounted) _open(created);
   }
 
   @override
@@ -114,7 +108,9 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
       appBar: SysAppBar(
         secondary: true,
         title: Text(
-          widget.target == null ? l10n.feedbackTitle : l10n.reportResource,
+          widget.target == null
+              ? l10n.feedbackTitle
+              : _reportTitle(l10n, widget.target!),
         ),
         actions: [
           IconButton(
@@ -129,52 +125,77 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
           ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 840;
-          if (!wide && _selected != null) {
-            return _TicketDetail(
-              ticket: _selected!,
-              onBack: () => setState(() => _selected = null),
-              onUpdated: (ticket) {
-                setState(() => _selected = ticket);
-                _reload();
-              },
-            );
-          }
-          final list = _TicketList(
-            tickets: _tickets ?? const [],
-            selectedId: _selected?.id,
-            loading: _loading,
-            error: _error,
-            onRetry: _reload,
-            onSelect: _open,
-            onCreate: _compose,
-          );
-          return PageContainer(
-            maxWidth: 1200,
-            padding: const EdgeInsets.all(StyleConstants.pagePadding),
-            child: wide
-                ? Row(
-                    children: [
-                      SizedBox(width: 360, child: list),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        child: _selected == null
-                            ? _TicketPlaceholder(onCreate: _compose)
-                            : _TicketDetail(
-                                ticket: _selected!,
-                                onUpdated: (ticket) {
-                                  setState(() => _selected = ticket);
-                                  _reload();
-                                },
-                              ),
-                      ),
-                    ],
-                  )
-                : list,
-          );
-        },
+      body: PageContainer(
+        maxWidth: 1000,
+        padding: const EdgeInsets.all(StyleConstants.pagePadding),
+        child: _TicketList(
+          tickets: _tickets ?? const [],
+          loading: _loading,
+          error: _error,
+          onRetry: _reload,
+          onSelect: _open,
+          onCreate: _compose,
+        ),
+      ),
+    );
+  }
+}
+
+class FeedbackTicketPage extends ConsumerStatefulWidget {
+  const FeedbackTicketPage({super.key, required this.ticket});
+
+  final FeedbackTicket ticket;
+
+  @override
+  ConsumerState<FeedbackTicketPage> createState() => _FeedbackTicketPageState();
+}
+
+class _FeedbackTicketPageState extends ConsumerState<FeedbackTicketPage> {
+  late FeedbackTicket _ticket = widget.ticket;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final detail = await ref
+          .read(oronBoxSupportApiProvider)
+          .feedbackDetail(widget.ticket.id);
+      if (mounted) setState(() => _ticket = detail);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: SysAppBar(
+        secondary: true,
+        title: Text(
+          _ticket.subject,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Center(child: _TicketStatus(status: _ticket.status)),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        top: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: _TicketDetail(
+              ticket: _ticket,
+              onUpdated: (ticket) => setState(() => _ticket = ticket),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -183,7 +204,6 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
 class _TicketList extends StatelessWidget {
   const _TicketList({
     required this.tickets,
-    required this.selectedId,
     required this.loading,
     required this.error,
     required this.onRetry,
@@ -192,7 +212,6 @@ class _TicketList extends StatelessWidget {
   });
 
   final List<FeedbackTicket> tickets;
-  final String? selectedId;
   final bool loading;
   final Object? error;
   final VoidCallback onRetry;
@@ -229,14 +248,12 @@ class _TicketList extends StatelessWidget {
         itemBuilder: (context, index) {
           final ticket = tickets[index];
           return ListTile(
-            selected: selectedId == ticket.id,
-            selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 8,
             ),
             leading: Icon(
-              ticket.kind == 'report'
+              _isReportKind(ticket.kind)
                   ? Icons.flag_outlined
                   : Icons.chat_bubble_outline,
             ),
@@ -256,15 +273,10 @@ class _TicketList extends StatelessWidget {
 }
 
 class _TicketDetail extends ConsumerStatefulWidget {
-  const _TicketDetail({
-    required this.ticket,
-    required this.onUpdated,
-    this.onBack,
-  });
+  const _TicketDetail({required this.ticket, required this.onUpdated});
 
   final FeedbackTicket ticket;
   final ValueChanged<FeedbackTicket> onUpdated;
-  final VoidCallback? onBack;
 
   @override
   ConsumerState<_TicketDetail> createState() => _TicketDetailState();
@@ -308,32 +320,6 @@ class _TicketDetailState extends ConsumerState<_TicketDetail> {
     final canReply = ticket.status != 'closed' && ticket.status != 'dismissed';
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
-          child: Row(
-            children: [
-              if (widget.onBack != null)
-                IconButton(
-                  onPressed: widget.onBack,
-                  icon: const Icon(Icons.arrow_back),
-                ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ticket.subject,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 4),
-                    _TicketStatus(status: ticket.status),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Divider(height: 1),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.symmetric(vertical: 20),
@@ -478,11 +464,11 @@ class _TicketStatus extends StatelessWidget {
     };
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 7 : 9,
+        horizontal: compact ? 8 : 9,
         vertical: compact ? 3 : 5,
       ),
       decoration: BoxDecoration(
-        border: Border.all(color: color),
+        color: color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -562,7 +548,7 @@ class _FeedbackComposerState extends ConsumerState<_FeedbackComposer> {
       final ticket = await ref
           .read(oronBoxSupportApiProvider)
           .createFeedback(
-            kind: widget.target == null ? 'feedback' : 'report',
+            kind: widget.target?.reportKind ?? 'feedback',
             subject: _subject.text.trim(),
             message: _message.text.trim(),
             targetSource: widget.target?.source ?? '',
@@ -585,7 +571,9 @@ class _FeedbackComposerState extends ConsumerState<_FeedbackComposer> {
     final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
       title: Text(
-        widget.target == null ? l10n.feedbackNewTicket : l10n.reportResource,
+        widget.target == null
+            ? l10n.feedbackNewTicket
+            : _reportTitle(l10n, widget.target!),
       ),
       content: SizedBox(
         width: 560,

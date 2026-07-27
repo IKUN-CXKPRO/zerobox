@@ -20,7 +20,13 @@ class PageContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final body = Padding(padding: padding, child: child);
+    // Secondary pages are pushed on the root navigator and reach the system
+    // navigation area; inside the tab shell the bottom padding is already
+    // consumed by the NavigationBar, so this is a no-op there.
+    final body = SafeArea(
+      top: false,
+      child: Padding(padding: padding, child: child),
+    );
     if (!center) return body;
     return Center(
       child: ConstrainedBox(

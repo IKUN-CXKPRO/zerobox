@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/app/widgets/network_img_layer.dart';
 import 'package:oronbox/src/app/widgets/smooth_linear_progress_indicator.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
@@ -108,6 +109,7 @@ class _DownloadQueuePanel extends ConsumerWidget {
           _QueueTile(
             key: ValueKey('download-${task.id}'),
             icon: Icons.downloading,
+            iconUrl: task.resource.iconUrl?.toString(),
             title: task.title,
             subtitle: task.subtitle,
             status: task.status,
@@ -193,6 +195,7 @@ class _InstallQueuePanel extends ConsumerWidget {
           _QueueTile(
             key: ValueKey('install-${task.id}'),
             icon: _installIcon(task.type),
+            iconUrl: task.resource?.iconUrl?.toString(),
             title: task.name,
             subtitle: _installTaskDescription(l10n, task),
             status: task.status,
@@ -257,6 +260,7 @@ class _QueueTile extends StatelessWidget {
   const _QueueTile({
     super.key,
     required this.icon,
+    this.iconUrl,
     required this.title,
     required this.subtitle,
     required this.status,
@@ -267,6 +271,7 @@ class _QueueTile extends StatelessWidget {
   });
 
   final IconData icon;
+  final String? iconUrl;
   final String title;
   final String subtitle;
   final ResourceTaskStatus status;
@@ -289,12 +294,21 @@ class _QueueTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        leading: Icon(
-          _statusIcon(status, icon),
-          color: status == ResourceTaskStatus.failed
-              ? colorScheme.error
-              : colorScheme.onSurfaceVariant,
-        ),
+        leading: iconUrl?.isNotEmpty == true
+            ? NetworkImgLayer(
+                src: iconUrl,
+                width: 40,
+                height: 40,
+                type: 'resource',
+                memCacheWidth: 96,
+                memCacheHeight: 96,
+              )
+            : Icon(
+                _statusIcon(status, icon),
+                color: status == ResourceTaskStatus.failed
+                    ? colorScheme.error
+                    : colorScheme.onSurfaceVariant,
+              ),
         title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

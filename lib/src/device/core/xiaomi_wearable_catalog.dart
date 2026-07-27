@@ -2,6 +2,8 @@ enum XiaomiWearableFamily { band, bandPro, redmiWatch, xiaomiWatch, unknown }
 
 enum XiaomiWearableChip { bes, xring, unknown }
 
+enum XiaomiWearableProtocol { sppV1, sppV2, unsupported }
+
 class XiaomiWearableIdentity {
   const XiaomiWearableIdentity({
     required this.codename,
@@ -9,6 +11,7 @@ class XiaomiWearableIdentity {
     required this.abV2Id,
     required this.family,
     required this.chip,
+    this.protocol = XiaomiWearableProtocol.unsupported,
     this.seriesName,
     this.fetch = false,
     this.aliases = const [],
@@ -19,6 +22,7 @@ class XiaomiWearableIdentity {
   final String abV2Id;
   final XiaomiWearableFamily family;
   final XiaomiWearableChip chip;
+  final XiaomiWearableProtocol protocol;
   final String? seriesName;
   final bool fetch;
   final List<String> aliases;
@@ -31,7 +35,6 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
     abV2Id: 'm66',
     family: XiaomiWearableFamily.band,
     chip: XiaomiWearableChip.bes,
-    seriesName: 'Xiaomi Smart Band 8 系列',
     aliases: [
       '小米手环8',
       '小米手环8 NFC',
@@ -51,7 +54,7 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
     abV2Id: 'm67',
     family: XiaomiWearableFamily.bandPro,
     chip: XiaomiWearableChip.bes,
-    seriesName: 'Xiaomi Smart Band 8 Pro 系列',
+    protocol: XiaomiWearableProtocol.sppV1,
     aliases: [
       '小米手环8 Pro',
       'Xiaomi Smart Band 8 Pro',
@@ -66,7 +69,7 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
     abV2Id: 'xmb9',
     family: XiaomiWearableFamily.band,
     chip: XiaomiWearableChip.bes,
-    seriesName: 'Xiaomi Smart Band 9 系列',
+    protocol: XiaomiWearableProtocol.sppV2,
     aliases: [
       '小米手环9',
       '小米手环9 NFC',
@@ -88,7 +91,7 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
     abV2Id: 'xmb9p',
     family: XiaomiWearableFamily.bandPro,
     chip: XiaomiWearableChip.bes,
-    seriesName: 'Xiaomi Smart Band 9 Pro 系列',
+    protocol: XiaomiWearableProtocol.sppV2,
     fetch: true,
     aliases: [
       '小米手环9 Pro',
@@ -106,7 +109,6 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
     abV2Id: 'n69',
     family: XiaomiWearableFamily.band,
     chip: XiaomiWearableChip.bes,
-    seriesName: 'Xiaomi Smart Band 9 Active 系列',
     aliases: [
       '小米手环9 Active',
       '小米手环9 活力版',
@@ -124,7 +126,7 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
     abV2Id: 'xmb10',
     family: XiaomiWearableFamily.band,
     chip: XiaomiWearableChip.bes,
-    seriesName: 'Xiaomi Smart Band 10 系列',
+    protocol: XiaomiWearableProtocol.sppV2,
     aliases: [
       '小米手环10',
       'Xiaomi Smart Band 10',
@@ -140,7 +142,7 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
     abV2Id: 'xmb10nfc',
     family: XiaomiWearableFamily.band,
     chip: XiaomiWearableChip.bes,
-    seriesName: 'Xiaomi Smart Band 10 NFC 系列',
+    protocol: XiaomiWearableProtocol.sppV2,
     aliases: [
       '小米手环10 NFC',
       'Xiaomi Smart Band 10 NFC',
@@ -155,7 +157,7 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
     abV2Id: 'xmb10p',
     family: XiaomiWearableFamily.bandPro,
     chip: XiaomiWearableChip.bes,
-    seriesName: 'Xiaomi Smart Band 10 Pro 系列',
+    protocol: XiaomiWearableProtocol.sppV2,
     aliases: [
       '小米手环10 Pro',
       'Xiaomi Smart Band 10 Pro',
@@ -165,12 +167,22 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
       'M2553B1',
     ],
   ),
+  'l61': XiaomiWearableIdentity(
+    codename: 'l61',
+    displayName: 'Xiaomi Watch S1 Pro',
+    abV2Id: 'l61',
+    family: XiaomiWearableFamily.xiaomiWatch,
+    chip: XiaomiWearableChip.bes,
+    protocol: XiaomiWearableProtocol.sppV1,
+    aliases: ['小米手表S1 Pro', 'Xiaomi Watch S1 Pro', 'mijia.watch.l61', 'l61'],
+  ),
   'n62': XiaomiWearableIdentity(
     codename: 'n62',
     displayName: 'Xiaomi Watch S3',
     abV2Id: 'xmws3',
     family: XiaomiWearableFamily.xiaomiWatch,
     chip: XiaomiWearableChip.bes,
+    protocol: XiaomiWearableProtocol.sppV2,
     seriesName: 'Xiaomi Watch S3 系列',
     fetch: true,
     aliases: [
@@ -190,6 +202,7 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
     abV2Id: 'xmws4',
     family: XiaomiWearableFamily.xiaomiWatch,
     chip: XiaomiWearableChip.bes,
+    protocol: XiaomiWearableProtocol.sppV2,
     seriesName: 'Xiaomi Watch S4 系列',
     fetch: true,
     aliases: [
@@ -210,7 +223,8 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
     abV2Id: 'xmws4xring',
     family: XiaomiWearableFamily.xiaomiWatch,
     chip: XiaomiWearableChip.xring,
-    seriesName: 'Xiaomi Watch S4 15周年纪念版 系列',
+    protocol: XiaomiWearableProtocol.sppV2,
+    seriesName: 'Xiaomi Watch S4 系列',
     fetch: true,
     aliases: [
       '小米手表S4 15周年纪念版',
@@ -225,7 +239,8 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
     abV2Id: 'xmws441',
     family: XiaomiWearableFamily.xiaomiWatch,
     chip: XiaomiWearableChip.bes,
-    seriesName: 'Xiaomi Watch S4 41mm 系列',
+    protocol: XiaomiWearableProtocol.sppV2,
+    seriesName: 'Xiaomi Watch S4 系列',
     fetch: true,
     aliases: [
       '小米手表S4 41mm',
@@ -241,7 +256,7 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
     abV2Id: 'xmws5',
     family: XiaomiWearableFamily.xiaomiWatch,
     chip: XiaomiWearableChip.bes,
-    seriesName: 'Xiaomi Watch S5 系列',
+    protocol: XiaomiWearableProtocol.sppV2,
     fetch: true,
     aliases: [
       '小米手表S5',
@@ -254,13 +269,28 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
       'M2517W1',
     ],
   ),
+  'n65': XiaomiWearableIdentity(
+    codename: 'n65',
+    displayName: 'REDMI Watch 4',
+    abV2Id: 'xmrw4',
+    family: XiaomiWearableFamily.redmiWatch,
+    chip: XiaomiWearableChip.bes,
+    protocol: XiaomiWearableProtocol.sppV1,
+    aliases: [
+      '红米手表4',
+      'Redmi Watch 4',
+      'REDMI Watch 4',
+      'lchz.watch.n65',
+      'lchz.watch.n65gl',
+    ],
+  ),
   'o65': XiaomiWearableIdentity(
     codename: 'o65',
     displayName: 'REDMI Watch 5',
     abV2Id: 'xmrw5',
     family: XiaomiWearableFamily.redmiWatch,
     chip: XiaomiWearableChip.bes,
-    seriesName: 'REDMI Watch 5 系列',
+    protocol: XiaomiWearableProtocol.sppV2,
     fetch: true,
     aliases: [
       'Redmi Watch 5',
@@ -276,7 +306,7 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
     abV2Id: 'xmrw5xring',
     family: XiaomiWearableFamily.redmiWatch,
     chip: XiaomiWearableChip.xring,
-    seriesName: 'REDMI Watch 5 eSIM 系列',
+    protocol: XiaomiWearableProtocol.sppV2,
     fetch: true,
     aliases: [
       'Redmi Watch 5 eSIM',
@@ -291,7 +321,7 @@ const xiaomiWearableIdentities = <String, XiaomiWearableIdentity>{
     abV2Id: 'xmrw6',
     family: XiaomiWearableFamily.redmiWatch,
     chip: XiaomiWearableChip.bes,
-    seriesName: 'REDMI Watch 6 系列',
+    protocol: XiaomiWearableProtocol.sppV2,
     fetch: true,
     aliases: [
       'Redmi Watch 6',
@@ -317,7 +347,13 @@ final Map<String, XiaomiWearableIdentity> _xiaomiWearableAliasIndex = {
 XiaomiWearableIdentity? normalizeXiaomiWearableIdentity(String? input) {
   final normalized = _normalizeIdentityToken(input);
   if (normalized.isEmpty) return null;
-  return _xiaomiWearableAliasIndex[normalized];
+  final direct = _xiaomiWearableAliasIndex[normalized];
+  if (direct != null) return direct;
+  final withoutBluetoothSuffix = normalized.replaceFirst(
+    RegExp(r'(?:\s|-)?[a-f0-9]{4}$', caseSensitive: false),
+    '',
+  );
+  return _xiaomiWearableAliasIndex[withoutBluetoothSuffix];
 }
 
 XiaomiWearableIdentity? xiaomiWearableIdentityForCodename(String? value) =>

@@ -12,11 +12,13 @@ class CreatorResourceList extends StatefulWidget {
     required this.state,
     required this.controller,
     required this.onCreate,
+    this.onOpen,
   });
 
   final CreatorWorkspaceState state;
   final CreatorWorkspaceController controller;
   final VoidCallback onCreate;
+  final ValueChanged<CreatorWorkspace>? onOpen;
 
   @override
   State<CreatorResourceList> createState() => _CreatorResourceListState();
@@ -91,9 +93,10 @@ class _CreatorResourceListState extends State<CreatorResourceList> {
               child: CreatorResourceCard(
                 workspace: workspace,
                 controller: widget.controller,
-                selected: workspace.resource.id == state.selected?.resource.id,
-                onTap: () => widget.controller.select(workspace),
-                onAction: (action) => _runAction(workspace, action),
+                onTap: () {
+                  widget.controller.select(workspace);
+                  widget.onOpen?.call(workspace);
+                },
               ),
             ),
         ],
@@ -110,65 +113,7 @@ class _CreatorResourceListState extends State<CreatorResourceList> {
       onSelected: (_) => setState(() => _filter = value),
     ),
   );
-
-  Future<void> _runAction(
-    CreatorWorkspace workspace,
-    CreatorResourceAction action,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    final controller = widget.controller;
-    controller.select(workspace);
-    try {
-      switch (action) {
-        case CreatorResourceAction.delete:
-          final accepted = await _confirm(
-            title: l10n.creatorDeleteResource,
-            message: workspace.revisions.isEmpty
-                ? l10n.creatorDeleteConfirm
-                : l10n.creatorDeletePublishedConfirm,
-          );
-          if (accepted) await controller.deleteResource();
-        case CreatorResourceAction.archive:
-          final accepted = await _confirm(
-            title: l10n.creatorArchiveAction,
-            message: l10n.creatorArchiveConfirm,
-          );
-          if (accepted) await controller.archive(true);
-        case CreatorResourceAction.restore:
-          await controller.archive(false);
-      }
-    } catch (error) {
-      if (mounted) showCreatorFailure(context, error);
-    }
-  }
-
-  Future<bool> _confirm({
-    required String title,
-    required String message,
-  }) async {
-    final l10n = AppLocalizations.of(context)!;
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(title),
-          ),
-        ],
-      ),
-    );
-    return accepted == true;
-  }
 }
-
-enum CreatorResourceAction { archive, restore, delete }
 
 class CreatorResourceThumbnail extends StatefulWidget {
   const CreatorResourceThumbnail({
@@ -194,6 +139,17 @@ class _CreatorResourceThumbnailState extends State<CreatorResourceThumbnail> {
     _load();
   }
 
+  @override
+  void didUpdateWidget(covariant CreatorResourceThumbnail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.workspace.resource.id != widget.workspace.resource.id ||
+        creatorThumbnailMedia(oldWidget.workspace)?.sha256 !=
+            creatorThumbnailMedia(widget.workspace)?.sha256) {
+      _bytes = null;
+      _load();
+    }
+  }
+
   Future<void> _load() async {
     final media = creatorThumbnailMedia(widget.workspace);
     if (media == null) return;
@@ -210,16 +166,14 @@ class _CreatorResourceThumbnailState extends State<CreatorResourceThumbnail> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final bytes = _bytes;
-    return Container(
-      width: 44,
-      height: 44,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(10),
-      ),
+    return SizedBox(
+      width: 64,
+      height: 64,
       child: bytes != null
-          ? Image.memory(bytes, fit: BoxFit.cover)
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.memory(bytes, fit: BoxFit.cover),
+            )
           : Icon(
               widget.workspace.resource.kind == CreatorResourceKind.watchface
                   ? Icons.watch_outlined
@@ -235,42 +189,35 @@ class CreatorResourceCard extends StatelessWidget {
     super.key,
     required this.workspace,
     required this.controller,
-    required this.selected,
     required this.onTap,
-    required this.onAction,
   });
 
   final CreatorWorkspace workspace;
   final CreatorWorkspaceController controller;
-  final bool selected;
   final VoidCallback onTap;
-  final ValueChanged<CreatorResourceAction> onAction;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
     final state = creatorWorkspaceState(workspace);
-    final isDraft = workspace.revisions.isEmpty;
-    final isArchived = workspace.resource.state == 'archived';
     final subtitle = workspace.latestRevision?.summary ?? '';
     final note = state == 'rejected' ? creatorReviewNote(workspace) : '';
+    final supportedDeviceCount = workspace.artifacts
+        .expand((artifact) => artifact.devices)
+        .toSet()
+        .length;
     return Card(
       clipBehavior: Clip.antiAlias,
-      color: selected ? colors.secondaryContainer : null,
+      color: colors.surfaceContainerHighest.withValues(alpha: .5),
       margin: EdgeInsets.zero,
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
+          padding: const EdgeInsets.all(12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CreatorResourceThumbnail(
-                workspace: workspace,
-                controller: controller,
-              ),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,7 +229,11 @@ class CreatorResourceCard extends StatelessWidget {
                             creatorWorkspaceTitle(workspace),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleSmall,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.25,
+                                ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -294,26 +245,60 @@ class CreatorResourceCard extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
                           subtitle,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: colors.onSurfaceVariant),
                         ),
                       ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        [
-                          creatorKindLabel(l10n, workspace.resource.kind),
-                          if (workspace.artifacts.isNotEmpty)
-                            l10n.creatorArtifactCount(
-                              workspace.artifacts.length,
-                            ),
-                        ].join(' · '),
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: colors.onSurfaceVariant,
+                    if (workspace.resource.updatedAt != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          _creatorResourceTime(workspace.resource.updatedAt!),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: colors.onSurfaceVariant),
                         ),
                       ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        _CreatorResourceTag(
+                          label: creatorKindLabel(
+                            l10n,
+                            workspace.resource.kind,
+                          ),
+                          color:
+                              workspace.resource.kind ==
+                                  CreatorResourceKind.quickApp
+                              ? colors.error
+                              : colors.primary,
+                        ),
+                        if (workspace.artifacts.isNotEmpty)
+                          _CreatorResourceTag(
+                            icon: Icons.inventory_2_outlined,
+                            label: l10n.creatorArtifactCount(
+                              workspace.artifacts.length,
+                            ),
+                            color: colors.onSurfaceVariant,
+                          ),
+                        if (supportedDeviceCount > 0)
+                          _CreatorResourceTag(
+                            icon: Icons.watch_outlined,
+                            label: l10n.creatorCompatibleDeviceCount(
+                              supportedDeviceCount,
+                            ),
+                            color: colors.onSurfaceVariant,
+                          ),
+                        if (workspace.revisions.isNotEmpty)
+                          _CreatorResourceTag(
+                            icon: Icons.download,
+                            label: '${workspace.resource.downloadCount}',
+                            color: colors.onSurfaceVariant,
+                          ),
+                      ],
                     ),
                     if (note.isNotEmpty)
                       Padding(
@@ -330,25 +315,10 @@ class CreatorResourceCard extends StatelessWidget {
                   ],
                 ),
               ),
-              PopupMenuButton<CreatorResourceAction>(
-                tooltip: '',
-                onSelected: onAction,
-                itemBuilder: (_) => [
-                  if (!isDraft && isArchived)
-                    PopupMenuItem(
-                      value: CreatorResourceAction.restore,
-                      child: Text(l10n.creatorRestoreAction),
-                    ),
-                  if (!isDraft && !isArchived)
-                    PopupMenuItem(
-                      value: CreatorResourceAction.archive,
-                      child: Text(l10n.creatorArchiveAction),
-                    ),
-                  PopupMenuItem(
-                    value: CreatorResourceAction.delete,
-                    child: Text(l10n.creatorDeleteResource),
-                  ),
-                ],
+              const SizedBox(width: 12),
+              CreatorResourceThumbnail(
+                workspace: workspace,
+                controller: controller,
               ),
             ],
           ),
@@ -356,4 +326,51 @@ class CreatorResourceCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _creatorResourceTime(DateTime value) {
+  final time = value.toLocal();
+  String two(int part) => part.toString().padLeft(2, '0');
+  return '${two(time.year % 100)}-${two(time.month)}-${two(time.day)} '
+      '${two(time.hour)}:${two(time.minute)}';
+}
+
+class _CreatorResourceTag extends StatelessWidget {
+  const _CreatorResourceTag({
+    required this.label,
+    required this.color,
+    this.icon,
+  });
+
+  final String label;
+  final Color color;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: .12),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 4),
+        ],
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: color,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    ),
+  );
 }
