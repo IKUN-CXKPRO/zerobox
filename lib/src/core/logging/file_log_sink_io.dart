@@ -11,7 +11,8 @@ const _androidLogsChannel = MethodChannel('oronbox/logs');
 bool _isManagedLogFile(File file) {
   final name = file.uri.pathSegments.last;
   return name.endsWith('.log') ||
-      (name.startsWith('device-') && name.endsWith('.zip'));
+      (name.startsWith('device-') &&
+          (name.endsWith('.zip') || name.endsWith('.tar.gz')));
 }
 
 class LogFileInfo {

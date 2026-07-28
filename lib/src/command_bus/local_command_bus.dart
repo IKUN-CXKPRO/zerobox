@@ -173,6 +173,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       method.startsWith('watchface.') ||
       (method.startsWith('device.') &&
           method != 'device.logs.cancel' &&
+          method != 'device.recordings.cancel' &&
           method != 'device.snapshot' &&
           method != 'device.paired' &&
           method != 'device.status');
@@ -266,6 +267,34 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'device.sync' => _syncDevice(),
     'device.sync.time' => _syncTime(),
     'device.xiaomi.music.upload' => _uploadXiaomiMusic(command.params),
+    'device.xiaomi.music.library' => _manager.loadXiaomiMusicLibrary().then(
+      (value) => value.toJson(),
+    ),
+    'device.xiaomi.music.playlist.create' => _manager.createXiaomiMusicPlaylist(
+      command.params['name']?.toString() ?? '',
+    ),
+    'device.xiaomi.music.playlist.rename' => _manager.renameXiaomiMusicPlaylist(
+      (command.params['id'] as num).toInt(),
+      command.params['name']?.toString() ?? '',
+    ),
+    'device.xiaomi.music.playlist.remove' => _manager.removeXiaomiMusicPlaylist(
+      (command.params['id'] as num).toInt(),
+    ),
+    'device.xiaomi.music.song.remove' => _manager.removeXiaomiMusicSong(
+      (command.params['id'] as List)
+          .map((value) => (value as num).toInt())
+          .toList(),
+    ),
+    'device.xiaomi.music.song.playlist.set' =>
+      _manager.setXiaomiMusicSongInPlaylist(
+        playlistId: (command.params['playlistId'] as num).toInt(),
+        songId: (command.params['songId'] as List)
+            .map((value) => (value as num).toInt())
+            .toList(),
+        included: command.params['included'] == true,
+      ),
+    'device.xiaomi.recordings.download' => _downloadXiaomiRecordings(),
+    'device.recordings.cancel' => _cancelRecordingSync(),
     'device.zeppos.find' => _setFindingZeppOsDevice(
       command.params['finding'] == true,
     ),
@@ -982,8 +1011,28 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       bytes,
       title: params['title']?.toString() ?? 'Unknown',
       artist: params['artist']?.toString() ?? 'Unknown',
+      onProgress: (progress) =>
+          _events.add(CommandEvent('progress', data: {'progress': progress})),
     );
     return const {'uploaded': true};
+  }
+
+  Future<Object?> _downloadXiaomiRecordings() async {
+    await _ensureConnected(null);
+    final recordings = await _manager.downloadXiaomiRecordings(
+      onProgress: (completed, total, fileName) => _events.add(
+        CommandEvent(
+          'progress',
+          data: {'completed': completed, 'total': total, 'fileName': fileName},
+        ),
+      ),
+    );
+    return recordings.map((recording) => recording.toJson()).toList();
+  }
+
+  Future<Object?> _cancelRecordingSync() async {
+    await _manager.cancelRecordingSync();
+    return const {'cancelled': true};
   }
 
   Future<Object?> _setFindingZeppOsDevice(bool finding) async {

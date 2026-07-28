@@ -102,6 +102,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get refresh => '刷新';
 
   @override
+  String get refreshing => '正在刷新';
+
+  @override
   String get notifications => '通知';
 
   @override
@@ -794,6 +797,115 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceMusicTransferred => '音乐传输完成';
 
   @override
+  String get deviceMusicLibrary => '设备音乐';
+
+  @override
+  String get deviceMusicLibraryDescription => '管理设备中的歌曲与歌单';
+
+  @override
+  String get deviceMusicSongs => '歌曲';
+
+  @override
+  String deviceMusicSongsTotal(int count) {
+    return '共 $count 首';
+  }
+
+  @override
+  String get deviceMusicNoPlaylist => '未加入歌单';
+
+  @override
+  String get deviceMusicPlaylists => '歌单';
+
+  @override
+  String get deviceMusicEmpty => '设备中暂无歌曲';
+
+  @override
+  String get deviceMusicNoPlaylists => '尚未创建歌单';
+
+  @override
+  String deviceMusicLoadFailed(String error) {
+    return '读取设备音乐失败：$error';
+  }
+
+  @override
+  String get deviceMusicPlaylistCreate => '新建歌单';
+
+  @override
+  String get deviceMusicPlaylistRename => '重命名歌单';
+
+  @override
+  String get deviceMusicPlaylistName => '歌单名称';
+
+  @override
+  String deviceMusicPlaylistLimit(int count) {
+    return '最多可创建 $count 个歌单';
+  }
+
+  @override
+  String deviceMusicSongCount(int count) {
+    return '$count 首歌曲';
+  }
+
+  @override
+  String get deviceMusicDeleteSong => '从设备删除歌曲？';
+
+  @override
+  String get deviceMusicDeletePlaylist => '删除歌单？';
+
+  @override
+  String get deviceMusicDeletePlaylistDescription => '歌单中的歌曲不会从设备删除。';
+
+  @override
+  String get deviceMusicManagePlaylists => '管理所属歌单';
+
+  @override
+  String get deviceMusicPlaylistMembership => '所属歌单';
+
+  @override
+  String deviceMusicTransferSpeed(String speed) {
+    return '$speed/s';
+  }
+
+  @override
+  String deviceMusicSelectedFiles(int count) {
+    return '已选择 $count 个文件';
+  }
+
+  @override
+  String deviceMusicQueueProgress(int current, int total, String name) {
+    return '正在传输 $current/$total：$name';
+  }
+
+  @override
+  String get deviceRecordingsTitle => '录音同步';
+
+  @override
+  String get deviceRecordingsDescription => '从手表同步并导出录音';
+
+  @override
+  String get deviceRecordingsHint => '录音通过设备文件通道逐条接收并校验，完成后可单独导出原始文件。';
+
+  @override
+  String get deviceRecordingsSync => '同步录音';
+
+  @override
+  String get deviceRecordingsSyncing => '正在接收';
+
+  @override
+  String get deviceRecordingsReading => '正在读取录音列表';
+
+  @override
+  String deviceRecordingsProgress(int completed, int total, String name) {
+    return '已接收 $completed/$total：$name';
+  }
+
+  @override
+  String get deviceRecordingsEmpty => '连接手表后点击“同步录音”';
+
+  @override
+  String get deviceRecordingsSave => '导出录音';
+
+  @override
   String get deviceMusicTransferTitle => '传输 MP3 文件';
 
   @override
@@ -897,6 +1009,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deviceTransportBle => 'BLE';
+
+  @override
+  String deviceEndpointUnavailable(String transport) {
+    return '未发现可用的 $transport 端点，请先完成系统蓝牙配对，然后重新扫描。';
+  }
 
   @override
   String get deviceTransportSpp => 'SPP';

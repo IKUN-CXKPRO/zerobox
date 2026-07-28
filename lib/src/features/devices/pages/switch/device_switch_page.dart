@@ -17,6 +17,7 @@ import 'package:oronbox/src/device/core/connect_type.dart';
 import 'package:oronbox/src/device/core/device_profile.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/devices/domain/device_connection_endpoint.dart';
 import 'package:oronbox/src/features/devices/utils/device_address.dart';
 import 'package:oronbox/src/features/devices/widgets/device_connection_text.dart';
 import 'package:oronbox/src/features/devices/services/device_share_link.dart';
@@ -831,8 +832,8 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
     if (mounted) {
       final state = ref.read(deviceManagerProvider);
       final connectedThisDevice =
-           state.protocolState == proto.ProtocolState.ready &&
-           state.currentDevice?.addr == endpoint.addr;
+          state.protocolState == proto.ProtocolState.ready &&
+          state.currentDevice?.addr == endpoint.addr;
       if (connectedThisDevice) {
         if (context.canPop()) {
           context.pop();
@@ -849,55 +850,25 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
     return profile.preferredConnectType.name;
   }
 
-  ({String addr, String name})? _endpointFor(
-    String connectType,
-    DeviceManagerState state,
-  ) {
-    if (!widget.saved &&
-        widget.device.connectType.toLowerCase() == connectType) {
-      return (addr: widget.device.addr, name: widget.device.name);
-    }
-    final sourceIdentity = zeppOsDeviceForBluetoothName(widget.device.name);
-    if (sourceIdentity == null) {
-      return (addr: widget.device.addr, name: widget.device.name);
-    }
-    for (final endpoint in state.scannedDevices) {
-      if (endpoint.connectType.toLowerCase() != connectType) continue;
-      final candidateIdentity = zeppOsDeviceForBluetoothName(endpoint.name);
-      if (candidateIdentity?.id == sourceIdentity.id) {
-        return (addr: endpoint.addr, name: endpoint.name);
-      }
-    }
-    return null;
-  }
-
   ({String addr, String name})? _connectionEndpointFor(
     String connectType,
     DeviceManagerState state,
   ) {
-    final discovered = _endpointFor(connectType, state);
-    if (discovered != null) return discovered;
-    if (connectType != ConnectType.spp.name) return null;
-
-    final zeppDevice = zeppOsDeviceForBluetoothName(widget.device.name);
-    if (zeppDevice == null ||
-        zeppDevice.connectionCapability == ZeppOsConnectionCapability.ble) {
-      return null;
-    }
-    // BTBR is the only transport allowed to use the saved Zepp identity to
-    // reach native pairing. BLE continues to require its discovered endpoint.
-    return (addr: widget.device.addr, name: widget.device.name);
+    return resolveDeviceConnectionEndpoint(
+      device: widget.device,
+      saved: widget.saved,
+      connectType: connectType,
+      scannedDevices: state.scannedDevices,
+    );
   }
 
   void _showMissingEndpoint(String connectType) {
     if (!mounted) return;
-    final target = connectType == ConnectType.spp.name
-        ? 'BT Classic'
-        : 'BLE';
+    final target = connectType == ConnectType.spp.name ? 'SPP' : 'BLE';
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '未发现已配对的 $target 设备，请先在 Windows 蓝牙设置中完成配对，然后重新扫描。',
+          AppLocalizations.of(context)!.deviceEndpointUnavailable(target),
         ),
       ),
     );

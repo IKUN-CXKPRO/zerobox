@@ -15,10 +15,10 @@ class ZeppOsVoiceMemosPage extends ConsumerStatefulWidget {
       _ZeppOsVoiceMemosPageState();
 }
 
-class _ZeppOsVoiceMemosPageState
-    extends ConsumerState<ZeppOsVoiceMemosPage> {
+class _ZeppOsVoiceMemosPageState extends ConsumerState<ZeppOsVoiceMemosPage> {
   List<ZeppOsVoiceMemo> _memos = const [];
   bool _syncing = false;
+  bool _cancelling = false;
   int _completed = 0;
   int _total = 0;
   String? _error;
@@ -30,6 +30,7 @@ class _ZeppOsVoiceMemosPageState
       _completed = 0;
       _total = 0;
       _error = null;
+      _cancelling = false;
     });
     try {
       final result = await ref
@@ -57,9 +58,19 @@ class _ZeppOsVoiceMemosPageState
         ),
       );
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted && !_cancelling) setState(() => _error = error.toString());
     } finally {
       if (mounted) setState(() => _syncing = false);
+    }
+  }
+
+  Future<void> _cancel() async {
+    if (!_syncing || _cancelling) return;
+    setState(() => _cancelling = true);
+    try {
+      await ref.read(deviceManagerProvider.notifier).cancelRecordingSync();
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
     }
   }
 
@@ -86,16 +97,15 @@ class _ZeppOsVoiceMemosPageState
         proto.ProtocolState.ready;
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: const SysAppBar(secondary: true, title: Text('手表录音')),
+      appBar: const SysAppBar(secondary: true, title: Text('录音同步')),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: ready && !_syncing ? _sync : null,
+        onPressed: _syncing
+            ? (_cancelling ? null : _cancel)
+            : (ready ? _sync : null),
         icon: _syncing
-            ? const SizedBox.square(
-                dimension: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
+            ? Icon(_cancelling ? Icons.hourglass_top : Icons.close)
             : const Icon(Icons.sync),
-        label: Text(_syncing ? '正在接收' : '同步录音'),
+        label: Text(_syncing ? '取消' : '同步录音'),
       ),
       body: PageContainer(
         child: ListView(
@@ -121,9 +131,7 @@ class _ZeppOsVoiceMemosPageState
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _total == 0
-                          ? '正在读取录音列表'
-                          : '已接收 $_completed / $_total',
+                      _total == 0 ? '正在读取录音列表' : '已接收 $_completed / $_total',
                     ),
                   ],
                   if (_error != null) ...[

@@ -227,6 +227,12 @@ class XiaomiMediaSystem extends XiaomiSystem {
       await _massSystem.sendFile(
         fileData: fileData,
         dataType: MassDataType.music,
+        onProgress: (data) => onProgress?.call(
+          MediaUploadProgress(
+            bytesSent: (data.progress * fileData.length).toInt(),
+            bytesTotal: fileData.length,
+          ),
+        ),
       );
     } else {
       await _massSystem.sendFile(
@@ -246,7 +252,7 @@ class XiaomiMediaSystem extends XiaomiSystem {
     if (report.code != pb_media_enum.Song_ReportResult_Code.SUCCESS) {
       throw ProtocolException('music upload failed: ${report.code}');
     }
-    if (report.id.isNotEmpty && report.id != song.id) {
+    if (report.id.isNotEmpty && !_bytesEqual(report.id, song.id)) {
       throw ProtocolException('music upload result id does not match');
     }
 
@@ -351,6 +357,14 @@ class XiaomiMediaSystem extends XiaomiSystem {
       completer.complete(value);
     }
   }
+}
+
+bool _bytesEqual(List<int> left, List<int> right) {
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
 }
 
 pb.WearPacket _buildMediaPacket(

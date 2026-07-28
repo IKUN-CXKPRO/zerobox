@@ -105,6 +105,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get refresh => 'Refresh';
 
   @override
+  String get refreshing => 'Refreshing';
+
+  @override
   String get notifications => 'Notifications';
 
   @override
@@ -830,6 +833,120 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceMusicTransferred => 'Music transfer complete';
 
   @override
+  String get deviceMusicLibrary => 'Device music';
+
+  @override
+  String get deviceMusicLibraryDescription =>
+      'Manage songs and playlists on the device';
+
+  @override
+  String get deviceMusicSongs => 'Songs';
+
+  @override
+  String deviceMusicSongsTotal(int count) {
+    return '$count total';
+  }
+
+  @override
+  String get deviceMusicNoPlaylist => 'Not in a playlist';
+
+  @override
+  String get deviceMusicPlaylists => 'Playlists';
+
+  @override
+  String get deviceMusicEmpty => 'No songs on the device';
+
+  @override
+  String get deviceMusicNoPlaylists => 'No playlists yet';
+
+  @override
+  String deviceMusicLoadFailed(String error) {
+    return 'Failed to load device music: $error';
+  }
+
+  @override
+  String get deviceMusicPlaylistCreate => 'New playlist';
+
+  @override
+  String get deviceMusicPlaylistRename => 'Rename playlist';
+
+  @override
+  String get deviceMusicPlaylistName => 'Playlist name';
+
+  @override
+  String deviceMusicPlaylistLimit(int count) {
+    return 'Up to $count playlists';
+  }
+
+  @override
+  String deviceMusicSongCount(int count) {
+    return '$count songs';
+  }
+
+  @override
+  String get deviceMusicDeleteSong => 'Delete this song from the device?';
+
+  @override
+  String get deviceMusicDeletePlaylist => 'Delete this playlist?';
+
+  @override
+  String get deviceMusicDeletePlaylistDescription =>
+      'Songs in the playlist will remain on the device.';
+
+  @override
+  String get deviceMusicManagePlaylists => 'Manage playlists';
+
+  @override
+  String get deviceMusicPlaylistMembership => 'Playlists';
+
+  @override
+  String deviceMusicTransferSpeed(String speed) {
+    return '$speed/s';
+  }
+
+  @override
+  String deviceMusicSelectedFiles(int count) {
+    return '$count files selected';
+  }
+
+  @override
+  String deviceMusicQueueProgress(int current, int total, String name) {
+    return 'Transferring $current/$total: $name';
+  }
+
+  @override
+  String get deviceRecordingsTitle => 'Recording sync';
+
+  @override
+  String get deviceRecordingsDescription =>
+      'Sync and export recordings from the watch';
+
+  @override
+  String get deviceRecordingsHint =>
+      'Recordings are received and verified one by one. Export each original file after synchronization.';
+
+  @override
+  String get deviceRecordingsSync => 'Sync recordings';
+
+  @override
+  String get deviceRecordingsSyncing => 'Receiving';
+
+  @override
+  String get deviceRecordingsReading => 'Reading recording list';
+
+  @override
+  String deviceRecordingsProgress(int completed, int total, String name) {
+    return 'Received $completed/$total: $name';
+  }
+
+  @override
+  String get deviceRecordingsEmpty =>
+      'Connect the watch and select Sync recordings';
+
+  @override
+  String get deviceRecordingsSave => 'Export recording';
+
+  @override
   String get deviceMusicTransferTitle => 'Transfer MP3 file';
 
   @override
@@ -935,6 +1052,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deviceTransportBle => 'BLE';
+
+  @override
+  String deviceEndpointUnavailable(String transport) {
+    return 'No $transport endpoint is available. Pair the device in system Bluetooth settings, then scan again.';
+  }
 
   @override
   String get deviceTransportSpp => 'SPP';

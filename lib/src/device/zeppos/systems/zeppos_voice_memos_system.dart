@@ -7,6 +7,7 @@ import 'package:oronbox/src/device/core/transport.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_services_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_screenshot_system.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_component.dart';
+import 'package:oronbox/src/protocols/common/device_protocol.dart';
 
 class ZeppOsVoiceMemo {
   const ZeppOsVoiceMemo({
@@ -42,6 +43,7 @@ class ZeppOsVoiceMemosSystem extends System {
   Completer<List<ZeppOsVoiceMemo>>? _pendingList;
   bool _encrypted = false;
   bool _busy = false;
+  bool _cancelled = false;
 
   ZeppOsDeviceComponent get _component =>
       entity.getRequired<ZeppOsDeviceComponent>();
@@ -56,8 +58,11 @@ class ZeppOsVoiceMemosSystem extends System {
   Future<List<ZeppOsVoiceMemo>> downloadAll({
     void Function(int completed, int total)? onProgress,
   }) async {
-    if (_busy) throw StateError('Voice memo synchronization is already running');
+    if (_busy) {
+      throw StateError('Voice memo synchronization is already running');
+    }
     _busy = true;
+    _cancelled = false;
     try {
       final servicesSystem = entity.system<ZeppOsServicesSystem>();
       if (servicesSystem == null) {
@@ -76,6 +81,7 @@ class ZeppOsVoiceMemosSystem extends System {
       final memos = await _requestList();
       final result = <ZeppOsVoiceMemo>[];
       for (var index = 0; index < memos.length; index++) {
+        _throwIfCancelled();
         final memo = memos[index];
         final fileFuture = transfer.waitForIncomingFile(
           matches: (url, filename) =>
@@ -89,6 +95,7 @@ class ZeppOsVoiceMemosSystem extends System {
           ]),
         );
         final file = await fileFuture;
+        _throwIfCancelled();
         if (file.bytes.length != memo.size) {
           throw FormatException(
             '${memo.filename} length mismatch: '
@@ -107,6 +114,24 @@ class ZeppOsVoiceMemosSystem extends System {
         pending.completeError(StateError('Voice memo synchronization stopped'));
       }
       _pendingList = null;
+    }
+  }
+
+  void cancelDownload() {
+    if (!_busy) return;
+    _cancelled = true;
+    final pending = _pendingList;
+    if (pending != null && !pending.isCompleted) {
+      pending.completeError(
+        const ProtocolException('Recording synchronization was cancelled'),
+      );
+    }
+    entity.system<ZeppOsScreenshotSystem>()?.cancelIncomingFile();
+  }
+
+  void _throwIfCancelled() {
+    if (_cancelled) {
+      throw const ProtocolException('Recording synchronization was cancelled');
     }
   }
 

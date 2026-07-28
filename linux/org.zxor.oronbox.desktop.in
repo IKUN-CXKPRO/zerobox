@@ -1,6 +1,7 @@
 [Desktop Entry]
 Name=OronBox
-Comment=Wearable device manager
+Comment=A pretty fast wearable management tool for VelaOS and ZeppOS, built with Flutter
+Comment[zh_CN]=一个又好看又快的 VelaOS / ZeppOS 可穿戴设备管理软件，使用 Flutter 构建
 Exec=@CMAKE_INSTALL_PREFIX@/oronbox %u
 Icon=org.zxor.oronbox
 Terminal=false

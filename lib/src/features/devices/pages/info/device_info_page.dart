@@ -111,8 +111,11 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
       body: PageContainer(
         padding: EdgeInsets.zero,
         child: ListView.separated(
-          padding: const EdgeInsets.symmetric(
-            horizontal: StyleConstants.pagePadding,
+          padding: const EdgeInsets.fromLTRB(
+            StyleConstants.pagePadding,
+            0,
+            StyleConstants.pagePadding,
+            StyleConstants.pagePadding,
           ),
           itemCount: items.length,
           separatorBuilder: (context, index) => const SizedBox(height: 12),
@@ -179,7 +182,9 @@ class _InfoRow extends StatelessWidget {
                 onTap: () {
                   Clipboard.setData(ClipboardData(text: value));
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(AppLocalizations.of(context)!.copy)),
+                    SnackBar(
+                      content: Text(AppLocalizations.of(context)!.copied),
+                    ),
                   );
                 },
                 child: Text(

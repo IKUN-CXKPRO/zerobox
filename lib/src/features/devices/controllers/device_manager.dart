@@ -54,6 +54,7 @@ import 'package:oronbox/src/device/zeppos/zeppos_btbr_transport.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_factory.dart';
 import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
+import 'package:oronbox/src/features/devices/domain/device_scan_results.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart'
     hide ChargeStatus, BatteryInfo, DeviceInfo;
 import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
@@ -61,6 +62,8 @@ import 'package:oronbox/src/protocols/generated/xiaomi/wear_watch_face.pb.dart'
     as pb_watchface;
 import 'package:oronbox/src/protocols/generated/xiaomi/wear_media.pb.dart'
     as pb_media;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_media.pbenum.dart'
+    as pb_media_enum;
 import 'package:oronbox/src/protocols/generated/xiaomi/wear_system.pb.dart'
     as pb_system;
 import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
@@ -70,6 +73,141 @@ class DeviceLogPullResult {
 
   final String fileName;
   final Uint8List data;
+}
+
+class DeviceMusicSong {
+  const DeviceMusicSong({
+    required this.id,
+    required this.name,
+    required this.size,
+    required this.duration,
+    required this.album,
+    required this.artist,
+    this.playlistIds = const [],
+  });
+
+  final List<int> id;
+  final String name;
+  final int size;
+  final int duration;
+  final String album;
+  final String artist;
+  final List<int> playlistIds;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'size': size,
+    'duration': duration,
+    'album': album,
+    'artist': artist,
+    'playlistIds': playlistIds,
+  };
+
+  factory DeviceMusicSong.fromJson(Map<String, Object?> json) =>
+      DeviceMusicSong(
+        id: (json['id'] as List).cast<num>().map((e) => e.toInt()).toList(),
+        name: json['name']?.toString() ?? '',
+        size: (json['size'] as num?)?.toInt() ?? 0,
+        duration: (json['duration'] as num?)?.toInt() ?? 0,
+        album: json['album']?.toString() ?? '',
+        artist: json['artist']?.toString() ?? '',
+        playlistIds: (json['playlistIds'] as List? ?? const [])
+            .cast<num>()
+            .map((e) => e.toInt())
+            .toList(),
+      );
+}
+
+class DeviceMusicPlaylist {
+  const DeviceMusicPlaylist({
+    required this.id,
+    required this.name,
+    required this.songCount,
+  });
+
+  final int id;
+  final String name;
+  final int songCount;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'songCount': songCount,
+  };
+
+  factory DeviceMusicPlaylist.fromJson(Map<String, Object?> json) =>
+      DeviceMusicPlaylist(
+        id: (json['id'] as num).toInt(),
+        name: json['name']?.toString() ?? '',
+        songCount: (json['songCount'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class DeviceMusicLibrary {
+  const DeviceMusicLibrary({
+    required this.songs,
+    required this.playlists,
+    required this.playlistLimit,
+  });
+
+  final List<DeviceMusicSong> songs;
+  final List<DeviceMusicPlaylist> playlists;
+  final int playlistLimit;
+
+  Map<String, Object?> toJson() => {
+    'songs': songs.map((e) => e.toJson()).toList(),
+    'playlists': playlists.map((e) => e.toJson()).toList(),
+    'playlistLimit': playlistLimit,
+  };
+
+  factory DeviceMusicLibrary.fromJson(Map<String, Object?> json) =>
+      DeviceMusicLibrary(
+        songs: (json['songs'] as List? ?? const [])
+            .map((e) => DeviceMusicSong.fromJson((e as Map).cast()))
+            .toList(),
+        playlists: (json['playlists'] as List? ?? const [])
+            .map((e) => DeviceMusicPlaylist.fromJson((e as Map).cast()))
+            .toList(),
+        playlistLimit: (json['playlistLimit'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class DeviceRecording {
+  const DeviceRecording({
+    required this.fileName,
+    required this.data,
+    this.durationSeconds,
+    this.createdAt,
+  });
+
+  final String fileName;
+  final Uint8List data;
+  final int? durationSeconds;
+  final DateTime? createdAt;
+
+  Map<String, Object?> toJson() => {
+    'fileName': fileName,
+    'data': data.toList(growable: false),
+    'durationSeconds': durationSeconds,
+    'createdAt': createdAt?.millisecondsSinceEpoch,
+  };
+
+  factory DeviceRecording.fromJson(Map<String, Object?> json) =>
+      DeviceRecording(
+        fileName: json['fileName']?.toString() ?? 'recording.opus',
+        data: Uint8List.fromList(
+          (json['data'] as List? ?? const [])
+              .map((value) => (value as num).toInt())
+              .toList(),
+        ),
+        durationSeconds: (json['durationSeconds'] as num?)?.toInt(),
+        createdAt: json['createdAt'] == null
+            ? null
+            : DateTime.fromMillisecondsSinceEpoch(
+                (json['createdAt'] as num).toInt(),
+              ),
+      );
 }
 
 class ZeppOsMessageRecord {
@@ -283,6 +421,7 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
   Future<List<ZeppOsVoiceMemo>> downloadZeppOsVoiceMemos({
     void Function(int completed, int total)? onProgress,
   });
+  Future<void> cancelRecordingSync();
   Future<void> uploadZeppOsMap(
     Uint8List bytes, {
     required String fileName,
@@ -300,6 +439,19 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
     required String title,
     required String artist,
     void Function(double progress)? onProgress,
+  });
+  Future<DeviceMusicLibrary> loadXiaomiMusicLibrary();
+  Future<void> createXiaomiMusicPlaylist(String name);
+  Future<void> renameXiaomiMusicPlaylist(int id, String name);
+  Future<void> removeXiaomiMusicPlaylist(int id);
+  Future<void> removeXiaomiMusicSong(List<int> id);
+  Future<void> setXiaomiMusicSongInPlaylist({
+    required int playlistId,
+    required List<int> songId,
+    required bool included,
+  });
+  Future<List<DeviceRecording>> downloadXiaomiRecordings({
+    void Function(int completed, int total, String fileName)? onProgress,
   });
   Future<DeviceLogPullResult> pullDeviceLogs({
     void Function(double progress, String fileName)? onProgress,
@@ -444,6 +596,7 @@ class LocalDeviceManager extends DeviceManager {
   Timer? _batteryRefreshTimer;
   bool _batteryRefreshInProgress = false;
   int _activeZeppOsTransfers = 0;
+  Completer<void>? _recordingSyncCancellation;
   BluetoothConnection? _bluetoothConnection;
   DeviceEntity? _currentEntity;
   final _pooledConnections = <String, BluetoothConnection>{};
@@ -598,55 +751,18 @@ class LocalDeviceManager extends DeviceManager {
         resolvedProfile;
     final rawDisplayName = xiaomiDisplayNameForIdentity(name: endpointName);
     final displayName = _scanDisplayName(endpoint, rawDisplayName);
-    final existingIndex = state.scannedDevices.indexWhere(
-      (device) =>
-          device.addr == endpoint.address &&
-          device.connectType.toLowerCase() == endpoint.connectType.name,
-    );
-    if (existingIndex >= 0) {
-      final existing = state.scannedDevices[existingIndex];
-      final existingProfile = DeviceRegistry.resolveIdentity(
-        name: existing.name,
-      );
-      if (existingProfile.id == DeviceRegistry.unknown.id &&
-          endpoint.connectType == ConnectType.spp &&
-          existing.connectType != ConnectType.spp.name) {
-        final updated = List<BTDeviceInfo>.from(state.scannedDevices);
-        updated[existingIndex] = BTDeviceInfo(
-          name: displayName,
-          addr: endpoint.address,
-          connectType: endpoint.connectType.name,
-        );
-        state = state.copyWith(scannedDevices: _sortScannedDevices(updated));
-        return;
-      }
-      if (existingProfile.kind == DeviceKind.zepp ||
-          resolvedProfile.kind != DeviceKind.zepp) {
-        return;
-      }
-      final updated = List<BTDeviceInfo>.from(state.scannedDevices);
-      updated[existingIndex] = BTDeviceInfo(
-        name: displayName,
-        addr: endpoint.address,
-        connectType: endpoint.connectType.name,
-      );
-      state = state.copyWith(scannedDevices: _sortScannedDevices(updated));
-      return;
-    }
     _log.fine(
-      'scan add ${endpoint.address} "$displayName" '
+      'scan merge ${endpoint.address} "$displayName" '
       'via ${endpoint.connectType.name}',
     );
-    state = state.copyWith(
-      scannedDevices: _sortScannedDevices([
-        ...state.scannedDevices,
-        BTDeviceInfo(
-          name: displayName,
-          addr: endpoint.address,
-          connectType: endpoint.connectType.name,
-        ),
-      ]),
+    final merged = mergeScannedDeviceEndpoint(
+      state.scannedDevices,
+      endpoint,
+      displayName: displayName,
+      profile: resolvedProfile,
     );
+    if (identical(merged, state.scannedDevices)) return;
+    state = state.copyWith(scannedDevices: _sortScannedDevices(merged));
   }
 
   List<BTDeviceInfo> _sortScannedDevices(List<BTDeviceInfo> devices) {
@@ -1928,6 +2044,25 @@ class LocalDeviceManager extends DeviceManager {
   }
 
   @override
+  Future<void> cancelRecordingSync() async {
+    final cancellation = _recordingSyncCancellation;
+    if (cancellation != null && !cancellation.isCompleted) {
+      cancellation.complete();
+    }
+    final entity = _currentEntity;
+    entity?.system<ZeppOsVoiceMemosSystem>()?.cancelDownload();
+    final mass = entity?.system<XiaomiMassSystem>();
+    for (final channel in const [
+      L2Channel.massVoice,
+      L2Channel.mass,
+      L2Channel.fileSensor,
+      L2Channel.fileFitness,
+    ]) {
+      mass?.cancelReverseMassReceive(channel);
+    }
+  }
+
+  @override
   Future<void> uploadZeppOsMap(
     Uint8List bytes, {
     required String fileName,
@@ -2026,6 +2161,265 @@ class LocalDeviceManager extends DeviceManager {
       );
     } finally {
       _activeZeppOsTransfers -= 1;
+    }
+  }
+
+  XiaomiMediaSystem _requireXiaomiMediaSystem() {
+    final entity = _currentEntity;
+    if (entity == null || state.protocolState != ProtocolState.ready) {
+      throw ProtocolException('Device not ready');
+    }
+    return entity.system<XiaomiMediaSystem>() ??
+        (throw UnsupportedError('音乐管理服务不可用'));
+  }
+
+  @override
+  Future<DeviceMusicLibrary> loadXiaomiMusicLibrary() async {
+    final system = _requireXiaomiMediaSystem();
+    final summary = await system.requestSongSummary();
+    final songs = <DeviceMusicSong>[];
+    var index = 0;
+    for (var page = 0; page < 100 && songs.length < summary.songCount; page++) {
+      final response = await system.requestSongPage(index);
+      songs.addAll(
+        response.list.map(
+          (song) => DeviceMusicSong(
+            id: song.id.toList(growable: false),
+            name: song.name,
+            size: song.size,
+            duration: song.duration,
+            album: song.album,
+            artist: song.artist,
+          ),
+        ),
+      );
+      if (response.list.isEmpty || response.nextIndex <= index) break;
+      index = response.nextIndex;
+    }
+    final playlists = summary.list
+        .map(
+          (item) => DeviceMusicPlaylist(
+            id: item.id,
+            name: item.name,
+            songCount: item.songCount,
+          ),
+        )
+        .toList(growable: false);
+    final memberships = <String, List<int>>{};
+    for (final playlist in playlists) {
+      final response = await system.requestSonglistOperation(
+        pb_media.Songlist_Request(
+          cmd: pb_media_enum.Songlist_Request_Cmd.QUERY_SONG,
+          id: playlist.id,
+        ),
+        pb_media_enum.Media_MediaID.QUERY_SONG_FOR_SONGLIST,
+      );
+      if (response.code != pb_media_enum.Songlist_Response_Code.NO_ERROR) {
+        continue;
+      }
+      for (final song in songs) {
+        if (_containsBytes(response.songIds, song.id)) {
+          memberships.putIfAbsent(song.id.join(','), () => []).add(playlist.id);
+        }
+      }
+    }
+    return DeviceMusicLibrary(
+      songs: songs
+          .map(
+            (song) => DeviceMusicSong(
+              id: song.id,
+              name: song.name,
+              size: song.size,
+              duration: song.duration,
+              album: song.album,
+              artist: song.artist,
+              playlistIds: memberships[song.id.join(',')] ?? const [],
+            ),
+          )
+          .toList(growable: false),
+      playlists: playlists,
+      playlistLimit: summary.songlistLimit,
+    );
+  }
+
+  Future<void> _xiaomiPlaylistOperation({
+    required pb_media_enum.Media_MediaID mediaId,
+    required pb_media_enum.Songlist_Request_Cmd command,
+    int id = 0,
+    String name = '',
+  }) async {
+    final response = await _requireXiaomiMediaSystem().requestSonglistOperation(
+      pb_media.Songlist_Request(cmd: command, id: id, name: name),
+      mediaId,
+    );
+    if (response.code != pb_media_enum.Songlist_Response_Code.NO_ERROR) {
+      throw ProtocolException('歌单操作失败：${response.code.name}');
+    }
+  }
+
+  @override
+  Future<void> createXiaomiMusicPlaylist(String name) async {
+    final summary = await _requireXiaomiMediaSystem().requestSongSummary();
+    final usedIds = summary.list.map((playlist) => playlist.id).toSet();
+    var id = 1;
+    while (usedIds.contains(id)) {
+      id++;
+    }
+    await _xiaomiPlaylistOperation(
+      mediaId: pb_media_enum.Media_MediaID.ADD_SONGLIST,
+      command: pb_media_enum.Songlist_Request_Cmd.ADD,
+      id: id,
+      name: name,
+    );
+  }
+
+  @override
+  Future<void> renameXiaomiMusicPlaylist(int id, String name) =>
+      _xiaomiPlaylistOperation(
+        mediaId: pb_media_enum.Media_MediaID.RENAME_SONGLIST,
+        command: pb_media_enum.Songlist_Request_Cmd.RENAME,
+        id: id,
+        name: name,
+      );
+
+  @override
+  Future<void> removeXiaomiMusicPlaylist(int id) => _xiaomiPlaylistOperation(
+    mediaId: pb_media_enum.Media_MediaID.REMOVE_SONGLIST,
+    command: pb_media_enum.Songlist_Request_Cmd.REMOVE,
+    id: id,
+  );
+
+  @override
+  Future<void> removeXiaomiMusicSong(List<int> id) async {
+    final response = await _requireXiaomiMediaSystem().requestRemoveSong(
+      Uint8List.fromList(id),
+    );
+    if (!response.success) throw ProtocolException('设备未能删除歌曲');
+  }
+
+  @override
+  Future<void> setXiaomiMusicSongInPlaylist({
+    required int playlistId,
+    required List<int> songId,
+    required bool included,
+  }) async {
+    final response = await _requireXiaomiMediaSystem().requestSonglistOperation(
+      pb_media.Songlist_Request(
+        cmd: included
+            ? pb_media_enum.Songlist_Request_Cmd.ADD_SONG
+            : pb_media_enum.Songlist_Request_Cmd.REMOVE_SONG,
+        id: playlistId,
+        songIds: songId,
+      ),
+      included
+          ? pb_media_enum.Media_MediaID.ADD_SONG_TO_SONGLIST
+          : pb_media_enum.Media_MediaID.REMOVE_SONG_FROM_SONGLIST,
+    );
+    if (response.code != pb_media_enum.Songlist_Response_Code.NO_ERROR) {
+      throw ProtocolException('更新歌单失败：${response.code.name}');
+    }
+  }
+
+  bool _containsBytes(List<int> haystack, List<int> needle) {
+    if (needle.isEmpty || haystack.length < needle.length) return false;
+    for (var start = 0; start <= haystack.length - needle.length; start++) {
+      var matches = true;
+      for (var offset = 0; offset < needle.length; offset++) {
+        if (haystack[start + offset] != needle[offset]) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) return true;
+    }
+    return false;
+  }
+
+  @override
+  Future<List<DeviceRecording>> downloadXiaomiRecordings({
+    void Function(int completed, int total, String fileName)? onProgress,
+  }) async {
+    if (_recordingSyncCancellation != null) {
+      throw StateError('Recording synchronization is already running');
+    }
+    final cancellation = Completer<void>();
+    _recordingSyncCancellation = cancellation;
+    Future<T> cancellable<T>(Future<T> operation) => Future.any([
+      operation,
+      cancellation.future.then<T>(
+        (_) => throw const ProtocolException(
+          'Recording synchronization was cancelled',
+        ),
+      ),
+    ]);
+    try {
+      final entity = _currentEntity;
+      if (entity == null || state.protocolState != ProtocolState.ready) {
+        throw ProtocolException('Device not ready');
+      }
+      final media = entity.system<XiaomiMediaSystem>();
+      final mass = entity.system<XiaomiMassSystem>();
+      if (media == null || mass == null) {
+        throw UnsupportedError('设备录音服务不可用');
+      }
+      List<MediaFileDescriptor> files;
+      try {
+        files = await cancellable(media.requestMediaFileList());
+      } on TimeoutException {
+        files = await cancellable(media.requestMediaFileListCompat());
+      }
+      final recordings = files
+          .where(
+            (file) =>
+                file.identifier != null &&
+                (file.mediaType == pb_media_enum.MediaFile_Type.OPUS ||
+                    file.mediaType == pb_media_enum.MediaFile_Type.PCM ||
+                    file.name.toLowerCase().endsWith('.opus') ||
+                    file.name.toLowerCase().endsWith('.pcm')),
+          )
+          .toList(growable: false);
+      final results = <DeviceRecording>[];
+      const channels = [
+        L2Channel.massVoice,
+        L2Channel.mass,
+        L2Channel.fileSensor,
+        L2Channel.fileFitness,
+      ];
+      for (var index = 0; index < recordings.length; index++) {
+        final descriptor = recordings[index];
+        final identifier = descriptor.identifier!;
+        onProgress?.call(index, recordings.length, descriptor.name);
+        final receive = mass
+            .beginReverseMassReceiveMulti(channels, progressCb: (_) {})
+            .timeout(const Duration(minutes: 5));
+        try {
+          await media.requestMediaFile(identifier);
+          final result = await cancellable(receive);
+          await media.confirmMediaFile(identifier);
+          results.add(
+            DeviceRecording(
+              fileName: result.fileName.isEmpty
+                  ? descriptor.name
+                  : result.fileName,
+              data: result.data,
+              durationSeconds: descriptor.durationSecs,
+              createdAt: descriptor.createdAtMs == null
+                  ? null
+                  : DateTime.fromMillisecondsSinceEpoch(
+                      descriptor.createdAtMs!,
+                    ),
+            ),
+          );
+        } finally {
+          mass.clearReverseMassWait(L2Channel.massVoice);
+        }
+        onProgress?.call(index + 1, recordings.length, descriptor.name);
+      }
+      return results;
+    } finally {
+      if (identical(_recordingSyncCancellation, cancellation)) {
+        _recordingSyncCancellation = null;
+      }
     }
   }
 

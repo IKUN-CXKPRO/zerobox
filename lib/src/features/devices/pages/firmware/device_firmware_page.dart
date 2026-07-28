@@ -200,7 +200,7 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.refresh),
-                  label: Text(l10n.refresh),
+                  label: Text(_checking ? l10n.refreshing : l10n.refresh),
                 ),
               ],
             ),

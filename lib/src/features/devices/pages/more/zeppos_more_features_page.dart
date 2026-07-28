@@ -24,8 +24,7 @@ class ZeppOsMoreFeaturesPage extends ConsumerStatefulWidget {
 
 class _ZeppOsMoreFeaturesPageState
     extends ConsumerState<ZeppOsMoreFeaturesPage> {
-  static const _mirrorIntervalPreferenceKey =
-      'zeppos.mirror.frame_interval_ms';
+  static const _mirrorIntervalPreferenceKey = 'zeppos.mirror.frame_interval_ms';
 
   bool _finding = false;
   bool _busy = false;
@@ -65,9 +64,7 @@ class _ZeppOsMoreFeaturesPageState
       useSafeArea: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
-      builder: (_) => _WatchMirrorSheet(
-        frameIntervalMs: _mirrorIntervalMs,
-      ),
+      builder: (_) => _WatchMirrorSheet(frameIntervalMs: _mirrorIntervalMs),
     );
   }
 
@@ -145,8 +142,8 @@ class _ZeppOsMoreFeaturesPageState
                 ),
                 SegmentedTile.navigation(
                   leading: const Icon(Icons.mic_none),
-                  title: const Text('手表录音'),
-                  description: const Text('接收并保存手表中的 Opus 录音'),
+                  title: const Text('录音同步'),
+                  description: const Text('从手表同步并导出录音'),
                   enabled: ready,
                   onPressed: (_) =>
                       context.push('/devices/zeppos-more/voice-memos'),
@@ -156,8 +153,7 @@ class _ZeppOsMoreFeaturesPageState
                   title: const Text('音乐上传'),
                   description: const Text('通过 BT Classic 高速传输 MP3 到手表'),
                   enabled: ready,
-                  onPressed: (_) =>
-                      context.push('/devices/zeppos-more/music'),
+                  onPressed: (_) => context.push('/devices/zeppos-more/music'),
                 ),
                 SegmentedTile.navigation(
                   leading: const Icon(Icons.tune),
@@ -204,20 +200,20 @@ class _ZeppOsMoreFeaturesPageState
                                         inputFormatters: [
                                           FilteringTextInputFormatter
                                               .digitsOnly,
-                                          TextInputFormatter.withFunction(
-                                            (oldValue, newValue) {
-                                              if (newValue.text.isEmpty) {
-                                                return newValue;
-                                              }
-                                              final value = int.tryParse(
-                                                newValue.text,
-                                              );
-                                              return value != null &&
-                                                      value <= 250
-                                                  ? newValue
-                                                  : oldValue;
-                                            },
-                                          ),
+                                          TextInputFormatter.withFunction((
+                                            oldValue,
+                                            newValue,
+                                          ) {
+                                            if (newValue.text.isEmpty) {
+                                              return newValue;
+                                            }
+                                            final value = int.tryParse(
+                                              newValue.text,
+                                            );
+                                            return value != null && value <= 250
+                                                ? newValue
+                                                : oldValue;
+                                          }),
                                         ],
                                         decoration: const InputDecoration(
                                           isDense: true,
@@ -247,8 +243,7 @@ class _ZeppOsMoreFeaturesPageState
                   trailing: IconButton(
                     tooltip: _mirrorSettingsExpanded ? '收起设置' : '展开设置',
                     onPressed: () => setState(
-                      () => _mirrorSettingsExpanded =
-                          !_mirrorSettingsExpanded,
+                      () => _mirrorSettingsExpanded = !_mirrorSettingsExpanded,
                     ),
                     icon: AnimatedRotation(
                       turns: _mirrorSettingsExpanded ? .5 : 0,

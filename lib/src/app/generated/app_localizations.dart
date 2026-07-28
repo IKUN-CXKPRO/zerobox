@@ -284,6 +284,12 @@ abstract class AppLocalizations {
   /// **'Refresh'**
   String get refresh;
 
+  /// No description provided for @refreshing.
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshing'**
+  String get refreshing;
+
   /// No description provided for @notifications.
   ///
   /// In en, this message translates to:
@@ -1580,6 +1586,192 @@ abstract class AppLocalizations {
   /// **'Music transfer complete'**
   String get deviceMusicTransferred;
 
+  /// No description provided for @deviceMusicLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Device music'**
+  String get deviceMusicLibrary;
+
+  /// No description provided for @deviceMusicLibraryDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage songs and playlists on the device'**
+  String get deviceMusicLibraryDescription;
+
+  /// No description provided for @deviceMusicSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'Songs'**
+  String get deviceMusicSongs;
+
+  /// No description provided for @deviceMusicSongsTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} total'**
+  String deviceMusicSongsTotal(int count);
+
+  /// No description provided for @deviceMusicNoPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in a playlist'**
+  String get deviceMusicNoPlaylist;
+
+  /// No description provided for @deviceMusicPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlists'**
+  String get deviceMusicPlaylists;
+
+  /// No description provided for @deviceMusicEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No songs on the device'**
+  String get deviceMusicEmpty;
+
+  /// No description provided for @deviceMusicNoPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'No playlists yet'**
+  String get deviceMusicNoPlaylists;
+
+  /// No description provided for @deviceMusicLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load device music: {error}'**
+  String deviceMusicLoadFailed(String error);
+
+  /// No description provided for @deviceMusicPlaylistCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'New playlist'**
+  String get deviceMusicPlaylistCreate;
+
+  /// No description provided for @deviceMusicPlaylistRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename playlist'**
+  String get deviceMusicPlaylistRename;
+
+  /// No description provided for @deviceMusicPlaylistName.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist name'**
+  String get deviceMusicPlaylistName;
+
+  /// No description provided for @deviceMusicPlaylistLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to {count} playlists'**
+  String deviceMusicPlaylistLimit(int count);
+
+  /// No description provided for @deviceMusicSongCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} songs'**
+  String deviceMusicSongCount(int count);
+
+  /// No description provided for @deviceMusicDeleteSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this song from the device?'**
+  String get deviceMusicDeleteSong;
+
+  /// No description provided for @deviceMusicDeletePlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this playlist?'**
+  String get deviceMusicDeletePlaylist;
+
+  /// No description provided for @deviceMusicDeletePlaylistDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Songs in the playlist will remain on the device.'**
+  String get deviceMusicDeletePlaylistDescription;
+
+  /// No description provided for @deviceMusicManagePlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage playlists'**
+  String get deviceMusicManagePlaylists;
+
+  /// No description provided for @deviceMusicPlaylistMembership.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlists'**
+  String get deviceMusicPlaylistMembership;
+
+  /// No description provided for @deviceMusicTransferSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'{speed}/s'**
+  String deviceMusicTransferSpeed(String speed);
+
+  /// No description provided for @deviceMusicSelectedFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} files selected'**
+  String deviceMusicSelectedFiles(int count);
+
+  /// No description provided for @deviceMusicQueueProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Transferring {current}/{total}: {name}'**
+  String deviceMusicQueueProgress(int current, int total, String name);
+
+  /// No description provided for @deviceRecordingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording sync'**
+  String get deviceRecordingsTitle;
+
+  /// No description provided for @deviceRecordingsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync and export recordings from the watch'**
+  String get deviceRecordingsDescription;
+
+  /// No description provided for @deviceRecordingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Recordings are received and verified one by one. Export each original file after synchronization.'**
+  String get deviceRecordingsHint;
+
+  /// No description provided for @deviceRecordingsSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync recordings'**
+  String get deviceRecordingsSync;
+
+  /// No description provided for @deviceRecordingsSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Receiving'**
+  String get deviceRecordingsSyncing;
+
+  /// No description provided for @deviceRecordingsReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading recording list'**
+  String get deviceRecordingsReading;
+
+  /// No description provided for @deviceRecordingsProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Received {completed}/{total}: {name}'**
+  String deviceRecordingsProgress(int completed, int total, String name);
+
+  /// No description provided for @deviceRecordingsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect the watch and select Sync recordings'**
+  String get deviceRecordingsEmpty;
+
+  /// No description provided for @deviceRecordingsSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Export recording'**
+  String get deviceRecordingsSave;
+
   /// No description provided for @deviceMusicTransferTitle.
   ///
   /// In en, this message translates to:
@@ -1771,6 +1963,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'BLE'**
   String get deviceTransportBle;
+
+  /// No description provided for @deviceEndpointUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No {transport} endpoint is available. Pair the device in system Bluetooth settings, then scan again.'**
+  String deviceEndpointUnavailable(String transport);
 
   /// No description provided for @deviceTransportSpp.
   ///

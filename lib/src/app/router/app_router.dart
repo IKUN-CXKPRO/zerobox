@@ -19,6 +19,7 @@ import 'package:oronbox/src/features/devices/pages/more/zeppos_app_side_debug_pa
 import 'package:oronbox/src/features/devices/pages/more/zeppos_app_settings_page.dart';
 import 'package:oronbox/src/features/devices/pages/more/zeppos_maps_page.dart';
 import 'package:oronbox/src/features/devices/pages/more/zeppos_music_upload_page.dart';
+import 'package:oronbox/src/features/devices/pages/more/xiaomi_recordings_page.dart';
 import 'package:oronbox/src/features/devices/pages/more/zeppos_voice_memos_page.dart';
 import 'package:oronbox/src/features/devices/pages/switch/device_switch_page.dart';
 import 'package:oronbox/src/features/debug/pages/debug_window_app.dart';
@@ -233,6 +234,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'velaos-music',
                     builder: (context, state) =>
                         const DeviceMusicUploadPage(xiaomi: true),
+                  ),
+                  GoRoute(
+                    path: 'velaos-recordings',
+                    builder: (context, state) => const XiaomiRecordingsPage(),
                   ),
                   GoRoute(
                     path: 'zeppos-more',

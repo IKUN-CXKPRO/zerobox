@@ -8,6 +8,7 @@ import 'package:oronbox/src/device/core/system.dart';
 import 'package:oronbox/src/device/core/transport.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_services_system.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_component.dart';
+import 'package:oronbox/src/protocols/common/device_protocol.dart';
 
 class ZeppOsScreenshotSystem extends System {
   static const appsEndpoint = 0x00a0;
@@ -197,6 +198,17 @@ class ZeppOsScreenshotSystem extends System {
       _download = null;
       _resetV3Chunk();
     }
+  }
+
+  void cancelIncomingFile() {
+    final pending = _pendingIncomingFile?.completer;
+    if (pending != null && !pending.isCompleted) {
+      pending.completeError(
+        const ProtocolException('Recording synchronization was cancelled'),
+      );
+    }
+    _download = null;
+    _resetV3Chunk();
   }
 
   Future<int> _ensureCapabilities() async {
@@ -483,7 +495,9 @@ class ZeppOsScreenshotSystem extends System {
       _log.info('screenshot $protocol completed: ${screenshot.length} bytes');
       final pending = _pendingScreenshot;
       if (download.filename.startsWith('screenshot-')) {
-        if (pending != null && !pending.isCompleted) pending.complete(screenshot);
+        if (pending != null && !pending.isCompleted) {
+          pending.complete(screenshot);
+        }
       } else {
         final incoming = _pendingIncomingFile?.completer;
         if (incoming != null && !incoming.isCompleted) {

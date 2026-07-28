@@ -525,17 +525,104 @@ class HostDeviceManager extends DeviceManager {
     required String artist,
     void Function(double progress)? onProgress,
   }) async {
-    await _execute(
-      OronBoxCommand(
-        method: 'device.xiaomi.music.upload',
-        params: {
-          'bytes': bytes.toList(growable: false),
-          'title': title,
-          'artist': artist,
-        },
-      ),
+    StreamSubscription<CommandEvent>? progressSubscription;
+    try {
+      progressSubscription = ref.read(applicationHostProvider).events.listen((
+        event,
+      ) {
+        if (event.event != 'progress') return;
+        final value = event.data['progress'];
+        if (value is num) onProgress?.call(value.toDouble());
+      });
+      await _execute(
+        OronBoxCommand(
+          method: 'device.xiaomi.music.upload',
+          params: {
+            'bytes': bytes.toList(growable: false),
+            'title': title,
+            'artist': artist,
+          },
+        ),
+      );
+      onProgress?.call(1);
+    } finally {
+      await progressSubscription?.cancel();
+    }
+  }
+
+  @override
+  Future<DeviceMusicLibrary> loadXiaomiMusicLibrary() async {
+    final result = await _execute(
+      const OronBoxCommand(method: 'device.xiaomi.music.library'),
     );
-    onProgress?.call(1);
+    return DeviceMusicLibrary.fromJson((result.value as Map).cast());
+  }
+
+  Future<void> _musicCommand(String method, Map<String, Object?> params) async {
+    await _execute(OronBoxCommand(method: method, params: params));
+  }
+
+  @override
+  Future<void> createXiaomiMusicPlaylist(String name) =>
+      _musicCommand('device.xiaomi.music.playlist.create', {'name': name});
+
+  @override
+  Future<void> renameXiaomiMusicPlaylist(int id, String name) => _musicCommand(
+    'device.xiaomi.music.playlist.rename',
+    {'id': id, 'name': name},
+  );
+
+  @override
+  Future<void> removeXiaomiMusicPlaylist(int id) =>
+      _musicCommand('device.xiaomi.music.playlist.remove', {'id': id});
+
+  @override
+  Future<void> removeXiaomiMusicSong(List<int> id) =>
+      _musicCommand('device.xiaomi.music.song.remove', {'id': id});
+
+  @override
+  Future<void> setXiaomiMusicSongInPlaylist({
+    required int playlistId,
+    required List<int> songId,
+    required bool included,
+  }) => _musicCommand('device.xiaomi.music.song.playlist.set', {
+    'playlistId': playlistId,
+    'songId': songId,
+    'included': included,
+  });
+
+  @override
+  Future<List<DeviceRecording>> downloadXiaomiRecordings({
+    void Function(int completed, int total, String fileName)? onProgress,
+  }) async {
+    StreamSubscription<CommandEvent>? subscription;
+    try {
+      subscription = ref.read(applicationHostProvider).events.listen((event) {
+        if (event.event != 'progress') return;
+        final completed = event.data['completed'];
+        final total = event.data['total'];
+        if (completed is num && total is num) {
+          onProgress?.call(
+            completed.toInt(),
+            total.toInt(),
+            event.data['fileName']?.toString() ?? '',
+          );
+        }
+      });
+      final result = await _execute(
+        const OronBoxCommand(method: 'device.xiaomi.recordings.download'),
+      );
+      return (result.value as List)
+          .map((row) => DeviceRecording.fromJson((row as Map).cast()))
+          .toList(growable: false);
+    } finally {
+      await subscription?.cancel();
+    }
+  }
+
+  @override
+  Future<void> cancelRecordingSync() async {
+    await _execute(const OronBoxCommand(method: 'device.recordings.cancel'));
   }
 
   @override

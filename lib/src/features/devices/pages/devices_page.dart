@@ -337,39 +337,44 @@ class _DeviceInfoPanel extends StatelessWidget {
             width: statusRowWidth,
             child: Row(
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_isConnecting) ...[
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                Expanded(
+                  child: Row(
+                    children: [
+                      if (_isConnecting) ...[
+                        const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Flexible(
+                        child: Text(
+                          _isConnecting
+                              ? deviceConnectionPhaseText(
+                                  l10n,
+                                  connectionState,
+                                  fallbackDeviceName: device!.name,
+                                  connectType: device!.connectType,
+                                )
+                              : _isConnected
+                              ? l10n.deviceConnected
+                              : l10n.deviceDisconnected,
+                          style: textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: _isConnected || _isConnecting
+                                ? colorScheme.primary
+                                : colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      const SizedBox(width: 8),
                     ],
-                    Text(
-                      _isConnecting
-                          ? deviceConnectionPhaseText(
-                              l10n,
-                              connectionState,
-                              fallbackDeviceName: device!.name,
-                              connectType: device!.connectType,
-                            )
-                          : _isConnected
-                          ? l10n.deviceConnected
-                          : l10n.deviceDisconnected,
-                      style: textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: _isConnected || _isConnecting
-                            ? colorScheme.primary
-                            : colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
                 if (_isConnected) ...[
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -811,7 +816,7 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
                   title: Text(l10n.zeppOsMoreFeatures),
                   description: Text(l10n.zeppOsMoreFeaturesDescription),
                 )
-              else
+              else ...[
                 SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/velaos-music'),
                   enabled: enabled,
@@ -819,6 +824,14 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
                   title: Text(l10n.deviceMusicSync),
                   description: Text(l10n.deviceMusicSyncDescription),
                 ),
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/devices/velaos-recordings'),
+                  enabled: enabled,
+                  leading: const Icon(Icons.mic_none),
+                  title: Text(l10n.deviceRecordingsTitle),
+                  description: Text(l10n.deviceRecordingsDescription),
+                ),
+              ],
               SegmentedTile.navigation(
                 onPressed: (_) => context.push('/devices/firmware'),
                 enabled: enabled,
