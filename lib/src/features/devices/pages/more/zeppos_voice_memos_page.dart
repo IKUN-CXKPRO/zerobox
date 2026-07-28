@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_voice_memos_system.dart';
@@ -53,7 +54,11 @@ class _ZeppOsVoiceMemosPageState extends ConsumerState<ZeppOsVoiceMemosPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            result.isEmpty ? '手表中没有新的录音' : '已接收 ${result.length} 条录音',
+            result.isEmpty
+                ? AppLocalizations.of(context)!.deviceRecordingsNoneOnWatch
+                : AppLocalizations.of(
+                    context,
+                  )!.deviceRecordingsSynced(result.length),
           ),
         ),
       );
@@ -79,25 +84,35 @@ class _ZeppOsVoiceMemosPageState extends ConsumerState<ZeppOsVoiceMemosPage> {
     if (bytes == null) return;
     try {
       await FilePicker.saveFile(
-        dialogTitle: '保存手表录音',
+        dialogTitle: AppLocalizations.of(context)!.deviceRecordingsSave,
         fileName: _safeFilename(memo.filename),
         type: FileType.custom,
         allowedExtensions: const ['opus'],
         bytes: bytes,
       );
     } catch (error) {
-      if (mounted) setState(() => _error = '保存录音失败：$error');
+      if (mounted) {
+        setState(
+          () => _error = AppLocalizations.of(
+            context,
+          )!.deviceRecordingsSaveFailed(error.toString()),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final ready =
         ref.watch(deviceManagerProvider).protocolState ==
         proto.ProtocolState.ready;
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: const SysAppBar(secondary: true, title: Text('录音同步')),
+      appBar: SysAppBar(
+        secondary: true,
+        title: Text(l10n.deviceRecordingsTitle),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _syncing
             ? (_cancelling ? null : _cancel)
@@ -105,7 +120,7 @@ class _ZeppOsVoiceMemosPageState extends ConsumerState<ZeppOsVoiceMemosPage> {
         icon: _syncing
             ? Icon(_cancelling ? Icons.hourglass_top : Icons.close)
             : const Icon(Icons.sync),
-        label: Text(_syncing ? '取消' : '同步录音'),
+        label: Text(_syncing ? l10n.cancel : l10n.deviceRecordingsSync),
       ),
       body: PageContainer(
         child: ListView(
@@ -116,12 +131,12 @@ class _ZeppOsVoiceMemosPageState extends ConsumerState<ZeppOsVoiceMemosPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '从手表接收 Opus 录音',
+                    l10n.deviceRecordingsDescription,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '应用会读取手表录音列表并逐条下载。原始 Opus 数据经过长度和 CRC 校验后，可单独保存。',
+                    l10n.deviceRecordingsHint,
                     style: TextStyle(color: colors.onSurfaceVariant),
                   ),
                   if (_syncing) ...[
@@ -131,7 +146,12 @@ class _ZeppOsVoiceMemosPageState extends ConsumerState<ZeppOsVoiceMemosPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _total == 0 ? '正在读取录音列表' : '已接收 $_completed / $_total',
+                      _total == 0
+                          ? l10n.deviceRecordingsReading
+                          : l10n.deviceRecordingsProgressCount(
+                              _completed,
+                              _total,
+                            ),
                     ),
                   ],
                   if (_error != null) ...[
@@ -142,9 +162,9 @@ class _ZeppOsVoiceMemosPageState extends ConsumerState<ZeppOsVoiceMemosPage> {
               ),
             ),
             if (_memos.isEmpty && !_syncing)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 48),
-                child: Center(child: Text('连接手表后点击“同步录音”')),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 48),
+                child: Center(child: Text(l10n.deviceRecordingsEmpty)),
               )
             else
               ..._memos.map(
@@ -159,7 +179,7 @@ class _ZeppOsVoiceMemosPageState extends ConsumerState<ZeppOsVoiceMemosPage> {
                       '${_formatBytes(memo.size)}',
                     ),
                     trailing: IconButton(
-                      tooltip: '保存 Opus',
+                      tooltip: l10n.deviceRecordingsSave,
                       onPressed: memo.bytes == null ? null : () => _save(memo),
                       icon: const Icon(Icons.save_alt),
                     ),

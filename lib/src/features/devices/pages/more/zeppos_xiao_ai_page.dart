@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
@@ -88,6 +89,7 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
   }
 
   void _onFrame(Uint8List frame) {
+    final l10n = AppLocalizations.of(context)!;
     final decoder = _decoder;
     if (decoder == null) return;
     try {
@@ -98,12 +100,21 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
         bytes.setInt16(i * 2, sample, Endian.little);
       }
       if (pcm.isNotEmpty) {
-        var peak = 0.0;
-        for (final sample in pcm) {
-          peak = max(peak, sample.abs());
+        const buckets = 3;
+        final bucketSize = max(1, pcm.length ~/ buckets);
+        for (var bucket = 0; bucket < buckets; bucket += 1) {
+          final start = bucket * bucketSize;
+          final end = min(pcm.length, start + bucketSize);
+          var sumSquares = 0.0;
+          for (var i = start; i < end; i += 1) {
+            sumSquares += pcm[i] * pcm[i];
+          }
+          final rms = sqrt(sumSquares / max(1, end - start));
+          _waveform.add((sqrt(rms) * 1.35).clamp(0.025, 1.0));
         }
-        _waveform.add(peak.clamp(0.0, 1.0));
-        if (_waveform.length > 180) _waveform.removeAt(0);
+        while (_waveform.length > 180) {
+          _waveform.removeAt(0);
+        }
       }
       _opusFrames.add(Uint8List.fromList(frame));
       _opusDurations.add(pcm.length * 3);
@@ -120,14 +131,20 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
         _frames += 1;
         _opusBytes += frame.length;
         _pcmSamples += pcm.length;
-        if (_error?.startsWith('音频处理失败') == true) _error = null;
+        if (_error?.startsWith(l10n.voiceLabAudioProcessingFailedPrefix) ==
+            true) {
+          _error = null;
+        }
       });
     } catch (error) {
-      if (mounted) setState(() => _error = '音频处理失败：$error');
+      if (mounted) {
+        setState(() => _error = l10n.voiceLabAudioProcessingFailed('$error'));
+      }
     }
   }
 
   Future<void> _sendReply() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final manager = ref.read(deviceManagerProvider.notifier);
       await manager.setXiaoAiEndpoint(_assistantEndpoint);
@@ -137,29 +154,33 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
           SnackBar(
             content: Text(
               ref.read(deviceManagerProvider).xiaoAiActive
-                  ? '消息已排队，将在本轮录音结束后返回手表'
-                  : '消息已发送到手表',
+                  ? l10n.voiceLabReplyQueued
+                  : l10n.voiceLabReplySent,
             ),
           ),
         );
       }
     } catch (error) {
-      if (mounted) setState(() => _error = '发送失败：$error');
+      if (mounted) setState(() => _error = l10n.sendFailed('$error'));
     }
   }
 
   Future<void> _setContinuousCapture(bool enabled) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final manager = ref.read(deviceManagerProvider.notifier);
       await manager.setXiaoAiEndpoint(_assistantEndpoint);
       await manager.setXiaoAiContinuousCapture(enabled);
       if (mounted) setState(() => _continuousCapture = enabled);
     } catch (error) {
-      if (mounted) setState(() => _error = '连续采集设置失败：$error');
+      if (mounted) {
+        setState(() => _error = l10n.voiceLabContinuousCaptureFailed('$error'));
+      }
     }
   }
 
   Future<void> _setAssistantEndpoint(int endpoint) async {
+    final l10n = AppLocalizations.of(context)!;
     if (endpoint == _assistantEndpoint) return;
     try {
       await ref
@@ -184,35 +205,43 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
         });
       }
     } catch (error) {
-      if (mounted) setState(() => _error = '语音助手切换失败：$error');
+      if (mounted) {
+        setState(() => _error = l10n.voiceLabAssistantSwitchFailed('$error'));
+      }
     }
   }
 
   Future<void> _saveWav() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await FilePicker.saveFile(
-        dialogTitle: '保存语音助手录音',
+        dialogTitle: l10n.voiceLabSaveRecording,
         fileName: 'xiaoai-${DateTime.now().millisecondsSinceEpoch}.wav',
         type: FileType.custom,
         allowedExtensions: const ['wav'],
         bytes: _wavFile(_pcmBytes.toBytes()),
       );
     } catch (error) {
-      if (mounted) setState(() => _error = '导出 WAV 失败：$error');
+      if (mounted) {
+        setState(() => _error = l10n.voiceLabExportWavFailed('$error'));
+      }
     }
   }
 
   Future<void> _saveOpus() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await FilePicker.saveFile(
-        dialogTitle: '保存语音助手 Opus',
+        dialogTitle: l10n.voiceLabSaveOpus,
         fileName: 'xiaoai-${DateTime.now().millisecondsSinceEpoch}.opus',
         type: FileType.custom,
         allowedExtensions: const ['opus'],
         bytes: _oggOpusFile(_opusFrames, _opusDurations),
       );
     } catch (error) {
-      if (mounted) setState(() => _error = '导出 Opus 失败：$error');
+      if (mounted) {
+        setState(() => _error = l10n.voiceLabExportOpusFailed('$error'));
+      }
     }
   }
 
@@ -247,11 +276,13 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(deviceManagerProvider);
-    final colors = Theme.of(context).colorScheme;
-    final assistantName = _assistantEndpoint == 0x004a ? 'Zepp Flow' : '小爱同学';
+    final assistantName = _assistantEndpoint == 0x004a
+        ? 'Zepp Flow'
+        : l10n.voiceLabXiaoAi;
     return Scaffold(
-      appBar: SysAppBar(secondary: true, title: Text('语音实验室 · $assistantName')),
+      appBar: SysAppBar(secondary: true, title: Text(l10n.voiceLabTitle)),
       body: PageContainer(
         padding: const EdgeInsets.symmetric(
           horizontal: StyleConstants.pagePadding,
@@ -260,7 +291,6 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
           builder: (context, constraints) {
             final wide = constraints.maxWidth >= 900;
             final main = _SectionCard(
-              color: colors.primaryContainer,
               child: _buildSessionPanel(context, state, assistantName),
             );
             final side = _SectionCard(child: _buildCapturePanel(context));
@@ -299,6 +329,7 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
     DeviceManagerState state,
     String assistantName,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final endpoint = _assistantEndpoint
@@ -325,9 +356,11 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
                 children: [
                   Text(assistantName, style: theme.textTheme.headlineSmall),
                   Text(
-                    state.xiaoAiActive ? '正在接收手表音频' : '等待语音会话',
+                    state.xiaoAiActive
+                        ? l10n.voiceLabReceivingAudio
+                        : l10n.voiceLabWaiting,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colors.onPrimaryContainer,
+                      color: colors.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -338,11 +371,11 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
         ),
         const SizedBox(height: 20),
         SegmentedButton<int>(
-          segments: const [
+          segments: [
             ButtonSegment(
               value: 0x0010,
               icon: Icon(Icons.watch),
-              label: Text('小爱同学'),
+              label: Text(l10n.voiceLabXiaoAi),
             ),
             ButtonSegment(
               value: 0x004a,
@@ -382,8 +415,8 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
             Expanded(
               child: SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('连续采集'),
-                subtitle: const Text('自动请求下一段语音'),
+                title: Text(l10n.voiceLabContinuousCapture),
+                subtitle: Text(l10n.voiceLabContinuousCaptureDescription),
                 value: _continuousCapture,
                 onChanged: state.protocolState == proto.ProtocolState.ready
                     ? _setContinuousCapture
@@ -391,7 +424,9 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
               ),
             ),
             IconButton.filledTonal(
-              tooltip: _playback ? '关闭监听' : '开启监听',
+              tooltip: _playback
+                  ? l10n.voiceLabDisableMonitoring
+                  : l10n.voiceLabEnableMonitoring,
               onPressed: _ready
                   ? () => setState(() => _playback = !_playback)
                   : null,
@@ -403,11 +438,11 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
         TextField(
           controller: _replyController,
           decoration: InputDecoration(
-            labelText: '返回给手表的消息',
-            hintText: '输入回复内容',
+            labelText: l10n.voiceLabReplyLabel,
+            hintText: l10n.voiceLabReplyHint,
             filled: true,
             suffixIcon: IconButton(
-              tooltip: '发送',
+              tooltip: l10n.send,
               icon: const Icon(Icons.send),
               onPressed: _sendReply,
             ),
@@ -433,60 +468,68 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
     );
   }
 
-  Widget _buildCapturePanel(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        children: [
-          const Icon(Icons.analytics_outlined),
-          const SizedBox(width: 12),
-          Text('捕获数据', style: Theme.of(context).textTheme.titleLarge),
-        ],
-      ),
-      const SizedBox(height: 16),
-      _StatRow(label: '解码器', value: _ready ? '已就绪' : '初始化中'),
-      _StatRow(label: 'Opus 帧', value: '$_frames'),
-      _StatRow(label: '数据量', value: '$_opusBytes B'),
-      _StatRow(label: 'PCM 采样', value: '$_pcmSamples'),
-      const SizedBox(height: 20),
-      SizedBox(
-        width: double.infinity,
-        child: FilledButton.tonalIcon(
-          onPressed: _frames == 0 ? null : _saveOpus,
-          icon: const Icon(Icons.save_alt),
-          label: const Text('导出 Opus'),
+  Widget _buildCapturePanel(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.analytics_outlined),
+            const SizedBox(width: 12),
+            Text(
+              l10n.voiceLabCapturedData,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ],
         ),
-      ),
-      const SizedBox(height: 8),
-      SizedBox(
-        width: double.infinity,
-        child: OutlinedButton.icon(
-          onPressed: _pcmSamples == 0 ? null : _saveWav,
-          icon: const Icon(Icons.audio_file),
-          label: const Text('导出 WAV'),
+        const SizedBox(height: 16),
+        _StatRow(
+          label: l10n.voiceLabDecoder,
+          value: _ready ? l10n.ready : l10n.initializing,
         ),
-      ),
-      const SizedBox(height: 8),
-      SizedBox(
-        width: double.infinity,
-        child: TextButton.icon(
-          onPressed: _frames == 0 ? null : _clearCapture,
-          icon: const Icon(Icons.delete_sweep_outlined),
-          label: const Text('清空捕获'),
+        _StatRow(label: l10n.voiceLabOpusFrames, value: '$_frames'),
+        _StatRow(label: l10n.voiceLabDataSize, value: _formatBytes(_opusBytes)),
+        _StatRow(label: l10n.voiceLabPcmSamples, value: '$_pcmSamples'),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.tonalIcon(
+            onPressed: _frames == 0 ? null : _saveOpus,
+            icon: const Icon(Icons.save_alt),
+            label: Text(l10n.voiceLabExportOpus),
+          ),
         ),
-      ),
-    ],
-  );
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _pcmSamples == 0 ? null : _saveWav,
+            icon: const Icon(Icons.audio_file),
+            label: Text(l10n.voiceLabExportWav),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: TextButton.icon(
+            onPressed: _frames == 0 ? null : _clearCapture,
+            icon: const Icon(Icons.delete_sweep_outlined),
+            label: Text(l10n.voiceLabClearCapture),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.child, this.color});
+  const _SectionCard({required this.child});
   final Widget child;
-  final Color? color;
 
   @override
   Widget build(BuildContext context) => Card.filled(
-    color: color ?? Theme.of(context).colorScheme.surfaceContainerLow,
+    color: Theme.of(context).colorScheme.surfaceContainerLow,
     margin: EdgeInsets.zero,
     clipBehavior: Clip.antiAlias,
     child: Padding(padding: const EdgeInsets.all(24), child: child),
@@ -503,13 +546,15 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: active ? colors.primary : colors.surfaceContainerHighest,
+        color: active
+            ? colors.primaryContainer
+            : colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         active ? 'LIVE' : 'IDLE',
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: active ? colors.onPrimary : colors.onSurfaceVariant,
+          color: active ? colors.onPrimaryContainer : colors.onSurfaceVariant,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -543,29 +588,49 @@ class _AudioWaveformPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.height / 2;
-    final axisPaint = Paint()
-      ..color = color.withValues(alpha: 0.18)
-      ..strokeWidth = 1;
-    canvas.drawLine(Offset(0, center), Offset(size.width, center), axisPaint);
     if (samples.isEmpty) return;
-    final paint = Paint()
+
+    const preferredStep = 6.0;
+    final maxBars = max(1, (size.width / preferredStep).floor());
+    final visibleSamples = samples.length > maxBars
+        ? samples.sublist(samples.length - maxBars)
+        : samples;
+    final step = size.width / maxBars;
+    final barWidth = min(4.0, step * 0.62);
+    final startX = size.width - visibleSamples.length * step + step / 2;
+    final barPaint = Paint()
       ..color = color
-      ..strokeWidth = max(1.5, size.width / samples.length * 0.55)
-      ..strokeCap = StrokeCap.round;
-    final step = size.width / max(samples.length, 1);
-    for (var i = 0; i < samples.length; i += 1) {
-      final x = (i + 0.5) * step;
-      final height = max(1.5, samples[i] * (center - 8));
-      canvas.drawLine(
-        Offset(x, center - height),
-        Offset(x, center + height),
-        paint,
+      ..style = PaintingStyle.fill;
+    for (var i = 0; i < visibleSamples.length; i += 1) {
+      final halfHeight = max(
+        barWidth,
+        visibleSamples[i] * max(0.0, center - 8),
+      );
+      final rect = Rect.fromCenter(
+        center: Offset(startX + i * step, center),
+        width: barWidth,
+        height: halfHeight * 2,
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, Radius.circular(barWidth / 2)),
+        barPaint,
       );
     }
   }
 
   @override
   bool shouldRepaint(covariant _AudioWaveformPainter oldDelegate) => true;
+}
+
+String _formatBytes(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  }
+  if (bytes < 1024 * 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+  return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
 }
 
 Uint8List _wavFile(Uint8List pcm) {

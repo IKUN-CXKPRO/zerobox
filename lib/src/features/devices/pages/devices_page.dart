@@ -13,6 +13,7 @@ import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/app/widgets/huami_brand_icon.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/core/models/device.dart';
@@ -183,6 +184,7 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
                         const SizedBox(height: 12),
                         _DeviceStatusGrid(
                           compact: !isWide,
+                          showStorage: !isZeppOs,
                           enabled: isReady,
                           battery: state.battery,
                           storage: state.systemInfo?.storageInfo,
@@ -416,7 +418,7 @@ class _DeviceInfoPanel extends StatelessWidget {
                   label: l10n.deviceReconnect,
                   onPressed: onReconnect,
                 ),
-              if (_isConnected && !isZeppOs)
+              if (_isConnected)
                 _ActionButton(
                   icon: Icons.sync,
                   label: l10n.deviceSyncTime,
@@ -812,7 +814,7 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
                 SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/zeppos-more'),
                   enabled: enabled,
-                  leading: const Icon(Icons.watch_outlined),
+                  leading: const HuamiBrandIcon(),
                   title: Text(l10n.zeppOsMoreFeatures),
                   description: Text(l10n.zeppOsMoreFeaturesDescription),
                 )
@@ -826,6 +828,23 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
                 ),
                 SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/velaos-recordings'),
+                  enabled: enabled,
+                  leading: const Icon(Icons.mic_none),
+                  title: Text(l10n.deviceRecordingsTitle),
+                  description: Text(l10n.deviceRecordingsDescription),
+                ),
+              ],
+              if (isZeppOs) ...[
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/devices/zeppos-more/music'),
+                  enabled: enabled,
+                  leading: const Icon(Icons.music_note_outlined),
+                  title: Text(l10n.deviceMusicSync),
+                  description: Text(l10n.deviceMusicSyncDescription),
+                ),
+                SegmentedTile.navigation(
+                  onPressed: (_) =>
+                      context.push('/devices/zeppos-more/voice-memos'),
                   enabled: enabled,
                   leading: const Icon(Icons.mic_none),
                   title: Text(l10n.deviceRecordingsTitle),
@@ -882,6 +901,7 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
 class _DeviceStatusGrid extends StatelessWidget {
   const _DeviceStatusGrid({
     required this.compact,
+    required this.showStorage,
     required this.enabled,
     required this.battery,
     required this.storage,
@@ -894,6 +914,7 @@ class _DeviceStatusGrid extends StatelessWidget {
   });
 
   final bool compact;
+  final bool showStorage;
   final bool enabled;
   final BatteryStatus? battery;
   final StorageInfo? storage;
@@ -909,7 +930,7 @@ class _DeviceStatusGrid extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final cards = <Widget>[
       _BatteryCard(battery: battery),
-      _StorageCard(storage: storage),
+      if (showStorage) _StorageCard(storage: storage),
       _InstallSummaryCard(
         enabled: enabled,
         icon: Icons.apps_outlined,
@@ -944,13 +965,21 @@ class _DeviceStatusGrid extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: compact
-          ? Column(
-              children: [
-                row(cards.take(2)),
-                const SizedBox(height: 12),
-                row(cards.skip(2)),
-              ],
-            )
+          ? showStorage
+                ? Column(
+                    children: [
+                      row(cards.take(2)),
+                      const SizedBox(height: 12),
+                      row(cards.skip(2)),
+                    ],
+                  )
+                : Column(
+                    children: [
+                      row(cards.take(1)),
+                      const SizedBox(height: 12),
+                      row(cards.skip(1)),
+                    ],
+                  )
           : row(cards),
     );
   }

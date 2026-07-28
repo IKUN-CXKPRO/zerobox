@@ -17,7 +17,6 @@ import 'package:oronbox/src/features/devices/pages/more/zeppos_more_features_pag
 import 'package:oronbox/src/features/devices/pages/more/zeppos_xiao_ai_page.dart';
 import 'package:oronbox/src/features/devices/pages/more/zeppos_app_side_debug_page.dart';
 import 'package:oronbox/src/features/devices/pages/more/zeppos_app_settings_page.dart';
-import 'package:oronbox/src/features/devices/pages/more/zeppos_maps_page.dart';
 import 'package:oronbox/src/features/devices/pages/more/zeppos_music_upload_page.dart';
 import 'package:oronbox/src/features/devices/pages/more/xiaomi_recordings_page.dart';
 import 'package:oronbox/src/features/devices/pages/more/zeppos_voice_memos_page.dart';
@@ -266,10 +265,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         path: 'settings',
                         builder: (context, state) =>
                             const ZeppOsAppSettingsPage(),
-                      ),
-                      GoRoute(
-                        path: 'maps',
-                        builder: (context, state) => const ZeppOsMapsPage(),
                       ),
                     ],
                   ),

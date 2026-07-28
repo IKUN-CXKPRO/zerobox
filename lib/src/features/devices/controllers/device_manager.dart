@@ -47,6 +47,7 @@ import 'package:oronbox/src/device/zeppos/systems/zeppos_map_upload_system.dart'
 import 'package:oronbox/src/device/zeppos/systems/zeppos_music_upload_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_services_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_screenshot_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_time_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_xiao_ai_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_watchface_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_voice_memos_system.dart';
@@ -210,39 +211,6 @@ class DeviceRecording {
       );
 }
 
-class ZeppOsMessageRecord {
-  const ZeppOsMessageRecord({
-    required this.timestamp,
-    required this.endpoint,
-    required this.payload,
-  });
-
-  final DateTime timestamp;
-  final int endpoint;
-  final List<int> payload;
-
-  Map<String, Object?> toJson() => {
-    'timestamp': timestamp.toIso8601String(),
-    'endpoint': endpoint,
-    'payload': payload,
-  };
-
-  factory ZeppOsMessageRecord.fromJson(Map<String, dynamic> json) {
-    return ZeppOsMessageRecord(
-      timestamp:
-          DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
-          DateTime.fromMillisecondsSinceEpoch(0),
-      endpoint: (json['endpoint'] as num?)?.toInt() ?? 0,
-      payload:
-          (json['payload'] as List?)
-              ?.whereType<num>()
-              .map((value) => value.toInt() & 0xff)
-              .toList(growable: false) ??
-          const [],
-    );
-  }
-}
-
 class DeviceManagerState {
   const DeviceManagerState({
     this.currentDevice,
@@ -259,7 +227,6 @@ class DeviceManagerState {
     this.systemInfo,
     this.apps = const [],
     this.watchfaces = const [],
-    this.zeppOsMessages = const [],
     this.xiaoAiActive = false,
     this.xiaoAiFrameCount = 0,
     this.xiaoAiCapabilities = const {},
@@ -282,7 +249,6 @@ class DeviceManagerState {
   final SystemInfo? systemInfo;
   final List<AppInfo> apps;
   final List<WatchfaceInfo> watchfaces;
-  final List<ZeppOsMessageRecord> zeppOsMessages;
   final bool xiaoAiActive;
   final int xiaoAiFrameCount;
   final Map<String, Object?> xiaoAiCapabilities;
@@ -305,7 +271,6 @@ class DeviceManagerState {
     SystemInfo? systemInfo,
     List<AppInfo>? apps,
     List<WatchfaceInfo>? watchfaces,
-    List<ZeppOsMessageRecord>? zeppOsMessages,
     bool? xiaoAiActive,
     int? xiaoAiFrameCount,
     Map<String, Object?>? xiaoAiCapabilities,
@@ -342,7 +307,6 @@ class DeviceManagerState {
       systemInfo: clearSystemInfo ? null : (systemInfo ?? this.systemInfo),
       apps: apps ?? this.apps,
       watchfaces: watchfaces ?? this.watchfaces,
-      zeppOsMessages: zeppOsMessages ?? this.zeppOsMessages,
       xiaoAiActive: xiaoAiActive ?? this.xiaoAiActive,
       xiaoAiFrameCount: xiaoAiFrameCount ?? this.xiaoAiFrameCount,
       xiaoAiCapabilities: xiaoAiCapabilities ?? this.xiaoAiCapabilities,
@@ -457,7 +421,6 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
     void Function(double progress, String fileName)? onProgress,
   });
   Future<void> cancelDeviceLogPull();
-  void clearZeppOsMessages();
   Future<List<int>> listZeppOsAppSides();
   Future<List<int>> observedZeppOsAppSideIds();
   Future<List<ZeppOsAppSideSessionInfo>> zeppOsAppSideSessions();
@@ -997,7 +960,6 @@ class LocalDeviceManager extends DeviceManager {
       clearSystemInfo: true,
       apps: const [],
       watchfaces: const [],
-      zeppOsMessages: const [],
       xiaoAiActive: false,
       xiaoAiFrameCount: 0,
       xiaoAiCapabilities: const {},
@@ -1069,7 +1031,6 @@ class LocalDeviceManager extends DeviceManager {
           clearSystemInfo: true,
           apps: const [],
           watchfaces: const [],
-          zeppOsMessages: const [],
           xiaoAiActive: false,
           xiaoAiFrameCount: 0,
           xiaoAiCapabilities: const {},
@@ -1212,7 +1173,6 @@ class LocalDeviceManager extends DeviceManager {
         clearSystemInfo: true,
         apps: const [],
         watchfaces: const [],
-        zeppOsMessages: const [],
         xiaoAiActive: false,
         xiaoAiFrameCount: 0,
         xiaoAiCapabilities: const {},
@@ -1438,20 +1398,6 @@ class LocalDeviceManager extends DeviceManager {
       case WatchfaceListUpdated(:final watchfaces):
         _log.info('event: watchface list ${watchfaces.length}');
         state = state.copyWith(watchfaces: watchfaces);
-      case ZeppOsEndpointMessageReceived(:final endpoint, :final payload):
-        final messages = [
-          ...state.zeppOsMessages,
-          ZeppOsMessageRecord(
-            timestamp: DateTime.now(),
-            endpoint: endpoint,
-            payload: List<int>.unmodifiable(payload),
-          ),
-        ];
-        state = state.copyWith(
-          zeppOsMessages: messages.length > 200
-              ? messages.sublist(messages.length - 200)
-              : messages,
-        );
       case XiaoAiSessionStarted(:final capabilities):
         state = state.copyWith(
           xiaoAiActive: true,
@@ -1819,6 +1765,11 @@ class LocalDeviceManager extends DeviceManager {
     if (entity == null || state.protocolState != ProtocolState.ready) {
       throw ProtocolException('Device not ready');
     }
+    final zeppOsSystem = entity.system<ZeppOsTimeSystem>();
+    if (zeppOsSystem != null) {
+      await zeppOsSystem.syncTime();
+      return;
+    }
     final system = entity.system<XiaomiSyncSystem>();
     if (system == null) {
       throw UnsupportedError('Time synchronization is not available');
@@ -1854,7 +1805,9 @@ class LocalDeviceManager extends DeviceManager {
     Object? firstError;
     StackTrace? firstStackTrace;
     final operations = <(String, Future<void> Function())>[
-      if (entity.system<XiaomiSyncSystem>() != null) ('time', syncTime),
+      if (entity.system<XiaomiSyncSystem>() != null ||
+          entity.system<ZeppOsTimeSystem>() != null)
+        ('time', syncTime),
       ('device data', refreshDeviceData),
       ('watchfaces', fetchWatchfaces),
       ('apps', fetchApps),
@@ -1942,11 +1895,6 @@ class LocalDeviceManager extends DeviceManager {
       throw UnsupportedError('Assistant is only available for ZeppOS');
     }
     system.selectEndpoint(endpoint);
-  }
-
-  @override
-  void clearZeppOsMessages() {
-    state = state.copyWith(zeppOsMessages: const []);
   }
 
   ZeppOsAppSideSystem _appSideSystem() {

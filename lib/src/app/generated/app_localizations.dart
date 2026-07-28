@@ -1529,8 +1529,890 @@ abstract class AppLocalizations {
   /// No description provided for @zeppOsMoreFeaturesDescription.
   ///
   /// In en, this message translates to:
-  /// **'Additional features supported by Zepp OS devices'**
+  /// **'Manage additional features for Zepp OS devices'**
   String get zeppOsMoreFeaturesDescription;
+
+  /// No description provided for @zeppOsDeviceFeaturesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Device features'**
+  String get zeppOsDeviceFeaturesSection;
+
+  /// No description provided for @zeppOsAppsAndDevelopmentSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Apps and development'**
+  String get zeppOsAppsAndDevelopmentSection;
+
+  /// No description provided for @zeppOsAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice lab'**
+  String get zeppOsAssistant;
+
+  /// No description provided for @zeppOsAssistantDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture, monitor, and reply to watch voice assistant sessions'**
+  String get zeppOsAssistantDescription;
+
+  /// No description provided for @zeppOsScreenMirror.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen mirroring'**
+  String get zeppOsScreenMirror;
+
+  /// No description provided for @zeppOsScreenMirrorDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'View the watch screen on this device'**
+  String get zeppOsScreenMirrorDescription;
+
+  /// No description provided for @zeppOsScreenMirrorSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Zepp OS watch screen mirror'**
+  String get zeppOsScreenMirrorSemantics;
+
+  /// No description provided for @zeppOsScreenMirrorUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This screen format cannot be displayed: {error}'**
+  String zeppOsScreenMirrorUnsupported(Object error);
+
+  /// No description provided for @expand.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand'**
+  String get expand;
+
+  /// No description provided for @collapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse'**
+  String get collapse;
+
+  /// No description provided for @voiceLabTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice lab'**
+  String get voiceLabTitle;
+
+  /// No description provided for @voiceLabXiaoAi.
+  ///
+  /// In en, this message translates to:
+  /// **'XiaoAI'**
+  String get voiceLabXiaoAi;
+
+  /// No description provided for @voiceLabReceivingAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Receiving audio from the watch'**
+  String get voiceLabReceivingAudio;
+
+  /// No description provided for @voiceLabWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for a voice session'**
+  String get voiceLabWaiting;
+
+  /// No description provided for @voiceLabContinuousCapture.
+  ///
+  /// In en, this message translates to:
+  /// **'Continuous capture'**
+  String get voiceLabContinuousCapture;
+
+  /// No description provided for @voiceLabContinuousCaptureDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Request the next recording when the current one ends'**
+  String get voiceLabContinuousCaptureDescription;
+
+  /// No description provided for @voiceLabDisableMonitoring.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable live monitoring'**
+  String get voiceLabDisableMonitoring;
+
+  /// No description provided for @voiceLabEnableMonitoring.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable live monitoring'**
+  String get voiceLabEnableMonitoring;
+
+  /// No description provided for @voiceLabReplyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply sent to the watch'**
+  String get voiceLabReplyLabel;
+
+  /// No description provided for @voiceLabReplyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a reply'**
+  String get voiceLabReplyHint;
+
+  /// No description provided for @voiceLabReplyQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply queued until the current recording ends'**
+  String get voiceLabReplyQueued;
+
+  /// No description provided for @voiceLabReplySent.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply sent to the watch'**
+  String get voiceLabReplySent;
+
+  /// No description provided for @voiceLabCapturedData.
+  ///
+  /// In en, this message translates to:
+  /// **'Captured data'**
+  String get voiceLabCapturedData;
+
+  /// No description provided for @voiceLabDecoder.
+  ///
+  /// In en, this message translates to:
+  /// **'Decoder'**
+  String get voiceLabDecoder;
+
+  /// No description provided for @voiceLabOpusFrames.
+  ///
+  /// In en, this message translates to:
+  /// **'Opus frames'**
+  String get voiceLabOpusFrames;
+
+  /// No description provided for @voiceLabDataSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Data size'**
+  String get voiceLabDataSize;
+
+  /// No description provided for @voiceLabPcmSamples.
+  ///
+  /// In en, this message translates to:
+  /// **'PCM samples'**
+  String get voiceLabPcmSamples;
+
+  /// No description provided for @voiceLabExportOpus.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Opus'**
+  String get voiceLabExportOpus;
+
+  /// No description provided for @voiceLabExportWav.
+  ///
+  /// In en, this message translates to:
+  /// **'Export WAV'**
+  String get voiceLabExportWav;
+
+  /// No description provided for @voiceLabClearCapture.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear captured data'**
+  String get voiceLabClearCapture;
+
+  /// No description provided for @voiceLabSaveRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Save voice recording'**
+  String get voiceLabSaveRecording;
+
+  /// No description provided for @voiceLabSaveOpus.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Opus audio'**
+  String get voiceLabSaveOpus;
+
+  /// No description provided for @voiceLabAudioProcessingFailedPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio processing failed'**
+  String get voiceLabAudioProcessingFailedPrefix;
+
+  /// No description provided for @voiceLabAudioProcessingFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio processing failed: {error}'**
+  String voiceLabAudioProcessingFailed(Object error);
+
+  /// No description provided for @voiceLabContinuousCaptureFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not configure continuous capture: {error}'**
+  String voiceLabContinuousCaptureFailed(Object error);
+
+  /// No description provided for @voiceLabAssistantSwitchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not switch voice assistant: {error}'**
+  String voiceLabAssistantSwitchFailed(Object error);
+
+  /// No description provided for @voiceLabExportWavFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not export WAV: {error}'**
+  String voiceLabExportWavFailed(Object error);
+
+  /// No description provided for @voiceLabExportOpusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not export Opus: {error}'**
+  String voiceLabExportOpusFailed(Object error);
+
+  /// No description provided for @send.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get send;
+
+  /// No description provided for @sendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not send: {error}'**
+  String sendFailed(Object error);
+
+  /// No description provided for @ready.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get ready;
+
+  /// No description provided for @initializing.
+  ///
+  /// In en, this message translates to:
+  /// **'Initializing'**
+  String get initializing;
+
+  /// No description provided for @zeppOsMapSelectPackage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a Zepp OS map package'**
+  String get zeppOsMapSelectPackage;
+
+  /// No description provided for @zeppOsMapReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read the map package'**
+  String get zeppOsMapReadFailed;
+
+  /// No description provided for @zeppOsMapTransferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer offline map'**
+  String get zeppOsMapTransferTitle;
+
+  /// No description provided for @zeppOsMapGarminDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'{fileName}\nDetected a single-file Garmin IMG map: {mapName}'**
+  String zeppOsMapGarminDetected(Object fileName, Object mapName);
+
+  /// No description provided for @zeppOsMapGarminNoPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'This map does not contain a Zepp OS 11/x/y tile tree. The original IMG will be transferred as a single-file map package, so a coverage preview is unavailable.'**
+  String get zeppOsMapGarminNoPreview;
+
+  /// No description provided for @zeppOsMapTileSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{fileName} · {count} tiles\nThe preview shows package coverage, not the Garmin IMG rendering on the watch.'**
+  String zeppOsMapTileSummary(Object fileName, Object count);
+
+  /// No description provided for @zeppOsMapWatchConfirmationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You must also confirm the installation on the watch. Keep it close to this device during transfer.'**
+  String get zeppOsMapWatchConfirmationHint;
+
+  /// No description provided for @zeppOsMapStartTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Start transfer'**
+  String get zeppOsMapStartTransfer;
+
+  /// No description provided for @zeppOsMapTransferringBluetooth.
+  ///
+  /// In en, this message translates to:
+  /// **'Transferring over Bluetooth'**
+  String get zeppOsMapTransferringBluetooth;
+
+  /// No description provided for @zeppOsMapTransferComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline map transfer complete'**
+  String get zeppOsMapTransferComplete;
+
+  /// No description provided for @zeppOsMapConversionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Map could not be converted safely'**
+  String get zeppOsMapConversionFailed;
+
+  /// No description provided for @zeppOsMapSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Maps'**
+  String get zeppOsMapSection;
+
+  /// No description provided for @zeppOsMapTransferAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer map'**
+  String get zeppOsMapTransferAction;
+
+  /// No description provided for @zeppOsMapTransferDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a ZIP or Garmin IMG map and send it to the watch'**
+  String get zeppOsMapTransferDescription;
+
+  /// No description provided for @zeppOsMapBtClassicHint.
+  ///
+  /// In en, this message translates to:
+  /// **'BT Classic bulk transfer is active. After transfer starts, confirm the installation on the watch.'**
+  String get zeppOsMapBtClassicHint;
+
+  /// No description provided for @zeppOsMapBleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'BLE supports map packages up to 2 MB. Switch to BT Classic before transferring a larger map. After transfer starts, confirm the installation on the watch.'**
+  String get zeppOsMapBleHint;
+
+  /// No description provided for @zeppOsMapPreviewTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The map area is too large to preview in full'**
+  String get zeppOsMapPreviewTooLarge;
+
+  /// No description provided for @zeppOsSettingPageLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the settings page: {error}'**
+  String zeppOsSettingPageLoadFailed(Object error);
+
+  /// No description provided for @zeppOsAppCompatibilitySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Compatibility files saved for {appId}'**
+  String zeppOsAppCompatibilitySaved(Object appId);
+
+  /// No description provided for @zeppOsAppStorageSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'settingsStorage saved for {appId}'**
+  String zeppOsAppStorageSaved(Object appId);
+
+  /// No description provided for @zeppOsAppSupplementFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Add app-side or setting files'**
+  String get zeppOsAppSupplementFiles;
+
+  /// No description provided for @zeppOsAppSupplementCompatibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Add mini-app compatibility files'**
+  String get zeppOsAppSupplementCompatibility;
+
+  /// No description provided for @zeppOsAppReplaceCompatibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Add or replace compatibility files'**
+  String get zeppOsAppReplaceCompatibility;
+
+  /// No description provided for @zeppOsAppSideAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'app-side ✓'**
+  String get zeppOsAppSideAvailable;
+
+  /// No description provided for @zeppOsAppSideMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'app-side missing'**
+  String get zeppOsAppSideMissing;
+
+  /// No description provided for @zeppOsSettingAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'setting ✓'**
+  String get zeppOsSettingAvailable;
+
+  /// No description provided for @zeppOsSettingMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'setting missing'**
+  String get zeppOsSettingMissing;
+
+  /// No description provided for @zeppOsAppEditStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit settingsStorage'**
+  String get zeppOsAppEditStorage;
+
+  /// No description provided for @zeppOsStorageKeyRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Key is required'**
+  String get zeppOsStorageKeyRequired;
+
+  /// No description provided for @zeppOsStorageDuplicateKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate key: {key}'**
+  String zeppOsStorageDuplicateKey(Object key);
+
+  /// No description provided for @zeppOsStorageDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'This data is shared by the setting page and app-side, and is stored as strings according to the Zepp OS specification.'**
+  String get zeppOsStorageDescription;
+
+  /// No description provided for @zeppOsStorageEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No stored entries'**
+  String get zeppOsStorageEmpty;
+
+  /// No description provided for @zeppOsStorageKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get zeppOsStorageKey;
+
+  /// No description provided for @zeppOsStorageValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Value'**
+  String get zeppOsStorageValue;
+
+  /// No description provided for @clear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clear;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @selectedFileReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read the selected file'**
+  String get selectedFileReadFailed;
+
+  /// No description provided for @zeppOsAppInvalidHexId.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid hexadecimal App ID'**
+  String get zeppOsAppInvalidHexId;
+
+  /// No description provided for @zeppOsAppSelectCompatibilityFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least one app-side.js or setting.js file'**
+  String get zeppOsAppSelectCompatibilityFile;
+
+  /// No description provided for @zeppOsAppHexId.
+  ///
+  /// In en, this message translates to:
+  /// **'App ID (hexadecimal)'**
+  String get zeppOsAppHexId;
+
+  /// No description provided for @optionalDisplayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Display name (optional)'**
+  String get optionalDisplayName;
+
+  /// No description provided for @zeppOsAppSideUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep existing app-side'**
+  String get zeppOsAppSideUnchanged;
+
+  /// No description provided for @zeppOsSettingUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep existing setting'**
+  String get zeppOsSettingUnchanged;
+
+  /// No description provided for @selectFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Select file'**
+  String get selectFile;
+
+  /// No description provided for @zeppOsAppCompatibilityOverwriteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving replaces compatibility files with the same name for this App ID, but does not modify the mini app on the watch.'**
+  String get zeppOsAppCompatibilityOverwriteHint;
+
+  /// No description provided for @zeppOsDebugRefreshFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic refresh failed: {error}'**
+  String zeppOsDebugRefreshFailed(Object error);
+
+  /// No description provided for @zeppOsDebugInvalidHex.
+  ///
+  /// In en, this message translates to:
+  /// **'HEX must contain complete bytes separated by spaces, line breaks, 0x, commas, or similar separators'**
+  String get zeppOsDebugInvalidHex;
+
+  /// No description provided for @zeppOsDebugClearEventsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear events for the current app?'**
+  String get zeppOsDebugClearEventsTitle;
+
+  /// No description provided for @zeppOsDebugClearEventsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'All debug events for {appId} will be cleared.'**
+  String zeppOsDebugClearEventsDescription(Object appId);
+
+  /// No description provided for @zeppOsDebugClearEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear events'**
+  String get zeppOsDebugClearEvents;
+
+  /// No description provided for @zeppOsDebugRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh status and events'**
+  String get zeppOsDebugRefresh;
+
+  /// No description provided for @zeppOsDebugAppList.
+  ///
+  /// In en, this message translates to:
+  /// **'App-side list'**
+  String get zeppOsDebugAppList;
+
+  /// No description provided for @zeppOsDebugNoApps.
+  ///
+  /// In en, this message translates to:
+  /// **'No cached scripts or watch app-side sessions have been detected.'**
+  String get zeppOsDebugNoApps;
+
+  /// No description provided for @zeppOsDebugCached.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached'**
+  String get zeppOsDebugCached;
+
+  /// No description provided for @zeppOsDebugNotCached.
+  ///
+  /// In en, this message translates to:
+  /// **'Not cached'**
+  String get zeppOsDebugNotCached;
+
+  /// No description provided for @zeppOsDebugRuntimeRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'runtime running'**
+  String get zeppOsDebugRuntimeRunning;
+
+  /// No description provided for @zeppOsDebugRuntimeStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'runtime stopped'**
+  String get zeppOsDebugRuntimeStopped;
+
+  /// No description provided for @zeppOsDebugLocalRuntime.
+  ///
+  /// In en, this message translates to:
+  /// **'Local runtime'**
+  String get zeppOsDebugLocalRuntime;
+
+  /// No description provided for @zeppOsDebugCannotStart.
+  ///
+  /// In en, this message translates to:
+  /// **'This App ID has no cached script and cannot be started locally.'**
+  String get zeppOsDebugCannotStart;
+
+  /// No description provided for @zeppOsDebugCanStart.
+  ///
+  /// In en, this message translates to:
+  /// **'The cached script can be started manually without fabricating watch session parameters.'**
+  String get zeppOsDebugCanStart;
+
+  /// No description provided for @zeppOsDebugScriptRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'The script is running in local QuickJS.'**
+  String get zeppOsDebugScriptRunning;
+
+  /// No description provided for @zeppOsDebugStartQuickJs.
+  ///
+  /// In en, this message translates to:
+  /// **'Start QuickJS'**
+  String get zeppOsDebugStartQuickJs;
+
+  /// No description provided for @stop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get stop;
+
+  /// No description provided for @zeppOsDebugMessageEditor.
+  ///
+  /// In en, this message translates to:
+  /// **'Message editor'**
+  String get zeppOsDebugMessageEditor;
+
+  /// No description provided for @zeppOsDebugUtf8Text.
+  ///
+  /// In en, this message translates to:
+  /// **'UTF-8 text'**
+  String get zeppOsDebugUtf8Text;
+
+  /// No description provided for @zeppOsDebugJsonCompact.
+  ///
+  /// In en, this message translates to:
+  /// **'JSON (compacted before sending)'**
+  String get zeppOsDebugJsonCompact;
+
+  /// No description provided for @zeppOsDebugHexBytes.
+  ///
+  /// In en, this message translates to:
+  /// **'HEX bytes'**
+  String get zeppOsDebugHexBytes;
+
+  /// No description provided for @zeppOsDebugEncodingFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The current content cannot be encoded in the selected mode'**
+  String get zeppOsDebugEncodingFailed;
+
+  /// No description provided for @zeppOsDebugByteCountUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Bytes: --'**
+  String get zeppOsDebugByteCountUnavailable;
+
+  /// No description provided for @zeppOsDebugBytePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Bytes: {count}\nHEX: {hex}'**
+  String zeppOsDebugBytePreview(Object count, Object hex);
+
+  /// No description provided for @zeppOsDebugInjectLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Inject inbound message into local runtime'**
+  String get zeppOsDebugInjectLocal;
+
+  /// No description provided for @zeppOsDebugSendToWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Send to watch'**
+  String get zeppOsDebugSendToWatch;
+
+  /// No description provided for @zeppOsDebugWaitingForWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Send to watch (waiting for a real session)'**
+  String get zeppOsDebugWaitingForWatch;
+
+  /// No description provided for @zeppOsDebugEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug events'**
+  String get zeppOsDebugEvents;
+
+  /// No description provided for @zeppOsDebugClearCurrentApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear current app'**
+  String get zeppOsDebugClearCurrentApp;
+
+  /// No description provided for @zeppOsDebugSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search type, message, HEX, or readable text'**
+  String get zeppOsDebugSearch;
+
+  /// No description provided for @zeppOsDebugWatchOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Real watch messages only'**
+  String get zeppOsDebugWatchOnly;
+
+  /// No description provided for @zeppOsDebugNoEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'No events match the current filters'**
+  String get zeppOsDebugNoEvents;
+
+  /// No description provided for @zeppOsDebugMessageActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Message actions'**
+  String get zeppOsDebugMessageActions;
+
+  /// No description provided for @zeppOsDebugLoadEditor.
+  ///
+  /// In en, this message translates to:
+  /// **'Load in editor'**
+  String get zeppOsDebugLoadEditor;
+
+  /// No description provided for @zeppOsDebugCopyHex.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy HEX'**
+  String get zeppOsDebugCopyHex;
+
+  /// No description provided for @zeppOsDebugCopyText.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy text'**
+  String get zeppOsDebugCopyText;
+
+  /// No description provided for @zeppOsDebugSessionStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Runtime and session status'**
+  String get zeppOsDebugSessionStatus;
+
+  /// No description provided for @zeppOsDebugCachedScript.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached script: {status}'**
+  String zeppOsDebugCachedScript(Object status);
+
+  /// No description provided for @zeppOsDebugLocalRuntimeStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Local runtime: {status}'**
+  String zeppOsDebugLocalRuntimeStatus(Object status);
+
+  /// No description provided for @zeppOsDebugWatchSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch session: {status}'**
+  String zeppOsDebugWatchSession(Object status);
+
+  /// No description provided for @exists.
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get exists;
+
+  /// No description provided for @notExists.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get notExists;
+
+  /// No description provided for @running.
+  ///
+  /// In en, this message translates to:
+  /// **'Running'**
+  String get running;
+
+  /// No description provided for @notRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Not running'**
+  String get notRunning;
+
+  /// No description provided for @notOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Not open'**
+  String get notOpen;
+
+  /// No description provided for @zeppOsDebugWatchSessionOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Real session open'**
+  String get zeppOsDebugWatchSessionOpen;
+
+  /// No description provided for @zeppOsDebugRealHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Real header'**
+  String get zeppOsDebugRealHeader;
+
+  /// No description provided for @zeppOsDebugLatestStartup.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest startup status: {status}'**
+  String zeppOsDebugLatestStartup(Object status);
+
+  /// No description provided for @zeppOsDebugWatchInbound.
+  ///
+  /// In en, this message translates to:
+  /// **'From watch'**
+  String get zeppOsDebugWatchInbound;
+
+  /// No description provided for @zeppOsDebugWatchOutbound.
+  ///
+  /// In en, this message translates to:
+  /// **'To watch'**
+  String get zeppOsDebugWatchOutbound;
+
+  /// No description provided for @zeppOsDebugLifecycle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lifecycle'**
+  String get zeppOsDebugLifecycle;
+
+  /// No description provided for @zeppOsMirrorInterval.
+  ///
+  /// In en, this message translates to:
+  /// **'Frame interval'**
+  String get zeppOsMirrorInterval;
+
+  /// No description provided for @zeppOsMirrorIntervalRange.
+  ///
+  /// In en, this message translates to:
+  /// **'10–250'**
+  String get zeppOsMirrorIntervalRange;
+
+  /// No description provided for @zeppOsOfflineMaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline maps'**
+  String get zeppOsOfflineMaps;
+
+  /// No description provided for @zeppOsOfflineMapsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer existing map packages to the watch'**
+  String get zeppOsOfflineMapsDescription;
+
+  /// No description provided for @zeppOsAppSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'App settings'**
+  String get zeppOsAppSettings;
+
+  /// No description provided for @zeppOsAppSettingsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage cached settings for Zepp OS apps'**
+  String get zeppOsAppSettingsDescription;
+
+  /// No description provided for @zeppOsAppDebug.
+  ///
+  /// In en, this message translates to:
+  /// **'App debugging'**
+  String get zeppOsAppDebug;
+
+  /// No description provided for @zeppOsAppDebugDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug app-side scripts and device communication'**
+  String get zeppOsAppDebugDescription;
 
   /// No description provided for @deviceFeaturesSection.
   ///
@@ -1760,6 +2642,12 @@ abstract class AppLocalizations {
   /// **'Received {completed}/{total}: {name}'**
   String deviceRecordingsProgress(int completed, int total, String name);
 
+  /// No description provided for @deviceRecordingsProgressCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Received {completed}/{total}'**
+  String deviceRecordingsProgressCount(int completed, int total);
+
   /// No description provided for @deviceRecordingsEmpty.
   ///
   /// In en, this message translates to:
@@ -1771,6 +2659,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Export recording'**
   String get deviceRecordingsSave;
+
+  /// No description provided for @deviceRecordingsNoneOnWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No new recordings were found on the watch'**
+  String get deviceRecordingsNoneOnWatch;
+
+  /// No description provided for @deviceRecordingsSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'Synced {count} recordings'**
+  String deviceRecordingsSynced(int count);
+
+  /// No description provided for @deviceRecordingsSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not export recording: {error}'**
+  String deviceRecordingsSaveFailed(String error);
 
   /// No description provided for @deviceMusicTransferTitle.
   ///

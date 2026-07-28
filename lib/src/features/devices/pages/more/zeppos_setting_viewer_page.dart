@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/features/devices/services/zeppos_app_settings_service.dart';
 
@@ -92,7 +93,11 @@ class _ZeppOsSettingViewerPageState extends State<ZeppOsSettingViewerPage> {
             ? const CircularProgressIndicator()
             : Padding(
                 padding: const EdgeInsets.all(24),
-                child: Text('设置页面加载失败：$_error'),
+                child: Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.zeppOsSettingPageLoadFailed('$_error'),
+                ),
               ),
       ),
     ),

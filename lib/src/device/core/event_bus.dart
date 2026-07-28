@@ -115,17 +115,6 @@ final class InterconnectMessage extends DeviceEvent {
   final Uint8List payload;
 }
 
-final class ZeppOsEndpointMessageReceived extends DeviceEvent {
-  const ZeppOsEndpointMessageReceived({
-    required super.deviceId,
-    required this.endpoint,
-    required this.payload,
-  });
-
-  final int endpoint;
-  final Uint8List payload;
-}
-
 final class XiaoAiSessionStarted extends DeviceEvent {
   const XiaoAiSessionStarted({
     required super.deviceId,

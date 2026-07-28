@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:segmented_list/segmented_list.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
@@ -38,6 +39,7 @@ class _ZeppOsAppSettingsPageState extends State<ZeppOsAppSettingsPage> {
   void _reload() => setState(() => _items = _load());
 
   Future<void> _supplement({_Item? item}) async {
+    final l10n = AppLocalizations.of(context)!;
     final result = await showDialog<_SupplementResult>(
       context: context,
       builder: (context) => _SupplementDialog(item: item),
@@ -57,7 +59,11 @@ class _ZeppOsAppSettingsPageState extends State<ZeppOsAppSettingsPage> {
       _reload();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${_formatId(result.appId)} 兼容文件已保存')),
+        SnackBar(
+          content: Text(
+            l10n.zeppOsAppCompatibilitySaved(_formatId(result.appId)),
+          ),
+        ),
       );
     } catch (error) {
       if (!mounted) return;
@@ -83,6 +89,7 @@ class _ZeppOsAppSettingsPageState extends State<ZeppOsAppSettingsPage> {
   }
 
   Future<void> _editStorage(_Item item) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final coordinator = ZeppOsSettingsCoordinator.instance;
       final current = await coordinator.read(item.appId);
@@ -99,7 +106,9 @@ class _ZeppOsAppSettingsPageState extends State<ZeppOsAppSettingsPage> {
       await coordinator.replace(item.appId, updated, origin: this);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${_formatId(item.appId)} settingsStorage 已保存')),
+        SnackBar(
+          content: Text(l10n.zeppOsAppStorageSaved(_formatId(item.appId))),
+        ),
       );
     } catch (error) {
       if (!mounted) return;
@@ -110,82 +119,87 @@ class _ZeppOsAppSettingsPageState extends State<ZeppOsAppSettingsPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: SysAppBar(
-      secondary: true,
-      title: const Text('应用设置'),
-      actions: [
-        IconButton(
-          onPressed: _supplement,
-          icon: const Icon(Icons.add),
-          tooltip: '补全 app-side / setting',
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Scaffold(
+      appBar: SysAppBar(
+        secondary: true,
+        title: Text(l10n.zeppOsAppSettings),
+        actions: [
+          IconButton(
+            onPressed: _supplement,
+            icon: const Icon(Icons.add),
+            tooltip: l10n.zeppOsAppSupplementFiles,
+          ),
+        ],
+      ),
+      body: PageContainer(
+        padding: const EdgeInsets.symmetric(
+          horizontal: StyleConstants.pagePadding,
         ),
-      ],
-    ),
-    body: PageContainer(
-      padding: const EdgeInsets.symmetric(
-        horizontal: StyleConstants.pagePadding,
-      ),
-      child: FutureBuilder<List<_Item>>(
-        future: _items,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('${snapshot.error}'));
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final items = snapshot.data!;
-          if (items.isEmpty) {
-            return Center(
-              child: FilledButton.icon(
-                onPressed: _supplement,
-                icon: const Icon(Icons.add),
-                label: const Text('补全小程序兼容文件'),
-              ),
+        child: FutureBuilder<List<_Item>>(
+          future: _items,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(child: Text('${snapshot.error}'));
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final items = snapshot.data!;
+            if (items.isEmpty) {
+              return Center(
+                child: FilledButton.icon(
+                  onPressed: _supplement,
+                  icon: const Icon(Icons.add),
+                  label: Text(l10n.zeppOsAppSupplementCompatibility),
+                ),
+              );
+            }
+            return ListView(
+              children: [
+                SegmentedSection(
+                  margin: EdgeInsetsDirectional.zero,
+                  tiles: [
+                    for (final item in items)
+                      SegmentedTile.navigation(
+                        leading: Icon(
+                          item.hasSetting
+                              ? Icons.tune
+                              : Icons.extension_outlined,
+                        ),
+                        title: Text(item.name ?? _formatId(item.appId)),
+                        description: Text(
+                          '${_formatId(item.appId)} · '
+                          '${item.hasAppSide ? l10n.zeppOsAppSideAvailable : l10n.zeppOsAppSideMissing} · '
+                          '${item.hasSetting ? l10n.zeppOsSettingAvailable : l10n.zeppOsSettingMissing}',
+                        ),
+                        onPressed: item.hasSetting ? (_) => _open(item) : null,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              onPressed: () => _editStorage(item),
+                              icon: const Icon(Icons.storage_outlined),
+                              tooltip: l10n.zeppOsAppEditStorage,
+                            ),
+                            IconButton(
+                              onPressed: () => _supplement(item: item),
+                              icon: const Icon(Icons.upload_file_outlined),
+                              tooltip: l10n.zeppOsAppReplaceCompatibility,
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             );
-          }
-          return ListView(
-            children: [
-              SegmentedSection(
-                margin: EdgeInsetsDirectional.zero,
-                tiles: [
-                  for (final item in items)
-                    SegmentedTile.navigation(
-                      leading: Icon(
-                        item.hasSetting ? Icons.tune : Icons.extension_outlined,
-                      ),
-                      title: Text(item.name ?? _formatId(item.appId)),
-                      description: Text(
-                        '${_formatId(item.appId)} · '
-                        '${item.hasAppSide ? 'app-side ✓' : 'app-side 缺失'} · '
-                        '${item.hasSetting ? 'setting ✓' : 'setting 缺失'}',
-                      ),
-                      onPressed: item.hasSetting ? (_) => _open(item) : null,
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            onPressed: () => _editStorage(item),
-                            icon: const Icon(Icons.storage_outlined),
-                            tooltip: '编辑 settingsStorage',
-                          ),
-                          IconButton(
-                            onPressed: () => _supplement(item: item),
-                            icon: const Icon(Icons.upload_file_outlined),
-                            tooltip: '补全或替换兼容文件',
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          );
-        },
+          },
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _StorageEditorDialog extends StatefulWidget {
@@ -242,15 +256,16 @@ class _StorageEditorDialogState extends State<_StorageEditorDialog> {
   }
 
   void _save() {
+    final l10n = AppLocalizations.of(context)!;
     final result = <String, String>{};
     for (final entry in _entries) {
       final key = entry.key.text.trim();
       if (key.isEmpty) {
-        setState(() => _error = '键名不能为空');
+        setState(() => _error = l10n.zeppOsStorageKeyRequired);
         return;
       }
       if (result.containsKey(key)) {
-        setState(() => _error = '键名重复：$key');
+        setState(() => _error = l10n.zeppOsStorageDuplicateKey(key));
         return;
       }
       result[key] = entry.value.text;
@@ -259,84 +274,87 @@ class _StorageEditorDialogState extends State<_StorageEditorDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.appName ?? _formatId(widget.appId)),
-    content: SizedBox(
-      width: 720,
-      height: 520,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('${_formatId(widget.appId)} · settingsStorage'),
-          const SizedBox(height: 8),
-          const Text('这里的数据由 setting 页面和 app-side 共享。值按 Zepp OS 规范以字符串保存。'),
-          const SizedBox(height: 12),
-          Expanded(
-            child: _entries.isEmpty
-                ? const Center(child: Text('暂无存储项'))
-                : ListView.separated(
-                    itemCount: _entries.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final entry = _entries[index];
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: TextField(
-                              controller: entry.key,
-                              decoration: const InputDecoration(
-                                labelText: '键',
-                                border: OutlineInputBorder(),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      title: Text(widget.appName ?? _formatId(widget.appId)),
+      content: SizedBox(
+        width: 720,
+        height: 520,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${_formatId(widget.appId)} · settingsStorage'),
+            const SizedBox(height: 8),
+            Text(l10n.zeppOsStorageDescription),
+            const SizedBox(height: 12),
+            Expanded(
+              child: _entries.isEmpty
+                  ? Center(child: Text(l10n.zeppOsStorageEmpty))
+                  : ListView.separated(
+                      itemCount: _entries.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final entry = _entries[index];
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                controller: entry.key,
+                                decoration: InputDecoration(
+                                  labelText: l10n.zeppOsStorageKey,
+                                  border: const OutlineInputBorder(),
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            flex: 3,
-                            child: TextField(
-                              controller: entry.value,
-                              minLines: 1,
-                              maxLines: 4,
-                              decoration: const InputDecoration(
-                                labelText: '值',
-                                border: OutlineInputBorder(),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 3,
+                              child: TextField(
+                                controller: entry.value,
+                                minLines: 1,
+                                maxLines: 4,
+                                decoration: InputDecoration(
+                                  labelText: l10n.zeppOsStorageValue,
+                                  border: const OutlineInputBorder(),
+                                ),
                               ),
                             ),
-                          ),
-                          IconButton(
-                            onPressed: () => _remove(index),
-                            icon: const Icon(Icons.delete_outline),
-                            tooltip: '删除',
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-          ),
-          if (_error != null)
-            Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+                            IconButton(
+                              onPressed: () => _remove(index),
+                              icon: const Icon(Icons.delete_outline),
+                              tooltip: l10n.delete,
+                            ),
+                          ],
+                        );
+                      },
+                    ),
             ),
-        ],
+            if (_error != null)
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+          ],
+        ),
       ),
-    ),
-    actions: [
-      TextButton(onPressed: _clear, child: const Text('清空')),
-      OutlinedButton.icon(
-        onPressed: _add,
-        icon: const Icon(Icons.add),
-        label: const Text('新增'),
-      ),
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('取消'),
-      ),
-      FilledButton(onPressed: _save, child: const Text('保存')),
-    ],
-  );
+      actions: [
+        TextButton(onPressed: _clear, child: Text(l10n.clear)),
+        OutlinedButton.icon(
+          onPressed: _add,
+          icon: const Icon(Icons.add),
+          label: Text(l10n.add),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(onPressed: _save, child: Text(l10n.save)),
+      ],
+    );
+  }
 }
 
 class _StorageEntry {
@@ -385,6 +403,7 @@ class _SupplementDialogState extends State<_SupplementDialog> {
   }
 
   Future<void> _pick({required bool setting}) async {
+    final l10n = AppLocalizations.of(context)!;
     final picked = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['js'],
@@ -394,7 +413,7 @@ class _SupplementDialogState extends State<_SupplementDialog> {
     if (file == null) return;
     final bytes = file.bytes;
     if (bytes == null) {
-      setState(() => _error = '无法读取所选文件');
+      setState(() => _error = l10n.selectedFileReadFailed);
       return;
     }
     setState(() {
@@ -410,15 +429,16 @@ class _SupplementDialogState extends State<_SupplementDialog> {
   }
 
   void _submit() {
+    final l10n = AppLocalizations.of(context)!;
     var value = _appId.text.trim().toLowerCase();
     if (value.startsWith('0x')) value = value.substring(2);
     final id = int.tryParse(value, radix: 16);
     if (id == null || id <= 0 || id > 0xffffffff) {
-      setState(() => _error = '请输入有效的十六进制 App ID');
+      setState(() => _error = l10n.zeppOsAppInvalidHexId);
       return;
     }
     if (_appSide == null && _setting == null) {
-      setState(() => _error = '请至少选择一个 app-side.js 或 setting.js');
+      setState(() => _error = l10n.zeppOsAppSelectCompatibilityFile);
       return;
     }
     Navigator.pop(
@@ -433,74 +453,85 @@ class _SupplementDialogState extends State<_SupplementDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.item == null ? '补全小程序兼容文件' : '补全或替换兼容文件'),
-    content: SizedBox(
-      width: 520,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _appId,
-              enabled: widget.item == null,
-              decoration: const InputDecoration(
-                labelText: 'App ID（十六进制）',
-                hintText: '000f9467',
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _name,
-              decoration: const InputDecoration(labelText: '显示名称（可选）'),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.javascript),
-              title: const Text('app-side.js'),
-              subtitle: Text(_appSideName ?? '不修改现有 app-side'),
-              trailing: OutlinedButton(
-                onPressed: () => _pick(setting: false),
-                child: const Text('选择文件'),
-              ),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.tune),
-              title: const Text('setting.js'),
-              subtitle: Text(_settingName ?? '不修改现有 setting'),
-              trailing: OutlinedButton(
-                onPressed: () => _pick(setting: true),
-                child: const Text('选择文件'),
-              ),
-            ),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text('保存会覆盖该 App ID 下同名的兼容文件，不会修改手表内的小程序。'),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      title: Text(
+        widget.item == null
+            ? l10n.zeppOsAppSupplementCompatibility
+            : l10n.zeppOsAppReplaceCompatibility,
+      ),
+      content: SizedBox(
+        width: 520,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _appId,
+                enabled: widget.item == null,
+                decoration: InputDecoration(
+                  labelText: l10n.zeppOsAppHexId,
+                  hintText: '000f9467',
                 ),
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _name,
+                decoration: InputDecoration(
+                  labelText: l10n.optionalDisplayName,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.javascript),
+                title: const Text('app-side.js'),
+                subtitle: Text(_appSideName ?? l10n.zeppOsAppSideUnchanged),
+                trailing: OutlinedButton(
+                  onPressed: () => _pick(setting: false),
+                  child: Text(l10n.selectFile),
+                ),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.tune),
+                title: const Text('setting.js'),
+                subtitle: Text(_settingName ?? l10n.zeppOsSettingUnchanged),
+                trailing: OutlinedButton(
+                  onPressed: () => _pick(setting: true),
+                  child: Text(l10n.selectFile),
+                ),
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(l10n.zeppOsAppCompatibilityOverwriteHint),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('取消'),
-      ),
-      FilledButton(onPressed: _submit, child: const Text('保存')),
-    ],
-  );
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(onPressed: _submit, child: Text(l10n.save)),
+      ],
+    );
+  }
 }
 
 class _SupplementResult {

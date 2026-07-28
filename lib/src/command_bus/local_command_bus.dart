@@ -298,7 +298,6 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'device.zeppos.find' => _setFindingZeppOsDevice(
       command.params['finding'] == true,
     ),
-    'device.zeppos.messages.clear' => Future.value(_clearZeppOsMessages()),
     'device.zeppos.screenshot' => _manager.requestZeppOsScreenshot(),
     'device.zeppos.voice_memos.download' => _downloadVoiceMemos(),
     'device.logs.pull' => _pullDeviceLogs(),
@@ -751,9 +750,6 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     if (state.systemInfo != null) 'systemInfo': state.systemInfo!.toJson(),
     'apps': state.apps.map((item) => item.toJson()).toList(),
     'watchfaces': state.watchfaces.map((item) => item.toJson()).toList(),
-    'zeppOsMessages': state.zeppOsMessages
-        .map((item) => item.toJson())
-        .toList(growable: false),
     'xiaoAiActive': state.xiaoAiActive,
     'xiaoAiFrameCount': state.xiaoAiFrameCount,
     'xiaoAiCapabilities': state.xiaoAiCapabilities,
@@ -1039,11 +1035,6 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     await _ensureConnected(null);
     await _manager.setFindingZeppOsDevice(finding);
     return {'finding': finding};
-  }
-
-  Object _clearZeppOsMessages() {
-    _manager.clearZeppOsMessages();
-    return const {'cleared': true};
   }
 
   int _appSideId(Map<String, Object?> params) {

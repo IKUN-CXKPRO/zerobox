@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/app/widgets/huami_brand_icon.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 
@@ -129,6 +130,7 @@ class CleanModePage extends ConsumerWidget {
                 value.oronBox || value.bandBbs || value.astroBox,
                 (enabled) => update(value.copyWith(huamiAppStore: enabled)),
                 brandLabel: 'Amazfit',
+                leading: const HuamiBrandIcon(),
               ),
             ],
           ),
@@ -169,12 +171,13 @@ class CleanModePage extends ConsumerWidget {
     ValueChanged<bool> onChanged, {
     String? brandAsset,
     required String brandLabel,
+    Widget? leading,
   }) => _switch(
     title,
     libraryOn && storedValue,
     onChanged,
     enabled: libraryOn && (!storedValue || anotherSourceOn),
-    leading: _SourceBrandIcon(asset: brandAsset, label: brandLabel),
+    leading: leading ?? _SourceBrandIcon(asset: brandAsset, label: brandLabel),
   );
 
   AbstractSegmentedTile _switch(

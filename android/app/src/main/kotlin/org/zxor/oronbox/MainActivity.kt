@@ -69,9 +69,10 @@ class MainActivity : FlutterActivity() {
     private var zeppSettingsAppId: Long? = null
     private var zeppSettingsChannel: MethodChannel? = null
 
-    private fun startBackgroundService(label: String) {
+    private fun startBackgroundService(label: String, mode: String) {
         val intent = Intent(this, BackgroundTaskService::class.java).apply {
             putExtra(BackgroundTaskService.EXTRA_LABEL, label)
+            putExtra(BackgroundTaskService.EXTRA_MODE, mode)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
@@ -97,14 +98,22 @@ class MainActivity : FlutterActivity() {
                     val id = ++nextBackgroundTaskId
                     backgroundTaskIds.add(id)
                     lastTaskLabel = call.argument<String>("label") ?: "Installing resources"
-                    startBackgroundService(lastTaskLabel!!)
+                    startBackgroundService(
+                        lastTaskLabel!!,
+                        BackgroundTaskService.MODE_TASK,
+                    )
                     result.success(id)
                 }
                 "end" -> {
                     call.argument<Int>("id")?.let(backgroundTaskIds::remove)
                     if (backgroundTaskIds.isEmpty()) {
                         lastTaskLabel = null
-                        connectionLabel?.let(::startBackgroundService)
+                        connectionLabel?.let {
+                            startBackgroundService(
+                                it,
+                                BackgroundTaskService.MODE_CONNECTION,
+                            )
+                        }
                     }
                     stopBackgroundServiceIfIdle()
                     result.success(null)
@@ -113,12 +122,21 @@ class MainActivity : FlutterActivity() {
                 // is connected; task labels take precedence while both run.
                 "beginConnection" -> {
                     connectionLabel = call.argument<String>("label") ?: "Device connected"
-                    startBackgroundService(lastTaskLabel ?: connectionLabel!!)
+                    startBackgroundService(
+                        lastTaskLabel ?: connectionLabel!!,
+                        if (lastTaskLabel == null) {
+                            BackgroundTaskService.MODE_CONNECTION
+                        } else {
+                            BackgroundTaskService.MODE_TASK
+                        },
+                    )
                     result.success(null)
                 }
                 "endConnection" -> {
                     connectionLabel = null
-                    lastTaskLabel?.let(::startBackgroundService)
+                    lastTaskLabel?.let {
+                        startBackgroundService(it, BackgroundTaskService.MODE_TASK)
+                    }
                     stopBackgroundServiceIfIdle()
                     result.success(null)
                 }

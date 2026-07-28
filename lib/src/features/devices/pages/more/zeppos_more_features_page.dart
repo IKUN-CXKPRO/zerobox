@@ -12,6 +12,7 @@ import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/devices/pages/more/zeppos_map_transfer.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
 
 class ZeppOsMoreFeaturesPage extends ConsumerStatefulWidget {
@@ -28,7 +29,6 @@ class _ZeppOsMoreFeaturesPageState
 
   bool _finding = false;
   bool _busy = false;
-  bool _messagesExpanded = true;
   bool _mirrorSettingsExpanded = false;
   int _mirrorIntervalMs = 10;
   late final TextEditingController _mirrorIntervalController;
@@ -118,7 +118,6 @@ class _ZeppOsMoreFeaturesPageState
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(deviceManagerProvider);
     final ready = state.protocolState == proto.ProtocolState.ready;
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: SysAppBar(secondary: true, title: Text(l10n.zeppOsMoreFeatures)),
@@ -129,54 +128,23 @@ class _ZeppOsMoreFeaturesPageState
         child: ListView(
           children: [
             SegmentedSection(
-              title: const Text('功能'),
-              margin: EdgeInsetsDirectional.zero,
+              title: Text(l10n.zeppOsDeviceFeaturesSection),
               tiles: [
                 SegmentedTile.navigation(
                   leading: const Icon(Icons.record_voice_over),
-                  title: const Text('小爱同学'),
-                  description: const Text('捕获 Opus 帧并实时解码播放'),
+                  title: Text(l10n.zeppOsAssistant),
+                  description: Text(l10n.zeppOsAssistantDescription),
                   enabled: ready,
                   onPressed: (_) =>
                       context.push('/devices/zeppos-more/xiao-ai'),
                 ),
                 SegmentedTile.navigation(
-                  leading: const Icon(Icons.mic_none),
-                  title: const Text('录音同步'),
-                  description: const Text('从手表同步并导出录音'),
-                  enabled: ready,
-                  onPressed: (_) =>
-                      context.push('/devices/zeppos-more/voice-memos'),
-                ),
-                SegmentedTile.navigation(
-                  leading: const Icon(Icons.library_music_outlined),
-                  title: const Text('音乐上传'),
-                  description: const Text('通过 BT Classic 高速传输 MP3 到手表'),
-                  enabled: ready,
-                  onPressed: (_) => context.push('/devices/zeppos-more/music'),
-                ),
-                SegmentedTile.navigation(
-                  leading: const Icon(Icons.tune),
-                  title: const Text('应用设置'),
-                  description: const Text('打开已缓存的 Zepp OS 应用设置页'),
-                  onPressed: (_) =>
-                      context.push('/devices/zeppos-more/settings'),
-                ),
-                SegmentedTile.navigation(
-                  leading: const Icon(Icons.code),
-                  title: const Text('App-side 调试'),
-                  description: const Text('按 appId 调试 QuickJS 与 PeerSocket 消息'),
-                  enabled: ready,
-                  onPressed: (_) =>
-                      context.push('/devices/zeppos-more/app-side'),
-                ),
-                SegmentedTile.navigation(
                   leading: const Icon(Icons.watch_outlined),
-                  title: const Text('屏幕镜像'),
+                  title: Text(l10n.zeppOsScreenMirror),
                   description: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('在手机上查看手表画面'),
+                      Text(l10n.zeppOsScreenMirrorDescription),
                       AnimatedSize(
                         duration: const Duration(milliseconds: 180),
                         alignment: Alignment.topCenter,
@@ -186,7 +154,7 @@ class _ZeppOsMoreFeaturesPageState
                                 padding: const EdgeInsets.only(top: 10),
                                 child: Row(
                                   children: [
-                                    const Text('画面间隔'),
+                                    Text(l10n.zeppOsMirrorInterval),
                                     const Spacer(),
                                     SizedBox(
                                       width: 112,
@@ -215,10 +183,11 @@ class _ZeppOsMoreFeaturesPageState
                                                 : oldValue;
                                           }),
                                         ],
-                                        decoration: const InputDecoration(
+                                        decoration: InputDecoration(
                                           isDense: true,
                                           suffixText: 'ms',
-                                          helperText: '10–250',
+                                          helperText:
+                                              l10n.zeppOsMirrorIntervalRange,
                                         ),
                                         onChanged: (text) {
                                           final value = int.tryParse(text);
@@ -241,7 +210,9 @@ class _ZeppOsMoreFeaturesPageState
                     ],
                   ),
                   trailing: IconButton(
-                    tooltip: _mirrorSettingsExpanded ? '收起设置' : '展开设置',
+                    tooltip: _mirrorSettingsExpanded
+                        ? l10n.collapse
+                        : l10n.expand,
                     onPressed: () => setState(
                       () => _mirrorSettingsExpanded = !_mirrorSettingsExpanded,
                     ),
@@ -256,15 +227,35 @@ class _ZeppOsMoreFeaturesPageState
                 ),
                 SegmentedTile.navigation(
                   leading: const Icon(Icons.map_outlined),
-                  title: const Text('离线地图'),
-                  description: const Text('传输已有地图包到手表'),
-                  onPressed: (_) => context.push('/devices/zeppos-more/maps'),
+                  title: Text(l10n.zeppOsOfflineMaps),
+                  description: Text(l10n.zeppOsOfflineMapsDescription),
+                  enabled: ready,
+                  onPressed: (_) => showZeppOsMapTransfer(context),
                 ),
               ],
             ),
             SegmentedSection(
-              title: const Text('设备'),
-              margin: EdgeInsetsDirectional.zero,
+              title: Text(l10n.zeppOsAppsAndDevelopmentSection),
+              tiles: [
+                SegmentedTile.navigation(
+                  leading: const Icon(Icons.tune),
+                  title: Text(l10n.zeppOsAppSettings),
+                  description: Text(l10n.zeppOsAppSettingsDescription),
+                  onPressed: (_) =>
+                      context.push('/devices/zeppos-more/settings'),
+                ),
+                SegmentedTile.navigation(
+                  leading: const Icon(Icons.code),
+                  title: Text(l10n.zeppOsAppDebug),
+                  description: Text(l10n.zeppOsAppDebugDescription),
+                  enabled: ready,
+                  onPressed: (_) =>
+                      context.push('/devices/zeppos-more/app-side'),
+                ),
+              ],
+            ),
+            SegmentedSection(
+              title: Text(l10n.deviceInfoGroupDevice),
               tiles: [
                 SegmentedTile.switchTile(
                   leading: _busy
@@ -280,82 +271,6 @@ class _ZeppOsMoreFeaturesPageState
                   onToggle: (value) => _setFinding(value ?? false),
                 ),
               ],
-            ),
-            SectionCard(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () => setState(
-                            () => _messagesExpanded = !_messagesExpanded,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.bluetooth_searching,
-                                  color: colorScheme.primary,
-                                  size: 28,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    '实时 Zepp OS 消息',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleLarge,
-                                  ),
-                                ),
-                                Icon(
-                                  _messagesExpanded
-                                      ? Icons.expand_less
-                                      : Icons.expand_more,
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: state.zeppOsMessages.isEmpty
-                            ? null
-                            : () => ref
-                                  .read(deviceManagerProvider.notifier)
-                                  .clearZeppOsMessages(),
-                        tooltip: '清空消息',
-                        icon: const Icon(Icons.delete_sweep_outlined),
-                      ),
-                    ],
-                  ),
-                  AnimatedCrossFade(
-                    duration: const Duration(milliseconds: 200),
-                    crossFadeState: _messagesExpanded
-                        ? CrossFadeState.showFirst
-                        : CrossFadeState.showSecond,
-                    secondChild: const SizedBox.shrink(),
-                    firstChild: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
-                        Text(
-                          '显示现有分包层已经解码的设备上行 endpoint 消息，最多保留最近 200 条。',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: colorScheme.onSurfaceVariant),
-                        ),
-                        const SizedBox(height: 12),
-                        _ZeppOsMessageList(messages: state.zeppOsMessages),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             ),
           ],
         ),
@@ -415,6 +330,7 @@ class _WatchMirrorSheetState extends ConsumerState<_WatchMirrorSheet> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Material(
       color: colors.surface,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
@@ -434,14 +350,17 @@ class _WatchMirrorSheetState extends ConsumerState<_WatchMirrorSheet> {
             ),
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    '屏幕镜像',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                    l10n.zeppOsScreenMirror,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 IconButton(
-                  tooltip: '关闭',
+                  tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close),
                 ),
@@ -468,6 +387,7 @@ class _WatchMirror extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final android = Theme.of(context).platform == TargetPlatform.android;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: android ? 28 : 0),
@@ -477,7 +397,7 @@ class _WatchMirror extends StatelessWidget {
           child: AspectRatio(
             aspectRatio: 1,
             child: Semantics(
-              label: 'Zepp OS 手表屏幕镜像',
+              label: l10n.zeppOsScreenMirrorSemantics,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -516,7 +436,9 @@ class _WatchMirror extends StatelessWidget {
                                 gaplessPlayback: true,
                                 errorBuilder: (_, error, _) => _MirrorStatus(
                                   icon: Icons.broken_image_outlined,
-                                  text: '画面格式无法显示\n$error',
+                                  text: l10n.zeppOsScreenMirrorUnsupported(
+                                    error.toString(),
+                                  ),
                                 ),
                               ),
                             ),
@@ -567,69 +489,4 @@ class _MirrorStatus extends StatelessWidget {
       ),
     ),
   );
-}
-
-class _ZeppOsMessageList extends StatelessWidget {
-  const _ZeppOsMessageList({required this.messages});
-
-  final List<ZeppOsMessageRecord> messages;
-
-  @override
-  Widget build(BuildContext context) {
-    if (messages.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 32),
-          child: Text('暂无设备消息'),
-        ),
-      );
-    }
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 420),
-      child: ListView.separated(
-        shrinkWrap: true,
-        reverse: true,
-        itemCount: messages.length,
-        separatorBuilder: (_, _) => const Divider(height: 1),
-        itemBuilder: (context, reverseIndex) {
-          final message = messages[messages.length - 1 - reverseIndex];
-          final endpoint = message.endpoint
-              .toRadixString(16)
-              .padLeft(4, '0')
-              .toUpperCase();
-          final hex = message.payload
-              .map(
-                (byte) => byte.toRadixString(16).padLeft(2, '0').toUpperCase(),
-              )
-              .join(' ');
-          final text = message.payload
-              .map(
-                (byte) =>
-                    byte >= 32 && byte <= 126 ? String.fromCharCode(byte) : '.',
-              )
-              .join();
-          final isoTime = message.timestamp.toLocal().toIso8601String();
-          final time = isoTime.length >= 23
-              ? isoTime.substring(11, 23)
-              : isoTime;
-          final copyText =
-              '$time EP 0x$endpoint (${message.payload.length} bytes)\n'
-              '$hex\n$text';
-          return ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            title: Text(
-              '$time  ·  0x$endpoint  ·  ${message.payload.length} bytes',
-            ),
-            subtitle: SelectableText('$hex\n$text', maxLines: 4),
-            trailing: IconButton(
-              tooltip: '复制消息',
-              onPressed: () => Clipboard.setData(ClipboardData(text: copyText)),
-              icon: const Icon(Icons.copy_outlined),
-            ),
-          );
-        },
-      ),
-    );
-  }
 }

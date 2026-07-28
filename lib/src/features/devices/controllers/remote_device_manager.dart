@@ -135,10 +135,6 @@ class HostDeviceManager extends DeviceManager {
           : null,
       apps: _modelList(raw['apps'], AppInfo.fromJson),
       watchfaces: _modelList(raw['watchfaces'], WatchfaceInfo.fromJson),
-      zeppOsMessages: _modelList(
-        raw['zeppOsMessages'],
-        ZeppOsMessageRecord.fromJson,
-      ),
       xiaoAiActive: raw['xiaoAiActive'] == true,
       xiaoAiFrameCount: (raw['xiaoAiFrameCount'] as num?)?.toInt() ?? 0,
       xiaoAiCapabilities: raw['xiaoAiCapabilities'] is Map
@@ -252,7 +248,6 @@ class HostDeviceManager extends DeviceManager {
       clearSystemInfo: true,
       apps: const [],
       watchfaces: const [],
-      zeppOsMessages: const [],
       xiaoAiActive: false,
       xiaoAiFrameCount: 0,
       xiaoAiCapabilities: const {},
@@ -387,15 +382,6 @@ class HostDeviceManager extends DeviceManager {
         method: 'device.zeppos.xiaoai.endpoint',
         params: {'endpoint': endpoint},
       ),
-    );
-  }
-
-  @override
-  void clearZeppOsMessages() {
-    unawaited(
-      _execute(
-        const OronBoxCommand(method: 'device.zeppos.messages.clear'),
-      ).then((_) => _refreshSnapshot()),
     );
   }
 

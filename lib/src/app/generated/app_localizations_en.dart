@@ -800,7 +800,514 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get zeppOsMoreFeaturesDescription =>
-      'Additional features supported by Zepp OS devices';
+      'Manage additional features for Zepp OS devices';
+
+  @override
+  String get zeppOsDeviceFeaturesSection => 'Device features';
+
+  @override
+  String get zeppOsAppsAndDevelopmentSection => 'Apps and development';
+
+  @override
+  String get zeppOsAssistant => 'Voice lab';
+
+  @override
+  String get zeppOsAssistantDescription =>
+      'Capture, monitor, and reply to watch voice assistant sessions';
+
+  @override
+  String get zeppOsScreenMirror => 'Screen mirroring';
+
+  @override
+  String get zeppOsScreenMirrorDescription =>
+      'View the watch screen on this device';
+
+  @override
+  String get zeppOsScreenMirrorSemantics => 'Zepp OS watch screen mirror';
+
+  @override
+  String zeppOsScreenMirrorUnsupported(Object error) {
+    return 'This screen format cannot be displayed: $error';
+  }
+
+  @override
+  String get expand => 'Expand';
+
+  @override
+  String get collapse => 'Collapse';
+
+  @override
+  String get voiceLabTitle => 'Voice lab';
+
+  @override
+  String get voiceLabXiaoAi => 'XiaoAI';
+
+  @override
+  String get voiceLabReceivingAudio => 'Receiving audio from the watch';
+
+  @override
+  String get voiceLabWaiting => 'Waiting for a voice session';
+
+  @override
+  String get voiceLabContinuousCapture => 'Continuous capture';
+
+  @override
+  String get voiceLabContinuousCaptureDescription =>
+      'Request the next recording when the current one ends';
+
+  @override
+  String get voiceLabDisableMonitoring => 'Disable live monitoring';
+
+  @override
+  String get voiceLabEnableMonitoring => 'Enable live monitoring';
+
+  @override
+  String get voiceLabReplyLabel => 'Reply sent to the watch';
+
+  @override
+  String get voiceLabReplyHint => 'Enter a reply';
+
+  @override
+  String get voiceLabReplyQueued =>
+      'Reply queued until the current recording ends';
+
+  @override
+  String get voiceLabReplySent => 'Reply sent to the watch';
+
+  @override
+  String get voiceLabCapturedData => 'Captured data';
+
+  @override
+  String get voiceLabDecoder => 'Decoder';
+
+  @override
+  String get voiceLabOpusFrames => 'Opus frames';
+
+  @override
+  String get voiceLabDataSize => 'Data size';
+
+  @override
+  String get voiceLabPcmSamples => 'PCM samples';
+
+  @override
+  String get voiceLabExportOpus => 'Export Opus';
+
+  @override
+  String get voiceLabExportWav => 'Export WAV';
+
+  @override
+  String get voiceLabClearCapture => 'Clear captured data';
+
+  @override
+  String get voiceLabSaveRecording => 'Save voice recording';
+
+  @override
+  String get voiceLabSaveOpus => 'Save Opus audio';
+
+  @override
+  String get voiceLabAudioProcessingFailedPrefix => 'Audio processing failed';
+
+  @override
+  String voiceLabAudioProcessingFailed(Object error) {
+    return 'Audio processing failed: $error';
+  }
+
+  @override
+  String voiceLabContinuousCaptureFailed(Object error) {
+    return 'Could not configure continuous capture: $error';
+  }
+
+  @override
+  String voiceLabAssistantSwitchFailed(Object error) {
+    return 'Could not switch voice assistant: $error';
+  }
+
+  @override
+  String voiceLabExportWavFailed(Object error) {
+    return 'Could not export WAV: $error';
+  }
+
+  @override
+  String voiceLabExportOpusFailed(Object error) {
+    return 'Could not export Opus: $error';
+  }
+
+  @override
+  String get send => 'Send';
+
+  @override
+  String sendFailed(Object error) {
+    return 'Could not send: $error';
+  }
+
+  @override
+  String get ready => 'Ready';
+
+  @override
+  String get initializing => 'Initializing';
+
+  @override
+  String get zeppOsMapSelectPackage => 'Select a Zepp OS map package';
+
+  @override
+  String get zeppOsMapReadFailed => 'Could not read the map package';
+
+  @override
+  String get zeppOsMapTransferTitle => 'Transfer offline map';
+
+  @override
+  String zeppOsMapGarminDetected(Object fileName, Object mapName) {
+    return '$fileName\nDetected a single-file Garmin IMG map: $mapName';
+  }
+
+  @override
+  String get zeppOsMapGarminNoPreview =>
+      'This map does not contain a Zepp OS 11/x/y tile tree. The original IMG will be transferred as a single-file map package, so a coverage preview is unavailable.';
+
+  @override
+  String zeppOsMapTileSummary(Object fileName, Object count) {
+    return '$fileName · $count tiles\nThe preview shows package coverage, not the Garmin IMG rendering on the watch.';
+  }
+
+  @override
+  String get zeppOsMapWatchConfirmationHint =>
+      'You must also confirm the installation on the watch. Keep it close to this device during transfer.';
+
+  @override
+  String get zeppOsMapStartTransfer => 'Start transfer';
+
+  @override
+  String get zeppOsMapTransferringBluetooth => 'Transferring over Bluetooth';
+
+  @override
+  String get zeppOsMapTransferComplete => 'Offline map transfer complete';
+
+  @override
+  String get zeppOsMapConversionFailed => 'Map could not be converted safely';
+
+  @override
+  String get zeppOsMapSection => 'Maps';
+
+  @override
+  String get zeppOsMapTransferAction => 'Transfer map';
+
+  @override
+  String get zeppOsMapTransferDescription =>
+      'Select a ZIP or Garmin IMG map and send it to the watch';
+
+  @override
+  String get zeppOsMapBtClassicHint =>
+      'BT Classic bulk transfer is active. After transfer starts, confirm the installation on the watch.';
+
+  @override
+  String get zeppOsMapBleHint =>
+      'BLE supports map packages up to 2 MB. Switch to BT Classic before transferring a larger map. After transfer starts, confirm the installation on the watch.';
+
+  @override
+  String get zeppOsMapPreviewTooLarge =>
+      'The map area is too large to preview in full';
+
+  @override
+  String zeppOsSettingPageLoadFailed(Object error) {
+    return 'Could not load the settings page: $error';
+  }
+
+  @override
+  String zeppOsAppCompatibilitySaved(Object appId) {
+    return 'Compatibility files saved for $appId';
+  }
+
+  @override
+  String zeppOsAppStorageSaved(Object appId) {
+    return 'settingsStorage saved for $appId';
+  }
+
+  @override
+  String get zeppOsAppSupplementFiles => 'Add app-side or setting files';
+
+  @override
+  String get zeppOsAppSupplementCompatibility =>
+      'Add mini-app compatibility files';
+
+  @override
+  String get zeppOsAppReplaceCompatibility =>
+      'Add or replace compatibility files';
+
+  @override
+  String get zeppOsAppSideAvailable => 'app-side ✓';
+
+  @override
+  String get zeppOsAppSideMissing => 'app-side missing';
+
+  @override
+  String get zeppOsSettingAvailable => 'setting ✓';
+
+  @override
+  String get zeppOsSettingMissing => 'setting missing';
+
+  @override
+  String get zeppOsAppEditStorage => 'Edit settingsStorage';
+
+  @override
+  String get zeppOsStorageKeyRequired => 'Key is required';
+
+  @override
+  String zeppOsStorageDuplicateKey(Object key) {
+    return 'Duplicate key: $key';
+  }
+
+  @override
+  String get zeppOsStorageDescription =>
+      'This data is shared by the setting page and app-side, and is stored as strings according to the Zepp OS specification.';
+
+  @override
+  String get zeppOsStorageEmpty => 'No stored entries';
+
+  @override
+  String get zeppOsStorageKey => 'Key';
+
+  @override
+  String get zeppOsStorageValue => 'Value';
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get selectedFileReadFailed => 'Could not read the selected file';
+
+  @override
+  String get zeppOsAppInvalidHexId => 'Enter a valid hexadecimal App ID';
+
+  @override
+  String get zeppOsAppSelectCompatibilityFile =>
+      'Select at least one app-side.js or setting.js file';
+
+  @override
+  String get zeppOsAppHexId => 'App ID (hexadecimal)';
+
+  @override
+  String get optionalDisplayName => 'Display name (optional)';
+
+  @override
+  String get zeppOsAppSideUnchanged => 'Keep existing app-side';
+
+  @override
+  String get zeppOsSettingUnchanged => 'Keep existing setting';
+
+  @override
+  String get selectFile => 'Select file';
+
+  @override
+  String get zeppOsAppCompatibilityOverwriteHint =>
+      'Saving replaces compatibility files with the same name for this App ID, but does not modify the mini app on the watch.';
+
+  @override
+  String zeppOsDebugRefreshFailed(Object error) {
+    return 'Automatic refresh failed: $error';
+  }
+
+  @override
+  String get zeppOsDebugInvalidHex =>
+      'HEX must contain complete bytes separated by spaces, line breaks, 0x, commas, or similar separators';
+
+  @override
+  String get zeppOsDebugClearEventsTitle => 'Clear events for the current app?';
+
+  @override
+  String zeppOsDebugClearEventsDescription(Object appId) {
+    return 'All debug events for $appId will be cleared.';
+  }
+
+  @override
+  String get zeppOsDebugClearEvents => 'Clear events';
+
+  @override
+  String get zeppOsDebugRefresh => 'Refresh status and events';
+
+  @override
+  String get zeppOsDebugAppList => 'App-side list';
+
+  @override
+  String get zeppOsDebugNoApps =>
+      'No cached scripts or watch app-side sessions have been detected.';
+
+  @override
+  String get zeppOsDebugCached => 'Cached';
+
+  @override
+  String get zeppOsDebugNotCached => 'Not cached';
+
+  @override
+  String get zeppOsDebugRuntimeRunning => 'runtime running';
+
+  @override
+  String get zeppOsDebugRuntimeStopped => 'runtime stopped';
+
+  @override
+  String get zeppOsDebugLocalRuntime => 'Local runtime';
+
+  @override
+  String get zeppOsDebugCannotStart =>
+      'This App ID has no cached script and cannot be started locally.';
+
+  @override
+  String get zeppOsDebugCanStart =>
+      'The cached script can be started manually without fabricating watch session parameters.';
+
+  @override
+  String get zeppOsDebugScriptRunning =>
+      'The script is running in local QuickJS.';
+
+  @override
+  String get zeppOsDebugStartQuickJs => 'Start QuickJS';
+
+  @override
+  String get stop => 'Stop';
+
+  @override
+  String get zeppOsDebugMessageEditor => 'Message editor';
+
+  @override
+  String get zeppOsDebugUtf8Text => 'UTF-8 text';
+
+  @override
+  String get zeppOsDebugJsonCompact => 'JSON (compacted before sending)';
+
+  @override
+  String get zeppOsDebugHexBytes => 'HEX bytes';
+
+  @override
+  String get zeppOsDebugEncodingFailed =>
+      'The current content cannot be encoded in the selected mode';
+
+  @override
+  String get zeppOsDebugByteCountUnavailable => 'Bytes: --';
+
+  @override
+  String zeppOsDebugBytePreview(Object count, Object hex) {
+    return 'Bytes: $count\nHEX: $hex';
+  }
+
+  @override
+  String get zeppOsDebugInjectLocal =>
+      'Inject inbound message into local runtime';
+
+  @override
+  String get zeppOsDebugSendToWatch => 'Send to watch';
+
+  @override
+  String get zeppOsDebugWaitingForWatch =>
+      'Send to watch (waiting for a real session)';
+
+  @override
+  String get zeppOsDebugEvents => 'Debug events';
+
+  @override
+  String get zeppOsDebugClearCurrentApp => 'Clear current app';
+
+  @override
+  String get zeppOsDebugSearch => 'Search type, message, HEX, or readable text';
+
+  @override
+  String get zeppOsDebugWatchOnly => 'Real watch messages only';
+
+  @override
+  String get zeppOsDebugNoEvents => 'No events match the current filters';
+
+  @override
+  String get zeppOsDebugMessageActions => 'Message actions';
+
+  @override
+  String get zeppOsDebugLoadEditor => 'Load in editor';
+
+  @override
+  String get zeppOsDebugCopyHex => 'Copy HEX';
+
+  @override
+  String get zeppOsDebugCopyText => 'Copy text';
+
+  @override
+  String get zeppOsDebugSessionStatus => 'Runtime and session status';
+
+  @override
+  String zeppOsDebugCachedScript(Object status) {
+    return 'Cached script: $status';
+  }
+
+  @override
+  String zeppOsDebugLocalRuntimeStatus(Object status) {
+    return 'Local runtime: $status';
+  }
+
+  @override
+  String zeppOsDebugWatchSession(Object status) {
+    return 'Watch session: $status';
+  }
+
+  @override
+  String get exists => 'Available';
+
+  @override
+  String get notExists => 'Unavailable';
+
+  @override
+  String get running => 'Running';
+
+  @override
+  String get notRunning => 'Not running';
+
+  @override
+  String get notOpen => 'Not open';
+
+  @override
+  String get zeppOsDebugWatchSessionOpen => 'Real session open';
+
+  @override
+  String get zeppOsDebugRealHeader => 'Real header';
+
+  @override
+  String zeppOsDebugLatestStartup(Object status) {
+    return 'Latest startup status: $status';
+  }
+
+  @override
+  String get zeppOsDebugWatchInbound => 'From watch';
+
+  @override
+  String get zeppOsDebugWatchOutbound => 'To watch';
+
+  @override
+  String get zeppOsDebugLifecycle => 'Lifecycle';
+
+  @override
+  String get zeppOsMirrorInterval => 'Frame interval';
+
+  @override
+  String get zeppOsMirrorIntervalRange => '10–250';
+
+  @override
+  String get zeppOsOfflineMaps => 'Offline maps';
+
+  @override
+  String get zeppOsOfflineMapsDescription =>
+      'Transfer existing map packages to the watch';
+
+  @override
+  String get zeppOsAppSettings => 'App settings';
+
+  @override
+  String get zeppOsAppSettingsDescription =>
+      'Manage cached settings for Zepp OS apps';
+
+  @override
+  String get zeppOsAppDebug => 'App debugging';
+
+  @override
+  String get zeppOsAppDebugDescription =>
+      'Debug app-side scripts and device communication';
 
   @override
   String get deviceFeaturesSection => 'Features';
@@ -940,11 +1447,30 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String deviceRecordingsProgressCount(int completed, int total) {
+    return 'Received $completed/$total';
+  }
+
+  @override
   String get deviceRecordingsEmpty =>
       'Connect the watch and select Sync recordings';
 
   @override
   String get deviceRecordingsSave => 'Export recording';
+
+  @override
+  String get deviceRecordingsNoneOnWatch =>
+      'No new recordings were found on the watch';
+
+  @override
+  String deviceRecordingsSynced(int count) {
+    return 'Synced $count recordings';
+  }
+
+  @override
+  String deviceRecordingsSaveFailed(String error) {
+    return 'Could not export recording: $error';
+  }
 
   @override
   String get deviceMusicTransferTitle => 'Transfer MP3 file';

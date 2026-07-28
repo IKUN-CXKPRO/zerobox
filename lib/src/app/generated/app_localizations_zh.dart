@@ -765,7 +765,494 @@ class AppLocalizationsZh extends AppLocalizations {
   String get zeppOsMoreFeatures => '特色功能';
 
   @override
-  String get zeppOsMoreFeaturesDescription => 'Zepp OS 设备支持的扩展功能';
+  String get zeppOsMoreFeaturesDescription => '管理 Zepp OS 设备的扩展功能';
+
+  @override
+  String get zeppOsDeviceFeaturesSection => '设备功能';
+
+  @override
+  String get zeppOsAppsAndDevelopmentSection => '应用与开发';
+
+  @override
+  String get zeppOsAssistant => '语音实验室';
+
+  @override
+  String get zeppOsAssistantDescription => '采集、监听并回复手表语音助手会话';
+
+  @override
+  String get zeppOsScreenMirror => '屏幕镜像';
+
+  @override
+  String get zeppOsScreenMirrorDescription => '在当前设备上查看手表画面';
+
+  @override
+  String get zeppOsScreenMirrorSemantics => 'Zepp OS 手表屏幕镜像';
+
+  @override
+  String zeppOsScreenMirrorUnsupported(Object error) {
+    return '无法显示当前画面格式：$error';
+  }
+
+  @override
+  String get expand => '展开';
+
+  @override
+  String get collapse => '收起';
+
+  @override
+  String get voiceLabTitle => '语音实验室';
+
+  @override
+  String get voiceLabXiaoAi => '小爱同学';
+
+  @override
+  String get voiceLabReceivingAudio => '正在接收手表音频';
+
+  @override
+  String get voiceLabWaiting => '等待语音会话';
+
+  @override
+  String get voiceLabContinuousCapture => '连续采集';
+
+  @override
+  String get voiceLabContinuousCaptureDescription => '当前语音结束后自动请求下一段';
+
+  @override
+  String get voiceLabDisableMonitoring => '关闭实时监听';
+
+  @override
+  String get voiceLabEnableMonitoring => '开启实时监听';
+
+  @override
+  String get voiceLabReplyLabel => '返回给手表的消息';
+
+  @override
+  String get voiceLabReplyHint => '输入回复内容';
+
+  @override
+  String get voiceLabReplyQueued => '消息已排队，将在本轮录音结束后返回手表';
+
+  @override
+  String get voiceLabReplySent => '消息已发送到手表';
+
+  @override
+  String get voiceLabCapturedData => '采集数据';
+
+  @override
+  String get voiceLabDecoder => '解码器';
+
+  @override
+  String get voiceLabOpusFrames => 'Opus 帧';
+
+  @override
+  String get voiceLabDataSize => '数据量';
+
+  @override
+  String get voiceLabPcmSamples => 'PCM 采样';
+
+  @override
+  String get voiceLabExportOpus => '导出 Opus';
+
+  @override
+  String get voiceLabExportWav => '导出 WAV';
+
+  @override
+  String get voiceLabClearCapture => '清空采集数据';
+
+  @override
+  String get voiceLabSaveRecording => '保存语音录音';
+
+  @override
+  String get voiceLabSaveOpus => '保存 Opus 音频';
+
+  @override
+  String get voiceLabAudioProcessingFailedPrefix => '音频处理失败';
+
+  @override
+  String voiceLabAudioProcessingFailed(Object error) {
+    return '音频处理失败：$error';
+  }
+
+  @override
+  String voiceLabContinuousCaptureFailed(Object error) {
+    return '无法设置连续采集：$error';
+  }
+
+  @override
+  String voiceLabAssistantSwitchFailed(Object error) {
+    return '无法切换语音助手：$error';
+  }
+
+  @override
+  String voiceLabExportWavFailed(Object error) {
+    return '导出 WAV 失败：$error';
+  }
+
+  @override
+  String voiceLabExportOpusFailed(Object error) {
+    return '导出 Opus 失败：$error';
+  }
+
+  @override
+  String get send => '发送';
+
+  @override
+  String sendFailed(Object error) {
+    return '发送失败：$error';
+  }
+
+  @override
+  String get ready => '已就绪';
+
+  @override
+  String get initializing => '初始化中';
+
+  @override
+  String get zeppOsMapSelectPackage => '选择 Zepp OS 地图包';
+
+  @override
+  String get zeppOsMapReadFailed => '无法读取地图包';
+
+  @override
+  String get zeppOsMapTransferTitle => '传输离线地图';
+
+  @override
+  String zeppOsMapGarminDetected(Object fileName, Object mapName) {
+    return '$fileName\n已识别为单文件 Garmin IMG 地图：$mapName';
+  }
+
+  @override
+  String get zeppOsMapGarminNoPreview =>
+      '该地图不包含 Zepp OS 的 11/x/y 瓦片目录，将保留原始 IMG 并作为单文件地图包传输，因此无法提供覆盖范围预览。';
+
+  @override
+  String zeppOsMapTileSummary(Object fileName, Object count) {
+    return '$fileName · $count 个瓦片\n预览仅表示地图包的覆盖范围，不代表手表上的 Garmin IMG 渲染效果。';
+  }
+
+  @override
+  String get zeppOsMapWatchConfirmationHint => '开始后还需在手表上确认安装。传输期间请保持手表靠近当前设备。';
+
+  @override
+  String get zeppOsMapStartTransfer => '开始传输';
+
+  @override
+  String get zeppOsMapTransferringBluetooth => '正在通过蓝牙传输';
+
+  @override
+  String get zeppOsMapTransferComplete => '离线地图传输完成';
+
+  @override
+  String get zeppOsMapConversionFailed => '无法安全转换地图';
+
+  @override
+  String get zeppOsMapSection => '地图';
+
+  @override
+  String get zeppOsMapTransferAction => '传输地图';
+
+  @override
+  String get zeppOsMapTransferDescription => '选择 ZIP 或 Garmin IMG 地图并发送到手表';
+
+  @override
+  String get zeppOsMapBtClassicHint =>
+      '当前使用 BT Classic 大文件通道。开始传输后，请同时在手表上确认安装。';
+
+  @override
+  String get zeppOsMapBleHint =>
+      'BLE 仅支持不超过 2 MB 的地图包；传输更大的地图前请切换至 BT Classic。开始传输后，请同时在手表上确认安装。';
+
+  @override
+  String get zeppOsMapPreviewTooLarge => '地图范围过大，无法完整预览';
+
+  @override
+  String zeppOsSettingPageLoadFailed(Object error) {
+    return '设置页面加载失败：$error';
+  }
+
+  @override
+  String zeppOsAppCompatibilitySaved(Object appId) {
+    return '$appId 兼容文件已保存';
+  }
+
+  @override
+  String zeppOsAppStorageSaved(Object appId) {
+    return '$appId settingsStorage 已保存';
+  }
+
+  @override
+  String get zeppOsAppSupplementFiles => '添加 app-side 或 setting 文件';
+
+  @override
+  String get zeppOsAppSupplementCompatibility => '添加小程序兼容文件';
+
+  @override
+  String get zeppOsAppReplaceCompatibility => '添加或替换兼容文件';
+
+  @override
+  String get zeppOsAppSideAvailable => 'app-side ✓';
+
+  @override
+  String get zeppOsAppSideMissing => '缺少 app-side';
+
+  @override
+  String get zeppOsSettingAvailable => 'setting ✓';
+
+  @override
+  String get zeppOsSettingMissing => '缺少 setting';
+
+  @override
+  String get zeppOsAppEditStorage => '编辑 settingsStorage';
+
+  @override
+  String get zeppOsStorageKeyRequired => '键名不能为空';
+
+  @override
+  String zeppOsStorageDuplicateKey(Object key) {
+    return '键名重复：$key';
+  }
+
+  @override
+  String get zeppOsStorageDescription =>
+      '这些数据由 setting 页面与 app-side 共享，并按照 Zepp OS 规范以字符串保存。';
+
+  @override
+  String get zeppOsStorageEmpty => '暂无存储项';
+
+  @override
+  String get zeppOsStorageKey => '键';
+
+  @override
+  String get zeppOsStorageValue => '值';
+
+  @override
+  String get clear => '清空';
+
+  @override
+  String get save => '保存';
+
+  @override
+  String get selectedFileReadFailed => '无法读取所选文件';
+
+  @override
+  String get zeppOsAppInvalidHexId => '请输入有效的十六进制 App ID';
+
+  @override
+  String get zeppOsAppSelectCompatibilityFile =>
+      '请至少选择一个 app-side.js 或 setting.js';
+
+  @override
+  String get zeppOsAppHexId => 'App ID（十六进制）';
+
+  @override
+  String get optionalDisplayName => '显示名称（可选）';
+
+  @override
+  String get zeppOsAppSideUnchanged => '保留现有 app-side';
+
+  @override
+  String get zeppOsSettingUnchanged => '保留现有 setting';
+
+  @override
+  String get selectFile => '选择文件';
+
+  @override
+  String get zeppOsAppCompatibilityOverwriteHint =>
+      '保存会覆盖该 App ID 下的同名兼容文件，但不会修改手表内的小程序。';
+
+  @override
+  String zeppOsDebugRefreshFailed(Object error) {
+    return '自动刷新失败：$error';
+  }
+
+  @override
+  String get zeppOsDebugInvalidHex => 'HEX 只能包含完整字节，以及空格、换行、0x、逗号等分隔符';
+
+  @override
+  String get zeppOsDebugClearEventsTitle => '清空当前 App 的事件？';
+
+  @override
+  String zeppOsDebugClearEventsDescription(Object appId) {
+    return '将清空 $appId 的全部调试事件。';
+  }
+
+  @override
+  String get zeppOsDebugClearEvents => '清空事件';
+
+  @override
+  String get zeppOsDebugRefresh => '刷新状态与事件';
+
+  @override
+  String get zeppOsDebugAppList => 'App-side 列表';
+
+  @override
+  String get zeppOsDebugNoApps => '暂无缓存脚本，也尚未检测到手表 app-side 会话。';
+
+  @override
+  String get zeppOsDebugCached => '已有缓存';
+
+  @override
+  String get zeppOsDebugNotCached => '无缓存';
+
+  @override
+  String get zeppOsDebugRuntimeRunning => 'runtime 运行中';
+
+  @override
+  String get zeppOsDebugRuntimeStopped => 'runtime 未运行';
+
+  @override
+  String get zeppOsDebugLocalRuntime => '本地运行';
+
+  @override
+  String get zeppOsDebugCannotStart => '此 App ID 没有缓存脚本，无法在本地启动。';
+
+  @override
+  String get zeppOsDebugCanStart => '可手动启动缓存脚本；不会伪造手表会话参数。';
+
+  @override
+  String get zeppOsDebugScriptRunning => '脚本正在本地 QuickJS 中运行。';
+
+  @override
+  String get zeppOsDebugStartQuickJs => '启动 QuickJS';
+
+  @override
+  String get stop => '停止';
+
+  @override
+  String get zeppOsDebugMessageEditor => '消息编辑器';
+
+  @override
+  String get zeppOsDebugUtf8Text => 'UTF-8 文本';
+
+  @override
+  String get zeppOsDebugJsonCompact => 'JSON（发送前压缩）';
+
+  @override
+  String get zeppOsDebugHexBytes => 'HEX 字节';
+
+  @override
+  String get zeppOsDebugEncodingFailed => '无法按所选模式编码当前内容';
+
+  @override
+  String get zeppOsDebugByteCountUnavailable => '字节数：--';
+
+  @override
+  String zeppOsDebugBytePreview(Object count, Object hex) {
+    return '字节数：$count\nHEX：$hex';
+  }
+
+  @override
+  String get zeppOsDebugInjectLocal => '模拟入站消息到本地 runtime';
+
+  @override
+  String get zeppOsDebugSendToWatch => '发送到手表';
+
+  @override
+  String get zeppOsDebugWaitingForWatch => '发送到手表（等待真实会话）';
+
+  @override
+  String get zeppOsDebugEvents => '调试事件';
+
+  @override
+  String get zeppOsDebugClearCurrentApp => '清空当前 App';
+
+  @override
+  String get zeppOsDebugSearch => '搜索类型、消息、HEX 或可读文本';
+
+  @override
+  String get zeppOsDebugWatchOnly => '仅显示真实手表消息';
+
+  @override
+  String get zeppOsDebugNoEvents => '当前筛选条件下暂无事件';
+
+  @override
+  String get zeppOsDebugMessageActions => '消息操作';
+
+  @override
+  String get zeppOsDebugLoadEditor => '载入编辑器';
+
+  @override
+  String get zeppOsDebugCopyHex => '复制 HEX';
+
+  @override
+  String get zeppOsDebugCopyText => '复制文本';
+
+  @override
+  String get zeppOsDebugSessionStatus => '运行与会话状态';
+
+  @override
+  String zeppOsDebugCachedScript(Object status) {
+    return '缓存脚本：$status';
+  }
+
+  @override
+  String zeppOsDebugLocalRuntimeStatus(Object status) {
+    return '本地 runtime：$status';
+  }
+
+  @override
+  String zeppOsDebugWatchSession(Object status) {
+    return '手表会话：$status';
+  }
+
+  @override
+  String get exists => '存在';
+
+  @override
+  String get notExists => '不存在';
+
+  @override
+  String get running => '运行中';
+
+  @override
+  String get notRunning => '未运行';
+
+  @override
+  String get notOpen => '未打开';
+
+  @override
+  String get zeppOsDebugWatchSessionOpen => '真实会话已打开';
+
+  @override
+  String get zeppOsDebugRealHeader => '真实 header';
+
+  @override
+  String zeppOsDebugLatestStartup(Object status) {
+    return '最近启动状态：$status';
+  }
+
+  @override
+  String get zeppOsDebugWatchInbound => '手表入站';
+
+  @override
+  String get zeppOsDebugWatchOutbound => '发往手表';
+
+  @override
+  String get zeppOsDebugLifecycle => '生命周期';
+
+  @override
+  String get zeppOsMirrorInterval => '画面间隔';
+
+  @override
+  String get zeppOsMirrorIntervalRange => '10–250';
+
+  @override
+  String get zeppOsOfflineMaps => '离线地图';
+
+  @override
+  String get zeppOsOfflineMapsDescription => '将已有地图包传输至手表';
+
+  @override
+  String get zeppOsAppSettings => '应用设置';
+
+  @override
+  String get zeppOsAppSettingsDescription => '管理已缓存的 Zepp OS 应用设置';
+
+  @override
+  String get zeppOsAppDebug => '应用调试';
+
+  @override
+  String get zeppOsAppDebugDescription => '调试应用侧脚本与设备通信';
 
   @override
   String get deviceFeaturesSection => '功能';
@@ -900,10 +1387,28 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String deviceRecordingsProgressCount(int completed, int total) {
+    return '已接收 $completed/$total';
+  }
+
+  @override
   String get deviceRecordingsEmpty => '连接手表后点击“同步录音”';
 
   @override
   String get deviceRecordingsSave => '导出录音';
+
+  @override
+  String get deviceRecordingsNoneOnWatch => '手表中没有新的录音';
+
+  @override
+  String deviceRecordingsSynced(int count) {
+    return '已同步 $count 条录音';
+  }
+
+  @override
+  String deviceRecordingsSaveFailed(String error) {
+    return '导出录音失败：$error';
+  }
 
   @override
   String get deviceMusicTransferTitle => '传输 MP3 文件';

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:oronbox/src/device/core/entity.dart';
 import 'package:oronbox/src/device/core/event_bus.dart';
@@ -17,6 +16,7 @@ import 'package:oronbox/src/device/zeppos/systems/zeppos_map_upload_system.dart'
 import 'package:oronbox/src/device/zeppos/systems/zeppos_music_upload_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_services_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_screenshot_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_time_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_xiao_ai_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_watchface_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_voice_memos_system.dart';
@@ -57,16 +57,10 @@ class ZeppOsDeviceFactory implements DeviceEntityFactory {
     final mapUploadSystem = ZeppOsMapUploadSystem();
     final musicUploadSystem = ZeppOsMusicUploadSystem();
     final screenshotSystem = ZeppOsScreenshotSystem();
+    final timeSystem = ZeppOsTimeSystem();
     final voiceMemosSystem = ZeppOsVoiceMemosSystem();
     final watchfaceSystem = ZeppOsWatchfaceSystem();
     component.onPayload = (payload) {
-      entity.emit(
-        ZeppOsEndpointMessageReceived(
-          deviceId: id,
-          endpoint: payload.endpoint,
-          payload: Uint8List.fromList(payload.payload),
-        ),
-      );
       if (payload.endpoint == ZeppOsDeviceComponent.endpointAuthentication) {
         authSystem.handlePayload(payload.payload);
       } else if (payload.endpoint == ZeppOsAppsSystem.endpoint) {
@@ -89,6 +83,8 @@ class ZeppOsDeviceFactory implements DeviceEntityFactory {
         unawaited(
           screenshotSystem.initialize().catchError((Object _, StackTrace _) {}),
         );
+      } else if (payload.endpoint == ZeppOsTimeSystem.endpoint) {
+        timeSystem.handlePayload(payload.payload);
       } else if (payload.endpoint == ZeppOsXiaoAiSystem.xiaoAiEndpoint ||
           payload.endpoint == ZeppOsXiaoAiSystem.zeppFlowEndpoint) {
         xiaoAiSystem.handlePayload(payload.endpoint, payload.payload);
@@ -118,6 +114,7 @@ class ZeppOsDeviceFactory implements DeviceEntityFactory {
     entity.registerSystem(mapUploadSystem);
     entity.registerSystem(musicUploadSystem);
     entity.registerSystem(screenshotSystem);
+    entity.registerSystem(timeSystem);
     entity.registerSystem(voiceMemosSystem);
     entity.registerSystem(watchfaceSystem);
 

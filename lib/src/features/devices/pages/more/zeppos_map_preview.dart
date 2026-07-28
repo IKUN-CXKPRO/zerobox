@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
 
 class ZeppOsMapPreview extends StatefulWidget {
   const ZeppOsMapPreview({
@@ -96,60 +97,64 @@ class _ZeppOsMapPreviewState extends State<ZeppOsMapPreview> {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                        if (safeGrid)
-                          GridView.builder(
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: columns,
-                                ),
-                            itemCount: columns * rows,
-                            itemBuilder: (context, index) {
-                              final x = minX + index % columns;
-                              final y = minY + index ~/ columns;
-                              final tile = lookup[(x, y)];
-                              if (tile == null) {
-                                return ColoredBox(
-                                  color: colors.surfaceContainerHighest,
+                          if (safeGrid)
+                            GridView.builder(
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: columns,
+                                  ),
+                              itemCount: columns * rows,
+                              itemBuilder: (context, index) {
+                                final x = minX + index % columns;
+                                final y = minY + index ~/ columns;
+                                final tile = lookup[(x, y)];
+                                if (tile == null) {
+                                  return ColoredBox(
+                                    color: colors.surfaceContainerHighest,
+                                  );
+                                }
+                                return Image.network(
+                                  tile.url,
+                                  headers: const {
+                                    'User-Agent':
+                                        'OronBox/1.0 ZeppOS map preview',
+                                  },
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => ColoredBox(
+                                    color: colors.surfaceContainerHighest,
+                                    child: Icon(
+                                      Icons.cloud_off_outlined,
+                                      color: colors.onSurfaceVariant,
+                                    ),
+                                  ),
                                 );
-                              }
-                              return Image.network(
-                                tile.url,
-                                headers: const {
-                                  'User-Agent':
-                                      'OronBox/1.0 ZeppOS map preview',
-                                },
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => ColoredBox(
-                                  color: colors.surfaceContainerHighest,
-                                  child: Icon(
-                                    Icons.cloud_off_outlined,
+                              },
+                            )
+                          else
+                            ColoredBox(
+                              color: colors.surfaceContainerHighest,
+                              child: Center(
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.zeppOsMapPreviewTooLarge,
+                                  style: TextStyle(
                                     color: colors.onSurfaceVariant,
                                   ),
                                 ),
-                              );
-                            },
-                          )
-                        else
-                          ColoredBox(
-                            color: colors.surfaceContainerHighest,
-                            child: Center(
-                              child: Text(
-                                '地图范围过大，无法完整预览',
-                                style: TextStyle(color: colors.onSurfaceVariant),
                               ),
                             ),
-                          ),
-                        if (widget.showCenterMarker)
-                          const Center(
-                            child: Icon(
-                              Icons.add_location_alt,
-                              size: 36,
-                              shadows: [
-                                Shadow(color: Colors.white, blurRadius: 5),
-                              ],
+                          if (widget.showCenterMarker)
+                            const Center(
+                              child: Icon(
+                                Icons.add_location_alt,
+                                size: 36,
+                                shadows: [
+                                  Shadow(color: Colors.white, blurRadius: 5),
+                                ],
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),

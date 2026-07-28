@@ -5,6 +5,7 @@ import 'package:segmented_list/segmented_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
@@ -101,7 +102,11 @@ class _ZeppOsAppSideDebugPageState
       });
     } catch (error) {
       if (!mounted) return;
-      setState(() => _refreshError = '自动刷新失败：$error');
+      setState(
+        () => _refreshError = AppLocalizations.of(
+          context,
+        )!.zeppOsDebugRefreshFailed('$error'),
+      );
       if (showError) _show(error);
     } finally {
       _refreshing = false;
@@ -119,7 +124,9 @@ class _ZeppOsAppSideDebugPageState
         var value = _message.text.replaceAll(RegExp(r'0[xX]'), '');
         value = value.replaceAll(RegExp(r'[\s,;:_-]+'), '');
         if (value.length.isOdd || !RegExp(r'^[0-9a-fA-F]*$').hasMatch(value)) {
-          throw const FormatException('HEX 只能包含完整字节及空格、换行、0x、逗号等分隔符');
+          throw FormatException(
+            AppLocalizations.of(context)!.zeppOsDebugInvalidHex,
+          );
         }
         return Uint8List.fromList([
           for (var i = 0; i < value.length; i += 2)
@@ -159,21 +166,22 @@ class _ZeppOsAppSideDebugPageState
   }
 
   Future<void> _clearEvents() async {
+    final l10n = AppLocalizations.of(context)!;
     final id = _selectedAppId;
     if (id == null) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('清空当前 App 事件？'),
-        content: Text('${_formatId(id)} 的调试事件将被清空。'),
+        title: Text(l10n.zeppOsDebugClearEventsTitle),
+        content: Text(l10n.zeppOsDebugClearEventsDescription(_formatId(id))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('清空事件'),
+            child: Text(l10n.zeppOsDebugClearEvents),
           ),
         ],
       ),
@@ -255,6 +263,7 @@ class _ZeppOsAppSideDebugPageState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final manager = ref.read(deviceManagerProvider.notifier);
     final selected = _selectedAppId;
     final cached = selected != null && _cached.contains(selected);
@@ -266,11 +275,11 @@ class _ZeppOsAppSideDebugPageState
     return Scaffold(
       appBar: SysAppBar(
         secondary: true,
-        title: const Text('App-side 调试'),
+        title: Text(l10n.zeppOsAppDebug),
         actions: [
           IconButton(
             onPressed: _busy ? null : () => _refresh(showError: true),
-            tooltip: '立即刷新状态与事件',
+            tooltip: l10n.zeppOsDebugRefresh,
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -290,13 +299,16 @@ class _ZeppOsAppSideDebugPageState
               ),
               const SizedBox(height: 8),
             ],
-            Text('App-side 列表', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              l10n.zeppOsDebugAppList,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
             if (_observed.isEmpty)
-              const Card(
+              Card(
                 child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('暂无缓存脚本，也尚未观察到手表 app-side 会话。'),
+                  padding: const EdgeInsets.all(16),
+                  child: Text(l10n.zeppOsDebugNoApps),
                 ),
               )
             else
@@ -314,8 +326,8 @@ class _ZeppOsAppSideDebugPageState
                       ),
                       title: Text(_formatId(id)),
                       description: Text(
-                        '${_cached.contains(id) ? '有缓存' : '无缓存'} · '
-                        '${_sessions.any((e) => e.appId == id) ? 'runtime 已运行' : 'runtime 未运行'}',
+                        '${_cached.contains(id) ? l10n.zeppOsDebugCached : l10n.zeppOsDebugNotCached} · '
+                        '${_sessions.any((e) => e.appId == id) ? l10n.zeppOsDebugRuntimeRunning : l10n.zeppOsDebugRuntimeStopped}',
                       ),
                     ),
                 ],
@@ -331,16 +343,16 @@ class _ZeppOsAppSideDebugPageState
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        '本地运行',
+                        l10n.zeppOsDebugLocalRuntime,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         !cached
-                            ? '该 appId 无缓存脚本，不能本地启动。'
+                            ? l10n.zeppOsDebugCannotStart
                             : session == null
-                            ? '可手动启动缓存脚本；不会伪造手表会话参数。'
-                            : '脚本正在本地 QuickJS 中运行。',
+                            ? l10n.zeppOsDebugCanStart
+                            : l10n.zeppOsDebugScriptRunning,
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -351,7 +363,7 @@ class _ZeppOsAppSideDebugPageState
                                   ? null
                                   : () => _run(manager.startZeppOsAppSide),
                               icon: const Icon(Icons.play_arrow),
-                              label: const Text('启动 QuickJS'),
+                              label: Text(l10n.zeppOsDebugStartQuickJs),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -361,7 +373,7 @@ class _ZeppOsAppSideDebugPageState
                                   ? null
                                   : () => _run(manager.stopZeppOsAppSide),
                               icon: const Icon(Icons.stop),
-                              label: const Text('停止'),
+                              label: Text(l10n.stop),
                             ),
                           ),
                         ],
@@ -378,15 +390,15 @@ class _ZeppOsAppSideDebugPageState
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        '消息编辑器',
+                        l10n.zeppOsDebugMessageEditor,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 8),
                       SegmentedButton<_MessageMode>(
-                        segments: const [
+                        segments: [
                           ButtonSegment(
                             value: _MessageMode.text,
-                            label: Text('文本 UTF-8'),
+                            label: Text(l10n.zeppOsDebugUtf8Text),
                           ),
                           ButtonSegment(
                             value: _MessageMode.json,
@@ -408,22 +420,27 @@ class _ZeppOsAppSideDebugPageState
                         maxLines: 6,
                         decoration: InputDecoration(
                           labelText: switch (_mode) {
-                            _MessageMode.text => 'UTF-8 文本',
-                            _MessageMode.json => 'JSON（发送前压缩）',
-                            _MessageMode.hex => 'HEX 字节',
+                            _MessageMode.text => l10n.zeppOsDebugUtf8Text,
+                            _MessageMode.json => l10n.zeppOsDebugJsonCompact,
+                            _MessageMode.hex => l10n.zeppOsDebugHexBytes,
                           },
                           hintText: _mode == _MessageMode.hex
                               ? '01 02, 0xA0 FF'
                               : null,
-                          errorText: preview == null ? '当前内容无法按所选模式编码' : null,
+                          errorText: preview == null
+                              ? l10n.zeppOsDebugEncodingFailed
+                              : null,
                           border: const OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         preview == null
-                            ? '字节数：--'
-                            : '字节数：${preview.length}\nHEX：${_hex(preview, limit: 96)}',
+                            ? l10n.zeppOsDebugByteCountUnavailable
+                            : l10n.zeppOsDebugBytePreview(
+                                preview.length,
+                                _hex(preview, limit: 96),
+                              ),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 12),
@@ -437,7 +454,7 @@ class _ZeppOsAppSideDebugPageState
                                 ),
                               ),
                         icon: const Icon(Icons.input),
-                        label: const Text('模拟入站到本地 runtime'),
+                        label: Text(l10n.zeppOsDebugInjectLocal),
                       ),
                       const SizedBox(height: 8),
                       OutlinedButton.icon(
@@ -455,8 +472,8 @@ class _ZeppOsAppSideDebugPageState
                         icon: const Icon(Icons.watch),
                         label: Text(
                           session?.watchSessionOpen == true
-                              ? '发送到手表'
-                              : '发送到手表（等待真实会话）',
+                              ? l10n.zeppOsDebugSendToWatch
+                              : l10n.zeppOsDebugWaitingForWatch,
                         ),
                       ),
                     ],
@@ -468,24 +485,24 @@ class _ZeppOsAppSideDebugPageState
                 children: [
                   Expanded(
                     child: Text(
-                      '调试事件',
+                      l10n.zeppOsDebugEvents,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                   ),
                   TextButton.icon(
                     onPressed: _busy || _events.isEmpty ? null : _clearEvents,
                     icon: const Icon(Icons.delete_sweep_outlined),
-                    label: const Text('清空当前 App'),
+                    label: Text(l10n.zeppOsDebugClearCurrentApp),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _search,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  labelText: '搜索 type、消息、HEX 或可读文本',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  labelText: l10n.zeppOsDebugSearch,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 8),
@@ -497,13 +514,13 @@ class _ZeppOsAppSideDebugPageState
                       Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: ChoiceChip(
-                          label: Text(_filterLabel(item)),
+                          label: Text(_filterLabel(l10n, item)),
                           selected: _filter == item,
                           onSelected: (_) => setState(() => _filter = item),
                         ),
                       ),
                     FilterChip(
-                      label: const Text('只看真实手表消息'),
+                      label: Text(l10n.zeppOsDebugWatchOnly),
                       selected: _watchOnly,
                       onSelected: (value) => setState(() => _watchOnly = value),
                     ),
@@ -512,10 +529,10 @@ class _ZeppOsAppSideDebugPageState
               ),
               const SizedBox(height: 8),
               if (events.isEmpty)
-                const Card(
+                Card(
                   child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text('当前筛选下暂无事件'),
+                    padding: const EdgeInsets.all(16),
+                    child: Text(l10n.zeppOsDebugNoEvents),
                   ),
                 )
               else
@@ -535,7 +552,7 @@ class _ZeppOsAppSideDebugPageState
                           trailing: event.payload == null
                               ? null
                               : PopupMenuButton<String>(
-                                  tooltip: '消息操作',
+                                  tooltip: l10n.zeppOsDebugMessageActions,
                                   onSelected: (value) {
                                     final payload = event.payload!;
                                     if (value == 'load') _loadEvent(event);
@@ -555,18 +572,18 @@ class _ZeppOsAppSideDebugPageState
                                       );
                                     }
                                   },
-                                  itemBuilder: (_) => const [
+                                  itemBuilder: (_) => [
                                     PopupMenuItem(
                                       value: 'load',
-                                      child: Text('载入编辑器'),
+                                      child: Text(l10n.zeppOsDebugLoadEditor),
                                     ),
                                     PopupMenuItem(
                                       value: 'hex',
-                                      child: Text('复制 HEX'),
+                                      child: Text(l10n.zeppOsDebugCopyHex),
                                     ),
                                     PopupMenuItem(
                                       value: 'text',
-                                      child: Text('复制文本'),
+                                      child: Text(l10n.zeppOsDebugCopyText),
                                     ),
                                   ],
                                 ),
@@ -595,6 +612,7 @@ class _SessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final status = events.reversed.where((event) {
       return event.message.contains('自动启动') ||
           event.message.contains('脚本加载') ||
@@ -606,23 +624,38 @@ class _SessionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('运行与会话状态', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text('缓存脚本：${cached ? '存在' : '不存在'}'),
-            Text('本地 runtime：${session == null ? '未运行' : '运行中'}'),
             Text(
-              '手表会话：${session?.watchSessionOpen == true ? '真实会话已打开' : '未打开'}',
+              l10n.zeppOsDebugSessionStatus,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.zeppOsDebugCachedScript(
+                cached ? l10n.exists : l10n.notExists,
+              ),
+            ),
+            Text(
+              l10n.zeppOsDebugLocalRuntimeStatus(
+                session == null ? l10n.notRunning : l10n.running,
+              ),
+            ),
+            Text(
+              l10n.zeppOsDebugWatchSession(
+                session?.watchSessionOpen == true
+                    ? l10n.zeppOsDebugWatchSessionOpen
+                    : l10n.notOpen,
+              ),
             ),
             if (session != null) ...[
               const SizedBox(height: 8),
               Text(
-                '真实 header：version ${session!.version} · port1 ${session!.port1} · '
+                '${l10n.zeppOsDebugRealHeader}：version ${session!.version} · port1 ${session!.port1} · '
                 'port2 ${session!.port2} · extra ${session!.extra}',
               ),
             ],
             if (status != null) ...[
               const SizedBox(height: 8),
-              Text('最近启动状态：${status.message}'),
+              Text(l10n.zeppOsDebugLatestStartup(status.message)),
             ],
           ],
         ),
@@ -649,14 +682,15 @@ IconData _eventIcon(ZeppOsAppSideDebugEvent event) => switch (event.type) {
   _ => Icons.info_outline,
 };
 
-String _filterLabel(_EventFilter filter) => switch (filter) {
-  _EventFilter.all => '全部',
-  _EventFilter.watchIn => '手表入站',
-  _EventFilter.watchOut => '发往手表',
-  _EventFilter.console => 'console',
-  _EventFilter.lifecycle => '生命周期',
-  _EventFilter.error => '错误',
-};
+String _filterLabel(AppLocalizations l10n, _EventFilter filter) =>
+    switch (filter) {
+      _EventFilter.all => l10n.all,
+      _EventFilter.watchIn => l10n.zeppOsDebugWatchInbound,
+      _EventFilter.watchOut => l10n.zeppOsDebugWatchOutbound,
+      _EventFilter.console => 'console',
+      _EventFilter.lifecycle => l10n.zeppOsDebugLifecycle,
+      _EventFilter.error => l10n.error,
+    };
 
 String _hex(List<int> bytes, {int? limit}) {
   final values = limit == null ? bytes : bytes.take(limit);

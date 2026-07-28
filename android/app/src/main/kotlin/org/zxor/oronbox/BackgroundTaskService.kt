@@ -5,9 +5,11 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 
 class BackgroundTaskService : Service() {
     override fun onCreate() {
@@ -41,17 +43,37 @@ class BackgroundTaskService : Service() {
             .setOnlyAlertOnce(true)
             .setContentIntent(pendingIntent)
             .build()
-        startForeground(NOTIFICATION_ID, notification)
-        // Sticky so a system-initiated kill resurrects the service (and its
-        // notification); tapping it relaunches the app, whose auto-reconnect
-        // then restores the device link.
-        return START_STICKY
+        val mode = intent?.getStringExtra(EXTRA_MODE)
+        val serviceType = when (mode) {
+            MODE_CONNECTION -> ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+            else -> ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+        }
+        ServiceCompat.startForeground(
+            this,
+            NOTIFICATION_ID,
+            notification,
+            serviceType,
+        )
+        return START_NOT_STICKY
+    }
+
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        stopSelf(startId)
+    }
+
+    override fun onDestroy() {
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {
         const val EXTRA_LABEL = "label"
+        const val EXTRA_MODE = "mode"
+        const val MODE_TASK = "task"
+        const val MODE_CONNECTION = "connection"
         private const val CHANNEL_ID = "oronbox_background_tasks"
         private const val NOTIFICATION_ID = 2401
     }
