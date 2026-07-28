@@ -1058,6 +1058,18 @@ abstract class AppLocalizations {
   /// **'Apps'**
   String get apps;
 
+  /// No description provided for @deviceAppCount.
+  ///
+  /// In en, this message translates to:
+  /// **'App count'**
+  String get deviceAppCount;
+
+  /// No description provided for @deviceWatchfaceCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Watchface count'**
+  String get deviceWatchfaceCount;
+
   /// No description provided for @connection.
   ///
   /// In en, this message translates to:
@@ -1298,11 +1310,41 @@ abstract class AppLocalizations {
   /// **'Switch'**
   String get deviceSwitch;
 
+  /// No description provided for @deviceSyncTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync'**
+  String get deviceSyncTime;
+
   /// No description provided for @deviceCharging.
   ///
   /// In en, this message translates to:
   /// **'Charging'**
   String get deviceCharging;
+
+  /// No description provided for @deviceLastChargedNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Charged just now'**
+  String get deviceLastChargedNow;
+
+  /// No description provided for @deviceLastChargedMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Charged {count} min ago'**
+  String deviceLastChargedMinutes(int count);
+
+  /// No description provided for @deviceLastChargedHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Charged {count} hr ago'**
+  String deviceLastChargedHours(int count);
+
+  /// No description provided for @deviceLastChargedDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Charged {count} days ago'**
+  String deviceLastChargedDays(int count);
 
   /// No description provided for @deviceFeaturesInstallApp.
   ///
@@ -1331,14 +1373,122 @@ abstract class AppLocalizations {
   /// No description provided for @deviceFeaturesInstallFirmware.
   ///
   /// In en, this message translates to:
-  /// **'Install firmware'**
+  /// **'Firmware update'**
   String get deviceFeaturesInstallFirmware;
 
   /// No description provided for @deviceFeaturesInstallFirmwareDesc.
   ///
   /// In en, this message translates to:
-  /// **'Flash firmware or tool package'**
+  /// **'Check for device updates or install local firmware'**
   String get deviceFeaturesInstallFirmwareDesc;
+
+  /// No description provided for @firmwareAvailableUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Available updates'**
+  String get firmwareAvailableUpdates;
+
+  /// No description provided for @firmwareCheckingUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking for firmware updates'**
+  String get firmwareCheckingUpdates;
+
+  /// No description provided for @firmwareCheckUpdatesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Find firmware versions compatible with this device'**
+  String get firmwareCheckUpdatesDescription;
+
+  /// No description provided for @firmwareNoUpdatesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No newer firmware was found for this device'**
+  String get firmwareNoUpdatesFound;
+
+  /// No description provided for @firmwareSourceUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'An online firmware source is not yet available for this device type'**
+  String get firmwareSourceUnavailable;
+
+  /// No description provided for @firmwareVersionUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Current firmware version unavailable'**
+  String get firmwareVersionUnknown;
+
+  /// No description provided for @localFirmwareInstallDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Select and install a local firmware file'**
+  String get localFirmwareInstallDescription;
+
+  /// No description provided for @firmwareCurrentVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Current version'**
+  String get firmwareCurrentVersion;
+
+  /// No description provided for @firmwareLatestRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest firmware'**
+  String get firmwareLatestRelease;
+
+  /// No description provided for @firmwareUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Your firmware is up to date'**
+  String get firmwareUpToDate;
+
+  /// No description provided for @firmwareUpdateAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'An update is available'**
+  String get firmwareUpdateAvailable;
+
+  /// No description provided for @firmwareDownloadLatestFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Download latest full package'**
+  String get firmwareDownloadLatestFull;
+
+  /// No description provided for @firmwareUpdateNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get firmwareUpdateNow;
+
+  /// No description provided for @firmwareReleaseNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Release notes'**
+  String get firmwareReleaseNotes;
+
+  /// No description provided for @firmwareReleaseNotesUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No release notes available'**
+  String get firmwareReleaseNotesUnavailable;
+
+  /// No description provided for @firmwareDownloadingProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {progress}%'**
+  String firmwareDownloadingProgress(int progress);
+
+  /// No description provided for @downloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed. Try again later.'**
+  String get downloadFailed;
+
+  /// No description provided for @downloadTaskAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to the download queue'**
+  String get downloadTaskAdded;
 
   /// No description provided for @deviceFeaturesManageApps.
   ///
@@ -1367,14 +1517,128 @@ abstract class AppLocalizations {
   /// No description provided for @zeppOsMoreFeatures.
   ///
   /// In en, this message translates to:
-  /// **'Zepp OS Hub'**
+  /// **'Special features'**
   String get zeppOsMoreFeatures;
 
   /// No description provided for @zeppOsMoreFeaturesDescription.
   ///
   /// In en, this message translates to:
-  /// **'Explore your Zepp OS device'**
+  /// **'Additional features supported by Zepp OS devices'**
   String get zeppOsMoreFeaturesDescription;
+
+  /// No description provided for @deviceFeaturesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Features'**
+  String get deviceFeaturesSection;
+
+  /// No description provided for @deviceMusicSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Music sync'**
+  String get deviceMusicSync;
+
+  /// No description provided for @deviceMusicUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer music'**
+  String get deviceMusicUpload;
+
+  /// No description provided for @deviceMusicSyncDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync MP3 files to the device'**
+  String get deviceMusicSyncDescription;
+
+  /// No description provided for @deviceMusicChooseDialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Select an MP3 file to sync to the device'**
+  String get deviceMusicChooseDialog;
+
+  /// No description provided for @deviceMusicReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to read the selected MP3 file'**
+  String get deviceMusicReadFailed;
+
+  /// No description provided for @deviceMusicSizeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'MP3 files must be larger than 0 bytes and no larger than {maxMb} MB'**
+  String deviceMusicSizeInvalid(int maxMb);
+
+  /// No description provided for @deviceMusicUnknownArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown artist'**
+  String get deviceMusicUnknownArtist;
+
+  /// No description provided for @deviceMusicTransferred.
+  ///
+  /// In en, this message translates to:
+  /// **'Music transfer complete'**
+  String get deviceMusicTransferred;
+
+  /// No description provided for @deviceMusicTransferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer MP3 file'**
+  String get deviceMusicTransferTitle;
+
+  /// No description provided for @deviceMusicVelaDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync MP3 files to the device. Each file must not exceed 100 MB.'**
+  String get deviceMusicVelaDescription;
+
+  /// No description provided for @deviceMusicZeppDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'MP3 files up to 50 MB are supported. Bluetooth Classic is recommended for faster transfers; BLE is also supported but takes longer.'**
+  String get deviceMusicZeppDescription;
+
+  /// No description provided for @deviceMusicChooseMp3.
+  ///
+  /// In en, this message translates to:
+  /// **'Select MP3 file'**
+  String get deviceMusicChooseMp3;
+
+  /// No description provided for @deviceMusicSongTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Track title'**
+  String get deviceMusicSongTitle;
+
+  /// No description provided for @deviceMusicArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Artist'**
+  String get deviceMusicArtist;
+
+  /// No description provided for @deviceMusicFileSize.
+  ///
+  /// In en, this message translates to:
+  /// **'File size: {size}'**
+  String deviceMusicFileSize(Object size);
+
+  /// No description provided for @deviceMusicProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer progress: {progress}%'**
+  String deviceMusicProgress(Object progress);
+
+  /// No description provided for @deviceMusicTransferring.
+  ///
+  /// In en, this message translates to:
+  /// **'Transferring'**
+  String get deviceMusicTransferring;
+
+  /// No description provided for @deviceMusicSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Start transfer'**
+  String get deviceMusicSend;
 
   /// No description provided for @zeppOsFindDevice.
   ///
@@ -3721,6 +3985,12 @@ abstract class AppLocalizations {
   /// **'Working'**
   String get creatorOperationWorking;
 
+  /// No description provided for @creatorProcessingImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing image'**
+  String get creatorProcessingImage;
+
   /// No description provided for @creatorOperationRefreshing.
   ///
   /// In en, this message translates to:
@@ -4458,6 +4728,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Inbox'**
   String get inbox;
+
+  /// No description provided for @inboxLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading messages'**
+  String get inboxLoading;
 
   /// No description provided for @inboxEmpty.
   ///

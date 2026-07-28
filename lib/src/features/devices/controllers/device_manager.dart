@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:crypto/crypto.dart' as crypto;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/core/models/sync_models.dart';
 import 'package:oronbox/src/core/providers/bluetooth_platform_provider.dart';
 import 'package:oronbox/src/core/services/connection_keep_alive.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
@@ -25,9 +27,11 @@ import 'package:oronbox/src/device/xiaomi/components/info_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/install_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/network_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/mass_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/media_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/report_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/resource_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/thirdparty_app_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/sync_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/xiaomi_device_component.dart';
 import 'package:oronbox/src/device/xiaomi/xiaomi_device_factory.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_auth_system.dart';
@@ -55,6 +59,8 @@ import 'package:oronbox/src/protocols/common/device_protocol.dart'
 import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
 import 'package:oronbox/src/protocols/generated/xiaomi/wear_watch_face.pb.dart'
     as pb_watchface;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_media.pb.dart'
+    as pb_media;
 import 'package:oronbox/src/protocols/generated/xiaomi/wear_system.pb.dart'
     as pb_system;
 import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
@@ -119,6 +125,8 @@ class DeviceManagerState {
     this.xiaoAiActive = false,
     this.xiaoAiFrameCount = 0,
     this.xiaoAiCapabilities = const {},
+    this.uploadBytesPerSecond = 0,
+    this.downloadBytesPerSecond = 0,
     this.error,
   });
 
@@ -140,6 +148,8 @@ class DeviceManagerState {
   final bool xiaoAiActive;
   final int xiaoAiFrameCount;
   final Map<String, Object?> xiaoAiCapabilities;
+  final double uploadBytesPerSecond;
+  final double downloadBytesPerSecond;
   final String? error;
 
   DeviceManagerState copyWith({
@@ -161,6 +171,8 @@ class DeviceManagerState {
     bool? xiaoAiActive,
     int? xiaoAiFrameCount,
     Map<String, Object?>? xiaoAiCapabilities,
+    double? uploadBytesPerSecond,
+    double? downloadBytesPerSecond,
     String? error,
     bool clearCurrentDevice = false,
     bool clearBattery = false,
@@ -196,6 +208,9 @@ class DeviceManagerState {
       xiaoAiActive: xiaoAiActive ?? this.xiaoAiActive,
       xiaoAiFrameCount: xiaoAiFrameCount ?? this.xiaoAiFrameCount,
       xiaoAiCapabilities: xiaoAiCapabilities ?? this.xiaoAiCapabilities,
+      uploadBytesPerSecond: uploadBytesPerSecond ?? this.uploadBytesPerSecond,
+      downloadBytesPerSecond:
+          downloadBytesPerSecond ?? this.downloadBytesPerSecond,
       error: clearError ? null : (error ?? this.error),
     );
   }
@@ -257,6 +272,8 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
   Future<void> cancelConnect();
   Future<void> removeDevice(String addr);
   Future<void> refreshBattery();
+  Future<void> syncTime();
+  Future<void> syncDevice();
   Future<void> refreshDeviceData();
   Future<void> setFindingZeppOsDevice(bool finding);
   Future<void> sendXiaoAiReply(String text);
@@ -274,6 +291,12 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
   Future<void> uploadZeppOsMusic(
     Uint8List bytes, {
     required String fileName,
+    required String title,
+    required String artist,
+    void Function(double progress)? onProgress,
+  });
+  Future<void> uploadXiaomiMusic(
+    Uint8List bytes, {
     required String title,
     required String artist,
     void Function(double progress)? onProgress,
@@ -1077,6 +1100,8 @@ class LocalDeviceManager extends DeviceManager {
         xiaoAiActive: false,
         xiaoAiFrameCount: 0,
         xiaoAiCapabilities: const {},
+        uploadBytesPerSecond: 0,
+        downloadBytesPerSecond: 0,
         clearConnectionPhase: true,
       );
       await _savePairedDevices();
@@ -1121,19 +1146,10 @@ class LocalDeviceManager extends DeviceManager {
 
   Future<void> _loadInitialDeviceData(DeviceEntity entity) async {
     if (_currentEntity != entity) return;
-    for (final operation in <(String, Future<void> Function())>[
-      ('device data', refreshDeviceData),
-      ('watchface list', fetchWatchfaces),
-      ('app list', fetchApps),
-    ]) {
-      if (_currentEntity != entity) return;
-      try {
-        await operation.$2();
-      } on UnsupportedError catch (e) {
-        _log.fine('initial ${operation.$1} unavailable: $e');
-      } catch (e, st) {
-        _log.warning('initial ${operation.$1} refresh failed', e, st);
-      }
+    try {
+      await syncDevice();
+    } catch (e, st) {
+      _log.warning('initial device synchronization failed', e, st);
     }
   }
 
@@ -1244,8 +1260,18 @@ class LocalDeviceManager extends DeviceManager {
       case TransportDisconnected _:
         _log.warning('event: transport disconnected');
         _onDisconnected();
+      case LinkTrafficUpdated(:final traffic):
+        state = state.copyWith(
+          uploadBytesPerSecond: traffic.uploadBytesPerSecond,
+          downloadBytesPerSecond: traffic.downloadBytesPerSecond,
+        );
       case BatteryUpdated(:final battery):
-        state = state.copyWith(battery: battery);
+        final previousChargeInfo = state.battery?.chargeInfo;
+        state = state.copyWith(
+          battery: battery.chargeInfo == null && previousChargeInfo != null
+              ? battery.copyWith(chargeInfo: previousChargeInfo)
+              : battery,
+        );
       case DeviceInfoUpdated(:final info):
         _log.info(
           'device info ${event.deviceId}: model=${info.model}, '
@@ -1672,6 +1698,73 @@ class LocalDeviceManager extends DeviceManager {
   }
 
   @override
+  Future<void> syncTime() async {
+    final entity = _currentEntity;
+    if (entity == null || state.protocolState != ProtocolState.ready) {
+      throw ProtocolException('Device not ready');
+    }
+    final system = entity.system<XiaomiSyncSystem>();
+    if (system == null) {
+      throw UnsupportedError('Time synchronization is not available');
+    }
+    final now = DateTime.now();
+    final offset = now.timeZoneOffset;
+    await system.syncTime(
+      TimeSyncProps(
+        date: SyncDate(year: now.year, month: now.month, day: now.day),
+        time: SyncTime(
+          hour: now.hour,
+          minute: now.minute,
+          second: now.second,
+          millisecond: now.millisecond,
+        ),
+        timezone: SyncTimeZone(
+          // Xiaomi encodes timezone offsets in 15-minute units, not minutes.
+          offset: offset.inMinutes ~/ 15,
+          dstOffset: 0,
+          id: now.timeZoneName,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Future<void> syncDevice() async {
+    final entity = _currentEntity;
+    if (entity == null || state.protocolState != ProtocolState.ready) {
+      throw ProtocolException('Device not ready');
+    }
+
+    Object? firstError;
+    StackTrace? firstStackTrace;
+    final operations = <(String, Future<void> Function())>[
+      if (entity.system<XiaomiSyncSystem>() != null) ('time', syncTime),
+      ('device data', refreshDeviceData),
+      ('watchfaces', fetchWatchfaces),
+      ('apps', fetchApps),
+    ];
+    for (final operation in operations) {
+      if (_currentEntity != entity) return;
+      try {
+        await operation.$2();
+      } on UnsupportedError catch (error) {
+        _log.fine('device synchronization ${operation.$1} unavailable: $error');
+      } catch (error, stackTrace) {
+        firstError ??= error;
+        firstStackTrace ??= stackTrace;
+        _log.warning(
+          'device synchronization ${operation.$1} failed',
+          error,
+          stackTrace,
+        );
+      }
+    }
+    if (firstError != null) {
+      Error.throwWithStackTrace(firstError, firstStackTrace!);
+    }
+  }
+
+  @override
   Future<void> refreshDeviceData() async {
     final entity = _currentEntity;
     if (entity == null || state.protocolState != ProtocolState.ready) {
@@ -1893,6 +1986,46 @@ class LocalDeviceManager extends DeviceManager {
       );
     } finally {
       _activeZeppOsTransfers--;
+    }
+  }
+
+  @override
+  Future<void> uploadXiaomiMusic(
+    Uint8List bytes, {
+    required String title,
+    required String artist,
+    void Function(double progress)? onProgress,
+  }) async {
+    final entity = _currentEntity;
+    if (entity == null || state.protocolState != ProtocolState.ready) {
+      throw ProtocolException('Device not ready');
+    }
+    final connectType = _bluetoothConnection?.connectType;
+    if (connectType != ConnectType.ble && connectType != ConnectType.spp) {
+      throw UnsupportedError('音乐上传需要 BLE 或 SPP 连接');
+    }
+    final system = entity.system<XiaomiMediaSystem>();
+    if (system == null) throw UnsupportedError('音乐传输服务不可用');
+    final id = crypto.md5.convert(bytes).bytes;
+    _activeZeppOsTransfers += 1;
+    try {
+      await system.uploadSongWithProgress(
+        pb_media.Song(
+          id: id,
+          name: title,
+          size: bytes.length,
+          duration: 0,
+          artist: artist,
+        ),
+        bytes,
+        onProgress: (value) {
+          if (value.bytesTotal > 0) {
+            onProgress?.call(value.bytesSent / value.bytesTotal);
+          }
+        },
+      );
+    } finally {
+      _activeZeppOsTransfers -= 1;
     }
   }
 

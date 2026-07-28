@@ -25,7 +25,17 @@ class MessageCenterController extends AsyncNotifier<MessageCenterState> {
     );
   }
 
-  Future<void> refresh() async => state = AsyncData(await _load());
+  Future<void> refresh() async {
+    final previous = state.value;
+    state = const AsyncLoading();
+    try {
+      state = AsyncData(await _load());
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      if (previous != null) state = AsyncData(previous);
+    }
+  }
+
   Future<void> read(String id) async {
     final current = state.value;
     if (current != null) {

@@ -90,6 +90,9 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
   List<Map<String, Object?>>? _publicationCategories;
   CreatorPublicationPlan? _publicationPlan;
   bool _loadingPublicationPlan = false;
+  String? _processingMediaRole;
+  int? _processingPreviewIndex;
+  bool _addingPreview = false;
   final Map<String, Set<String>> _deviceSelections = {};
   _DraftAsset? _icon;
   _DraftAsset? _cover;
@@ -398,20 +401,23 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                       title: l10n.previewImages,
                     ),
                     const SizedBox(height: 8),
-                    if (_previews.isNotEmpty)
+                    if (_previews.isNotEmpty || _addingPreview)
                       Wrap(
                         spacing: 12,
                         runSpacing: 12,
                         children: [
                           for (var index = 0; index < _previews.length; index++)
                             _previewCard(l10n, index),
+                          if (_addingPreview) _processingPreviewCard(),
                         ],
                       ),
                     const SizedBox(height: 12),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: FilledButton.tonalIcon(
-                        onPressed: widget.state.loading ? null : _pickPreview,
+                        onPressed: widget.state.loading || _addingPreview
+                            ? null
+                            : _pickPreview,
                         icon: const Icon(Icons.add_photo_alternate_outlined),
                         label: Text(l10n.add),
                       ),
@@ -578,46 +584,64 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
   Future<void> _pickMediaRole(String role) => _run(() async {
     final file = await _pickFile(image: true);
     if (file == null || !mounted) return;
-    final asset = await _processedImageAsset(
-      file.bytes!,
-      maxDimension: role == 'icon' ? 256 : 1500,
-    );
-    if (!mounted) return;
-    if (asset == null) {
-      _showFailure(AppLocalizations.of(context)!.creatorInvalidImage);
-      return;
-    }
-    setState(() {
-      if (role == 'icon') {
-        _icon = asset;
-      } else {
-        _cover = asset;
+    setState(() => _processingMediaRole = role);
+    await WidgetsBinding.instance.endOfFrame;
+    try {
+      final asset = await _processedImageAsset(
+        file.bytes!,
+        maxDimension: role == 'icon' ? 256 : 1500,
+      );
+      if (!mounted) return;
+      if (asset == null) {
+        _showFailure(AppLocalizations.of(context)!.creatorInvalidImage);
+        return;
       }
-    });
+      setState(() {
+        if (role == 'icon') {
+          _icon = asset;
+        } else {
+          _cover = asset;
+        }
+      });
+    } finally {
+      if (mounted) setState(() => _processingMediaRole = null);
+    }
   });
 
   Future<void> _pickPreview() => _run(() async {
     final file = await _pickFile(image: true);
     if (file == null || !mounted) return;
-    final asset = await _processedImageAsset(file.bytes!);
-    if (!mounted) return;
-    if (asset == null) {
-      _showFailure(AppLocalizations.of(context)!.creatorInvalidImage);
-      return;
+    setState(() => _addingPreview = true);
+    await WidgetsBinding.instance.endOfFrame;
+    try {
+      final asset = await _processedImageAsset(file.bytes!);
+      if (!mounted) return;
+      if (asset == null) {
+        _showFailure(AppLocalizations.of(context)!.creatorInvalidImage);
+        return;
+      }
+      setState(() => _previews.add(asset));
+    } finally {
+      if (mounted) setState(() => _addingPreview = false);
     }
-    setState(() => _previews.add(asset));
   });
 
   Future<void> _replacePreview(int index) => _run(() async {
     final file = await _pickFile(image: true);
     if (file == null || !mounted) return;
-    final asset = await _processedImageAsset(file.bytes!);
-    if (!mounted) return;
-    if (asset == null) {
-      _showFailure(AppLocalizations.of(context)!.creatorInvalidImage);
-      return;
+    setState(() => _processingPreviewIndex = index);
+    await WidgetsBinding.instance.endOfFrame;
+    try {
+      final asset = await _processedImageAsset(file.bytes!);
+      if (!mounted) return;
+      if (asset == null) {
+        _showFailure(AppLocalizations.of(context)!.creatorInvalidImage);
+        return;
+      }
+      setState(() => _previews[index] = asset);
+    } finally {
+      if (mounted) setState(() => _processingPreviewIndex = null);
     }
-    setState(() => _previews[index] = asset);
   });
 
   Future<_DraftAsset?> _processedImageAsset(
@@ -1010,6 +1034,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
   }) {
     final colors = Theme.of(context).colorScheme;
     final asset = role == 'icon' ? _icon : _cover;
+    final processing = _processingMediaRole == role;
     final label = switch ((role, _publishAstroBox)) {
       ('icon', true) => l10n.creatorRequiredIcon,
       ('cover', true) => l10n.creatorRequiredCover,
@@ -1035,13 +1060,13 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
         color: colors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
       ),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
             height: previewHeight,
-            child: _mediaPreviewBox(colors, role, asset),
+            child: _mediaPreviewBox(colors, role, asset, processing),
           ),
           const SizedBox(height: 10),
           Text(label, style: Theme.of(context).textTheme.titleSmall),
@@ -1065,7 +1090,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
             children: [
               Expanded(
                 child: TextButton.icon(
-                  onPressed: widget.state.loading
+                  onPressed: widget.state.loading || processing
                       ? null
                       : () => _pickMediaRole(role),
                   icon: const Icon(Icons.file_upload_outlined, size: 18),
@@ -1075,7 +1100,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
               if (asset != null)
                 Expanded(
                   child: TextButton.icon(
-                    onPressed: widget.state.loading
+                    onPressed: widget.state.loading || processing
                         ? null
                         : () => setState(() {
                             if (role == 'icon') {
@@ -1096,12 +1121,19 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     );
   }
 
-  Widget _mediaPreviewBox(ColorScheme colors, String role, _DraftAsset? asset) {
+  Widget _mediaPreviewBox(
+    ColorScheme colors,
+    String role,
+    _DraftAsset? asset,
+    bool processing,
+  ) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: ColoredBox(
         color: colors.surfaceContainerHighest,
-        child: asset?.bytes != null
+        child: processing
+            ? _imageProcessingIndicator()
+            : asset?.bytes != null
             ? Image.memory(
                 asset!.bytes!,
                 fit: BoxFit.cover,
@@ -1126,6 +1158,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     const cardWidth = 220.0;
     final colors = Theme.of(context).colorScheme;
     final asset = _previews[index];
+    final processing = _processingPreviewIndex == index;
     return SizedBox(
       width: cardWidth,
       child: Container(
@@ -1133,7 +1166,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
           color: colors.surfaceContainerLow,
           borderRadius: BorderRadius.circular(12),
         ),
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1145,7 +1178,9 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                     height: previewHeight,
                     child: ColoredBox(
                       color: colors.surfaceContainerHighest,
-                      child: asset.bytes != null
+                      child: processing
+                          ? _imageProcessingIndicator()
+                          : asset.bytes != null
                           ? Image.memory(
                               asset.bytes!,
                               fit: BoxFit.contain,
@@ -1185,39 +1220,82 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
               ],
             ),
             const SizedBox(height: 4),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _assetMeta(asset) ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colors.onSurfaceVariant,
+            Padding(
+              padding: const EdgeInsets.only(bottom: 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _assetMeta(asset) ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
                     ),
                   ),
-                ),
-                _cardAction(
-                  icon: Icons.file_upload_outlined,
-                  tooltip: l10n.replace,
-                  onPressed: widget.state.loading
-                      ? null
-                      : () => _replacePreview(index),
-                ),
-                _cardAction(
-                  icon: Icons.delete_outline,
-                  tooltip: l10n.delete,
-                  onPressed: widget.state.loading
-                      ? null
-                      : () => setState(() => _previews.removeAt(index)),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _cardAction(
+                        icon: Icons.file_upload_outlined,
+                        tooltip: l10n.replace,
+                        onPressed:
+                            widget.state.loading ||
+                                _processingPreviewIndex != null
+                            ? null
+                            : () => _replacePreview(index),
+                      ),
+                      _cardAction(
+                        icon: Icons.delete_outline,
+                        tooltip: l10n.delete,
+                        onPressed:
+                            widget.state.loading ||
+                                _processingPreviewIndex != null
+                            ? null
+                            : () => setState(() => _previews.removeAt(index)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _processingPreviewCard() {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      width: 220,
+      height: 196,
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: _imageProcessingIndicator(),
+    );
+  }
+
+  Widget _imageProcessingIndicator() => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox.square(
+          dimension: 28,
+          child: CircularProgressIndicator(strokeWidth: 3),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          AppLocalizations.of(context)!.creatorProcessingImage,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    ),
+  );
 
   Widget _cardAction({
     required IconData icon,

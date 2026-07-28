@@ -40,124 +40,123 @@ class BandBbsResourceCard extends ConsumerWidget {
             context.push('/resources/detail/${item.ref.id}', extra: item),
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (item.ref.source != CommunitySourceId.astroboxRepo &&
-                            author?.avatarUrl != null) ...[
-                          NetworkImgLayer(
-                            src: author?.avatarUrl?.toString() ?? '',
-                            width: 20,
-                            height: 20,
-                            type: 'avatar',
-                          ),
-                          const SizedBox(width: 6),
-                        ],
-                        Flexible(
-                          child: Text(
-                            authorName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: color.onSurfaceVariant,
+                        Row(
+                          children: [
+                            if (item.ref.source !=
+                                    CommunitySourceId.astroboxRepo &&
+                                author?.avatarUrl != null) ...[
+                              NetworkImgLayer(
+                                src: author?.avatarUrl?.toString() ?? '',
+                                width: 20,
+                                height: 20,
+                                type: 'avatar',
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Flexible(
+                              child: Text(
+                                authorName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: color.onSurfaceVariant,
+                                ),
+                              ),
                             ),
+                            const SizedBox(width: 8),
+                            if (item.updatedAt != null)
+                              Text(
+                                _relativeTime(l10n, item.updatedAt!),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: color.onSurfaceVariant,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          item.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            height: 1.25,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        if (item.updatedAt != null)
+                        if (item.summary.isNotEmpty) ...[
+                          const SizedBox(height: 2),
                           Text(
-                            _relativeTime(l10n, item.updatedAt!),
+                            item.summary,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: color.onSurfaceVariant,
                             ),
                           ),
+                        ],
+                        _LazyPreviews(item: item),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      item.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        height: 1.25,
+                  ),
+                  if (item.iconUrl != null) ...[
+                    const SizedBox(width: 12),
+                    ResourceMediaHero(
+                      tag: resourceMediaHeroTag(item.ref, 'icon'),
+                      url: item.iconUrl!.toString(),
+                      width: 48,
+                      height: 48,
+                      style: const ResourceMediaHeroStyle(
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
                       ),
-                    ),
-                    if (item.summary.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        item.summary,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: color.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                    _LazyPreviews(item: item),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        _StatChip(
-                          label: _typeLabel(
-                            l10n,
-                            item.type,
-                            source: item.ref.source,
-                          ),
-                          color: _typeColor(color, item.type),
-                        ),
-                        if (item.tags.firstOrNull != null)
-                          _StatChip(
-                            label: item.tags.first,
-                            color: color.onSurfaceVariant,
-                          ),
-                        if (item.priceLabel != null)
-                          _StatChip(
-                            label: item.priceLabel!,
-                            color: color.tertiary,
-                          )
-                        else if (item.paidType != CommunityPaidType.free)
-                          _StatChip(
-                            label: _paidLabel(l10n, item.paidType),
-                            color: color.tertiary,
-                          ),
-                        if (item.downloadCount != null)
-                          _StatChip(
-                            icon: Icons.download,
-                            label: '${item.downloadCount}',
-                            color: color.onSurfaceVariant,
-                          ),
-                        if (item.version != null && item.version!.isNotEmpty)
-                          _StatChip(
-                            icon: Icons.upload,
-                            label: item.version!,
-                            color: color.onSurfaceVariant,
-                          ),
-                      ],
                     ),
                   ],
-                ),
+                ],
               ),
-              if (item.iconUrl != null) ...[
-                const SizedBox(width: 12),
-                ResourceMediaHero(
-                  tag: resourceMediaHeroTag(item.ref, 'icon'),
-                  url: item.iconUrl!.toString(),
-                  width: 64,
-                  height: 64,
-                  style: const ResourceMediaHeroStyle(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  _StatChip(
+                    label: _typeLabel(l10n, item.type, source: item.ref.source),
+                    color: _typeColor(color, item.type),
                   ),
-                ),
-              ],
+                  if (item.tags.firstOrNull != null)
+                    _StatChip(
+                      label: item.tags.first,
+                      color: color.onSurfaceVariant,
+                    ),
+                  if (item.priceLabel != null)
+                    _StatChip(label: item.priceLabel!, color: color.tertiary)
+                  else if (item.paidType != CommunityPaidType.free)
+                    _StatChip(
+                      label: _paidLabel(l10n, item.paidType),
+                      color: color.tertiary,
+                    ),
+                  if (item.downloadCount != null)
+                    _StatChip(
+                      icon: Icons.download,
+                      label: '${item.downloadCount}',
+                      color: color.onSurfaceVariant,
+                    ),
+                  if (item.version != null && item.version!.isNotEmpty)
+                    _StatChip(
+                      icon: Icons.upload,
+                      label: item.version!,
+                      color: color.onSurfaceVariant,
+                    ),
+                ],
+              ),
             ],
           ),
         ),

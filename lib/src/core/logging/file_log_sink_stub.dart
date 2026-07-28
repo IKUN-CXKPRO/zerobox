@@ -19,6 +19,7 @@ Future<bool> openLogDirectory() async => false;
 Future<String?> getLogDirectoryPath() async => null;
 Future<int> logDirectorySize() async => 0;
 Future<List<LogFileInfo>> listLogFiles() async => const [];
+Future<String?> saveDeviceLogFile(String name, List<int> bytes) async => null;
 Future<bool> openLogFile(LogFileInfo file) async => false;
 Future<int> clearLogFiles() async => 0;
 Future<String?> exportLogsZip() async => null;

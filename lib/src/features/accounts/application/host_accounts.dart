@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
 final currentUserRoleProvider = FutureProvider<String>((ref) async {
@@ -95,6 +96,21 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
 
   @override
   HostAccountsState build() {
+    ref.listen<BandBbsAuthState>(bandBbsAuthProvider, (previous, next) {
+      final account = HostAccount(
+        provider: 'bandbbs',
+        signedIn: next.isSignedIn,
+        username: next.username,
+        userId: next.userId,
+        avatarUrl: next.avatarUrl,
+        syncedDevices: state.accounts['bandbbs']?.syncedDevices ?? 0,
+      );
+      state = state.copyWith(
+        accounts: {...state.accounts, 'bandbbs': account},
+        clearError: true,
+        revision: state.revision + 1,
+      );
+    });
     _subscription = ref.watch(applicationHostProvider).events.listen((event) {
       if (event.event == 'account.state' &&
           _replaceAccounts(event.data['state'])) {

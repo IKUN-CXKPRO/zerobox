@@ -8,6 +8,7 @@ import 'package:oronbox/src/features/resources/pages/resource_detail_page.dart';
 
 void main() {
   test('maps the OronBox owner BandBBS avatar from the public API', () async {
+    final digest = List.filled(64, 'b').join();
     final dio = Dio();
     dio.interceptors.add(
       InterceptorsWrapper(
@@ -25,6 +26,7 @@ void main() {
                   'owner_bandbbs_user_id': 12345,
                   'owner_avatar_url': 'https://bandbbs.example/avatar.png',
                   'devices': <String>[],
+                  'icon_sha256': digest,
                 },
               ],
               'total': 1,
@@ -43,6 +45,7 @@ void main() {
       page.items.single.authors.single.avatarUrl,
       Uri.parse('https://bandbbs.example/avatar.png'),
     );
+    expect(page.items.single.iconUrl?.queryParameters['line'], 'local');
   });
 
   test('parses preview media using the server sha256 field', () {

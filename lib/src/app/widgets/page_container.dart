@@ -37,6 +37,24 @@ class PageContainer extends StatelessWidget {
   }
 }
 
+class LoadingView extends StatelessWidget {
+  const LoadingView({super.key, required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const CircularProgressIndicator(),
+        const SizedBox(height: 14),
+        Text(message, textAlign: TextAlign.center),
+      ],
+    ),
+  );
+}
+
 class SectionCard extends StatelessWidget {
   const SectionCard({
     super.key,

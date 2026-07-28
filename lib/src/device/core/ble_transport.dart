@@ -6,7 +6,8 @@ import 'package:oronbox/src/core/services/ble_gatt_driver.dart';
 import 'package:oronbox/src/device/core/bluetooth_platform.dart';
 import 'package:oronbox/src/device/core/transport.dart';
 
-class BleTransport implements CharacteristicTransport {
+class BleTransport
+    implements CharacteristicTransport, TrafficReportingTransport {
   BleTransport.xiaomi(BleConnection connection)
     : _bleConnection = connection,
       _bluetoothConnection = null,
@@ -48,6 +49,7 @@ class BleTransport implements CharacteristicTransport {
   final bool _defaultWithResponse;
 
   final _incomingController = StreamController<Uint8List>.broadcast();
+  final _trafficMeter = LinkTrafficMeter();
   StreamSubscription<Uint8List>? _valueSubscription;
   Completer<void>? _exclusiveWriteGate;
   Set<String> _exclusiveCharacteristics = const {};
@@ -79,6 +81,14 @@ class BleTransport implements CharacteristicTransport {
   Stream<Uint8List> get incomingData => _incomingController.stream;
 
   @override
+  Stream<LinkTraffic> get traffic => _trafficMeter.stream;
+
+  void _onProtocolData(Uint8List data) {
+    _trafficMeter.addDownload(data.length);
+    _incomingController.add(data);
+  }
+
+  @override
   Stream<bool> get connectionState =>
       _bleConnection?.connectionState ?? _bluetoothConnection!.connectionState;
 
@@ -98,7 +108,7 @@ class BleTransport implements CharacteristicTransport {
       _valueSubscription = await bleConnection.subscribe(
         _serviceUuid,
         _recvCharUuid,
-        _incomingController.add,
+        _onProtocolData,
       );
     } else {
       await _bluetoothConnection!.subscribe(
@@ -106,7 +116,7 @@ class BleTransport implements CharacteristicTransport {
           serviceUuid: _serviceUuid,
           characteristicUuid: _recvCharUuid,
         ),
-        onData: _incomingController.add,
+        onData: _onProtocolData,
       );
     }
     _connectionSubscription = connectionState.listen(
@@ -137,7 +147,7 @@ class BleTransport implements CharacteristicTransport {
     _valueSubscription = await connection.subscribe(
       _serviceUuid,
       _recvCharUuid,
-      _incomingController.add,
+      _onProtocolData,
     );
   }
 
@@ -210,6 +220,7 @@ class BleTransport implements CharacteristicTransport {
         withResponse: effectiveWithResponse,
       );
     }
+    _trafficMeter.addUpload(data.length);
   }
 
   @override
@@ -222,14 +233,20 @@ class BleTransport implements CharacteristicTransport {
       final subscription = await bleConnection.subscribe(
         characteristic.serviceUuid,
         characteristic.characteristicUuid,
-        onData,
+        (data) {
+          _trafficMeter.addDownload(data.length);
+          onData(data);
+        },
       );
       _characteristicSubscriptions.add(subscription);
       return subscription;
     }
     await _bluetoothConnection!.subscribe(
       characteristic: characteristic,
-      onData: onData,
+      onData: (data) {
+        _trafficMeter.addDownload(data.length);
+        onData(data);
+      },
     );
     return null;
   }
@@ -248,6 +265,7 @@ class BleTransport implements CharacteristicTransport {
     if (!_incomingController.isClosed) {
       await _incomingController.close();
     }
+    await _trafficMeter.dispose();
     await (_bleConnection?.dispose() ?? _bluetoothConnection!.dispose());
   }
 }

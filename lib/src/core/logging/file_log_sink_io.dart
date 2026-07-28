@@ -144,6 +144,19 @@ Future<List<LogFileInfo>> listLogFiles() async {
   return result;
 }
 
+Future<String?> saveDeviceLogFile(String name, List<int> bytes) async {
+  final directoryPath = await getLogDirectoryPath();
+  if (directoryPath == null || bytes.isEmpty) return null;
+  final safeName = name
+      .split(RegExp(r'[/\\]'))
+      .last
+      .replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+  final fileName = safeName.isEmpty ? 'device-logs.zip' : safeName;
+  final file = File('$directoryPath${Platform.pathSeparator}$fileName');
+  await file.writeAsBytes(bytes, flush: true);
+  return file.path;
+}
+
 Future<bool> openLogFile(LogFileInfo file) async {
   if (Platform.isAndroid) {
     try {

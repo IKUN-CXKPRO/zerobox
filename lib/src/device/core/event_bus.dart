@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:oronbox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/device/core/transport.dart';
 
 sealed class DeviceEvent {
   const DeviceEvent({required this.deviceId});
@@ -15,6 +16,12 @@ final class TransportConnected extends DeviceEvent {
 
 final class TransportDisconnected extends DeviceEvent {
   const TransportDisconnected({required super.deviceId});
+}
+
+final class LinkTrafficUpdated extends DeviceEvent {
+  const LinkTrafficUpdated({required super.deviceId, required this.traffic});
+
+  final LinkTraffic traffic;
 }
 
 final class DeviceAuthenticated extends DeviceEvent {

@@ -11,6 +11,21 @@ import 'package:oronbox/src/features/settings/services/oronbox_support_api.dart'
 
 enum FeedbackTargetType { resource, comment }
 
+String _ticketTime(DateTime value) {
+  final time = value.toLocal();
+  String two(int part) => part.toString().padLeft(2, '0');
+  return '${time.year}-${two(time.month)}-${two(time.day)} '
+      '${two(time.hour)}:${two(time.minute)}';
+}
+
+Future<FeedbackTicket?> showFeedbackComposer(
+  BuildContext context, {
+  FeedbackTarget? target,
+}) => showDialog<FeedbackTicket>(
+  context: context,
+  builder: (context) => _FeedbackComposer(target: target),
+);
+
 class FeedbackTarget {
   const FeedbackTarget({
     required this.type,
@@ -92,10 +107,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
   }
 
   Future<void> _compose() async {
-    final created = await showDialog<FeedbackTicket>(
-      context: context,
-      builder: (context) => _FeedbackComposer(target: widget.target),
-    );
+    final created = await showFeedbackComposer(context, target: widget.target);
     if (created == null || !mounted) return;
     await _reload();
     if (mounted) _open(created);
@@ -222,7 +234,7 @@ class _TicketList extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     if (loading && tickets.isEmpty) {
-      return Center(child: Text(l10n.feedbackLoading));
+      return LoadingView(message: l10n.feedbackLoading);
     }
     if (error != null && tickets.isEmpty) {
       return Center(
@@ -244,27 +256,34 @@ class _TicketList extends StatelessWidget {
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: tickets.length,
-        separatorBuilder: (_, _) => const Divider(height: 1),
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
           final ticket = tickets[index];
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 8,
+          return Card(
+            margin: EdgeInsets.zero,
+            color: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest.withValues(alpha: .5),
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
+              leading: Icon(
+                _isReportKind(ticket.kind)
+                    ? Icons.flag_outlined
+                    : Icons.chat_bubble_outline,
+              ),
+              title: Text(ticket.subject, maxLines: 1),
+              subtitle: Text(
+                ticket.message,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: _TicketStatus(status: ticket.status, compact: true),
+              onTap: () => onSelect(ticket),
             ),
-            leading: Icon(
-              _isReportKind(ticket.kind)
-                  ? Icons.flag_outlined
-                  : Icons.chat_bubble_outline,
-            ),
-            title: Text(ticket.subject, maxLines: 1),
-            subtitle: Text(
-              ticket.message,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: _TicketStatus(status: ticket.status, compact: true),
-            onTap: () => onSelect(ticket),
           );
         },
       ),
@@ -425,7 +444,7 @@ class _MessageBubble extends StatelessWidget {
             SelectableText(message),
             const SizedBox(height: 6),
             Text(
-              MaterialLocalizations.of(context).formatShortDate(time.toLocal()),
+              _ticketTime(time),
               style: Theme.of(context).textTheme.labelSmall,
             ),
           ],

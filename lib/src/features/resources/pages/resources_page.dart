@@ -520,6 +520,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
     VoidCallback? onToggleSidebar,
   }) {
     final colors = Theme.of(context).colorScheme;
+    final compact = MediaQuery.sizeOf(context).width < 600;
     final toolbarButtonStyle = IconButton.styleFrom(
       backgroundColor: colors.surfaceContainerHigh,
       foregroundColor: colors.onSurfaceVariant,
@@ -527,7 +528,10 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
       highlightColor: colors.surfaceContainerHighest,
     );
     return PageContainer(
-      padding: const EdgeInsets.all(StyleConstants.pagePadding),
+      padding: EdgeInsets.symmetric(
+        horizontal: StyleConstants.pagePadding,
+        vertical: compact ? 10 : StyleConstants.pagePadding,
+      ),
       child: Column(
         children: [
           Row(
@@ -543,6 +547,9 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
               ],
               Expanded(
                 child: SearchBar(
+                  constraints: BoxConstraints.tightFor(
+                    height: compact ? 48 : 56,
+                  ),
                   enabled: capabilities.search,
                   elevation: const WidgetStatePropertyAll(0),
                   controller: _searchController,

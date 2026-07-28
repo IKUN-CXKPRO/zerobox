@@ -12,7 +12,8 @@ import 'package:oronbox/src/device/core/transport.dart';
 /// This adapter only unwraps BTBR frames and maps virtual characteristic UUIDs.
 /// Endpoint framing, authentication and file-transfer semantics remain owned by
 /// their existing Zepp OS components.
-class ZeppOsBtbrTransport implements CharacteristicTransport {
+class ZeppOsBtbrTransport
+    implements CharacteristicTransport, TrafficReportingTransport {
   ZeppOsBtbrTransport(this._connection, {int Function()? nonceGenerator})
     : _nonceGenerator =
           nonceGenerator ?? (() => Random.secure().nextInt(0x100000000)),
@@ -42,6 +43,7 @@ class ZeppOsBtbrTransport implements CharacteristicTransport {
   final int Function() _nonceGenerator;
   final Logger _log;
   final _incomingController = StreamController<Uint8List>.broadcast();
+  final _trafficMeter = LinkTrafficMeter();
   final _characteristicControllers = <String, StreamController<Uint8List>>{};
   final _channelToCharacteristic = <int, String>{};
   final _characteristicToChannel = <String, int>{};
@@ -62,6 +64,9 @@ class ZeppOsBtbrTransport implements CharacteristicTransport {
 
   @override
   Stream<Uint8List> get incomingData => _incomingController.stream;
+
+  @override
+  Stream<LinkTraffic> get traffic => _trafficMeter.stream;
 
   @override
   Stream<bool> get connectionState => _connection.connectionState;
@@ -163,10 +168,12 @@ class ZeppOsBtbrTransport implements CharacteristicTransport {
     _writeUint16Le(frame, 5 + payload.length, crc);
     frame[7 + payload.length] = _trailer;
     await _connection.send(frame);
+    _trafficMeter.addUpload(frame.length);
   }
 
   void _onRawData(Uint8List data) {
     if (_disposed || data.isEmpty) return;
+    _trafficMeter.addDownload(data.length);
     final combined = Uint8List(_receiveBuffer.length + data.length)
       ..setRange(0, _receiveBuffer.length, _receiveBuffer)
       ..setRange(
@@ -396,6 +403,7 @@ class ZeppOsBtbrTransport implements CharacteristicTransport {
     }
     _characteristicControllers.clear();
     if (!_incomingController.isClosed) await _incomingController.close();
+    await _trafficMeter.dispose();
     await _connection.dispose();
   }
 

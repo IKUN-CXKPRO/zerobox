@@ -478,6 +478,13 @@ class _RuntimeLogsPageState extends ConsumerState<RuntimeLogsPage> {
         throw StateError(result.error?.message ?? 'Unknown error');
       }
       final value = (result.value as Map).cast<String, Object?>();
+      final bytes = (value['bytes'] as List? ?? const [])
+          .whereType<num>()
+          .map((item) => item.toInt())
+          .toList(growable: false);
+      if (bytes.isNotEmpty) {
+        await saveDeviceLogFile(value['name']?.toString() ?? '', bytes);
+      }
       await _reload();
       if (mounted && !cancelRequested) {
         ScaffoldMessenger.of(context).showSnackBar(

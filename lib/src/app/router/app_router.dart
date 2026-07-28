@@ -10,6 +10,7 @@ import 'package:oronbox/src/features/resources/application/resource_catalog_prov
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/devices/pages/apps/device_apps_page.dart';
 import 'package:oronbox/src/features/devices/pages/devices_page.dart';
+import 'package:oronbox/src/features/devices/pages/firmware/device_firmware_page.dart';
 import 'package:oronbox/src/features/devices/pages/info/device_info_page.dart';
 import 'package:oronbox/src/features/devices/pages/install/install_local_page.dart';
 import 'package:oronbox/src/features/devices/pages/more/zeppos_more_features_page.dart';
@@ -98,11 +99,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/home', redirect: (context, state) => '/resources'),
       GoRoute(path: '/oobe', builder: (context, state) => const OobePage()),
       GoRoute(
-        path: '/inbox',
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => const InboxPage(),
-      ),
-      GoRoute(
         path: '/debug',
         builder: (context, state) => const DebugWindowPage(embedded: true),
       ),
@@ -119,7 +115,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'detail/:id',
-                    parentNavigatorKey: rootNavigatorKey,
                     pageBuilder: (context, state) {
                       final resource = state.extra as CommunityResource?;
                       late final Widget child;
@@ -152,12 +147,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       }
                       return CustomTransitionPage<void>(
                         key: state.pageKey,
-                        opaque: false,
                         transitionDuration: const Duration(milliseconds: 320),
                         reverseTransitionDuration: const Duration(
                           milliseconds: 300,
                         ),
-                        child: AdaptiveSecondarySurface(child: child),
+                        child: ScaffoldMessenger(child: child),
                         transitionsBuilder:
                             AppTheme.buildPlatformPageTransition,
                       );
@@ -182,6 +176,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   ),
                 ],
               ),
+              GoRoute(
+                path: '/inbox',
+                builder: (context, state) => const InboxPage(),
+              ),
             ],
           ),
           StatefulShellBranch(
@@ -197,6 +195,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'info',
                     builder: (context, state) => const DeviceInfoPage(),
+                  ),
+                  GoRoute(
+                    path: 'firmware',
+                    pageBuilder: (context, state) => CustomTransitionPage<void>(
+                      key: state.pageKey,
+                      transitionDuration: const Duration(milliseconds: 320),
+                      reverseTransitionDuration: const Duration(
+                        milliseconds: 300,
+                      ),
+                      child: const ScaffoldMessenger(
+                        child: DeviceFirmwarePage(),
+                      ),
+                      transitionsBuilder: AppTheme.buildPlatformPageTransition,
+                    ),
                   ),
                   GoRoute(
                     path: 'install/:type',
@@ -218,6 +230,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => const DeviceWatchfacesPage(),
                   ),
                   GoRoute(
+                    path: 'velaos-music',
+                    builder: (context, state) =>
+                        const DeviceMusicUploadPage(xiaomi: true),
+                  ),
+                  GoRoute(
                     path: 'zeppos-more',
                     builder: (context, state) => const ZeppOsMoreFeaturesPage(),
                     routes: [
@@ -233,7 +250,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       GoRoute(
                         path: 'music',
                         builder: (context, state) =>
-                            const ZeppOsMusicUploadPage(),
+                            const DeviceMusicUploadPage(),
                       ),
                       GoRoute(
                         path: 'app-side',

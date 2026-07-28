@@ -514,6 +514,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get apps => '应用';
 
   @override
+  String get deviceAppCount => '应用数量';
+
+  @override
+  String get deviceWatchfaceCount => '表盘数量';
+
+  @override
   String get connection => '连接';
 
   @override
@@ -643,7 +649,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceSwitch => '切换设备';
 
   @override
+  String get deviceSyncTime => '同步';
+
+  @override
   String get deviceCharging => '充电中';
+
+  @override
+  String get deviceLastChargedNow => '刚刚充电';
+
+  @override
+  String deviceLastChargedMinutes(int count) {
+    return '$count 分钟前充电';
+  }
+
+  @override
+  String deviceLastChargedHours(int count) {
+    return '$count 小时前充电';
+  }
+
+  @override
+  String deviceLastChargedDays(int count) {
+    return '$count 天前充电';
+  }
 
   @override
   String get deviceFeaturesInstallApp => '安装应用';
@@ -658,10 +685,66 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceFeaturesInstallWatchfaceDesc => '从本地文件安装表盘';
 
   @override
-  String get deviceFeaturesInstallFirmware => '安装固件';
+  String get deviceFeaturesInstallFirmware => '固件更新';
 
   @override
-  String get deviceFeaturesInstallFirmwareDesc => '刷写固件或工具包';
+  String get deviceFeaturesInstallFirmwareDesc => '检查设备更新或安装本地固件';
+
+  @override
+  String get firmwareAvailableUpdates => '可用更新';
+
+  @override
+  String get firmwareCheckingUpdates => '正在检查固件更新';
+
+  @override
+  String get firmwareCheckUpdatesDescription => '获取与当前设备兼容的固件版本';
+
+  @override
+  String get firmwareNoUpdatesFound => '未找到适用于当前设备的新版本';
+
+  @override
+  String get firmwareSourceUnavailable => '暂未接入此类设备的在线固件源';
+
+  @override
+  String get firmwareVersionUnknown => '未获取到当前固件版本';
+
+  @override
+  String get localFirmwareInstallDescription => '选择本地固件文件并安装';
+
+  @override
+  String get firmwareCurrentVersion => '当前版本';
+
+  @override
+  String get firmwareLatestRelease => '最新固件';
+
+  @override
+  String get firmwareUpToDate => '当前已是最新版本';
+
+  @override
+  String get firmwareUpdateAvailable => '发现可用更新';
+
+  @override
+  String get firmwareDownloadLatestFull => '下载最新完整包';
+
+  @override
+  String get firmwareUpdateNow => '更新';
+
+  @override
+  String get firmwareReleaseNotes => '更新日志';
+
+  @override
+  String get firmwareReleaseNotesUnavailable => '暂无更新日志';
+
+  @override
+  String firmwareDownloadingProgress(int progress) {
+    return '正在下载 $progress%';
+  }
+
+  @override
+  String get downloadFailed => '下载失败，请稍后重试';
+
+  @override
+  String get downloadTaskAdded => '已加入下载队列';
 
   @override
   String get deviceFeaturesManageApps => '管理应用';
@@ -676,10 +759,74 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceFeaturesManageWatchfacesDesc => '查看、删除并设置当前表盘';
 
   @override
-  String get zeppOsMoreFeatures => 'Zepp OS 专区';
+  String get zeppOsMoreFeatures => '特色功能';
 
   @override
-  String get zeppOsMoreFeaturesDescription => '探索你的 Zepp OS 设备';
+  String get zeppOsMoreFeaturesDescription => 'Zepp OS 设备支持的扩展功能';
+
+  @override
+  String get deviceFeaturesSection => '功能';
+
+  @override
+  String get deviceMusicSync => '音乐同步';
+
+  @override
+  String get deviceMusicUpload => '传输音乐';
+
+  @override
+  String get deviceMusicSyncDescription => '将 MP3 文件同步至设备';
+
+  @override
+  String get deviceMusicChooseDialog => '选择要同步至设备的 MP3 文件';
+
+  @override
+  String get deviceMusicReadFailed => '无法读取所选 MP3 文件';
+
+  @override
+  String deviceMusicSizeInvalid(int maxMb) {
+    return 'MP3 文件大小须大于 0 且不超过 $maxMb MB';
+  }
+
+  @override
+  String get deviceMusicUnknownArtist => '未知艺术家';
+
+  @override
+  String get deviceMusicTransferred => '音乐传输完成';
+
+  @override
+  String get deviceMusicTransferTitle => '传输 MP3 文件';
+
+  @override
+  String get deviceMusicVelaDescription => '将 MP3 文件同步至设备，单个文件不得超过 100 MB。';
+
+  @override
+  String get deviceMusicZeppDescription =>
+      '支持最大 50 MB 的 MP3 文件。建议使用经典蓝牙以获得更快的传输速度；也可使用 BLE，但传输时间较长。';
+
+  @override
+  String get deviceMusicChooseMp3 => '选择 MP3 文件';
+
+  @override
+  String get deviceMusicSongTitle => '歌曲名称';
+
+  @override
+  String get deviceMusicArtist => '艺术家';
+
+  @override
+  String deviceMusicFileSize(Object size) {
+    return '文件大小：$size';
+  }
+
+  @override
+  String deviceMusicProgress(Object progress) {
+    return '传输进度：$progress%';
+  }
+
+  @override
+  String get deviceMusicTransferring => '正在传输';
+
+  @override
+  String get deviceMusicSend => '开始传输';
 
   @override
   String get zeppOsFindDevice => '查找设备';
@@ -1931,6 +2078,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorOperationWorking => '正在处理';
 
   @override
+  String get creatorProcessingImage => '正在处理图片';
+
+  @override
   String get creatorOperationRefreshing => '正在刷新创作者数据';
 
   @override
@@ -2310,6 +2460,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get inbox => '消息箱';
+
+  @override
+  String get inboxLoading => '正在加载消息';
 
   @override
   String get inboxEmpty => '暂无消息';

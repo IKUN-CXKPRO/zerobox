@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:segmented_list/segmented_list.dart';
@@ -31,6 +34,7 @@ class DevicesPage extends ConsumerStatefulWidget {
 
 class _DevicesPageState extends ConsumerState<DevicesPage> {
   bool _dragging = false;
+  bool _syncingTime = false;
   String? _lastErrorToast;
 
   @override
@@ -74,6 +78,16 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
         return;
       }
       await manager.refreshDeviceData();
+    }
+
+    Future<void> syncCurrentTime() async {
+      if (_syncingTime) return;
+      setState(() => _syncingTime = true);
+      try {
+        await ref.read(deviceManagerProvider.notifier).syncDevice();
+      } finally {
+        if (mounted) setState(() => _syncingTime = false);
+      }
     }
 
     return DropTarget(
@@ -124,48 +138,81 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
             LayoutBuilder(
               builder: (context, constraints) {
                 final isWide = useWideLayout(constraints.maxWidth);
+                final isZeppOs =
+                    (device?.codename?.startsWith('zepp:') ?? false) ||
+                    (device != null &&
+                        zeppOsDeviceForBluetoothName(device.name) != null);
                 final infoPanel = _DeviceInfoPanel(
+                  compact: !isWide,
+                  showMetrics: false,
                   device: device,
+                  isZeppOs: isZeppOs,
                   isReady: isReady,
                   connectionState: state,
                   battery: state.battery,
+                  storage: state.systemInfo?.storageInfo,
+                  uploadBytesPerSecond: state.uploadBytesPerSecond,
+                  downloadBytesPerSecond: state.downloadBytesPerSecond,
                   onReconnect: reconnectCurrent,
                   onCancelConnect: () =>
                       ref.read(deviceManagerProvider.notifier).cancelConnect(),
                   onSwitch: () {
                     context.push('/devices/switch');
                   },
+                  onSyncTime: () {
+                    unawaited(syncCurrentTime());
+                  },
+                  syncingTime: _syncingTime,
                 );
                 final featuresPanel = _DeviceFeaturesPanel(
+                  compact: !isWide,
+                  showInstall: false,
                   enabled: isReady,
                   hasDevice: device != null,
-                  isZeppOs:
-                      (device?.codename?.startsWith('zepp:') ?? false) ||
-                      (device != null &&
-                          zeppOsDeviceForBluetoothName(device.name) != null),
+                  isZeppOs: isZeppOs,
                 );
 
                 return PageContainer(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: StyleConstants.pagePadding,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isWide ? StyleConstants.pagePadding : 0,
                   ),
-                  child: isWide
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(child: infoPanel),
-                            Expanded(child: featuresPanel),
-                          ],
-                        )
-                      : SingleChildScrollView(
-                          child: Column(
-                            children: [
-                              infoPanel,
-                              const SizedBox(height: 24),
-                              featuresPanel,
-                            ],
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        infoPanel,
+                        const SizedBox(height: 12),
+                        _DeviceStatusGrid(
+                          compact: !isWide,
+                          enabled: isReady,
+                          battery: state.battery,
+                          storage: state.systemInfo?.storageInfo,
+                          appCount: state.apps
+                              .where(
+                                (app) => !app.packageName.startsWith(
+                                  'com.xiaomi.miwear.',
+                                ),
+                              )
+                              .length,
+                          watchfaceCount: state.watchfaces.length,
+                          onManageApps: () => context.push('/devices/apps'),
+                          onManageWatchfaces: () =>
+                              context.push('/devices/watchfaces'),
+                          onInstallApp: () => _pickAndEnqueueResource(
+                            context,
+                            ref,
+                            LocalDeviceInstallType.app,
+                          ),
+                          onInstallWatchface: () => _pickAndEnqueueResource(
+                            context,
+                            ref,
+                            LocalDeviceInstallType.watchface,
                           ),
                         ),
+                        const SizedBox(height: 12),
+                        featuresPanel,
+                      ],
+                    ),
+                  ),
                 );
               },
             ),
@@ -215,22 +262,38 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
 
 class _DeviceInfoPanel extends StatelessWidget {
   const _DeviceInfoPanel({
+    required this.compact,
+    required this.showMetrics,
     required this.device,
+    required this.isZeppOs,
     required this.isReady,
     required this.connectionState,
     this.battery,
+    this.storage,
+    required this.uploadBytesPerSecond,
+    required this.downloadBytesPerSecond,
     required this.onReconnect,
     required this.onCancelConnect,
     required this.onSwitch,
+    required this.onSyncTime,
+    this.syncingTime = false,
   });
 
+  final bool compact;
+  final bool showMetrics;
   final MiWearState? device;
+  final bool isZeppOs;
   final bool isReady;
   final DeviceManagerState connectionState;
   final BatteryStatus? battery;
+  final StorageInfo? storage;
+  final double uploadBytesPerSecond;
+  final double downloadBytesPerSecond;
   final VoidCallback onReconnect;
   final VoidCallback onCancelConnect;
   final VoidCallback onSwitch;
+  final VoidCallback onSyncTime;
+  final bool syncingTime;
 
   bool get _isConnected => isReady && device != null && !device!.disconnected;
   bool get _isConnecting =>
@@ -245,54 +308,91 @@ class _DeviceInfoPanel extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final illustration =
         device?.illustrationAsset() ?? 'assets/images/devices/xiaomi-watch.svg';
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isNarrow = screenWidth < 600;
+    final isNarrow = compact;
 
     Widget infoContent;
     if (device != null) {
+      final nameStyle = textTheme.titleLarge?.copyWith(
+        fontWeight: FontWeight.w600,
+      );
+      final namePainter = TextPainter(
+        text: TextSpan(text: device!.name, style: nameStyle),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+        maxLines: 1,
+      )..layout();
+      final statusRowWidth = math.min(
+        math.max(namePainter.width, 220.0),
+        MediaQuery.sizeOf(context).width - 32.0,
+      );
       infoContent = Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: isNarrow
+            ? CrossAxisAlignment.center
+            : CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            device!.name,
-            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-          ),
+          Text(device!.name, style: nameStyle),
           const SizedBox(height: 8),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_isConnecting) ...[
-                const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+          SizedBox(
+            width: statusRowWidth,
+            child: Row(
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_isConnecting) ...[
+                      const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      _isConnecting
+                          ? deviceConnectionPhaseText(
+                              l10n,
+                              connectionState,
+                              fallbackDeviceName: device!.name,
+                              connectType: device!.connectType,
+                            )
+                          : _isConnected
+                          ? l10n.deviceConnected
+                          : l10n.deviceDisconnected,
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: _isConnected || _isConnecting
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
+                if (_isConnected) ...[
+                  const Spacer(),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '↑ ${_formatRate(downloadBytesPerSecond)}',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        '↓ ${_formatRate(uploadBytesPerSecond)}',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
-              Text(
-                _isConnecting
-                    ? deviceConnectionPhaseText(
-                        l10n,
-                        connectionState,
-                        fallbackDeviceName: device!.name,
-                        connectType: device!.connectType,
-                      )
-                    : _isConnected
-                    ? l10n.deviceConnected
-                    : l10n.deviceDisconnected,
-                style: textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: _isConnected || _isConnecting
-                      ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant,
-                ),
-              ),
-              if (_isConnected && battery != null) ...[
-                _VerticalDivider(),
-                _BatteryIndicator(battery: battery!),
-              ],
-            ],
+            ),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -310,6 +410,12 @@ class _DeviceInfoPanel extends StatelessWidget {
                   icon: Icons.link,
                   label: l10n.deviceReconnect,
                   onPressed: onReconnect,
+                ),
+              if (_isConnected && !isZeppOs)
+                _ActionButton(
+                  icon: Icons.sync,
+                  label: l10n.deviceSyncTime,
+                  onPressed: syncingTime ? null : onSyncTime,
                 ),
               _ActionButton(
                 icon: Icons.swap_horiz,
@@ -339,53 +445,323 @@ class _DeviceInfoPanel extends StatelessWidget {
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: isNarrow
-          ? Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SvgPicture.asset(
-                  illustration,
-                  width: 120,
-                  height: 120,
-                  colorFilter: ColorFilter.mode(
-                    colorScheme.onSurface,
-                    BlendMode.srcIn,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                infoContent,
-              ],
-            )
-          : Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SvgPicture.asset(
-                  illustration,
-                  width: 150,
-                  height: 150,
-                  colorFilter: ColorFilter.mode(
-                    colorScheme.onSurface,
-                    BlendMode.srcIn,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                infoContent,
-              ],
+    final metricCards = Padding(
+      padding: EdgeInsetsDirectional.only(start: 16, top: 18, end: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: _BatteryCard(
+              battery: battery,
+              borderRadius: isNarrow
+                  ? BorderRadius.circular(20)
+                  : const BorderRadiusDirectional.only(
+                      topStart: Radius.circular(20),
+                      bottomStart: Radius.circular(20),
+                      topEnd: Radius.circular(3),
+                      bottomEnd: Radius.circular(3),
+                    ),
             ),
+          ),
+          SizedBox(width: isNarrow ? 12 : 2),
+          Expanded(
+            child: _StorageCard(
+              storage: storage,
+              borderRadius: isNarrow
+                  ? BorderRadius.circular(20)
+                  : const BorderRadiusDirectional.only(
+                      topStart: Radius.circular(3),
+                      bottomStart: Radius.circular(3),
+                      topEnd: Radius.circular(20),
+                      bottomEnd: Radius.circular(20),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final content = isNarrow
+        ? Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SvgPicture.asset(
+                illustration,
+                width: 120,
+                height: 120,
+                colorFilter: ColorFilter.mode(
+                  colorScheme.onSurface,
+                  BlendMode.srcIn,
+                ),
+              ),
+              const SizedBox(height: 16),
+              infoContent,
+              if (showMetrics) metricCards,
+            ],
+          )
+        : Column(
+            children: [
+              Padding(
+                padding: const EdgeInsetsDirectional.only(start: 28, end: 16),
+                child: Row(
+                  children: [
+                    Expanded(child: infoContent),
+                    const SizedBox(width: 32),
+                    SvgPicture.asset(
+                      illustration,
+                      width: 150,
+                      height: 150,
+                      colorFilter: ColorFilter.mode(
+                        colorScheme.onSurface,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (showMetrics) metricCards,
+            ],
+          );
+    return Padding(
+      padding: EdgeInsets.only(top: 12, bottom: isNarrow ? 0 : 12),
+      child: content,
+    );
+  }
+
+  String _formatRate(double bytesPerSecond) {
+    if (bytesPerSecond >= 1024 * 1024) {
+      return '${(bytesPerSecond / (1024 * 1024)).toStringAsFixed(1)} MB/s';
+    }
+    if (bytesPerSecond >= 1024) {
+      return '${(bytesPerSecond / 1024).toStringAsFixed(1)} KB/s';
+    }
+    return '${bytesPerSecond.round()} B/s';
+  }
+}
+
+class _BatteryCard extends StatelessWidget {
+  const _BatteryCard({required this.battery, this.borderRadius});
+
+  final BatteryStatus? battery;
+  final BorderRadiusGeometry? borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final charging = battery?.chargeStatus == ChargeStatus.charging;
+    final lastCharged = _lastChargedText(
+      context,
+      battery?.chargeInfo?.timestamp,
+    );
+    return _DeviceMetricCard(
+      title: AppLocalizations.of(context)!.fieldBattery,
+      value: battery == null ? '--' : '${battery!.capacity}%',
+      progress: battery == null
+          ? null
+          : (battery!.capacity / 100).clamp(0.0, 1.0),
+      icon: Icons.battery_std,
+      iconColor: scheme.onSurfaceVariant,
+      valueIcon: charging ? Icons.bolt : null,
+      valueColor: charging ? scheme.primary : scheme.onSurface,
+      progressColor: charging ? scheme.primary : scheme.onSurfaceVariant,
+      supportingText: lastCharged,
+      borderRadius: borderRadius,
+    );
+  }
+
+  String? _lastChargedText(BuildContext context, int? timestamp) {
+    if (timestamp == null || timestamp <= 0) return null;
+    final chargedAt = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+    final now = DateTime.now();
+    if (chargedAt.year < 2020 || chargedAt.isAfter(now)) return null;
+    final elapsed = now.difference(chargedAt);
+    final l10n = AppLocalizations.of(context)!;
+    if (elapsed.inMinutes < 1) return l10n.deviceLastChargedNow;
+    if (elapsed.inHours < 1) {
+      return l10n.deviceLastChargedMinutes(elapsed.inMinutes);
+    }
+    if (elapsed.inDays < 1) {
+      return l10n.deviceLastChargedHours(elapsed.inHours);
+    }
+    return l10n.deviceLastChargedDays(elapsed.inDays);
+  }
+}
+
+class _StorageCard extends StatelessWidget {
+  const _StorageCard({required this.storage, this.borderRadius});
+
+  final StorageInfo? storage;
+  final BorderRadiusGeometry? borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final used = storage == null ? '--' : _formatBytes(storage!.used);
+    final total = storage == null ? '--' : _formatBytes(storage!.total);
+    final ratio = storage == null || storage!.total <= 0
+        ? null
+        : (storage!.used / storage!.total).clamp(0.0, 1.0);
+    return _DeviceMetricCard(
+      icon: Icons.storage_outlined,
+      title: AppLocalizations.of(context)!.fieldStorage,
+      value: '$used / $total',
+      progress: ratio,
+      borderRadius: borderRadius,
+    );
+  }
+
+  String _formatBytes(int value) {
+    if (value >= 1024 * 1024 * 1024) {
+      return '${(value / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+    }
+    if (value >= 1024 * 1024) {
+      return '${(value / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(value / 1024).toStringAsFixed(0)} KB';
+  }
+}
+
+class _DeviceMetricCard extends StatelessWidget {
+  const _DeviceMetricCard({
+    required this.icon,
+    required this.title,
+    required this.value,
+    this.progress,
+    this.iconColor,
+    this.valueIcon,
+    this.valueColor,
+    this.progressColor,
+    this.supportingText,
+    this.borderRadius,
+  });
+
+  final IconData icon;
+  final String title;
+  final String value;
+  final double? progress;
+  final Color? iconColor;
+  final IconData? valueIcon;
+  final Color? valueColor;
+  final Color? progressColor;
+  final String? supportingText;
+  final BorderRadiusGeometry? borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final valueStyle = Theme.of(context).textTheme.titleLarge?.copyWith(
+      color: valueColor ?? scheme.onSurface,
+      fontWeight: FontWeight.w600,
+      height: 1,
+    );
+    final resolvedIconColor = iconColor ?? scheme.onSurfaceVariant;
+    final resolvedValueColor = valueColor ?? scheme.onSurface;
+    final resolvedProgressColor = progressColor ?? scheme.onSurfaceVariant;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final valuePainter =
+            TextPainter(
+              text: TextSpan(text: value, style: valueStyle),
+              maxLines: 1,
+              textDirection: Directionality.of(context),
+            )..layout(
+              maxWidth: (constraints.maxWidth - 28).clamp(0, double.infinity),
+            );
+        final valueWraps = valuePainter.didExceedMaxLines;
+        return SizedBox(
+          height: 104,
+          child: Card(
+            margin: EdgeInsets.zero,
+            elevation: 0,
+            color: scheme.surfaceContainerHigh,
+            shape: RoundedRectangleBorder(
+              borderRadius: borderRadius ?? BorderRadius.circular(20),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 20, color: resolvedIconColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Row(
+                    children: [
+                      if (valueIcon != null) ...[
+                        Icon(valueIcon, size: 18, color: resolvedValueColor),
+                        const SizedBox(width: 2),
+                      ],
+                      if (supportingText == null)
+                        Flexible(
+                          child: Text(
+                            value,
+                            maxLines: 2,
+                            softWrap: true,
+                            overflow: TextOverflow.ellipsis,
+                            style: valueStyle,
+                          ),
+                        )
+                      else ...[
+                        Text(value, maxLines: 1, style: valueStyle),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Align(
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: Text(
+                              supportingText!,
+                              maxLines: 2,
+                              textAlign: TextAlign.end,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: scheme.onSurfaceVariant),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (progress != null) ...[
+                    SizedBox(height: valueWraps ? 4 : 8),
+                    LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 5,
+                      borderRadius: BorderRadius.circular(3),
+                      color: resolvedProgressColor,
+                      backgroundColor: scheme.surfaceContainerHighest,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
 class _DeviceFeaturesPanel extends ConsumerWidget {
   const _DeviceFeaturesPanel({
+    required this.compact,
+    required this.showInstall,
     required this.enabled,
     required this.hasDevice,
     required this.isZeppOs,
   });
 
+  final bool compact;
+  final bool showInstall;
   final bool enabled;
   final bool hasDevice;
   final bool isZeppOs;
@@ -393,84 +769,73 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final state = ref.watch(deviceManagerProvider);
+    final appCount = state.apps
+        .where((app) => !app.packageName.startsWith('com.xiaomi.miwear.'))
+        .length;
+    final isNarrow = compact;
 
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SegmentedSection(
-              title: Text(l10n.install),
-              tiles: [
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: isNarrow ? 0 : 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showInstall)
+            _InstallSection(
+              compact: compact,
+              enabled: enabled,
+              appCount: appCount,
+              watchfaceCount: state.watchfaces.length,
+              onManageApps: () => context.push('/devices/apps'),
+              onManageWatchfaces: () => context.push('/devices/watchfaces'),
+              onInstallApp: () =>
+                  _pickAndEnqueue(context, ref, LocalDeviceInstallType.app),
+              onInstallWatchface: () => _pickAndEnqueue(
+                context,
+                ref,
+                LocalDeviceInstallType.watchface,
+              ),
+            ),
+          SegmentedSection(
+            margin: const EdgeInsetsDirectional.only(
+              start: 16,
+              end: 16,
+              bottom: 16,
+            ),
+            tiles: [
+              if (isZeppOs)
                 SegmentedTile.navigation(
-                  onPressed: (_) =>
-                      _pickAndEnqueue(context, ref, LocalDeviceInstallType.app),
-                  enabled: enabled,
-                  leading: const Icon(Icons.apps_outlined),
-                  title: Text(l10n.deviceFeaturesInstallApp),
-                  description: Text(l10n.deviceFeaturesInstallAppDesc),
-                ),
-                SegmentedTile.navigation(
-                  onPressed: (_) => _pickAndEnqueue(
-                    context,
-                    ref,
-                    LocalDeviceInstallType.watchface,
-                  ),
+                  onPressed: (_) => context.push('/devices/zeppos-more'),
                   enabled: enabled,
                   leading: const Icon(Icons.watch_outlined),
-                  title: Text(l10n.deviceFeaturesInstallWatchface),
-                  description: Text(l10n.deviceFeaturesInstallWatchfaceDesc),
-                ),
+                  title: Text(l10n.zeppOsMoreFeatures),
+                  description: Text(l10n.zeppOsMoreFeaturesDescription),
+                )
+              else
                 SegmentedTile.navigation(
-                  onPressed: (_) => _pickAndEnqueue(
-                    context,
-                    ref,
-                    LocalDeviceInstallType.firmware,
-                  ),
+                  onPressed: (_) => context.push('/devices/velaos-music'),
                   enabled: enabled,
-                  leading: const Icon(Icons.memory_outlined),
-                  title: Text(l10n.deviceFeaturesInstallFirmware),
-                  description: Text(l10n.deviceFeaturesInstallFirmwareDesc),
+                  leading: const Icon(Icons.music_note_outlined),
+                  title: Text(l10n.deviceMusicSync),
+                  description: Text(l10n.deviceMusicSyncDescription),
                 ),
-              ],
-            ),
-            SegmentedSection(
-              title: Text(l10n.manage),
-              tiles: [
-                if (isZeppOs)
-                  SegmentedTile.navigation(
-                    onPressed: (_) => context.push('/devices/zeppos-more'),
-                    enabled: enabled,
-                    leading: const Icon(Icons.functions),
-                    title: Text(l10n.zeppOsMoreFeatures),
-                    description: Text(l10n.zeppOsMoreFeaturesDescription),
-                  ),
-                SegmentedTile.navigation(
-                  onPressed: (_) => context.push('/devices/apps'),
-                  enabled: enabled,
-                  leading: const Icon(Icons.apps),
-                  title: Text(l10n.deviceFeaturesManageApps),
-                  description: Text(l10n.deviceFeaturesManageAppsDesc),
-                ),
-                SegmentedTile.navigation(
-                  onPressed: (_) => context.push('/devices/watchfaces'),
-                  enabled: enabled,
-                  leading: const Icon(Icons.watch),
-                  title: Text(l10n.deviceFeaturesManageWatchfaces),
-                  description: Text(l10n.deviceFeaturesManageWatchfacesDesc),
-                ),
-                SegmentedTile.navigation(
-                  onPressed: (_) => context.push('/devices/info'),
-                  enabled: hasDevice,
-                  leading: const Icon(Icons.info_outline),
-                  title: Text(l10n.deviceFeaturesDeviceInfo),
-                  description: Text(l10n.deviceFeaturesDeviceInfoDesc),
-                ),
-              ],
-            ),
-          ],
-        ),
+              SegmentedTile.navigation(
+                onPressed: (_) => context.push('/devices/firmware'),
+                enabled: enabled,
+                leading: const Icon(Icons.memory_outlined),
+                title: Text(l10n.deviceFeaturesInstallFirmware),
+                description: Text(l10n.deviceFeaturesInstallFirmwareDesc),
+              ),
+              SegmentedTile.navigation(
+                onPressed: (_) => context.push('/devices/info'),
+                enabled: hasDevice,
+                leading: const Icon(Icons.info_outline),
+                title: Text(l10n.deviceFeaturesDeviceInfo),
+                description: Text(l10n.deviceFeaturesDeviceInfoDesc),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -501,77 +866,311 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
   }
 }
 
-class _VerticalDivider extends StatelessWidget {
+class _DeviceStatusGrid extends StatelessWidget {
+  const _DeviceStatusGrid({
+    required this.compact,
+    required this.enabled,
+    required this.battery,
+    required this.storage,
+    required this.appCount,
+    required this.watchfaceCount,
+    required this.onManageApps,
+    required this.onManageWatchfaces,
+    required this.onInstallApp,
+    required this.onInstallWatchface,
+  });
+
+  final bool compact;
+  final bool enabled;
+  final BatteryStatus? battery;
+  final StorageInfo? storage;
+  final int appCount;
+  final int watchfaceCount;
+  final VoidCallback onManageApps;
+  final VoidCallback onManageWatchfaces;
+  final VoidCallback onInstallApp;
+  final VoidCallback onInstallWatchface;
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      width: 1,
-      height: 14,
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      color: colorScheme.outlineVariant,
+    final l10n = AppLocalizations.of(context)!;
+    final cards = <Widget>[
+      _BatteryCard(battery: battery),
+      _StorageCard(storage: storage),
+      _InstallSummaryCard(
+        enabled: enabled,
+        icon: Icons.apps_outlined,
+        label: l10n.apps,
+        countLabel: l10n.deviceAppCount,
+        count: appCount,
+        installTooltip: l10n.deviceFeaturesInstallApp,
+        onOpen: onManageApps,
+        onInstall: onInstallApp,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      _InstallSummaryCard(
+        enabled: enabled,
+        icon: Icons.watch_outlined,
+        label: l10n.watchfaces,
+        countLabel: l10n.deviceWatchfaceCount,
+        count: watchfaceCount,
+        installTooltip: l10n.deviceFeaturesInstallWatchface,
+        onOpen: onManageWatchfaces,
+        onInstall: onInstallWatchface,
+        borderRadius: BorderRadius.circular(20),
+      ),
+    ];
+
+    Widget row(Iterable<Widget> children) => Row(
+      children: children.expand((card) sync* {
+        if (card != children.first) yield const SizedBox(width: 12);
+        yield Expanded(child: card);
+      }).toList(),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: compact
+          ? Column(
+              children: [
+                row(cards.take(2)),
+                const SizedBox(height: 12),
+                row(cards.skip(2)),
+              ],
+            )
+          : row(cards),
     );
   }
 }
 
-class _BatteryIndicator extends StatelessWidget {
-  const _BatteryIndicator({required this.battery});
+Future<void> _pickAndEnqueueResource(
+  BuildContext context,
+  WidgetRef ref,
+  LocalDeviceInstallType selectedType,
+) async {
+  final result = await FilePicker.pickFiles(
+    type: FileType.any,
+    withData: shouldLoadPickedFileData,
+  );
+  if (result == null || result.files.isEmpty) return;
+  final file = result.files.first;
+  if (file.bytes == null && file.path == null) return;
+  final selected = file.bytes == null
+      ? XFile(file.path!, name: file.name)
+      : XFile.fromData(file.bytes!, name: file.name);
+  if (!context.mounted) return;
+  await confirmAndEnqueueResourceFile(
+    context: context,
+    ref: ref,
+    file: selected,
+    selectedType: selectedType,
+  );
+}
 
-  final BatteryStatus battery;
+class _InstallSection extends StatelessWidget {
+  const _InstallSection({
+    required this.compact,
+    required this.enabled,
+    required this.appCount,
+    required this.watchfaceCount,
+    required this.onManageApps,
+    required this.onManageWatchfaces,
+    required this.onInstallApp,
+    required this.onInstallWatchface,
+  });
+
+  final bool compact;
+  final bool enabled;
+  final int appCount;
+  final int watchfaceCount;
+  final VoidCallback onManageApps;
+  final VoidCallback onManageWatchfaces;
+  final VoidCallback onInstallApp;
+  final VoidCallback onInstallWatchface;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final charging = battery.chargeStatus == ChargeStatus.charging;
-    final indicatorColor = charging
-        ? colorScheme.primary
-        : colorScheme.onSurfaceVariant;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        SizedBox(
-          width: 20,
-          height: 10,
-          child: Stack(
-            alignment: Alignment.centerLeft,
+    final l10n = AppLocalizations.of(context)!;
+    final isNarrow = compact;
+    return Padding(
+      padding: EdgeInsetsDirectional.only(start: 16, end: 16, bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Container(
-                width: 20,
-                height: 10,
-                decoration: BoxDecoration(
-                  border: Border.all(color: indicatorColor, width: 1.5),
-                  borderRadius: BorderRadius.circular(2),
+              Expanded(
+                child: _InstallSummaryCard(
+                  enabled: enabled,
+                  icon: Icons.apps_outlined,
+                  label: l10n.apps,
+                  countLabel: l10n.deviceAppCount,
+                  count: appCount,
+                  installTooltip: l10n.deviceFeaturesInstallApp,
+                  onOpen: onManageApps,
+                  onInstall: onInstallApp,
+                  borderRadius: isNarrow
+                      ? BorderRadius.circular(20)
+                      : const BorderRadiusDirectional.only(
+                          topStart: Radius.circular(20),
+                          bottomStart: Radius.circular(20),
+                          topEnd: Radius.circular(3),
+                          bottomEnd: Radius.circular(3),
+                        ),
                 ),
               ),
-              Positioned(
-                left: 1.5,
-                top: 1.5,
-                bottom: 1.5,
-                child: Container(
-                  width: ((20 - 3) * (battery.capacity / 100)).clamp(
-                    0.0,
-                    20.0 - 3,
+              SizedBox(width: isNarrow ? 12 : 2),
+              Expanded(
+                child: _InstallSummaryCard(
+                  enabled: enabled,
+                  icon: Icons.watch_outlined,
+                  label: l10n.watchfaces,
+                  countLabel: l10n.deviceWatchfaceCount,
+                  count: watchfaceCount,
+                  installTooltip: l10n.deviceFeaturesInstallWatchface,
+                  onOpen: onManageWatchfaces,
+                  onInstall: onInstallWatchface,
+                  borderRadius: isNarrow
+                      ? BorderRadius.circular(20)
+                      : const BorderRadiusDirectional.only(
+                          topStart: Radius.circular(3),
+                          bottomStart: Radius.circular(3),
+                          topEnd: Radius.circular(20),
+                          bottomEnd: Radius.circular(20),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InstallSummaryCard extends StatelessWidget {
+  const _InstallSummaryCard({
+    required this.enabled,
+    required this.icon,
+    required this.label,
+    required this.countLabel,
+    required this.count,
+    required this.installTooltip,
+    required this.onOpen,
+    required this.onInstall,
+    required this.borderRadius,
+  });
+
+  final bool enabled;
+  final IconData icon;
+  final String label;
+  final String countLabel;
+  final int count;
+  final String installTooltip;
+  final VoidCallback onOpen;
+  final VoidCallback onInstall;
+  final BorderRadiusGeometry borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final foreground = enabled ? colors.onSurface : theme.disabledColor;
+    final resolvedBorderRadius = borderRadius.resolve(
+      Directionality.of(context),
+    );
+    return Material(
+      color: colors.surfaceContainerHigh,
+      borderRadius: resolvedBorderRadius,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: enabled ? onOpen : null,
+        child: SizedBox(
+          height: 104,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(icon, size: 20, color: foreground),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: foreground,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$count',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              color: foreground,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            countLabel,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: enabled
+                                  ? colors.onSurfaceVariant
+                                  : theme.disabledColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  decoration: BoxDecoration(
-                    color: indicatorColor,
-                    borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+              PositionedDirectional(
+                end: 8,
+                bottom: 8,
+                child: Tooltip(
+                  message: installTooltip,
+                  child: Material(
+                    color: enabled
+                        ? colors.secondaryContainer
+                        : colors.surfaceContainerHighest,
+                    shape: const CircleBorder(),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: enabled ? onInstall : null,
+                      customBorder: const CircleBorder(),
+                      child: SizedBox.square(
+                        dimension: 36,
+                        child: Center(
+                          child: Icon(
+                            Icons.add,
+                            size: 20,
+                            color: enabled
+                                ? colors.onSecondaryContainer
+                                : theme.disabledColor,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(width: 4),
-        if (charging) ...[
-          Icon(Icons.bolt, size: 15, color: colorScheme.primary),
-          const SizedBox(width: 2),
-        ],
-        Text(
-          '${battery.capacity}%',
-          style: TextStyle(color: indicatorColor, fontSize: 13, height: 1),
-        ),
-      ],
+      ),
     );
   }
 }

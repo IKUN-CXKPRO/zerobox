@@ -43,7 +43,6 @@ class AppScaffold extends ConsumerWidget {
         branchIndices,
       );
     }
-    final path = GoRouterState.of(context).uri.path;
     const primaryPaths = {
       '/resources',
       '/devices',
@@ -56,8 +55,7 @@ class AppScaffold extends ConsumerWidget {
       l10n,
       badgeCount,
       branchIndices,
-      showNavigation:
-          primaryPaths.contains(path) || path.startsWith('/resources/detail/'),
+      showNavigation: primaryPaths.contains(GoRouterState.of(context).uri.path),
     );
   }
 
@@ -87,12 +85,7 @@ class AppScaffold extends ConsumerWidget {
         color: Theme.of(context).colorScheme.surfaceContainer,
         child: AnnouncementGate(child: navigationShell),
       ),
-      bottomNavigationBar: AnimatedSize(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
-        alignment: Alignment.topCenter,
-        child: showNavigation ? navigationBar : const SizedBox.shrink(),
-      ),
+      bottomNavigationBar: showNavigation ? navigationBar : null,
     );
   }
 
@@ -238,32 +231,6 @@ class AppScaffold extends ConsumerWidget {
     );
     return downloadCount + installCount;
   }
-}
-
-/// Places a root-level secondary route over the shell without changing the
-/// shell's geometry. Compact layouts cover the bottom navigation naturally;
-/// wide layouts leave the navigation rail visible.
-class AdaptiveSecondarySurface extends StatelessWidget {
-  const AdaptiveSecondarySurface({super.key, required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      if (!useWideLayout(constraints.maxWidth)) return child;
-      return Padding(
-        padding: const EdgeInsets.only(left: 80),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(28),
-            bottomLeft: Radius.circular(28),
-          ),
-          child: child,
-        ),
-      );
-    },
-  );
 }
 
 class _WideNavigationRail extends StatelessWidget {

@@ -258,9 +258,9 @@ class _DetailContent extends ConsumerWidget {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
-              onPressed: () => context.push(
-                '/settings/feedback',
-                extra: FeedbackTarget(
+              onPressed: () => showFeedbackComposer(
+                context,
+                target: FeedbackTarget(
                   type: FeedbackTargetType.resource,
                   source: detail.ref.source.name,
                   id: detail.ref.id,
@@ -710,9 +710,9 @@ class _CommentTile extends StatelessWidget {
                       IconButton(
                         tooltip: l10n.report,
                         visualDensity: VisualDensity.compact,
-                        onPressed: () => context.push(
-                          '/settings/feedback',
-                          extra: FeedbackTarget(
+                        onPressed: () => showFeedbackComposer(
+                          context,
+                          target: FeedbackTarget(
                             type: FeedbackTargetType.comment,
                             source: 'comment',
                             id: comment.id,
@@ -928,9 +928,10 @@ class _Actions extends ConsumerWidget {
       final target = choice.codename.isNotEmpty
           ? choice.codename
           : currentCodename;
-      ref
+      final accepted = ref
           .read(downloadQueueProvider.notifier)
           .enqueue(resource: detail, file: choice.file, codename: target);
+      if (!accepted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.downloadStarted)));

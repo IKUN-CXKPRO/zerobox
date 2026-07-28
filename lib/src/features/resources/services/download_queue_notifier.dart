@@ -41,6 +41,7 @@ class ResourceTask {
 class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
   StreamSubscription<CommandEvent>? _subscription;
   CancelToken? _cancelToken;
+  final Set<String> _enqueuing = {};
 
   @override
   List<ResourceTask> build() {
@@ -60,11 +61,13 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
       )
       .firstOrNull;
 
-  void enqueue({
+  bool enqueue({
     required CommunityResourceDetail resource,
     required CommunityResourceFile file,
     required String codename,
   }) {
+    final key = '${resource.ref.key}:${file.id}:$codename';
+    if (_enqueuing.contains(key)) return false;
     if (state.any(
       (task) =>
           task.resource.ref == resource.ref &&
@@ -72,9 +75,17 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
           task.codename == codename &&
           task.status != ResourceTaskStatus.completed,
     )) {
-      return;
+      return false;
     }
-    unawaited(_enqueue(resource, file, codename));
+    _enqueuing.add(key);
+    unawaited(
+      _enqueue(
+        resource,
+        file,
+        codename,
+      ).whenComplete(() => _enqueuing.remove(key)),
+    );
+    return true;
   }
 
   Future<void> _enqueue(

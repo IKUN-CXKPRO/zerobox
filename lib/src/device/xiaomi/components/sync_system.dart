@@ -14,7 +14,7 @@ class XiaomiSyncSystem extends XiaomiPbSystem {
 
   Future<void> syncTime(TimeSyncProps props) async {
     _log.fine('[${entity.id}] syncing time: ${props.toJson()}');
-    await component.sendPbPacket(_buildTimeSyncPacket(props));
+    await component.sendPbPacket(_buildTimeSyncPacket(props), waitForAck: true);
   }
 
   Future<void> setLanguage(String locale) async {

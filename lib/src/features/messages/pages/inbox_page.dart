@@ -37,64 +37,87 @@ class InboxPage extends ConsumerWidget {
       ),
       body: PageContainer(
         child: state.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => LoadingView(message: l10n.inboxLoading),
           error: (error, _) => Center(child: Text(error.toString())),
           data: (value) => RefreshIndicator(
             onRefresh: () => ref.read(messageCenterProvider.notifier).refresh(),
-            child: ListView(
-              children: value.messages.isEmpty
-                  ? [ListTile(title: Text(l10n.inboxEmpty))]
-                  : value.messages
+            child: value.messages.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.sizeOf(context).height * .65,
+                        child: _InboxEmpty(message: l10n.inboxEmpty),
+                      ),
+                    ],
+                  )
+                : ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: value.messages
                         .map(
-                          (message) => ListTile(
-                            leading: Icon(
-                              message.read
-                                  ? Icons.mail_outline
-                                  : Icons.mark_email_unread,
-                            ),
-                            title: Text(
-                              message.title,
-                              style: TextStyle(
-                                fontWeight: message.read
-                                    ? null
-                                    : FontWeight.bold,
+                          (message) => Card(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: .5),
+                            clipBehavior: Clip.antiAlias,
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
                               ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(message.body),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _messageTime(message.createdAt),
-                                  style: Theme.of(context).textTheme.bodySmall,
+                              leading: Icon(
+                                message.read
+                                    ? Icons.mail_outline
+                                    : Icons.mark_email_unread,
+                              ),
+                              title: Text(
+                                message.title,
+                                style: TextStyle(
+                                  fontWeight: message.read
+                                      ? null
+                                      : FontWeight.bold,
                                 ),
-                              ],
-                            ),
-                            onTap: () async {
-                              final read = ref
-                                  .read(messageCenterProvider.notifier)
-                                  .read(message.id);
-                              if (message.targetResourceId.isEmpty) {
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(message.body),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _messageTime(message.createdAt),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                              onTap: () async {
+                                final read = ref
+                                    .read(messageCenterProvider.notifier)
+                                    .read(message.id);
+                                if (message.targetResourceId.isEmpty) {
+                                  await read;
+                                  return;
+                                }
+                                final query = Uri(
+                                  queryParameters: {
+                                    'source': 'oronBox',
+                                    if (message.targetCommentId.isNotEmpty)
+                                      'comment': message.targetCommentId,
+                                  },
+                                ).query;
+                                context.go(
+                                  '/resources/detail/${message.targetResourceId}?$query',
+                                );
                                 await read;
-                                return;
-                              }
-                              final query = Uri(
-                                queryParameters: {
-                                  'source': 'oronBox',
-                                  if (message.targetCommentId.isNotEmpty)
-                                    'comment': message.targetCommentId,
-                                },
-                              ).query;
-                              context.go(
-                                '/resources/detail/${message.targetResourceId}?$query',
-                              );
-                              await read;
-                            },
+                              },
+                            ),
                           ),
                         )
                         .toList(),
-            ),
+                  ),
           ),
         ),
       ),
@@ -107,4 +130,25 @@ class InboxPage extends ConsumerWidget {
     return '${date.year}-${two(date.month)}-${two(date.day)} '
         '${two(date.hour)}:${two(date.minute)}';
   }
+}
+
+class _InboxEmpty extends StatelessWidget {
+  const _InboxEmpty({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.notifications_none_rounded,
+          size: 72,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(height: 16),
+        Text(message, textAlign: TextAlign.center),
+      ],
+    ),
+  );
 }

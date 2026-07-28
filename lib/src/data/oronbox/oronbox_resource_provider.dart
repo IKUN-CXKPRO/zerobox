@@ -66,7 +66,10 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
         .whereType<Map>()
         .map((value) => value.cast<String, Object?>())
         .toList();
-    final previewImages = parseOronBoxPreviewImages(media, blobUri: _blobUri);
+    final previewImages = parseOronBoxPreviewImages(
+      media,
+      blobUri: _imageBlobUri,
+    );
     final previews = previewImages.map((image) => image.url).toList();
     return CommunityResourceDetail(
       ref: summary.ref,
@@ -248,8 +251,8 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
       supportedDevices: (json['devices'] as List? ?? const [])
           .map((value) => value.toString())
           .toSet(),
-      iconUrl: _blobUri(icon.isNotEmpty ? icon : preview),
-      coverUrl: _blobUri(cover.isNotEmpty ? cover : preview),
+      iconUrl: _imageBlobUri(icon.isNotEmpty ? icon : preview),
+      coverUrl: _imageBlobUri(cover.isNotEmpty ? cover : preview),
       summary: json['summary']?.toString() ?? '',
       version: json['version']?.toString(),
       downloadCount: (json['download_count'] as num?)?.toInt(),
@@ -259,6 +262,10 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
 
   Uri? _blobUri(String digest) => digest.length == 64
       ? Uri.parse('$oronBoxServerBaseUrl/api/blobs/$digest')
+      : null;
+
+  Uri? _imageBlobUri(String digest) => digest.length == 64
+      ? Uri.parse('$oronBoxServerBaseUrl/api/blobs/$digest?line=local')
       : null;
 
   CommunityResourceType _parseType(String? value) => switch (value) {

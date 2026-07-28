@@ -115,7 +115,10 @@ class XiaomiDeviceComponent {
     if (completer != null && !completer.isCompleted) completer.complete();
   }
 
-  Future<void> sendPbPacket(pb.WearPacket packet) async {
+  Future<void> sendPbPacket(
+    pb.WearPacket packet, {
+    bool waitForAck = false,
+  }) async {
     final encrypted = authKeys != null;
     _log.fine(
       'sending PB packet type=${packet.type} id=${packet.id} encrypted=$encrypted',
@@ -130,7 +133,11 @@ class XiaomiDeviceComponent {
     final l2 = encrypted
         ? L2Packet.pbWriteEnc(packet, authKeys!.cipher)
         : L2Packet.pbWrite(packet);
-    await sar.sendData(l2.toBytes());
+    if (waitForAck) {
+      await sar.sendDataRegisterAck(l2.toBytes()).ack;
+    } else {
+      await sar.sendData(l2.toBytes());
+    }
   }
 
   Future<void> sendPbPacketUnencrypted(pb.WearPacket packet) async {

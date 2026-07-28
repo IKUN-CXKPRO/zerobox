@@ -26,6 +26,7 @@ class DeviceEntity {
   Dispatcher? _dispatcher;
   StreamSubscription<Uint8List>? _incomingSubscription;
   StreamSubscription<bool>? _connectionSubscription;
+  StreamSubscription<LinkTraffic>? _trafficSubscription;
 
   Stream<Uint8List> get rawIncomingData => _rawIncomingController.stream;
 
@@ -73,6 +74,11 @@ class DeviceEntity {
       onError: (Object e) =>
           _log.warning('[$id] connection state stream error', e),
     );
+    if (transport case TrafficReportingTransport reporting) {
+      _trafficSubscription = reporting.traffic.listen(
+        (traffic) => emit(LinkTrafficUpdated(deviceId: id, traffic: traffic)),
+      );
+    }
   }
 
   void _onIncomingData(Uint8List data) {
@@ -101,6 +107,7 @@ class DeviceEntity {
     _log.fine('[$id] disposing entity');
     await _incomingSubscription?.cancel();
     await _connectionSubscription?.cancel();
+    await _trafficSubscription?.cancel();
     await _rawIncomingController.close();
     for (final system in _systems) {
       try {

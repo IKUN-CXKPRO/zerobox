@@ -532,6 +532,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get apps => 'Apps';
 
   @override
+  String get deviceAppCount => 'App count';
+
+  @override
+  String get deviceWatchfaceCount => 'Watchface count';
+
+  @override
   String get connection => 'Connection';
 
   @override
@@ -668,7 +674,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceSwitch => 'Switch';
 
   @override
+  String get deviceSyncTime => 'Sync';
+
+  @override
   String get deviceCharging => 'Charging';
+
+  @override
+  String get deviceLastChargedNow => 'Charged just now';
+
+  @override
+  String deviceLastChargedMinutes(int count) {
+    return 'Charged $count min ago';
+  }
+
+  @override
+  String deviceLastChargedHours(int count) {
+    return 'Charged $count hr ago';
+  }
+
+  @override
+  String deviceLastChargedDays(int count) {
+    return 'Charged $count days ago';
+  }
 
   @override
   String get deviceFeaturesInstallApp => 'Install app';
@@ -685,11 +712,71 @@ class AppLocalizationsEn extends AppLocalizations {
       'Install watchface from local file';
 
   @override
-  String get deviceFeaturesInstallFirmware => 'Install firmware';
+  String get deviceFeaturesInstallFirmware => 'Firmware update';
 
   @override
   String get deviceFeaturesInstallFirmwareDesc =>
-      'Flash firmware or tool package';
+      'Check for device updates or install local firmware';
+
+  @override
+  String get firmwareAvailableUpdates => 'Available updates';
+
+  @override
+  String get firmwareCheckingUpdates => 'Checking for firmware updates';
+
+  @override
+  String get firmwareCheckUpdatesDescription =>
+      'Find firmware versions compatible with this device';
+
+  @override
+  String get firmwareNoUpdatesFound =>
+      'No newer firmware was found for this device';
+
+  @override
+  String get firmwareSourceUnavailable =>
+      'An online firmware source is not yet available for this device type';
+
+  @override
+  String get firmwareVersionUnknown => 'Current firmware version unavailable';
+
+  @override
+  String get localFirmwareInstallDescription =>
+      'Select and install a local firmware file';
+
+  @override
+  String get firmwareCurrentVersion => 'Current version';
+
+  @override
+  String get firmwareLatestRelease => 'Latest firmware';
+
+  @override
+  String get firmwareUpToDate => 'Your firmware is up to date';
+
+  @override
+  String get firmwareUpdateAvailable => 'An update is available';
+
+  @override
+  String get firmwareDownloadLatestFull => 'Download latest full package';
+
+  @override
+  String get firmwareUpdateNow => 'Update';
+
+  @override
+  String get firmwareReleaseNotes => 'Release notes';
+
+  @override
+  String get firmwareReleaseNotesUnavailable => 'No release notes available';
+
+  @override
+  String firmwareDownloadingProgress(int progress) {
+    return 'Downloading $progress%';
+  }
+
+  @override
+  String get downloadFailed => 'Download failed. Try again later.';
+
+  @override
+  String get downloadTaskAdded => 'Added to the download queue';
 
   @override
   String get deviceFeaturesManageApps => 'Manage apps';
@@ -706,10 +793,77 @@ class AppLocalizationsEn extends AppLocalizations {
       'View, delete and set current watchface';
 
   @override
-  String get zeppOsMoreFeatures => 'Zepp OS Hub';
+  String get zeppOsMoreFeatures => 'Special features';
 
   @override
-  String get zeppOsMoreFeaturesDescription => 'Explore your Zepp OS device';
+  String get zeppOsMoreFeaturesDescription =>
+      'Additional features supported by Zepp OS devices';
+
+  @override
+  String get deviceFeaturesSection => 'Features';
+
+  @override
+  String get deviceMusicSync => 'Music sync';
+
+  @override
+  String get deviceMusicUpload => 'Transfer music';
+
+  @override
+  String get deviceMusicSyncDescription => 'Sync MP3 files to the device';
+
+  @override
+  String get deviceMusicChooseDialog =>
+      'Select an MP3 file to sync to the device';
+
+  @override
+  String get deviceMusicReadFailed => 'Unable to read the selected MP3 file';
+
+  @override
+  String deviceMusicSizeInvalid(int maxMb) {
+    return 'MP3 files must be larger than 0 bytes and no larger than $maxMb MB';
+  }
+
+  @override
+  String get deviceMusicUnknownArtist => 'Unknown artist';
+
+  @override
+  String get deviceMusicTransferred => 'Music transfer complete';
+
+  @override
+  String get deviceMusicTransferTitle => 'Transfer MP3 file';
+
+  @override
+  String get deviceMusicVelaDescription =>
+      'Sync MP3 files to the device. Each file must not exceed 100 MB.';
+
+  @override
+  String get deviceMusicZeppDescription =>
+      'MP3 files up to 50 MB are supported. Bluetooth Classic is recommended for faster transfers; BLE is also supported but takes longer.';
+
+  @override
+  String get deviceMusicChooseMp3 => 'Select MP3 file';
+
+  @override
+  String get deviceMusicSongTitle => 'Track title';
+
+  @override
+  String get deviceMusicArtist => 'Artist';
+
+  @override
+  String deviceMusicFileSize(Object size) {
+    return 'File size: $size';
+  }
+
+  @override
+  String deviceMusicProgress(Object progress) {
+    return 'Transfer progress: $progress%';
+  }
+
+  @override
+  String get deviceMusicTransferring => 'Transferring';
+
+  @override
+  String get deviceMusicSend => 'Start transfer';
 
   @override
   String get zeppOsFindDevice => 'Find device';
@@ -2018,6 +2172,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorOperationWorking => 'Working';
 
   @override
+  String get creatorProcessingImage => 'Processing image';
+
+  @override
   String get creatorOperationRefreshing => 'Refreshing creator data';
 
   @override
@@ -2420,6 +2577,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inbox => 'Inbox';
+
+  @override
+  String get inboxLoading => 'Loading messages';
 
   @override
   String get inboxEmpty => 'No messages';

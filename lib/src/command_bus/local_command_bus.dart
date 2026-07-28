@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:oronbox/src/command_bus/command_observability.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
@@ -262,6 +263,9 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'device.refresh.battery' => _refreshBattery(),
     'device.refresh.system' => _refreshSystem(),
     'device.refresh.storage' => _refreshStorage(),
+    'device.sync' => _syncDevice(),
+    'device.sync.time' => _syncTime(),
+    'device.xiaomi.music.upload' => _uploadXiaomiMusic(command.params),
     'device.zeppos.find' => _setFindingZeppOsDevice(
       command.params['finding'] == true,
     ),
@@ -323,6 +327,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'resource.huami.publisher' => _huamiPublisher(command.params),
     'resource.download' => _resourceDownload(command.params, install: false),
     'resource.install' => _resourceDownload(command.params, install: true),
+    'file.download' => _fileDownload(command.params),
     'support.feedback.list' => _creatorRequest('GET', '/api/feedback'),
     'support.feedback.get' => _creatorRequest(
       'GET',
@@ -723,6 +728,8 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'xiaoAiActive': state.xiaoAiActive,
     'xiaoAiFrameCount': state.xiaoAiFrameCount,
     'xiaoAiCapabilities': state.xiaoAiCapabilities,
+    'uploadBytesPerSecond': state.uploadBytesPerSecond,
+    'downloadBytesPerSecond': state.downloadBytesPerSecond,
     if (state.error != null) 'error': state.error,
   };
 
@@ -911,7 +918,15 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     final name = 'device-$stamp-${safeName.isEmpty ? 'logs.zip' : safeName}';
     final file = File('$directory${Platform.pathSeparator}$name');
     await file.writeAsBytes(pulled.data, flush: true);
-    return {'name': name, 'path': file.path, 'size': pulled.data.length};
+    return {
+      'name': name,
+      'path': file.path,
+      'size': pulled.data.length,
+      // The GUI may be a separate desktop process from the device daemon.
+      // Return the archive so the GUI can mirror it into its own OronBox logs
+      // directory instead of leaving it inaccessible in the daemon sandbox.
+      'bytes': pulled.data.toList(growable: false),
+    };
   }
 
   Future<Object?> _cancelDeviceLogPull() async {
@@ -941,6 +956,34 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     await _ensureConnected(null);
     await _manager.fetchStorageInfo();
     return _deviceStateJson(_state);
+  }
+
+  Future<Object?> _syncTime() async {
+    await _ensureConnected(null);
+    await _manager.syncTime();
+    return const {'synced': true};
+  }
+
+  Future<Object?> _syncDevice() async {
+    await _ensureConnected(null);
+    await _manager.syncDevice();
+    return _deviceStateJson(_state);
+  }
+
+  Future<Object?> _uploadXiaomiMusic(Map<String, Object?> params) async {
+    await _ensureConnected(null);
+    final bytes = Uint8List.fromList(
+      (params['bytes'] as List? ?? const [])
+          .whereType<num>()
+          .map((value) => value.toInt())
+          .toList(growable: false),
+    );
+    await _manager.uploadXiaomiMusic(
+      bytes,
+      title: params['title']?.toString() ?? 'Unknown',
+      artist: params['artist']?.toString() ?? 'Unknown',
+    );
+    return const {'uploaded': true};
   }
 
   Future<Object?> _setFindingZeppOsDevice(bool finding) async {
@@ -1557,6 +1600,60 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       },
       'installed': install,
     };
+  }
+
+  Future<Object?> _fileDownload(Map<String, Object?> params) async {
+    final url = Uri.tryParse(params['url']?.toString() ?? '');
+    if (url == null || (url.scheme != 'https' && url.scheme != 'http')) {
+      throw const CommandFailure('validation', 'Invalid download URL');
+    }
+    final requestedName = params['fileName']?.toString().trim() ?? '';
+    if (requestedName.isEmpty) {
+      throw const CommandFailure('validation', 'Missing download file name');
+    }
+    final safeName = requestedName.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    final directory =
+        await getDownloadsDirectory() ??
+        await getApplicationDocumentsDirectory();
+    await directory.create(recursive: true);
+    final target = File('${directory.path}${Platform.pathSeparator}$safeName');
+    final temporary = File('${target.path}.part');
+    final client = HttpClient()..userAgent = 'OronBox firmware downloader';
+    IOSink? sink;
+    try {
+      final request = await client.getUrl(url);
+      final response = await request.close();
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw CommandFailure(
+          'download',
+          'Download failed with HTTP ${response.statusCode}',
+        );
+      }
+      final total = response.contentLength;
+      var received = 0;
+      sink = temporary.openWrite();
+      await for (final chunk in response) {
+        _throwIfCancelled();
+        sink.add(chunk);
+        received += chunk.length;
+        _events.add(
+          CommandEvent(
+            'downloading',
+            data: {'progress': total > 0 ? received / total : 0.0},
+          ),
+        );
+      }
+      await sink.flush();
+      await sink.close();
+      sink = null;
+      if (await target.exists()) await target.delete();
+      await temporary.rename(target.path);
+      return {'path': target.path, 'fileName': safeName};
+    } finally {
+      await sink?.close();
+      client.close(force: true);
+      if (await temporary.exists()) await temporary.delete();
+    }
   }
 
   CommunitySourceId _source(String? value) {

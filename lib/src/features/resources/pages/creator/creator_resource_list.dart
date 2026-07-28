@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
@@ -32,7 +33,7 @@ class _CreatorResourceListState extends State<CreatorResourceList> {
     final l10n = AppLocalizations.of(context)!;
     final state = widget.state;
     if (state.loading && state.resources.isEmpty) {
-      return Center(child: Text(creatorOperationLabel(l10n, state.operation)));
+      return LoadingView(message: creatorOperationLabel(l10n, state.operation));
     }
     if (state.resources.isEmpty) {
       return Center(
@@ -120,10 +121,12 @@ class CreatorResourceThumbnail extends StatefulWidget {
     super.key,
     required this.workspace,
     required this.controller,
+    this.size = 64,
   });
 
   final CreatorWorkspace workspace;
   final CreatorWorkspaceController controller;
+  final double size;
 
   @override
   State<CreatorResourceThumbnail> createState() =>
@@ -167,8 +170,8 @@ class _CreatorResourceThumbnailState extends State<CreatorResourceThumbnail> {
     final colors = Theme.of(context).colorScheme;
     final bytes = _bytes;
     return SizedBox(
-      width: 64,
-      height: 64,
+      width: widget.size,
+      height: widget.size,
       child: bytes != null
           ? ClipRRect(
               borderRadius: BorderRadius.circular(12),
@@ -215,111 +218,109 @@ class CreatorResourceCard extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            creatorWorkspaceTitle(workspace),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.25,
-                                ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        CreatorStateBadge(state: state),
-                      ],
-                    ),
-                    if (subtitle.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          subtitle,
+                        Text(
+                          creatorWorkspaceTitle(workspace),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: colors.onSurfaceVariant),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                height: 1.25,
+                              ),
                         ),
-                      ),
-                    if (workspace.resource.updatedAt != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          _creatorResourceTime(workspace.resource.updatedAt!),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: colors.onSurfaceVariant),
-                        ),
-                      ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        _CreatorResourceTag(
-                          label: creatorKindLabel(
-                            l10n,
-                            workspace.resource.kind,
-                          ),
-                          color:
-                              workspace.resource.kind ==
-                                  CreatorResourceKind.quickApp
-                              ? colors.error
-                              : colors.primary,
-                        ),
-                        if (workspace.artifacts.isNotEmpty)
-                          _CreatorResourceTag(
-                            icon: Icons.inventory_2_outlined,
-                            label: l10n.creatorArtifactCount(
-                              workspace.artifacts.length,
+                        if (subtitle.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              subtitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: colors.onSurfaceVariant),
                             ),
-                            color: colors.onSurfaceVariant,
                           ),
-                        if (supportedDeviceCount > 0)
-                          _CreatorResourceTag(
-                            icon: Icons.watch_outlined,
-                            label: l10n.creatorCompatibleDeviceCount(
-                              supportedDeviceCount,
+                        if (workspace.resource.updatedAt != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              _creatorResourceTime(
+                                workspace.resource.updatedAt!,
+                              ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: colors.onSurfaceVariant),
                             ),
-                            color: colors.onSurfaceVariant,
-                          ),
-                        if (workspace.revisions.isNotEmpty)
-                          _CreatorResourceTag(
-                            icon: Icons.download,
-                            label: '${workspace.resource.downloadCount}',
-                            color: colors.onSurfaceVariant,
                           ),
                       ],
                     ),
-                    if (note.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          '${l10n.reviewNote}: $note',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(color: colors.error),
-                        ),
+                  ),
+                  const SizedBox(width: 12),
+                  CreatorStateBadge(state: state),
+                  const SizedBox(width: 8),
+                  CreatorResourceThumbnail(
+                    workspace: workspace,
+                    controller: controller,
+                    size: 48,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  _CreatorResourceTag(
+                    label: creatorKindLabel(l10n, workspace.resource.kind),
+                    color:
+                        workspace.resource.kind == CreatorResourceKind.quickApp
+                        ? colors.error
+                        : colors.primary,
+                  ),
+                  if (workspace.artifacts.isNotEmpty)
+                    _CreatorResourceTag(
+                      icon: Icons.inventory_2_outlined,
+                      label: l10n.creatorArtifactCount(
+                        workspace.artifacts.length,
                       ),
-                  ],
+                      color: colors.onSurfaceVariant,
+                    ),
+                  if (supportedDeviceCount > 0)
+                    _CreatorResourceTag(
+                      icon: Icons.watch_outlined,
+                      label: l10n.creatorCompatibleDeviceCount(
+                        supportedDeviceCount,
+                      ),
+                      color: colors.onSurfaceVariant,
+                    ),
+                  if (workspace.revisions.isNotEmpty)
+                    _CreatorResourceTag(
+                      icon: Icons.download,
+                      label: '${workspace.resource.downloadCount}',
+                      color: colors.onSurfaceVariant,
+                    ),
+                ],
+              ),
+              if (note.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    '${l10n.reviewNote}: $note',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: colors.error),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              CreatorResourceThumbnail(
-                workspace: workspace,
-                controller: controller,
-              ),
             ],
           ),
         ),

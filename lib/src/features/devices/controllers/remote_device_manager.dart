@@ -144,6 +144,10 @@ class HostDeviceManager extends DeviceManager {
       xiaoAiCapabilities: raw['xiaoAiCapabilities'] is Map
           ? (raw['xiaoAiCapabilities'] as Map).cast<String, Object?>()
           : const {},
+      uploadBytesPerSecond:
+          (raw['uploadBytesPerSecond'] as num?)?.toDouble() ?? 0,
+      downloadBytesPerSecond:
+          (raw['downloadBytesPerSecond'] as num?)?.toDouble() ?? 0,
       error: raw['error']?.toString(),
     );
     final connectedDevice = state.currentDevice;
@@ -332,6 +336,16 @@ class HostDeviceManager extends DeviceManager {
   }
 
   @override
+  Future<void> syncTime() async {
+    await _execute(const OronBoxCommand(method: 'device.sync.time'));
+  }
+
+  @override
+  Future<void> syncDevice() async {
+    await _executeState('device.sync');
+  }
+
+  @override
   Future<void> refreshDeviceData() async {
     await _executeState('device.refresh.all');
   }
@@ -505,6 +519,26 @@ class HostDeviceManager extends DeviceManager {
   );
 
   @override
+  Future<void> uploadXiaomiMusic(
+    Uint8List bytes, {
+    required String title,
+    required String artist,
+    void Function(double progress)? onProgress,
+  }) async {
+    await _execute(
+      OronBoxCommand(
+        method: 'device.xiaomi.music.upload',
+        params: {
+          'bytes': bytes.toList(growable: false),
+          'title': title,
+          'artist': artist,
+        },
+      ),
+    );
+    onProgress?.call(1);
+  }
+
+  @override
   Future<DeviceLogPullResult> pullDeviceLogs({
     void Function(double progress, String fileName)? onProgress,
   }) async {
@@ -514,7 +548,12 @@ class HostDeviceManager extends DeviceManager {
     final value = (result.value as Map).cast<String, Object?>();
     return DeviceLogPullResult(
       fileName: value['name']?.toString() ?? '',
-      data: Uint8List(0),
+      data: Uint8List.fromList(
+        (value['bytes'] as List? ?? const [])
+            .whereType<num>()
+            .map((value) => value.toInt())
+            .toList(growable: false),
+      ),
     );
   }
 

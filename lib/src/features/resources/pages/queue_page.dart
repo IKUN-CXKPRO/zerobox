@@ -89,15 +89,27 @@ class _DownloadQueuePanel extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final tasks = ref.watch(downloadQueueProvider);
     final notifier = ref.read(downloadQueueProvider.notifier);
+    final fileDownloads = (ref.watch(daemonTasksProvider).value ?? const [])
+        .where((task) => task.method == 'file.download')
+        .toList();
 
     return _QueuePanel(
       title: l10n.downloadQueueTitle,
       action: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (tasks.isNotEmpty)
+          if (tasks.isNotEmpty || fileDownloads.isNotEmpty)
             IconButton(
-              onPressed: notifier.clearTerminal,
+              onPressed: () {
+                notifier.clearTerminal();
+                for (final task in fileDownloads.where(
+                  (task) => task.isTerminal,
+                )) {
+                  unawaited(
+                    removeHostTask(ref.read(applicationHostProvider), task.id),
+                  );
+                }
+              },
               icon: const Icon(Icons.delete_outline),
               tooltip: l10n.queueClear,
             ),
@@ -105,6 +117,21 @@ class _DownloadQueuePanel extends ConsumerWidget {
       ),
       emptyText: l10n.downloadQueueEmpty,
       children: [
+        for (final task in fileDownloads)
+          _QueueTile(
+            key: ValueKey('file-download-${task.id}'),
+            icon: Icons.download_outlined,
+            title: task.params['title']?.toString() ?? _daemonTaskTitle(task),
+            subtitle: task.path ?? task.params['fileName']?.toString() ?? '',
+            status: _downloadTaskStatus(task),
+            progress: task.progress,
+            error: task.error,
+            onRemove: () => unawaited(
+              task.isTerminal
+                  ? removeHostTask(ref.read(applicationHostProvider), task.id)
+                  : cancelHostTask(ref.read(applicationHostProvider), task.id),
+            ),
+          ),
         for (final task in tasks)
           _QueueTile(
             key: ValueKey('download-${task.id}'),
@@ -135,7 +162,8 @@ class _InstallQueuePanel extends ConsumerWidget {
         .where(
           (task) =>
               task.method != 'install.local' &&
-              task.method != 'resource.download',
+              task.method != 'resource.download' &&
+              task.method != 'file.download',
         )
         .toList();
     final running = state.runStatus == QueueRunStatus.running;
@@ -352,6 +380,14 @@ ResourceTaskStatus _daemonTaskStatus(DaemonTaskView task) =>
     switch (task.status) {
       'pending' => ResourceTaskStatus.pending,
       'running' => ResourceTaskStatus.installing,
+      'completed' => ResourceTaskStatus.completed,
+      _ => ResourceTaskStatus.failed,
+    };
+
+ResourceTaskStatus _downloadTaskStatus(DaemonTaskView task) =>
+    switch (task.status) {
+      'pending' => ResourceTaskStatus.pending,
+      'running' => ResourceTaskStatus.downloading,
       'completed' => ResourceTaskStatus.completed,
       _ => ResourceTaskStatus.failed,
     };

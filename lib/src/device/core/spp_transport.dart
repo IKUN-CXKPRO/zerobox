@@ -6,7 +6,7 @@ import 'package:oronbox/src/core/services/rfcomm_driver.dart';
 import 'package:oronbox/src/device/core/bluetooth_platform.dart';
 import 'package:oronbox/src/device/core/transport.dart';
 
-class SppTransport implements Transport {
+class SppTransport implements Transport, TrafficReportingTransport {
   SppTransport.xiaomi(RfcommConnection connection)
     : _rfcommConnection = connection,
       _bluetoothConnection = null;
@@ -28,6 +28,7 @@ class SppTransport implements Transport {
   final BluetoothConnection? _bluetoothConnection;
 
   final _incomingController = StreamController<Uint8List>.broadcast();
+  final _trafficMeter = LinkTrafficMeter();
   StreamSubscription<Uint8List>? _dataSubscription;
   StreamSubscription<bool>? _connectionSubscription;
 
@@ -43,6 +44,9 @@ class SppTransport implements Transport {
   Stream<Uint8List> get incomingData => _incomingController.stream;
 
   @override
+  Stream<LinkTraffic> get traffic => _trafficMeter.stream;
+
+  @override
   Stream<bool> get connectionState =>
       _rfcommConnection?.connectionState ??
       _bluetoothConnection!.connectionState;
@@ -52,7 +56,10 @@ class SppTransport implements Transport {
     final incomingData =
         _rfcommConnection?.incomingData ?? _bluetoothConnection!.incomingData;
     _dataSubscription = incomingData.listen(
-      _incomingController.add,
+      (data) {
+        _trafficMeter.addDownload(data.length);
+        _incomingController.add(data);
+      },
       onError: (Object e) =>
           _log.warning('[$deviceId] SPP data stream error', e),
       onDone: () {
@@ -77,6 +84,7 @@ class SppTransport implements Transport {
   Future<void> send(Uint8List data) async {
     _log.fine('[$deviceId] sending ${data.length} bytes over SPP');
     await (_rfcommConnection?.send(data) ?? _bluetoothConnection!.send(data));
+    _trafficMeter.addUpload(data.length);
   }
 
   @override
@@ -89,6 +97,7 @@ class SppTransport implements Transport {
     if (!_incomingController.isClosed) {
       await _incomingController.close();
     }
+    await _trafficMeter.dispose();
     await (_rfcommConnection?.dispose() ?? _bluetoothConnection!.dispose());
   }
 }
