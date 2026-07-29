@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/core/errors/coded_error.dart';
 import 'package:oronbox/src/core/constants/oronbox_server.dart';
 import 'package:oronbox/src/core/network/http_observability_interceptor.dart';
 import 'package:oronbox/src/core/services/build_info_service.dart';
@@ -119,11 +120,20 @@ class OronBoxSession {
   }
 }
 
-class BandBbsSessionExpiredException implements Exception {
+class BandBbsSessionExpiredException implements CodedError {
   const BandBbsSessionExpiredException();
 
   @override
-  String toString() => 'OronBox session expired';
+  String get code => 'invalid_refresh_token';
+
+  @override
+  String get message => 'OronBox session expired';
+
+  @override
+  Object? get details => null;
+
+  @override
+  String toString() => message;
 }
 
 class BandBbsAuthState {
@@ -199,6 +209,7 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
   Future<BandBbsToken?>? _tokenRefresh;
   Future<OronBoxSession?>? _sessionRefresh;
   Future<void>? _credentialRestore;
+  int _credentialRevision = 0;
 
   final Dio _dio = Dio(
     BaseOptions(
@@ -221,6 +232,7 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
   }
 
   Future<void> _restoreCredentials() async {
+    final revision = _credentialRevision;
     try {
       var tokenRaw = await _readCredential(_keyToken);
       var sessionRaw = await _readCredential(_keySession);
@@ -241,7 +253,7 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
       if (sessionMigrated) {
         await prefs.remove(_keySession);
       }
-      if (!ref.mounted) return;
+      if (!ref.mounted || revision != _credentialRevision) return;
       final token = _restore(tokenRaw, BandBbsToken.fromJson);
       final session = _restore(sessionRaw, OronBoxSession.fromJson);
       state = state.copyWith(token: token, session: session);
@@ -258,6 +270,42 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
 
   Future<void> restoreCredentials() async {
     await _credentialRestore;
+  }
+
+  /// Reload credentials written by the daemon process after an OAuth flow.
+  Future<void> reloadCredentials({bool clearWhenMissing = false}) async {
+    final revision = ++_credentialRevision;
+    _sessionRefresh = null;
+    _tokenRefresh = null;
+    final prefs = SharedPrefsService.instance;
+    final storedToken = await _readCredential(_keyToken);
+    final storedSession = await _readCredential(_keySession);
+    final tokenRaw =
+        storedToken ??
+        (prefs.isInitialized ? prefs.getString(_keyToken) : null);
+    final sessionRaw =
+        storedSession ??
+        (prefs.isInitialized ? prefs.getString(_keySession) : null);
+    if (!ref.mounted || revision != _credentialRevision) return;
+    if (sessionRaw == null && !clearWhenMissing) return;
+    final userId = prefs.isInitialized ? prefs.getString(_keyUserId) : null;
+    final username = prefs.isInitialized ? prefs.getString(_keyUsername) : null;
+    final avatarUrl = prefs.isInitialized
+        ? prefs.getString(_keyAvatarUrl)
+        : null;
+    state = state.copyWith(
+      token: _restore(tokenRaw, BandBbsToken.fromJson),
+      clearToken: clearWhenMissing && tokenRaw == null,
+      session: _restore(sessionRaw, OronBoxSession.fromJson),
+      clearSession: clearWhenMissing && sessionRaw == null,
+      userId: userId,
+      clearUserId: clearWhenMissing && userId == null,
+      username: username,
+      clearUsername: clearWhenMissing && username == null,
+      avatarUrl: avatarUrl,
+      clearAvatarUrl: clearWhenMissing && avatarUrl == null,
+      clearLastError: true,
+    );
   }
 
   static T? _restore<T>(String? raw, T? Function(Map<String, Object?>) parse) {
@@ -374,6 +422,9 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
       );
       final payload = _objectMap(response.data);
       final session = OronBoxSession.fromTokenResponse(payload);
+      ++_credentialRevision;
+      _sessionRefresh = null;
+      _tokenRefresh = null;
       await _saveSession(session);
       // Login tickets carry the read-only BandBBS access token; publish
       // authorization tickets do not, so the existing read token survives.
@@ -420,12 +471,21 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
     final token = state.token;
     if (token == null) return null;
     if (!token.isExpired) return token;
-    return _tokenRefresh ??= _refreshBandBbsToken().whenComplete(
-      () => _tokenRefresh = null,
-    );
+    final existing = _tokenRefresh;
+    if (existing != null) return existing;
+    final revision = _credentialRevision;
+    late final Future<BandBbsToken?> refresh;
+    refresh = _refreshBandBbsToken(token, revision).whenComplete(() {
+      if (identical(_tokenRefresh, refresh)) _tokenRefresh = null;
+    });
+    _tokenRefresh = refresh;
+    return refresh;
   }
 
-  Future<BandBbsToken?> _refreshBandBbsToken() async {
+  Future<BandBbsToken?> _refreshBandBbsToken(
+    BandBbsToken token,
+    int revision,
+  ) async {
     final session = await sessionIfNeeded();
     if (session == null) {
       throw StateError('BandBBS account is not signed in');
@@ -442,6 +502,10 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
       ),
     );
     final refreshed = BandBbsToken.fromTokenResponse(_objectMap(response.data));
+    if (revision != _credentialRevision ||
+        state.token?.accessToken != token.accessToken) {
+      return state.token;
+    }
     await _saveToken(refreshed);
     state = state.copyWith(token: refreshed, clearLastError: true);
     return refreshed;
@@ -468,12 +532,21 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
     }
     if (session == null) return null;
     if (!session.isExpired) return session;
-    return _sessionRefresh ??= _refreshSession(
-      session,
-    ).whenComplete(() => _sessionRefresh = null);
+    final existing = _sessionRefresh;
+    if (existing != null) return existing;
+    final revision = _credentialRevision;
+    late final Future<OronBoxSession?> refresh;
+    refresh = _refreshSession(session, revision).whenComplete(() {
+      if (identical(_sessionRefresh, refresh)) _sessionRefresh = null;
+    });
+    _sessionRefresh = refresh;
+    return refresh;
   }
 
-  Future<OronBoxSession> _refreshSession(OronBoxSession session) async {
+  Future<OronBoxSession> _refreshSession(
+    OronBoxSession session,
+    int revision,
+  ) async {
     try {
       final response = await _send<Object?>(
         () async => _dio.post<Object?>(
@@ -484,13 +557,20 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
       );
       final payload = _objectMap(response.data);
       final refreshed = OronBoxSession.fromTokenResponse(payload);
+      if (revision != _credentialRevision ||
+          state.session?.refreshToken != session.refreshToken) {
+        return state.session ?? refreshed;
+      }
       await _saveSession(refreshed);
       await _applyUser(_objectMap(payload['user']));
       state = state.copyWith(session: refreshed, clearLastError: true);
       return refreshed;
     } on DioException catch (error) {
       if (!_isInvalidRefreshToken(error)) rethrow;
-      await _forgetExpiredCredentials();
+      if (revision == _credentialRevision &&
+          state.session?.refreshToken == session.refreshToken) {
+        await _forgetExpiredCredentials();
+      }
       throw const BandBbsSessionExpiredException();
     }
   }
@@ -503,6 +583,10 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
   }
 
   Future<void> _forgetExpiredCredentials() async {
+    ++_credentialRevision;
+    _sessionRefresh = null;
+    _tokenRefresh = null;
+    state = BandBbsAuthState.empty.copyWith(lastError: 'invalid_refresh_token');
     final prefs = SharedPrefsService.instance;
     await Future.wait([
       prefs.remove(_keyToken),
@@ -513,10 +597,12 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
       _deleteCredential(_keyToken),
       _deleteCredential(_keySession),
     ]);
-    state = BandBbsAuthState.empty;
   }
 
   Future<void> signOut() async {
+    ++_credentialRevision;
+    _sessionRefresh = null;
+    _tokenRefresh = null;
     final session = state.session;
     if (session != null) {
       try {

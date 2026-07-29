@@ -22,7 +22,7 @@ class InstallLocalPage extends ConsumerStatefulWidget {
   ConsumerState<InstallLocalPage> createState() => _InstallLocalPageState();
 }
 
-enum InstallType { app, watchface, firmware }
+enum InstallType { app, watchface }
 
 class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
   String? _fileName;
@@ -59,7 +59,6 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
   LocalDeviceInstallType get _selectedType => switch (widget.type) {
     InstallType.app => LocalDeviceInstallType.app,
     InstallType.watchface => LocalDeviceInstallType.watchface,
-    InstallType.firmware => LocalDeviceInstallType.firmware,
   };
 
   Future<void> _install() async {
@@ -98,7 +97,6 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
     final title = switch (widget.type) {
       InstallType.app => l10n.deviceFeaturesInstallApp,
       InstallType.watchface => l10n.deviceFeaturesInstallWatchface,
-      InstallType.firmware => l10n.deviceFeaturesInstallFirmware,
     };
 
     return Scaffold(

@@ -7,6 +7,7 @@ class CreatorWorkspace {
     this.revisions = const [],
     this.artifacts = const [],
     this.media = const [],
+    this.links = const [],
     this.review,
     this.publications = const [],
   });
@@ -16,6 +17,7 @@ class CreatorWorkspace {
   final List<CreatorRevision> revisions;
   final List<CreatorArtifact> artifacts;
   final List<CreatorMedia> media;
+  final List<CreatorLink> links;
   final Map<String, Object?>? review;
   final List<Map<String, Object?>> publications;
 
@@ -37,10 +39,23 @@ class CreatorWorkspace {
         json['artifacts'],
       ).map(CreatorArtifact.fromJson).toList(),
       media: _maps(json['media']).map(CreatorMedia.fromJson).toList(),
+      links: _maps(json['links']).map(CreatorLink.fromJson).toList(),
       review: json['review'] is Map ? _map(json['review']) : null,
       publications: _maps(json['publications']),
     );
   }
+}
+
+class CreatorLink {
+  const CreatorLink({required this.title, required this.url});
+
+  final String title;
+  final String url;
+
+  factory CreatorLink.fromJson(Map<String, Object?> json) => CreatorLink(
+    title: json['title']?.toString() ?? '',
+    url: json['url']?.toString() ?? '',
+  );
 }
 
 class CreatorResource {
@@ -53,6 +68,8 @@ class CreatorResource {
     this.moderationBy = '',
     this.moderationReason = '',
     this.downloadCount = 0,
+    this.collectionId = '',
+    this.collectionPosition = 0,
     this.updatedAt,
   });
   final String id;
@@ -63,6 +80,8 @@ class CreatorResource {
   final String moderationBy;
   final String moderationReason;
   final int downloadCount;
+  final String collectionId;
+  final int collectionPosition;
   final DateTime? updatedAt;
 
   bool get isSuspended => moderationState == 'suspended';
@@ -81,6 +100,8 @@ class CreatorResource {
         moderationBy: json['moderation_by']?.toString() ?? '',
         moderationReason: json['moderation_reason']?.toString() ?? '',
         downloadCount: (json['download_count'] as num?)?.toInt() ?? 0,
+        collectionId: json['collection_id']?.toString() ?? '',
+        collectionPosition: (json['collection_position'] as num?)?.toInt() ?? 0,
         updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? ''),
       );
 }
@@ -92,12 +113,14 @@ class CreatorRevision {
     required this.name,
     required this.summary,
     required this.state,
+    this.attributes = const [],
   });
   final String id;
   final int number;
   final String name;
   final String summary;
   final String state;
+  final List<String> attributes;
 
   factory CreatorRevision.fromJson(Map<String, Object?> json) =>
       CreatorRevision(
@@ -106,6 +129,9 @@ class CreatorRevision {
         name: json['name']?.toString() ?? '',
         summary: json['summary']?.toString() ?? '',
         state: json['state']?.toString() ?? '',
+        attributes: (json['attributes'] as List? ?? const [])
+            .map((value) => value.toString())
+            .toList(),
       );
 }
 

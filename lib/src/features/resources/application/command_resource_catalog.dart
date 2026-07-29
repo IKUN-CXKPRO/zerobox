@@ -53,6 +53,7 @@ class CommandResourceCatalog implements CommunityResourceCatalog {
           'hidePaid': query.hidePaid,
           'hideForcePaid': query.hideForcePaid,
           'devices': query.selectedDevices.toList(growable: false),
+          'attributes': query.selectedAttributes.toList(growable: false),
         },
       ),
     );

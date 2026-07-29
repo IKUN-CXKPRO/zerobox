@@ -45,7 +45,7 @@ class FeedbackTarget {
 }
 
 bool _isReportKind(String kind) =>
-    kind == 'report' || kind == 'resource_report' || kind == 'comment_report';
+    kind == 'resource_report' || kind == 'comment_report';
 
 String _reportTitle(AppLocalizations l10n, FeedbackTarget target) =>
     target.type == FeedbackTargetType.comment

@@ -16,6 +16,7 @@ import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/messages/application/message_center.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
+import 'package:oronbox/src/features/resources/application/oronbox_resource_attributes.dart';
 import 'package:oronbox/src/features/resources/controllers/resource_filter_controller.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
@@ -32,7 +33,7 @@ class ResourcesPage extends ConsumerWidget {
     final mode = ref.watch(resourceModeControllerProvider);
     final clean = ref.watch(appSettingsProvider).clean;
     final showHome = clean.homeFeedEnabled;
-    final showExplore = clean.resourceLibraryEnabled;
+    final showExplore = clean.resourceLibraryEnabled && clean.hasResourceSource;
     final showCreator = clean.creatorEnabled;
     if (!showHome && !showExplore) {
       return Scaffold(
@@ -384,6 +385,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
               hidePaid: filters.hidePaid,
               hideForcePaid: filters.hideForcePaid,
               selectedDevices: filters.selectedDevices,
+              selectedAttributes: filters.selectedAttributes,
             ),
           );
       if (!mounted || generation != _generation) return;
@@ -461,6 +463,9 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
       (_, _) => _reset(),
     );
     final capabilities = ref.watch(communityCatalogProvider).capabilities;
+    final forceList =
+        source == CommunitySourceId.bandbbs ||
+        source == CommunitySourceId.huamiAppStore;
     if (!_searchFocus.hasFocus && _searchController.text != filters.query) {
       _searchController.text = filters.query;
       _searchText = filters.query;
@@ -471,7 +476,13 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
         final isBandBbs = source == CommunitySourceId.bandbbs;
         final expanded =
             isBandBbs && (_sidebarExpanded ?? constraints.maxWidth >= 900);
-        final list = _buildList(context, l10n, filters, source);
+        final list = _buildList(
+          context,
+          l10n,
+          filters,
+          source,
+          gridView: !forceList && _gridView,
+        );
         return Column(
           children: [
             _buildToolbar(
@@ -482,6 +493,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
               onToggleSidebar: isBandBbs
                   ? () => setState(() => _sidebarExpanded = !expanded)
                   : null,
+              showLayoutToggle: !forceList,
             ),
             Expanded(
               child: !isBandBbs
@@ -518,6 +530,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
     CommunityCatalogCapabilities capabilities, {
     required bool sidebarExpanded,
     VoidCallback? onToggleSidebar,
+    required bool showLayoutToggle,
   }) {
     final colors = Theme.of(context).colorScheme;
     final compact = MediaQuery.sizeOf(context).width < 600;
@@ -543,7 +556,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
                   tooltip: l10n.categories,
                   onPressed: onToggleSidebar,
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 8),
               ],
               Expanded(
                 child: SearchBar(
@@ -573,33 +586,35 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
                   onSubmitted: (_) => _commitSearch(),
                 ),
               ),
-              const SizedBox(width: 8),
-              IconButton.filled(
-                style: toolbarButtonStyle,
-                tooltip: _gridView
-                    ? l10n.resourceListView
-                    : l10n.resourceGridView,
-                onPressed: _toggleLayout,
-                icon: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: RotationTransition(
-                      turns: Tween<double>(begin: -.12, end: 0).animate(
-                        CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOutCubic,
+              if (showLayoutToggle) ...[
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  style: toolbarButtonStyle,
+                  tooltip: _gridView
+                      ? l10n.resourceListView
+                      : l10n.resourceGridView,
+                  onPressed: _toggleLayout,
+                  icon: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: RotationTransition(
+                        turns: Tween<double>(begin: -.12, end: 0).animate(
+                          CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutCubic,
+                          ),
                         ),
+                        child: child,
                       ),
-                      child: child,
+                    ),
+                    child: Icon(
+                      _gridView ? Icons.view_list : Icons.grid_view,
+                      key: ValueKey(_gridView),
                     ),
                   ),
-                  child: Icon(
-                    _gridView ? Icons.view_list : Icons.grid_view,
-                    key: ValueKey(_gridView),
-                  ),
                 ),
-              ),
+              ],
             ],
           ),
           const SizedBox(height: 12),
@@ -613,8 +628,9 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
     BuildContext context,
     AppLocalizations l10n,
     ResourceFilters filters,
-    CommunitySourceId source,
-  ) {
+    CommunitySourceId source, {
+    required bool gridView,
+  }) {
     return RefreshIndicator(
       onRefresh: _reset,
       child: CustomScrollView(
@@ -630,7 +646,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
               child: Center(child: Text(localizedErrorMessage(l10n, _error!))),
             )
           else ...[
-            if (!_gridView)
+            if (!gridView)
               SliverPadding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: StyleConstants.pagePadding,
@@ -774,10 +790,14 @@ class _FilterBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final filters = ref.watch(resourceFiltersProvider);
+    final source = ref.watch(selectedCommunitySourceProvider);
     final devices =
         ref.watch(communityCatalogDevicesProvider).value ??
         const <CommunityResourceDevice>[];
     final deviceOptions = _buildDeviceFilterOptions(devices);
+    final resourceAttributes = source == CommunitySourceId.oronBox
+        ? ref.watch(oronBoxResourceAttributesProvider).value ?? const []
+        : const <OronBoxResourceAttribute>[];
     final selectedDeviceOptions = deviceOptions
         .where((option) => option.ids.any(filters.selectedDevices.contains))
         .toList();
@@ -786,7 +806,10 @@ class _FilterBar extends ConsumerWidget {
         .where((id) => !knownDeviceIds.contains(id))
         .toList();
     final categoryTitles = <String, String>{};
-    final source = ref.watch(selectedCommunitySourceProvider);
+    final attributeLabels = {
+      for (final attribute in resourceAttributes)
+        attribute.id: attribute.labelFor(Localizations.localeOf(context)),
+    };
     if (source == CommunitySourceId.bandbbs) {
       void collect(List<BandBbsCategoryNode> nodes) {
         for (final node in nodes) {
@@ -802,7 +825,8 @@ class _FilterBar extends ConsumerWidget {
         filters.type != null ||
         filters.hidePaid ||
         (source == CommunitySourceId.astroboxRepo && filters.hideForcePaid) ||
-        filters.selectedDevices.isNotEmpty;
+        filters.selectedDevices.isNotEmpty ||
+        filters.selectedAttributes.isNotEmpty;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -855,6 +879,18 @@ class _FilterBar extends ConsumerWidget {
               ),
             ),
           ],
+          if (source == CommunitySourceId.oronBox)
+            for (final attribute in filters.selectedAttributes)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: FilterChip(
+                  label: Text(attributeLabels[attribute] ?? attribute),
+                  selected: true,
+                  onSelected: (_) => ref
+                      .read(resourceFiltersProvider.notifier)
+                      .toggleAttribute(attribute),
+                ),
+              ),
           if (filters.hidePaid)
             Padding(
               padding: const EdgeInsets.only(left: 8),
@@ -938,6 +974,10 @@ class _FilterSheet extends ConsumerWidget {
         ref.watch(communityCatalogDevicesProvider).value ??
         const <CommunityResourceDevice>[];
     final deviceOptions = _buildDeviceFilterOptions(devices);
+    final resourceAttributes = source == CommunitySourceId.oronBox
+        ? ref.watch(oronBoxResourceAttributesProvider).value ??
+              const <OronBoxResourceAttribute>[]
+        : const <OronBoxResourceAttribute>[];
     final deviceSectionTitle = source == CommunitySourceId.bandbbs
         ? l10n.categories
         : l10n.devices;
@@ -1033,6 +1073,30 @@ class _FilterSheet extends ConsumerWidget {
         if (source == CommunitySourceId.huamiAppStore) ...[
           const SizedBox(height: 12),
           _HuamiDeviceSourceInput(filters: filters),
+        ],
+        if (source == CommunitySourceId.oronBox) ...[
+          const SizedBox(height: 16),
+          Text(
+            l10n.creatorContentAttributes,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final attribute in resourceAttributes)
+                FilterChip(
+                  label: Text(
+                    attribute.labelFor(Localizations.localeOf(context)),
+                  ),
+                  selected: filters.selectedAttributes.contains(attribute.id),
+                  onSelected: (_) => ref
+                      .read(resourceFiltersProvider.notifier)
+                      .toggleAttribute(attribute.id),
+                ),
+            ],
+          ),
         ],
         const SizedBox(height: 16),
         Text(l10n.paid, style: Theme.of(context).textTheme.titleSmall),
@@ -1318,23 +1382,30 @@ class _ResourceLayoutTransition extends StatelessWidget {
   }
 }
 
-class _ResourceCard extends StatelessWidget {
+class _ResourceCard extends ConsumerWidget {
   const _ResourceCard({required this.item, required this.coverHeight});
   final CommunityResource item;
   final double coverHeight;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final color = Theme.of(context).colorScheme;
     final image = item.coverUrl ?? item.iconUrl;
     final heroRole = item.coverUrl != null ? 'cover' : 'icon';
+    final attributeLabels = {
+      for (final attribute
+          in ref.watch(oronBoxResourceAttributesProvider).value ??
+              const <OronBoxResourceAttribute>[])
+        attribute.id: attribute.labelFor(Localizations.localeOf(context)),
+    };
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       color: color.surfaceContainerHighest.withValues(alpha: .5),
       child: InkWell(
-        onTap: () =>
-            context.push('/resources/detail/${item.ref.id}', extra: item),
+        onTap: () => item.isCollection
+            ? context.push('/resources/collection/${item.ref.id}', extra: item)
+            : context.push('/resources/detail/${item.ref.id}', extra: item),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1352,13 +1423,19 @@ class _ResourceCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      height: 1.25,
+                  SizedBox(
+                    height: 35,
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Text(
+                        item.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          height: 1.25,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -1374,6 +1451,13 @@ class _ResourceCard extends StatelessWidget {
                         ),
                         color: color.primary,
                       ),
+                      if (item.isCollection)
+                        _ResourceLabel(
+                          label: AppLocalizations.of(
+                            context,
+                          )!.resourceCollection,
+                          color: color.tertiary,
+                        ),
                       if (item.paidType != CommunityPaidType.free)
                         _ResourceLabel(
                           label: _paidLabel(
@@ -1382,12 +1466,16 @@ class _ResourceCard extends StatelessWidget {
                           ),
                           color: color.tertiary,
                         ),
-                      if (item.ref.source == CommunitySourceId.bandbbs)
+                      if (item.ref.source == CommunitySourceId.bandbbs ||
+                          item.ref.source == CommunitySourceId.oronBox)
                         ...item.tags
-                            .take(1)
+                            .take(2)
                             .map(
                               (tag) => _ResourceLabel(
-                                label: tag,
+                                label:
+                                    item.ref.source == CommunitySourceId.oronBox
+                                    ? attributeLabels[tag] ?? tag
+                                    : tag,
                                 color: color.onSurfaceVariant,
                               ),
                             ),

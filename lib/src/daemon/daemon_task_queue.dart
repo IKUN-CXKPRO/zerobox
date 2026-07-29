@@ -77,21 +77,18 @@ class DaemonTaskQueue {
     task = task.copyWith(status: 'running', startedAt: DateTime.now());
     _tasks[id] = task;
     _notify(task);
-    var lastProgressBucket = -1;
     final progressSubscription = bus.events.listen((event) {
       final raw = event.data['progress'];
       if (raw is! num) return;
       final progress = (raw <= 1 ? raw.toDouble() : raw.toDouble() / 100)
           .clamp(0, 1)
           .toDouble();
-      final bucket = (progress * 20).floor();
-      if (bucket == lastProgressBucket) return;
-      lastProgressBucket = bucket;
       final current = _tasks[id];
       if (current == null || current.status != 'running') return;
+      if (progress == current.progress) return;
       final updated = current.copyWith(progress: progress);
       _tasks[id] = updated;
-      _notify(updated);
+      _notify(updated, persist: false);
     });
     Future<void> Function()? endExecution;
     late CommandResult result;
@@ -242,8 +239,8 @@ class DaemonTaskQueue {
     return true;
   }
 
-  void _notify(DaemonTask task) {
-    _persist();
+  void _notify(DaemonTask task, {bool persist = true}) {
+    if (persist) _persist();
     _events.add(CommandEvent('task', data: task.toJson()));
   }
 

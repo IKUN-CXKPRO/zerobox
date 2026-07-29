@@ -30,6 +30,7 @@ void main() {
 
     expect(merged, hasLength(1));
     expect(merged.single.connectType, 'ble');
+    expect(merged.single.addr, 'AA:BB:CC:DD:EE:FF');
   });
 
   test('speculative SPP duplicate cannot replace an existing BLE result', () {

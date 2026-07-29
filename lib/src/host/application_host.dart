@@ -85,8 +85,7 @@ class ApplicationHost implements OronBoxCommandBus {
   }
 
   Future<void> _onTaskCompleted(DaemonTask task, CommandResult result) async {
-    if (task.command.method != 'resource.download' ||
-        task.command.params['queueInstall'] != true) {
+    if (task.command.params['queueInstall'] != true) {
       return;
     }
     final download = (result.value as Map).cast<String, Object?>();
@@ -102,7 +101,7 @@ class ApplicationHost implements OronBoxCommandBus {
       OronBoxCommand(
         method: 'install.local',
         params: {
-          'type': download['type'],
+          'type': download['type'] ?? task.command.params['installType'],
           'path': download['path'],
           'title': task.command.params['title'] ?? download['fileName'],
           'description': task.command.params['targetDevice'] ?? '',

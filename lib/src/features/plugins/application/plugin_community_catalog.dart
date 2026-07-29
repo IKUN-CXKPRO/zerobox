@@ -28,7 +28,9 @@ class PluginCommunityCatalog implements CommunityResourceCatalog {
         'page': query.page,
         'pageSize': query.pageSize,
         'query': query.query,
-        'sort': query.sort.name,
+        'sort': query.sort == CommunitySortRule.recommendation
+            ? CommunitySortRule.time.name
+            : query.sort.name,
         if (query.type != null) 'type': query.type!.name,
         'hidePaid': query.hidePaid,
         'hideForcePaid': query.hideForcePaid,

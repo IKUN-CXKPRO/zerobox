@@ -843,6 +843,9 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
   }
 
   String _initialConnectType(DeviceProfile profile) {
+    if (!widget.saved && profile.id != DeviceRegistry.unknown.id) {
+      return profile.preferredConnectType.name;
+    }
     final stored = widget.device.connectType.toLowerCase();
     if (stored == ConnectType.ble.name || stored == ConnectType.spp.name) {
       return stored;
@@ -978,9 +981,11 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
                         ),
                         Text(
                           isUnrecognized
-                              ? '${formatDeviceAddress(widget.device.addr)} · $transportLabel · '
+                              ? '${formatDeviceAddress(widget.device.addr)}${widget.saved ? ' · $transportLabel' : ''} · '
                                     '${l10n.deviceCompatibilityUnknown}'
-                              : '${formatDeviceAddress(widget.device.addr)} · $transportLabel',
+                              : widget.saved
+                              ? '${formatDeviceAddress(widget.device.addr)} · $transportLabel'
+                              : formatDeviceAddress(widget.device.addr),
                           style: TextStyle(
                             fontSize: 12,
                             color: colorScheme.onSurfaceVariant,

@@ -1,10 +1,80 @@
 import 'package:flutter/services.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/core/errors/coded_error.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 
 String localizedErrorMessage(AppLocalizations l10n, Object? error) {
   final raw = _flattenError(error);
   final normalized = raw.toLowerCase();
+  final code = _errorCode(error, normalized);
+
+  switch (code) {
+    case 'invalid_refresh_token':
+    case 'session_expired':
+    case 'http_401':
+      return l10n.errorOronBoxSessionExpired;
+    case 'auth_required':
+    case 'unauthenticated':
+      return l10n.settingsBandBbsAccountRequired;
+    case 'forbidden':
+    case 'banned':
+    case 'creator_frozen':
+    case 'bandbbs_scope_forbidden':
+    case 'http_403':
+      return l10n.errorPermissionDenied;
+    case 'not_found':
+    case 'resource_not_found':
+    case 'collection_not_found':
+    case 'comment_not_found':
+    case 'feedback_not_found':
+    case 'document_not_found':
+    case 'blob_not_found':
+    case 'http_404':
+      return l10n.errorContentNotFound;
+    case 'conflict':
+    case 'already_exists':
+    case 'http_409':
+      return l10n.errorRequestConflict;
+    case 'rate_limited':
+    case 'comment_rate_limited':
+    case 'quota_exceeded':
+    case 'http_429':
+      return l10n.errorRateLimited;
+    case 'payload_too_large':
+    case 'file_too_large':
+    case 'http_413':
+      return l10n.errorFileTooLarge;
+    case 'invalid_argument':
+    case 'invalid_request':
+    case 'creator_invalid':
+    case 'validation':
+    case 'usage':
+    case 'http_400':
+    case 'http_422':
+      return l10n.errorInvalidRequest;
+    case 'network_error':
+    case 'connection_error':
+    case 'host_unavailable':
+    case 'daemon_disconnected':
+      return l10n.errorNetworkUnavailable;
+    case 'service_unavailable':
+    case 'moderation_unavailable':
+    case 'r2_unavailable':
+    case 'http_500':
+    case 'http_502':
+    case 'http_503':
+    case 'http_504':
+      return l10n.errorServiceUnavailable;
+    case 'cancelled':
+      return l10n.errorOperationCancelled;
+  }
+
+  if (code == 'unauthorized' &&
+      (normalized.contains('expired') ||
+          normalized.contains('invalid') ||
+          normalized.contains('token'))) {
+    return l10n.errorOronBoxSessionExpired;
+  }
 
   if (raw == DeviceManager.errorBluetoothUnavailable ||
       normalized.contains('bluetooth is not available') ||
@@ -124,6 +194,61 @@ String localizedErrorMessage(AppLocalizations l10n, Object? error) {
   }
 
   return l10n.errorUnknownWithDetail(_trimPlatformNoise(raw));
+}
+
+String _errorCode(Object? error, String normalized) {
+  if (error is CodedError) return error.code.trim().toLowerCase();
+  if (normalized.contains('oronbox session expired')) return 'session_expired';
+  const knownCodes = <String>{
+    'invalid_refresh_token',
+    'session_expired',
+    'auth_required',
+    'unauthenticated',
+    'unauthorized',
+    'forbidden',
+    'banned',
+    'creator_frozen',
+    'bandbbs_scope_forbidden',
+    'not_found',
+    'resource_not_found',
+    'collection_not_found',
+    'comment_not_found',
+    'feedback_not_found',
+    'document_not_found',
+    'blob_not_found',
+    'conflict',
+    'already_exists',
+    'rate_limited',
+    'comment_rate_limited',
+    'quota_exceeded',
+    'payload_too_large',
+    'file_too_large',
+    'invalid_argument',
+    'invalid_request',
+    'creator_invalid',
+    'validation',
+    'usage',
+    'network_error',
+    'connection_error',
+    'host_unavailable',
+    'daemon_disconnected',
+    'service_unavailable',
+    'moderation_unavailable',
+    'r2_unavailable',
+    'cancelled',
+  };
+  for (final code in knownCodes) {
+    if (normalized == code ||
+        normalized.startsWith('$code:') ||
+        normalized.contains('"code":"$code"') ||
+        normalized.contains('"code": "$code"')) {
+      return code;
+    }
+  }
+  final http = RegExp(
+    r'\bhttp[_ ](400|401|403|404|409|413|422|429|500|502|503|504)\b',
+  ).firstMatch(normalized);
+  return http == null ? '' : 'http_${http.group(1)}';
 }
 
 String _flattenError(Object? error) {

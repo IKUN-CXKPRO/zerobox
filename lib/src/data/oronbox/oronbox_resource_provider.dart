@@ -34,6 +34,8 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
         if (query.type != null) 'type': _typeName(query.type!),
         if (query.selectedDevices.isNotEmpty)
           'devices': query.selectedDevices.join(','),
+        if (query.selectedAttributes.isNotEmpty)
+          'attributes': query.selectedAttributes.join(','),
         'sort': query.sort.name,
       },
     );
@@ -71,12 +73,28 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
       blobUri: _imageBlobUri,
     );
     final previews = previewImages.map((image) => image.url).toList();
+    final collaborators = (json['collaborators'] as List? ?? const [])
+        .whereType<Map>()
+        .map((value) => value.cast<String, Object?>())
+        .where((value) => value['accepted_at'] != null)
+        .map((value) {
+          final avatar = Uri.tryParse(value['avatar_url']?.toString() ?? '');
+          return CommunityResourceAuthor(
+            name: value['username']?.toString() ?? '',
+            avatarUrl: avatar?.hasScheme == true ? avatar : null,
+          );
+        })
+        .where((author) => author.name.isNotEmpty);
+    final source = json['source'] is Map
+        ? (json['source'] as Map).cast<String, Object?>()
+        : const <String, Object?>{};
+    final sourceUrl = Uri.tryParse(source['source_url']?.toString() ?? '');
     return CommunityResourceDetail(
       ref: summary.ref,
       name: summary.name,
       type: summary.type,
       paidType: summary.paidType,
-      authors: summary.authors,
+      authors: [...summary.authors, ...collaborators],
       supportedDevices: summary.supportedDevices,
       iconUrl: summary.iconUrl,
       coverUrl: summary.coverUrl,
@@ -84,12 +102,40 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
       updatedAt: summary.updatedAt,
       version: summary.version,
       downloadCount: summary.downloadCount,
+      coinCount: summary.coinCount,
+      curationGrade: summary.curationGrade,
+      collectionId: summary.collectionId,
+      collectionName: summary.collectionName,
+      tags: summary.tags,
       content: CommunityResourceContent(
         format: ResourceContentFormat.plainText,
         value: summary.summary,
       ),
       previews: previews,
       previewImages: previewImages,
+      links: [
+        for (final item in (json['links'] as List? ?? const []))
+          if (item is Map)
+            () {
+              final value = item.cast<String, Object?>();
+              final url = Uri.tryParse(value['url']?.toString() ?? '');
+              return url?.hasScheme == true
+                  ? CommunityResourceLink(
+                      title: value['title']?.toString() ?? url!.host,
+                      url: url!,
+                    )
+                  : null;
+            }(),
+        if (sourceUrl?.hasScheme == true)
+          CommunityResourceLink(
+            title: source['license_name']?.toString().trim().isNotEmpty == true
+                ? source['license_name']!.toString()
+                : source['author_name']?.toString().trim().isNotEmpty == true
+                ? source['author_name']!.toString()
+                : sourceUrl!.host,
+            url: sourceUrl!,
+          ),
+      ].whereType<CommunityResourceLink>().toList(),
       files: artifacts.map((item) {
         final digest =
             (item['sha256'] ?? item['blob_sha256'])?.toString() ?? '';
@@ -106,6 +152,24 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
                   .toSet(),
         );
       }).toList(),
+    );
+  }
+
+  Future<OronBoxCollectionDetail> getCollection(String id) async {
+    final response = await _dio.get<Object?>(
+      '$oronBoxServerBaseUrl/api/collections/${Uri.encodeComponent(id)}',
+    );
+    final json = _map(response.data);
+    return OronBoxCollectionDetail(
+      id: json['id']?.toString() ?? id,
+      name: json['name']?.toString() ?? '',
+      summary: json['summary']?.toString() ?? '',
+      owner: json['owner']?.toString() ?? '',
+      coinCount: (json['coin_count'] as num?)?.toInt() ?? 0,
+      resources: (json['resources'] as List? ?? const [])
+          .whereType<Map>()
+          .map((value) => _summary(value.cast<String, Object?>()))
+          .toList(),
     );
   }
 
@@ -254,8 +318,22 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
       iconUrl: _imageBlobUri(icon.isNotEmpty ? icon : preview),
       coverUrl: _imageBlobUri(cover.isNotEmpty ? cover : preview),
       summary: json['summary']?.toString() ?? '',
+      tags: (json['attributes'] as List? ?? const [])
+          .map((value) => value.toString())
+          .toList(),
       version: json['version']?.toString(),
       downloadCount: (json['download_count'] as num?)?.toInt(),
+      coinCount: (json['coin_count'] as num?)?.toInt() ?? 0,
+      curationGrade: json['curation_grade']?.toString() ?? 'standard',
+      collectionId: json['collection_id']?.toString().trim().isNotEmpty == true
+          ? json['collection_id']!.toString()
+          : null,
+      collectionName:
+          json['collection_name']?.toString().trim().isNotEmpty == true
+          ? json['collection_name']!.toString()
+          : null,
+      isCollection: json['card_type']?.toString() == 'collection',
+      resourceCount: (json['resource_count'] as num?)?.toInt() ?? 0,
       updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? ''),
     );
   }
@@ -298,6 +376,24 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
       throw ArgumentError.value(ref, 'ref', 'Wrong resource source');
     }
   }
+}
+
+class OronBoxCollectionDetail {
+  const OronBoxCollectionDetail({
+    required this.id,
+    required this.name,
+    required this.summary,
+    required this.owner,
+    required this.coinCount,
+    required this.resources,
+  });
+
+  final String id;
+  final String name;
+  final String summary;
+  final String owner;
+  final int coinCount;
+  final List<CommunityResource> resources;
 }
 
 List<CommunityResourceImage> parseOronBoxPreviewImages(

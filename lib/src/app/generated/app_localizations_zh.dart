@@ -563,6 +563,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get errorAccountTwoFactorIncomplete => '小米账号二次验证未完成，请重新登录';
 
   @override
+  String get errorOronBoxSessionExpired => 'OronBox 登录已过期，请重新登录米坛账号';
+
+  @override
+  String get errorNetworkUnavailable => '无法连接服务，请检查网络后重试';
+
+  @override
+  String get errorServiceUnavailable => '服务暂时不可用，请稍后重试';
+
+  @override
+  String get errorPermissionDenied => '当前账号没有执行此操作的权限';
+
+  @override
+  String get errorContentNotFound => '请求的内容不存在或已不可用';
+
+  @override
+  String get errorRequestConflict => '内容状态已发生变化，请刷新后重试';
+
+  @override
+  String get errorRateLimited => '操作过于频繁，请稍后重试';
+
+  @override
+  String get errorFileTooLarge => '所选文件过大';
+
+  @override
+  String get errorInvalidRequest => '提交的信息有误，请检查后重试';
+
+  @override
+  String get errorOperationCancelled => '操作已取消';
+
+  @override
   String get errorUnsupportedFileType => '不支持或无法识别的文件类型';
 
   @override
@@ -3187,4 +3217,236 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsCategoryAdvancedDescription => '窗口行为、重新引导与开发工具';
+
+  @override
+  String get oronBoxCoinsTitle => '资源投币';
+
+  @override
+  String oronBoxCoinsBalance(String balance) {
+    return '硬币余额：$balance';
+  }
+
+  @override
+  String get oronBoxCoinsCheckin => '签到';
+
+  @override
+  String get oronBoxCoinsCheckedIn => '已签到';
+
+  @override
+  String get oronBoxCoinsCheckingIn => '签到中';
+
+  @override
+  String oronBoxCoinsCheckinReward(int count) {
+    return '签到获得 $count 枚硬币';
+  }
+
+  @override
+  String get oronBoxCoinsDescription => '每日签到可获得 1～5 枚硬币，硬币可投给资源以支持创作者';
+
+  @override
+  String resourceFromCollection(String name) {
+    return '来自合集 $name';
+  }
+
+  @override
+  String get resourceCoin => '投币';
+
+  @override
+  String get resourceCoinDialogTitle => '投币资源';
+
+  @override
+  String get resourceCoinDialogMessage =>
+      '确认要为这个资源投币吗？\n\n投币后无法撤回\n\n投币有助于资源获得更多展示机会\n\n创作者将获得投币数量 10% 的硬币收益';
+
+  @override
+  String get resourceCoinOne => '投 1 颗';
+
+  @override
+  String get resourceCoinTwo => '投 2 颗';
+
+  @override
+  String resourceCoinCount(int count) {
+    return '$count 枚硬币';
+  }
+
+  @override
+  String get resourceCoinSuccess => '投币成功';
+
+  @override
+  String get resourceFeatured => '精选';
+
+  @override
+  String get resourceCollection => '合集';
+
+  @override
+  String resourceCollectionItems(int count) {
+    return '共 $count 个资源';
+  }
+
+  @override
+  String resourceCollectionCoins(int count) {
+    return '累计 $count 枚硬币';
+  }
+
+  @override
+  String get creatorCollections => '资源合集';
+
+  @override
+  String get creatorCollectionTag => '合集';
+
+  @override
+  String get creatorCollectionsDescription => '将同类型资源整理为一张合集卡片';
+
+  @override
+  String get creatorNewCollection => '新建合集';
+
+  @override
+  String get creatorMoveToCollection => '移入合集';
+
+  @override
+  String creatorMoveToCollectionConfirm(int count) {
+    return '确认将选中的 $count 个资源移入这个合集吗';
+  }
+
+  @override
+  String get creatorDissolveCollection => '拆散合集';
+
+  @override
+  String get creatorResourceList => '资源列表';
+
+  @override
+  String get creatorAdditionalLinks => '附加链接';
+
+  @override
+  String get creatorAddLink => '添加链接';
+
+  @override
+  String get creatorLinkTitle => '链接名称';
+
+  @override
+  String get creatorLinkUrl => '链接地址';
+
+  @override
+  String get creatorCollectionName => '合集名称';
+
+  @override
+  String get creatorCollectionSummary => '合集简介';
+
+  @override
+  String get creatorCollectionPending => '合集信息待审核';
+
+  @override
+  String get creatorCollectionPublished => '已公开';
+
+  @override
+  String get creatorCollectionManage => '管理资源';
+
+  @override
+  String get creatorCollectionRepresentative => '代表资源';
+
+  @override
+  String get creatorCollectionDeleteConfirm => '删除合集？资源不会被删除，只会解除归属。';
+
+  @override
+  String get creatorCollectionEdit => '编辑合集信息';
+
+  @override
+  String get creatorContentAttributes => '内容属性';
+
+  @override
+  String get creatorAttributeOriginal => '原创';
+
+  @override
+  String get creatorAttributeDerivative => '二创';
+
+  @override
+  String get creatorAttributePort => '移植';
+
+  @override
+  String get creatorAttributeTemplateSkin => '模板换皮';
+
+  @override
+  String get creatorAttributeAiAssisted => 'AI 辅助';
+
+  @override
+  String get creatorAttributeAiGenerated => 'AI 生成';
+
+  @override
+  String get creatorAttribution => '创作者与来源';
+
+  @override
+  String get creatorCollaborators => '联合创作者';
+
+  @override
+  String get creatorInvite => '邀请';
+
+  @override
+  String get creatorInviteCollaborator => '邀请联合创作者';
+
+  @override
+  String get creatorBandBbsUserId => '米坛用户 ID';
+
+  @override
+  String get creatorNoCollaborators => '暂未关联联合创作者';
+
+  @override
+  String get creatorInvitationPending => '等待对方接受邀请';
+
+  @override
+  String get creatorCollaboratorAccepted => '已接受邀请';
+
+  @override
+  String get creatorResourceSource => '来源与授权';
+
+  @override
+  String get creatorOriginalAuthor => '原作者';
+
+  @override
+  String get creatorSourceUrl => '来源链接';
+
+  @override
+  String get creatorLicense => '许可协议';
+
+  @override
+  String get creatorAuthorizationNote => '授权说明';
+
+  @override
+  String get creatorConfirm => '确定';
+
+  @override
+  String get creatorRemove => '移除';
+
+  @override
+  String get creatorAccept => '接受';
+
+  @override
+  String get creatorCollaborationInvitations => '联合创作邀请';
+
+  @override
+  String creatorInvitedBy(String name) {
+    return '由 $name 邀请';
+  }
+
+  @override
+  String get creatorCoinsLifetime => '累计获投硬币';
+
+  @override
+  String get creatorCoinsRecent => '近 14 天获投';
+
+  @override
+  String get creatorCoinRewards => '创作激励';
+
+  @override
+  String get creatorCollectionOrderHint => '拖动调整合集内资源顺序';
+
+  @override
+  String get creatorCollectionAddResource => '加入合集';
+
+  @override
+  String creatorCollectionResourceCount(int count) {
+    return '$count 个资源';
+  }
+
+  @override
+  String get creatorDecline => '拒绝';
 }

@@ -1,7 +1,7 @@
 import 'package:oronbox/src/cli/cli_models.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 
-const _sortRules = {'random', 'name', 'time'};
+const _sortRules = {'recommendation', 'random', 'name', 'time'};
 const _resourceTypes = {'quickapp', 'watchface', 'firmware', 'miniprogram'};
 final _deviceFilterPattern = RegExp(r'\d');
 const _legacyFilterOptions = {
@@ -22,7 +22,7 @@ OronBoxCommand buildResourceQueryCommand(CliInvocation invocation) {
   if (sort != null && !_sortRules.contains(sort)) {
     throw CliUsageException(
       'Unsupported resource sort rule: $sort '
-      '(expected random, name, or time)',
+      '(expected recommendation, random, name, or time)',
     );
   }
   final legacyOption = _legacyFilterOptions

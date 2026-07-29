@@ -11,8 +11,10 @@ import 'package:go_router/go_router.dart';
 import 'package:image/image.dart' as img;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
+import 'package:oronbox/src/features/resources/application/oronbox_resource_attributes.dart';
 import 'package:oronbox/src/features/resources/domain/creator_publication_plan.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
@@ -51,7 +53,7 @@ Widget _publicationLogo(String target) => switch (target) {
 };
 
 // BandBBS fan-out publishes one resource per category; the URLs live in
-// status_detail.resources. Older rows only carry a single external_url.
+// status_detail.resources.
 List<String> _publicationLinkUrls(Map<String, Object?> publication) {
   final urls = <String>[];
   final resources =
@@ -63,10 +65,6 @@ List<String> _publicationLinkUrls(Map<String, Object?> publication) {
       final url = (resources[category] as Map?)?['url']?.toString() ?? '';
       if (url.isNotEmpty) urls.add(url);
     }
-  }
-  if (urls.isEmpty) {
-    final url = publication['external_url']?.toString() ?? '';
-    if (url.isNotEmpty) urls.add(url);
   }
   return urls;
 }
@@ -98,6 +96,15 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
   _DraftAsset? _cover;
   final List<_DraftAsset> _previews = [];
   final List<_DraftAsset> _artifacts = [];
+  late final List<_DraftLink> _links = [
+    for (final link in widget.workspace.links)
+      _DraftLink(title: link.title, url: link.url),
+  ];
+  late final Set<String> _attributes = {
+    ...?widget.workspace.latestRevision?.attributes,
+  };
+  List<OronBoxResourceAttribute> _attributeDefinitions = const [];
+  bool _loadingAttributes = true;
   String _lastAutoItemId = '';
   String _lastAutoRepo = '';
   String _publishStage = '';
@@ -106,6 +113,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
   @override
   void initState() {
     super.initState();
+    unawaited(_loadAttributes());
     _seedAssets();
     for (final publication in widget.workspace.publications) {
       final config = publication['config'] is Map
@@ -134,6 +142,17 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
       );
     }
     WidgetsBinding.instance.addPostFrameCallback((_) => _hydratePreviews());
+  }
+
+  Future<void> _loadAttributes() async {
+    try {
+      final definitions = await OronBoxResourceAttributeCatalog().load();
+      if (mounted) setState(() => _attributeDefinitions = definitions);
+    } catch (error) {
+      if (mounted) showCreatorFailure(context, error);
+    } finally {
+      if (mounted) setState(() => _loadingAttributes = false);
+    }
   }
 
   void _seedAssets() {
@@ -223,6 +242,9 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     _astroRepository.dispose();
     _astroTags.dispose();
     _astroAuthor.dispose();
+    for (final link in _links) {
+      link.dispose();
+    }
     super.dispose();
   }
 
@@ -245,7 +267,9 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                   children: [
                     if (widget.state.error != null) ...[
                       MaterialBanner(
-                        content: Text(widget.state.error!),
+                        content: Text(
+                          localizedErrorMessage(l10n, widget.state.error!),
+                        ),
                         actions: [
                           TextButton(
                             onPressed: widget.controller.refresh,
@@ -339,7 +363,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                       title: l10n.basicInfo,
                     ),
                     const SizedBox(height: 8),
-                    _EditorCard(
+                    CreatorEditorCard(
                       child: Column(
                         children: [
                           TextField(
@@ -357,7 +381,104 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                               labelText: l10n.creatorResourceSummary,
                             ),
                           ),
+                          const SizedBox(height: 16),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              l10n.creatorContentAttributes,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: _loadingAttributes
+                                ? const SizedBox.square(
+                                    dimension: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      for (final attribute
+                                          in _attributeDefinitions)
+                                        FilterChip(
+                                          label: Text(
+                                            attribute.labelFor(
+                                              Localizations.localeOf(context),
+                                            ),
+                                          ),
+                                          selected: _attributes.contains(
+                                            attribute.id,
+                                          ),
+                                          onSelected: (selected) => setState(
+                                            () => selected
+                                                ? _attributes.add(attribute.id)
+                                                : _attributes.remove(
+                                                    attribute.id,
+                                                  ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                          ),
                         ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    CreatorSectionTitle(
+                      icon: Icons.link_outlined,
+                      title: l10n.creatorAdditionalLinks,
+                    ),
+                    const SizedBox(height: 8),
+                    for (var index = 0; index < _links.length; index++) ...[
+                      CreatorEditorCard(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  TextField(
+                                    controller: _links[index].title,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.creatorLinkTitle,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextField(
+                                    controller: _links[index].url,
+                                    keyboardType: TextInputType.url,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.creatorLinkUrl,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: l10n.delete,
+                              onPressed: () => setState(() {
+                                _links.removeAt(index).dispose();
+                              }),
+                              icon: const Icon(Icons.delete_outline),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: FilledButton.tonalIcon(
+                        onPressed: _links.length >= 16
+                            ? null
+                            : () => setState(() => _links.add(_DraftLink())),
+                        icon: const Icon(Icons.add_link),
+                        label: Text(l10n.creatorAddLink),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -995,6 +1116,13 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
             : 'quickapp',
         'name': _name.text.trim(),
         'summary': _summary.text.trim(),
+        'attributes': _attributes.toList()..sort(),
+        'links': [
+          for (final link in _links)
+            if (link.title.text.trim().isNotEmpty &&
+                link.url.text.trim().isNotEmpty)
+              {'title': link.title.text.trim(), 'url': link.url.text.trim()},
+        ],
         'media': media,
         'artifacts': artifacts,
         'publications': plansForManifest(publications),
@@ -1410,7 +1538,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     final grants = widget.state.grants;
     final githubLogin = grants['github_login']?.toString() ?? '';
     final bandAuthorized = grants['bandbbs_publish'] == true;
-    return _EditorCard(
+    return CreatorEditorCard(
       padding: EdgeInsets.zero,
       child: Column(
         children: [
@@ -1731,26 +1859,6 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
   }
 }
 
-class _EditorCard extends StatelessWidget {
-  const _EditorCard({required this.child, this.padding});
-
-  final Widget child;
-  final EdgeInsetsGeometry? padding;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(12),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: padding ?? const EdgeInsets.all(16),
-        child: child,
-      ),
-    );
-  }
-}
-
 class _DraftAsset {
   _DraftAsset({
     required this.key,
@@ -1777,4 +1885,18 @@ class _DraftAsset {
   final String type;
 
   int? get size => bytes?.length ?? (sizeBytes > 0 ? sizeBytes : null);
+}
+
+class _DraftLink {
+  _DraftLink({String title = '', String url = ''})
+    : title = TextEditingController(text: title),
+      url = TextEditingController(text: url);
+
+  final TextEditingController title;
+  final TextEditingController url;
+
+  void dispose() {
+    title.dispose();
+    url.dispose();
+  }
 }

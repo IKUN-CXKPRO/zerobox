@@ -532,7 +532,7 @@ Options:
   --quiet         Suppress informational output
   --no-autostart  Do not automatically start the daemon
   --filter        Comma-separated resource filter chips
-  --sort          Resource sort: random, name, or time
+  --sort          Resource sort: recommendation, random, name, or time
   --detach        Queue an install and return its task ID
   --wait          Wait for a detached task and return its final exit code
   --targets       Creator targets: oronbox,bandbbs,astrobox

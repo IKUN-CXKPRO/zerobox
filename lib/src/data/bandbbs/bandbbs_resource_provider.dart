@@ -49,7 +49,9 @@ class BandBbsCatalog implements CommunityResourceCatalog {
             await _api.searchResources(
               keywords: keyword,
               page: query.page + 1,
-              order: query.sort == CommunitySortRule.time
+              order:
+                  query.sort == CommunitySortRule.time ||
+                      query.sort == CommunitySortRule.recommendation
                   ? 'date'
                   : 'relevance',
               categoryIds: categoryIds.isEmpty ? null : categoryIds,
@@ -683,12 +685,16 @@ class BandBbsCatalog implements CommunityResourceCatalog {
 
   String _orderForSort(CommunitySortRule value) => switch (value) {
     CommunitySortRule.name => 'title',
-    CommunitySortRule.time || CommunitySortRule.random => 'last_update',
+    CommunitySortRule.time ||
+    CommunitySortRule.random ||
+    CommunitySortRule.recommendation => 'last_update',
   };
 
   String _directionForSort(CommunitySortRule value) => switch (value) {
     CommunitySortRule.name => 'asc',
-    CommunitySortRule.time || CommunitySortRule.random => 'desc',
+    CommunitySortRule.time ||
+    CommunitySortRule.random ||
+    CommunitySortRule.recommendation => 'desc',
   };
 
   Map<String, dynamic> _objectMap(Object? value) =>

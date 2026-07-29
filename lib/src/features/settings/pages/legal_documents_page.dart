@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
-import 'package:oronbox/src/features/settings/services/oronbox_support_api.dart';
 import 'package:oronbox/src/features/resources/widgets/resource_external_link.dart';
 
 Future<String> loadLegalDocument(
@@ -11,13 +10,7 @@ Future<String> loadLegalDocument(
   String id,
   String language,
 ) async {
-  try {
-    final online = await ref
-        .read(oronBoxSupportApiProvider)
-        .legalDocument(id, language: language);
-    if (online.trim().isNotEmpty) return online;
-  } catch (_) {}
-  return rootBundle.loadString('assets/legal/$id.$language.md');
+  return rootBundle.loadString('assets/legal/$id.$language.md', cache: false);
 }
 
 class LegalDocumentPage extends ConsumerWidget {

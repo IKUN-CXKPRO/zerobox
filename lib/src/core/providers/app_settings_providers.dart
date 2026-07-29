@@ -61,10 +61,7 @@ class CleanSettings {
       astroBoxSourceEnabled ||
       huamiAppStoreSourceEnabled;
 
-  CleanSettings get normalized {
-    if (oronBox || bandBbs || astroBox || huamiAppStore) return this;
-    return copyWith(oronBox: true);
-  }
+  CleanSettings get normalized => this;
 
   CleanSettings copyWith({
     bool? exploreEntry,

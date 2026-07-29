@@ -1,18 +1,19 @@
 import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 
-enum CommunitySortRule { random, name, time }
+enum CommunitySortRule { recommendation, random, name, time }
 
 class CommunityResourceQuery {
   const CommunityResourceQuery({
     this.page = 0,
     this.pageSize = 30,
     this.query = '',
-    this.sort = CommunitySortRule.time,
+    this.sort = CommunitySortRule.recommendation,
     this.type,
     this.hidePaid = false,
     this.hideForcePaid = false,
     this.selectedDevices = const {},
+    this.selectedAttributes = const {},
   });
 
   final int page;
@@ -23,6 +24,7 @@ class CommunityResourceQuery {
   final bool hidePaid;
   final bool hideForcePaid;
   final Set<String> selectedDevices;
+  final Set<String> selectedAttributes;
 }
 
 class CommunityResourcePage {

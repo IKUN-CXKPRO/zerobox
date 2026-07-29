@@ -1,6 +1,8 @@
 import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/device/core/connect_type.dart';
+import 'package:oronbox/src/device/core/device_profile.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
+import 'package:oronbox/src/features/devices/utils/device_address.dart';
 
 typedef DeviceConnectionEndpoint = ({String addr, String name});
 
@@ -21,7 +23,19 @@ DeviceConnectionEndpoint? resolveDeviceConnectionEndpoint({
   }
 
   final sourceIdentity = zeppOsDeviceForBluetoothName(device.name);
-  if (sourceIdentity == null) return null;
+  if (sourceIdentity == null) {
+    final profile = DeviceRegistry.resolveIdentity(
+      name: device.name,
+      codename: device.codename,
+    );
+    if (profile.id == DeviceRegistry.unknown.id) return null;
+    for (final endpoint in scannedDevices) {
+      if (deviceAddressEquals(endpoint.addr, device.addr)) {
+        return (addr: formatDeviceAddress(endpoint.addr), name: endpoint.name);
+      }
+    }
+    return null;
+  }
   for (final endpoint in scannedDevices) {
     if (endpoint.connectType.toLowerCase() != normalizedType) continue;
     final candidateIdentity = zeppOsDeviceForBluetoothName(endpoint.name);

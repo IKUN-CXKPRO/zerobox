@@ -11,17 +11,53 @@ import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
+import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
+import 'package:oronbox/src/features/resources/application/creator/oronbox_creator_api.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_resource_list.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
 import 'package:oronbox/src/features/settings/pages/legal_documents_page.dart';
 
-class CreatorCenterPage extends ConsumerWidget {
+class CreatorCenterPage extends ConsumerStatefulWidget {
   const CreatorCenterPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CreatorCenterPage> createState() => _CreatorCenterPageState();
+}
+
+class _CreatorCenterPageState extends ConsumerState<CreatorCenterPage> {
+  List<Map<String, Object?>> _collections = const [];
+  var _collectionsLoading = true;
+  var _creatingCollection = false;
+  Set<String> _selectedResourceIds = const {};
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadCollections());
+  }
+
+  Future<void> _loadCollections() async {
+    if (mounted) setState(() => _collectionsLoading = true);
+    try {
+      final items = await OronBoxCreatorApi(
+        auth: ref.read(bandBbsAuthProvider.notifier),
+      ).collections();
+      if (mounted) setState(() => _collections = items);
+    } catch (error) {
+      if (mounted) showCreatorFailure(context, error);
+    } finally {
+      if (mounted) setState(() => _collectionsLoading = false);
+    }
+  }
+
+  Future<void> _refresh(CreatorWorkspaceController controller) async {
+    await Future.wait([controller.refresh(), _loadCollections()]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(creatorWorkspaceProvider);
     final controller = ref.read(creatorWorkspaceProvider.notifier);
     final bandBbs = ref.watch(hostAccountsProvider).bandbbs;
@@ -32,7 +68,7 @@ class CreatorCenterPage extends ConsumerWidget {
       ),
       (previous, current) {
         if (previous != current && current.$1) {
-          unawaited(controller.refresh());
+          unawaited(_refresh(controller));
         }
       },
     );
@@ -44,9 +80,9 @@ class CreatorCenterPage extends ConsumerWidget {
           IconButton(
             tooltip: l10n.refresh,
             icon: const Icon(Icons.refresh),
-            onPressed: state.loading
+            onPressed: state.loading || _collectionsLoading
                 ? null
-                : () => unawaited(controller.refresh()),
+                : () => unawaited(_refresh(controller)),
           ),
         ],
       ),
@@ -60,8 +96,12 @@ class CreatorCenterPage extends ConsumerWidget {
           : state.governance != null
           ? _CreatorGovernanceGate(code: state.governance!)
           : _CreatorTermsGate(
-              loading: state.loading,
+              loading: state.loading || _creatingCollection,
+              collectionLoading: _creatingCollection,
               onCreate: () => _create(context, controller),
+              onCreateCollection: () => _createCollection(context, controller),
+              selectionActive: _selectedResourceIds.isNotEmpty,
+              onMoveSelection: () => _moveSelection(state, controller),
               child: PageContainer(
                 maxWidth: 1000,
                 padding: const EdgeInsets.symmetric(
@@ -70,15 +110,129 @@ class CreatorCenterPage extends ConsumerWidget {
                 child: CreatorResourceList(
                   state: state,
                   controller: controller,
-                  onCreate: () => _create(context, controller),
+                  collections: _collections,
+                  collectionsLoading: _collectionsLoading,
+                  onRefresh: () => _refresh(controller),
+                  onOpenCollection: (item) => context.push(
+                    '/resources/creator/collection/${item['id']}',
+                    extra: item,
+                  ),
                   onOpen: (workspace) {
                     controller.select(workspace);
                     context.push('/resources/creator/resource');
                   },
+                  selectedResourceIds: _selectedResourceIds,
+                  onSelectionChanged: (value) =>
+                      setState(() => _selectedResourceIds = value),
+                  onDissolveCollection: (item) =>
+                      _dissolveCollection(item, controller),
                 ),
               ),
             ),
     );
+  }
+
+  Future<void> _moveSelection(
+    CreatorWorkspaceState state,
+    CreatorWorkspaceController controller,
+  ) async {
+    final selected = state.resources
+        .where((item) => _selectedResourceIds.contains(item.resource.id))
+        .toList();
+    if (selected.isEmpty) return;
+    final kind = selected.first.resource.kind.name;
+    final choices = _collections
+        .where((item) => item['kind']?.toString() == kind)
+        .toList();
+    final target = await showDialog<Map<String, Object?>>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(AppLocalizations.of(context)!.creatorCollectionAddResource),
+        children: [
+          for (final item in choices)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, item),
+              child: Text(
+                ((item['pending_revision'] ?? item['current_revision'])
+                            as Map?)?['name']
+                        ?.toString() ??
+                    '',
+              ),
+            ),
+        ],
+      ),
+    );
+    if (target == null || !mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.creatorCollectionAddResource),
+        content: Text(l10n.creatorMoveToCollectionConfirm(selected.length)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.creatorConfirm),
+          ),
+        ],
+      ),
+    );
+    if (accepted != true) return;
+    final collectionId = target['id']!.toString();
+    final existing = state.resources
+        .where((item) => item.resource.collectionId == collectionId)
+        .map((item) => item.resource.id);
+    try {
+      await OronBoxCreatorApi(
+        auth: ref.read(bandBbsAuthProvider.notifier),
+      ).setCollectionResources(
+        collectionId: collectionId,
+        resourceIds: {...existing, ..._selectedResourceIds}.toList(),
+        representativeResourceId:
+            target['representative_resource_id']?.toString() ?? '',
+      );
+      setState(() => _selectedResourceIds = const {});
+      await _refresh(controller);
+    } catch (error) {
+      if (mounted) showCreatorFailure(context, error);
+    }
+  }
+
+  Future<void> _dissolveCollection(
+    Map<String, Object?> item,
+    CreatorWorkspaceController controller,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.creatorDissolveCollection),
+        content: Text(l10n.creatorCollectionDeleteConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.creatorDissolveCollection),
+          ),
+        ],
+      ),
+    );
+    if (accepted != true) return;
+    try {
+      await OronBoxCreatorApi(
+        auth: ref.read(bandBbsAuthProvider.notifier),
+      ).deleteCollection(item['id']!.toString());
+      await _refresh(controller);
+    } catch (error) {
+      if (mounted) showCreatorFailure(context, error);
+    }
   }
 
   Future<void> _create(
@@ -164,6 +318,94 @@ class CreatorCenterPage extends ConsumerWidget {
       } catch (error) {
         if (context.mounted) showCreatorFailure(context, error);
       }
+    }
+  }
+
+  Future<void> _createCollection(
+    BuildContext context,
+    CreatorWorkspaceController controller,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final name = TextEditingController();
+    final summary = TextEditingController();
+    var kind = CreatorResourceKind.quickApp;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(l10n.creatorNewCollection),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SegmentedButton<CreatorResourceKind>(
+                segments: [
+                  ButtonSegment(
+                    value: CreatorResourceKind.quickApp,
+                    label: Text(l10n.quickApp),
+                  ),
+                  ButtonSegment(
+                    value: CreatorResourceKind.watchface,
+                    label: Text(l10n.watchface),
+                  ),
+                ],
+                selected: {kind},
+                onSelectionChanged: (value) =>
+                    setDialogState(() => kind = value.single),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: name,
+                autofocus: true,
+                maxLength: 120,
+                decoration: InputDecoration(
+                  labelText: l10n.creatorCollectionName,
+                ),
+              ),
+              TextField(
+                controller: summary,
+                minLines: 2,
+                maxLines: 5,
+                decoration: InputDecoration(
+                  labelText: l10n.creatorCollectionSummary,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.pop(context, name.text.trim().isNotEmpty),
+              child: Text(l10n.creatorNewCollection),
+            ),
+          ],
+        ),
+      ),
+    );
+    final collectionName = name.text.trim();
+    final collectionSummary = summary.text.trim();
+    name.dispose();
+    summary.dispose();
+    if (accepted != true || !context.mounted) return;
+    setState(() => _creatingCollection = true);
+    try {
+      final api = OronBoxCreatorApi(
+        auth: ref.read(bandBbsAuthProvider.notifier),
+      );
+      await api.createCollection(
+        slug: 'collection-${DateTime.now().microsecondsSinceEpoch}',
+        name: collectionName,
+        summary: collectionSummary,
+        kind: kind == CreatorResourceKind.watchface ? 'watchface' : 'quickapp',
+      );
+      await Future.wait([controller.refresh(), _loadCollections()]);
+    } catch (error) {
+      if (context.mounted) showCreatorFailure(context, error);
+    } finally {
+      if (mounted) setState(() => _creatingCollection = false);
     }
   }
 }
@@ -283,12 +525,20 @@ class _CreatorTermsGate extends ConsumerStatefulWidget {
   const _CreatorTermsGate({
     required this.child,
     required this.loading,
+    required this.collectionLoading,
     required this.onCreate,
+    required this.onCreateCollection,
+    required this.selectionActive,
+    required this.onMoveSelection,
   });
 
   final Widget child;
   final bool loading;
+  final bool collectionLoading;
   final VoidCallback onCreate;
+  final VoidCallback onCreateCollection;
+  final bool selectionActive;
+  final VoidCallback onMoveSelection;
 
   @override
   ConsumerState<_CreatorTermsGate> createState() => _CreatorTermsGateState();
@@ -298,11 +548,28 @@ class _CreatorTermsGateState extends ConsumerState<_CreatorTermsGate> {
   static const keyAccepted = 'creator.terms.accepted';
   bool _accepted = false;
   bool _checked = false;
+  bool _bottomReached = false;
+  final _termsScrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _accepted = SharedPrefsService.instance.getBool(keyAccepted) ?? false;
+    _termsScrollController.addListener(_markBottomReached);
+  }
+
+  @override
+  void dispose() {
+    _termsScrollController.dispose();
+    super.dispose();
+  }
+
+  void _markBottomReached() {
+    if (_bottomReached || !_termsScrollController.hasClients) return;
+    final position = _termsScrollController.position;
+    if (position.maxScrollExtent - position.pixels <= 1) {
+      setState(() => _bottomReached = true);
+    }
   }
 
   Future<void> _continue() async {
@@ -320,11 +587,43 @@ class _CreatorTermsGateState extends ConsumerState<_CreatorTermsGate> {
           Positioned(
             right: 16,
             bottom: 16,
-            child: FloatingActionButton.extended(
-              heroTag: 'creator-new-resource',
-              onPressed: widget.loading ? null : widget.onCreate,
-              icon: const Icon(Icons.add),
-              label: Text(l10n.creatorNewResource),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (widget.selectionActive)
+                  FloatingActionButton.extended(
+                    heroTag: 'creator-move-selection',
+                    onPressed: widget.loading ? null : widget.onMoveSelection,
+                    icon: const Icon(Icons.drive_file_move_outline),
+                    label: Text(l10n.creatorMoveToCollection),
+                  )
+                else ...[
+                  FloatingActionButton.extended(
+                    heroTag: 'creator-new-resource',
+                    onPressed: widget.loading ? null : widget.onCreate,
+                    icon: const Icon(Icons.add),
+                    label: Text(l10n.creatorNewResource),
+                  ),
+                  const SizedBox(height: 10),
+                  FloatingActionButton.extended(
+                    heroTag: 'creator-new-collection',
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHigh,
+                    foregroundColor: Theme.of(context).colorScheme.onSurface,
+                    onPressed: widget.loading
+                        ? null
+                        : widget.onCreateCollection,
+                    icon: widget.collectionLoading
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.add),
+                    label: Text(l10n.creatorNewCollection),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
@@ -366,8 +665,12 @@ class _CreatorTermsGateState extends ConsumerState<_CreatorTermsGate> {
                                   child: CircularProgressIndicator(),
                                 );
                               }
+                              WidgetsBinding.instance.addPostFrameCallback(
+                                (_) => _markBottomReached(),
+                              );
                               return Markdown(
                                 data: snapshot.data!,
+                                controller: _termsScrollController,
                                 selectable: true,
                                 padding: const EdgeInsets.fromLTRB(
                                   20,
@@ -421,15 +724,24 @@ class _CreatorTermsGateState extends ConsumerState<_CreatorTermsGate> {
           children: [
             Expanded(
               child: InkWell(
-                onTap: () => setState(() => _checked = !_checked),
+                onTap: _bottomReached
+                    ? () => setState(() => _checked = !_checked)
+                    : null,
                 child: Row(
                   children: [
                     Checkbox(
                       value: _checked,
-                      onChanged: (value) =>
-                          setState(() => _checked = value == true),
+                      onChanged: _bottomReached
+                          ? (value) => setState(() => _checked = value == true)
+                          : null,
                     ),
-                    Flexible(child: Text(l10n.creatorTermsAccept)),
+                    Flexible(
+                      child: Text(
+                        _bottomReached
+                            ? l10n.creatorTermsAccept
+                            : l10n.oobeAgreementHint,
+                      ),
+                    ),
                   ],
                 ),
               ),

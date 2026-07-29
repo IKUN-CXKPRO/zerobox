@@ -16,7 +16,6 @@ import 'package:oronbox/src/core/logging/file_log_sink.dart';
 import 'package:oronbox/src/core/services/build_info_service.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
-import 'package:oronbox/src/features/settings/pages/legal_documents_page.dart';
 import 'package:oronbox/src/features/settings/services/oronbox_support_api.dart';
 
 class AboutSoftwarePage extends ConsumerWidget {
@@ -67,13 +66,9 @@ class AboutSoftwarePage extends ConsumerWidget {
                       ('review-rules', l10n.reviewRulesTitle),
                     ])
                       FilledButton.tonalIcon(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => LegalDocumentPage(
-                              id: document.$1,
-                              title: document.$2,
-                            ),
-                          ),
+                        onPressed: () => context.push(
+                          '/settings/legal/${document.$1}',
+                          extra: document.$2,
                         ),
                         icon: const Icon(Icons.article_outlined),
                         label: Text(document.$2),

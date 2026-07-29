@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
 
@@ -102,13 +103,10 @@ CreatorMedia? creatorThumbnailMedia(CreatorWorkspace workspace) {
 
 void showCreatorFailure(BuildContext context, Object error) {
   final l10n = AppLocalizations.of(context)!;
-  final message = creatorFailureMessage(error);
   final messenger = ScaffoldMessenger.of(context);
   messenger
     ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(content: Text(l10n.errorUnknownWithDetail(message))),
-    );
+    ..showSnackBar(SnackBar(content: Text(localizedErrorMessage(l10n, error))));
 }
 
 String formatCreatorFileSize(int bytes) {
@@ -165,6 +163,21 @@ class CreatorOronBoxLogo extends StatelessWidget {
       BlendMode.srcIn,
     ),
     semanticsLabel: 'OronBox',
+  );
+}
+
+class CreatorEditorCard extends StatelessWidget {
+  const CreatorEditorCard({super.key, required this.child, this.padding});
+
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Theme.of(context).colorScheme.surfaceContainerLow,
+    borderRadius: BorderRadius.circular(12),
+    clipBehavior: Clip.antiAlias,
+    child: Padding(padding: padding ?? const EdgeInsets.all(16), child: child),
   );
 }
 

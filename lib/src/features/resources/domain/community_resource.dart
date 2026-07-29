@@ -89,6 +89,12 @@ class CommunityResource {
     this.downloadCount,
     this.version,
     this.priceLabel,
+    this.coinCount = 0,
+    this.curationGrade = 'standard',
+    this.collectionId,
+    this.collectionName,
+    this.isCollection = false,
+    this.resourceCount = 0,
   });
 
   final ResourceRef ref;
@@ -106,6 +112,12 @@ class CommunityResource {
   final int? downloadCount;
   final String? version;
   final String? priceLabel;
+  final int coinCount;
+  final String curationGrade;
+  final String? collectionId;
+  final String? collectionName;
+  final bool isCollection;
+  final int resourceCount;
 
   String get authorName => authors.firstOrNull?.name ?? '';
 }
@@ -155,6 +167,12 @@ class CommunityResourceDetail extends CommunityResource {
     super.downloadCount,
     super.version,
     super.priceLabel,
+    super.coinCount,
+    super.curationGrade,
+    super.collectionId,
+    super.collectionName,
+    super.isCollection,
+    super.resourceCount,
     this.previews = const [],
     this.previewImages = const [],
     this.links = const [],

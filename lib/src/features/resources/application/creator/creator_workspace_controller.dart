@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/errors/coded_error.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
@@ -452,7 +453,7 @@ class CreatorWorkspaceController extends Notifier<CreatorWorkspaceState> {
   }
 }
 
-class CreatorCommandException implements Exception {
+class CreatorCommandException implements CodedError {
   const CreatorCommandException({
     required this.code,
     required this.message,
@@ -474,8 +475,11 @@ class CreatorCommandException implements Exception {
     );
   }
 
+  @override
   final String code;
+  @override
   final String message;
+  @override
   final Object? details;
 
   @override
@@ -483,7 +487,9 @@ class CreatorCommandException implements Exception {
 }
 
 String creatorFailureMessage(Object error) {
-  if (error is CreatorCommandException) return error.message;
+  if (error is CreatorCommandException) {
+    return '${error.code}: ${error.message}';
+  }
   var message = error.toString().trim();
   for (final prefix in const ['Bad state: ', 'Exception: ', 'DioException: ']) {
     if (message.startsWith(prefix)) message = message.substring(prefix.length);

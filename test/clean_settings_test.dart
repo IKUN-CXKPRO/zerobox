@@ -47,7 +47,7 @@ void main() {
     expect(clean.githubLogin, isTrue);
   });
 
-  test('normalization retains at least one resource source', () {
+  test('all resource sources may be disabled', () {
     const clean = CleanSettings(
       oronBox: false,
       bandBbs: false,
@@ -55,10 +55,11 @@ void main() {
       huamiAppStore: false,
     );
 
-    expect(clean.normalized.oronBox, isTrue);
+    expect(clean.normalized.oronBox, isFalse);
     expect(clean.normalized.bandBbs, isFalse);
     expect(clean.normalized.astroBox, isFalse);
     expect(clean.normalized.huamiAppStore, isFalse);
+    expect(clean.normalized.hasResourceSource, isFalse);
   });
 
   test('plugins and Amazfit App Store are enabled by default', () {

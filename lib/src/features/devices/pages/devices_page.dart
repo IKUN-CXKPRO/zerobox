@@ -13,7 +13,6 @@ import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
-import 'package:oronbox/src/app/widgets/huami_brand_icon.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/core/models/device.dart';
@@ -337,10 +336,10 @@ class _DeviceInfoPanel extends StatelessWidget {
           const SizedBox(height: 8),
           SizedBox(
             width: statusRowWidth,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Row(
+            child: !_isConnected
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.max,
                     children: [
                       if (_isConnecting) ...[
                         const SizedBox(
@@ -359,12 +358,11 @@ class _DeviceInfoPanel extends StatelessWidget {
                                   fallbackDeviceName: device!.name,
                                   connectType: device!.connectType,
                                 )
-                              : _isConnected
-                              ? l10n.deviceConnected
                               : l10n.deviceDisconnected,
+                          textAlign: TextAlign.center,
                           style: textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w500,
-                            color: _isConnected || _isConnecting
+                            color: _isConnecting
                                 ? colorScheme.primary
                                 : colorScheme.onSurfaceVariant,
                           ),
@@ -373,33 +371,53 @@ class _DeviceInfoPanel extends StatelessWidget {
                         ),
                       ),
                     ],
-                  ),
-                ),
-                if (_isConnected) ...[
-                  const SizedBox(width: 8),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+                  )
+                : Row(
                     children: [
-                      Text(
-                        '↑ ${_formatRate(downloadBytesPerSecond)}',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontFeatures: const [FontFeature.tabularFigures()],
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                l10n.deviceConnected,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  color: colorScheme.primary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Text(
-                        '↓ ${_formatRate(uploadBytesPerSecond)}',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
+                      const SizedBox(width: 8),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '↑ ${_formatRate(downloadBytesPerSecond)}',
+                            style: textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            '↓ ${_formatRate(uploadBytesPerSecond)}',
+                            style: textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ],
-            ),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -814,7 +832,7 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
                 SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/zeppos-more'),
                   enabled: enabled,
-                  leading: const HuamiBrandIcon(),
+                  leading: const Icon(Icons.functions),
                   title: Text(l10n.zeppOsMoreFeatures),
                   description: Text(l10n.zeppOsMoreFeaturesDescription),
                 )

@@ -60,6 +60,26 @@ void main() {
     await queue.close();
   });
 
+  test('preserves actual progress updates below five percent', () async {
+    final bus = _ProgressBus([.01, .02, .03]);
+    final queue = DaemonTaskQueue(bus);
+    final progress = <double>[];
+    final subscription = queue.events.listen((event) {
+      if (event.event != 'task') return;
+      final value = event.data['progress'];
+      if (value is num && value > 0 && value < 1) {
+        progress.add(value.toDouble());
+      }
+    });
+
+    final id = queue.enqueue(const OronBoxCommand(method: 'download'));
+    await queue.wait(id);
+
+    expect(progress, [.01, .02, .03]);
+    await subscription.cancel();
+    await queue.close();
+  });
+
   test('resumes a task that was running before host restart', () async {
     final task = DaemonTask(
       id: 'recovered',
@@ -156,4 +176,25 @@ class _BlockingBus implements OronBoxCommandBus {
 
   @override
   Future<void> close() async {}
+}
+
+class _ProgressBus implements OronBoxCommandBus {
+  _ProgressBus(this.progress);
+
+  final List<double> progress;
+  final _events = StreamController<CommandEvent>.broadcast(sync: true);
+
+  @override
+  Stream<CommandEvent> get events => _events.stream;
+
+  @override
+  Future<CommandResult> execute(OronBoxCommand command) async {
+    for (final value in progress) {
+      _events.add(CommandEvent('progress', data: {'progress': value}));
+    }
+    return const CommandResult.success();
+  }
+
+  @override
+  Future<void> close() => _events.close();
 }

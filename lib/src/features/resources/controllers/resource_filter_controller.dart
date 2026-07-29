@@ -10,10 +10,11 @@ class ResourceFilters {
   const ResourceFilters({
     this.query = '',
     this.type,
-    this.sort = CommunitySortRule.random,
+    this.sort = CommunitySortRule.recommendation,
     this.hidePaid = false,
     this.hideForcePaid = false,
     this.selectedDevices = const {},
+    this.selectedAttributes = const {},
   });
 
   final String query;
@@ -22,6 +23,7 @@ class ResourceFilters {
   final bool hidePaid;
   final bool hideForcePaid;
   final Set<String> selectedDevices;
+  final Set<String> selectedAttributes;
 
   ResourceFilters copyWith({
     String? query,
@@ -30,6 +32,7 @@ class ResourceFilters {
     bool? hidePaid,
     bool? hideForcePaid,
     Set<String>? selectedDevices,
+    Set<String>? selectedAttributes,
   }) {
     return ResourceFilters(
       query: query ?? this.query,
@@ -40,6 +43,7 @@ class ResourceFilters {
       hidePaid: hidePaid ?? this.hidePaid,
       hideForcePaid: hideForcePaid ?? this.hideForcePaid,
       selectedDevices: selectedDevices ?? this.selectedDevices,
+      selectedAttributes: selectedAttributes ?? this.selectedAttributes,
     );
   }
 }
@@ -127,6 +131,12 @@ class ResourceFiltersNotifier extends Notifier<ResourceFilters> {
   }
 
   void clearDevices() => state = state.copyWith(selectedDevices: const {});
+
+  void toggleAttribute(String attribute) {
+    final updated = Set<String>.from(state.selectedAttributes);
+    if (!updated.remove(attribute)) updated.add(attribute);
+    state = state.copyWith(selectedAttributes: updated);
+  }
 
   void clearNumericDevices() {
     final updated = Set<String>.from(state.selectedDevices)

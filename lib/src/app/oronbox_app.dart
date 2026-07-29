@@ -9,6 +9,7 @@ import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/core/providers/theme_locale_providers.dart';
 import 'package:oronbox/src/features/devices/widgets/device_deep_link_handler.dart';
 import 'package:oronbox/src/features/plugins/widgets/plugin_host_request_handler.dart';
+import 'package:oronbox/src/app/widgets/app_error_gate.dart';
 
 final _desktopAccentColorProvider = FutureProvider<Color?>((ref) {
   final source = ref.watch(
@@ -54,11 +55,14 @@ class OronBoxApp extends ConsumerWidget {
           locale: localeSettings.materialLocale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
+          scaffoldMessengerKey: appScaffoldMessengerKey,
           routerConfig: router,
           builder: (context, child) => DesktopWindowHost(
-            child: PluginHostRequestHandler(
-              child: DeviceDeepLinkHandler(
-                child: child ?? const SizedBox.shrink(),
+            child: AppErrorGate(
+              child: PluginHostRequestHandler(
+                child: DeviceDeepLinkHandler(
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
           ),

@@ -1148,6 +1148,66 @@ abstract class AppLocalizations {
   /// **'Xiaomi account two-factor verification was not completed. Sign in again'**
   String get errorAccountTwoFactorIncomplete;
 
+  /// No description provided for @errorOronBoxSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your OronBox session has expired. Sign in to BandBBS again'**
+  String get errorOronBoxSessionExpired;
+
+  /// No description provided for @errorNetworkUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to reach the service. Check your network and try again'**
+  String get errorNetworkUnavailable;
+
+  /// No description provided for @errorServiceUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The service is temporarily unavailable. Try again later'**
+  String get errorServiceUnavailable;
+
+  /// No description provided for @errorPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to perform this operation'**
+  String get errorPermissionDenied;
+
+  /// No description provided for @errorContentNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The requested content no longer exists or is unavailable'**
+  String get errorContentNotFound;
+
+  /// No description provided for @errorRequestConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'The content has changed. Refresh it and try again'**
+  String get errorRequestConflict;
+
+  /// No description provided for @errorRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests. Wait a moment and try again'**
+  String get errorRateLimited;
+
+  /// No description provided for @errorFileTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected file is too large'**
+  String get errorFileTooLarge;
+
+  /// No description provided for @errorInvalidRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Some submitted information is invalid. Check it and try again'**
+  String get errorInvalidRequest;
+
+  /// No description provided for @errorOperationCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation cancelled'**
+  String get errorOperationCancelled;
+
   /// No description provided for @errorUnsupportedFileType.
   ///
   /// In en, this message translates to:
@@ -6042,6 +6102,432 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Window behavior, onboarding, and developer tools'**
   String get settingsCategoryAdvancedDescription;
+
+  /// No description provided for @oronBoxCoinsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource coins'**
+  String get oronBoxCoinsTitle;
+
+  /// No description provided for @oronBoxCoinsBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Coin balance: {balance}'**
+  String oronBoxCoinsBalance(String balance);
+
+  /// No description provided for @oronBoxCoinsCheckin.
+  ///
+  /// In en, this message translates to:
+  /// **'Check in'**
+  String get oronBoxCoinsCheckin;
+
+  /// No description provided for @oronBoxCoinsCheckedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Checked in'**
+  String get oronBoxCoinsCheckedIn;
+
+  /// No description provided for @oronBoxCoinsCheckingIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking in'**
+  String get oronBoxCoinsCheckingIn;
+
+  /// No description provided for @oronBoxCoinsCheckinReward.
+  ///
+  /// In en, this message translates to:
+  /// **'Received {count} coins'**
+  String oronBoxCoinsCheckinReward(int count);
+
+  /// No description provided for @oronBoxCoinsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Check in daily for 1–5 coins and use them to support creators'**
+  String get oronBoxCoinsDescription;
+
+  /// No description provided for @resourceFromCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'From collection {name}'**
+  String resourceFromCollection(String name);
+
+  /// No description provided for @resourceCoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Coin'**
+  String get resourceCoin;
+
+  /// No description provided for @resourceCoinDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Coin this resource'**
+  String get resourceCoinDialogTitle;
+
+  /// No description provided for @resourceCoinDialogMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Coin this resource?\n\nThis action cannot be undone\n\nCoins help the resource receive more exposure\n\nThe creator receives 10% of the contributed amount'**
+  String get resourceCoinDialogMessage;
+
+  /// No description provided for @resourceCoinOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Give 1 coin'**
+  String get resourceCoinOne;
+
+  /// No description provided for @resourceCoinTwo.
+  ///
+  /// In en, this message translates to:
+  /// **'Give 2 coins'**
+  String get resourceCoinTwo;
+
+  /// No description provided for @resourceCoinCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} coins'**
+  String resourceCoinCount(int count);
+
+  /// No description provided for @resourceCoinSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Coin sent'**
+  String get resourceCoinSuccess;
+
+  /// No description provided for @resourceFeatured.
+  ///
+  /// In en, this message translates to:
+  /// **'Featured'**
+  String get resourceFeatured;
+
+  /// No description provided for @resourceCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection'**
+  String get resourceCollection;
+
+  /// No description provided for @resourceCollectionItems.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} resources'**
+  String resourceCollectionItems(int count);
+
+  /// No description provided for @resourceCollectionCoins.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} coins in total'**
+  String resourceCollectionCoins(int count);
+
+  /// No description provided for @creatorCollections.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource collections'**
+  String get creatorCollections;
+
+  /// No description provided for @creatorCollectionTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection'**
+  String get creatorCollectionTag;
+
+  /// No description provided for @creatorCollectionsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Group resources of the same type into one collection card'**
+  String get creatorCollectionsDescription;
+
+  /// No description provided for @creatorNewCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'New collection'**
+  String get creatorNewCollection;
+
+  /// No description provided for @creatorMoveToCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to collection'**
+  String get creatorMoveToCollection;
+
+  /// No description provided for @creatorMoveToCollectionConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Move the {count} selected resources into this collection?'**
+  String creatorMoveToCollectionConfirm(int count);
+
+  /// No description provided for @creatorDissolveCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Dissolve collection'**
+  String get creatorDissolveCollection;
+
+  /// No description provided for @creatorResourceList.
+  ///
+  /// In en, this message translates to:
+  /// **'Resources'**
+  String get creatorResourceList;
+
+  /// No description provided for @creatorAdditionalLinks.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional links'**
+  String get creatorAdditionalLinks;
+
+  /// No description provided for @creatorAddLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Add link'**
+  String get creatorAddLink;
+
+  /// No description provided for @creatorLinkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Link name'**
+  String get creatorLinkTitle;
+
+  /// No description provided for @creatorLinkUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Link URL'**
+  String get creatorLinkUrl;
+
+  /// No description provided for @creatorCollectionName.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection name'**
+  String get creatorCollectionName;
+
+  /// No description provided for @creatorCollectionSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection summary'**
+  String get creatorCollectionSummary;
+
+  /// No description provided for @creatorCollectionPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection metadata is under review'**
+  String get creatorCollectionPending;
+
+  /// No description provided for @creatorCollectionPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Published'**
+  String get creatorCollectionPublished;
+
+  /// No description provided for @creatorCollectionManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage resources'**
+  String get creatorCollectionManage;
+
+  /// No description provided for @creatorCollectionRepresentative.
+  ///
+  /// In en, this message translates to:
+  /// **'Representative resource'**
+  String get creatorCollectionRepresentative;
+
+  /// No description provided for @creatorCollectionDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this collection? Its resources will only be unlinked.'**
+  String get creatorCollectionDeleteConfirm;
+
+  /// No description provided for @creatorCollectionEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit collection metadata'**
+  String get creatorCollectionEdit;
+
+  /// No description provided for @creatorContentAttributes.
+  ///
+  /// In en, this message translates to:
+  /// **'Content attributes'**
+  String get creatorContentAttributes;
+
+  /// No description provided for @creatorAttributeOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Original'**
+  String get creatorAttributeOriginal;
+
+  /// No description provided for @creatorAttributeDerivative.
+  ///
+  /// In en, this message translates to:
+  /// **'Derivative'**
+  String get creatorAttributeDerivative;
+
+  /// No description provided for @creatorAttributePort.
+  ///
+  /// In en, this message translates to:
+  /// **'Port'**
+  String get creatorAttributePort;
+
+  /// No description provided for @creatorAttributeTemplateSkin.
+  ///
+  /// In en, this message translates to:
+  /// **'Template skin'**
+  String get creatorAttributeTemplateSkin;
+
+  /// No description provided for @creatorAttributeAiAssisted.
+  ///
+  /// In en, this message translates to:
+  /// **'AI-assisted'**
+  String get creatorAttributeAiAssisted;
+
+  /// No description provided for @creatorAttributeAiGenerated.
+  ///
+  /// In en, this message translates to:
+  /// **'AI-generated'**
+  String get creatorAttributeAiGenerated;
+
+  /// No description provided for @creatorAttribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Creators and source'**
+  String get creatorAttribution;
+
+  /// No description provided for @creatorCollaborators.
+  ///
+  /// In en, this message translates to:
+  /// **'Co-creators'**
+  String get creatorCollaborators;
+
+  /// No description provided for @creatorInvite.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite'**
+  String get creatorInvite;
+
+  /// No description provided for @creatorInviteCollaborator.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite a co-creator'**
+  String get creatorInviteCollaborator;
+
+  /// No description provided for @creatorBandBbsUserId.
+  ///
+  /// In en, this message translates to:
+  /// **'BandBBS user ID'**
+  String get creatorBandBbsUserId;
+
+  /// No description provided for @creatorNoCollaborators.
+  ///
+  /// In en, this message translates to:
+  /// **'No co-creators linked'**
+  String get creatorNoCollaborators;
+
+  /// No description provided for @creatorInvitationPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for acceptance'**
+  String get creatorInvitationPending;
+
+  /// No description provided for @creatorCollaboratorAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation accepted'**
+  String get creatorCollaboratorAccepted;
+
+  /// No description provided for @creatorResourceSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Source and authorization'**
+  String get creatorResourceSource;
+
+  /// No description provided for @creatorOriginalAuthor.
+  ///
+  /// In en, this message translates to:
+  /// **'Original author'**
+  String get creatorOriginalAuthor;
+
+  /// No description provided for @creatorSourceUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Source URL'**
+  String get creatorSourceUrl;
+
+  /// No description provided for @creatorLicense.
+  ///
+  /// In en, this message translates to:
+  /// **'License'**
+  String get creatorLicense;
+
+  /// No description provided for @creatorAuthorizationNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Authorization note'**
+  String get creatorAuthorizationNote;
+
+  /// No description provided for @creatorConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get creatorConfirm;
+
+  /// No description provided for @creatorRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get creatorRemove;
+
+  /// No description provided for @creatorAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get creatorAccept;
+
+  /// No description provided for @creatorCollaborationInvitations.
+  ///
+  /// In en, this message translates to:
+  /// **'Co-creation invitations'**
+  String get creatorCollaborationInvitations;
+
+  /// No description provided for @creatorInvitedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Invited by {name}'**
+  String creatorInvitedBy(String name);
+
+  /// No description provided for @creatorCoinsLifetime.
+  ///
+  /// In en, this message translates to:
+  /// **'Lifetime coins received'**
+  String get creatorCoinsLifetime;
+
+  /// No description provided for @creatorCoinsRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Coins received in 14 days'**
+  String get creatorCoinsRecent;
+
+  /// No description provided for @creatorCoinRewards.
+  ///
+  /// In en, this message translates to:
+  /// **'Creator rewards'**
+  String get creatorCoinRewards;
+
+  /// No description provided for @creatorCollectionOrderHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder resources in the collection'**
+  String get creatorCollectionOrderHint;
+
+  /// No description provided for @creatorCollectionAddResource.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to collection'**
+  String get creatorCollectionAddResource;
+
+  /// No description provided for @creatorCollectionResourceCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} resources'**
+  String creatorCollectionResourceCount(int count);
+
+  /// No description provided for @creatorDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get creatorDecline;
 }
 
 class _AppLocalizationsDelegate

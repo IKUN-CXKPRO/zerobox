@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
-import 'package:oronbox/src/app/widgets/huami_brand_icon.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 
@@ -100,7 +99,6 @@ class CleanModePage extends ConsumerWidget {
                 l10n.cleanSourceOronBox,
                 value.oronBox,
                 libraryOn,
-                value.bandBbs || value.astroBox || value.huamiAppStore,
                 (enabled) => update(value.copyWith(oronBox: enabled)),
                 brandAsset: 'assets/images/brands/oronbox.svg',
                 brandLabel: 'OronBox',
@@ -109,7 +107,6 @@ class CleanModePage extends ConsumerWidget {
                 l10n.cleanSourceBandBbs,
                 value.bandBbs,
                 libraryOn,
-                value.oronBox || value.astroBox || value.huamiAppStore,
                 (enabled) => update(value.copyWith(bandBbs: enabled)),
                 brandAsset: 'assets/images/brands/bandbbs.svg',
                 brandLabel: 'BandBBS',
@@ -118,7 +115,6 @@ class CleanModePage extends ConsumerWidget {
                 l10n.cleanSourceAstroBox,
                 value.astroBox,
                 libraryOn,
-                value.oronBox || value.bandBbs || value.huamiAppStore,
                 (enabled) => update(value.copyWith(astroBox: enabled)),
                 brandAsset: 'assets/images/brands/astrobox.svg',
                 brandLabel: 'AstroBox',
@@ -127,10 +123,9 @@ class CleanModePage extends ConsumerWidget {
                 l10n.cleanSourceHuamiAppStore,
                 value.huamiAppStore,
                 libraryOn,
-                value.oronBox || value.bandBbs || value.astroBox,
                 (enabled) => update(value.copyWith(huamiAppStore: enabled)),
                 brandLabel: 'Amazfit',
-                leading: const HuamiBrandIcon(),
+                leading: const Icon(Icons.functions),
               ),
             ],
           ),
@@ -167,7 +162,6 @@ class CleanModePage extends ConsumerWidget {
     String title,
     bool storedValue,
     bool libraryOn,
-    bool anotherSourceOn,
     ValueChanged<bool> onChanged, {
     String? brandAsset,
     required String brandLabel,
@@ -176,7 +170,7 @@ class CleanModePage extends ConsumerWidget {
     title,
     libraryOn && storedValue,
     onChanged,
-    enabled: libraryOn && (!storedValue || anotherSourceOn),
+    enabled: libraryOn,
     leading: leading ?? _SourceBrandIcon(asset: brandAsset, label: brandLabel),
   );
 

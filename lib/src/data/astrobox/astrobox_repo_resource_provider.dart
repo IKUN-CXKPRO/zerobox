@@ -63,6 +63,8 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
       }).toList();
     }
     switch (query.sort) {
+      case CommunitySortRule.recommendation:
+        items = items.reversed.toList();
       case CommunitySortRule.random:
         // A deterministic seed prevents duplicated/skipped entries between pages.
         items.shuffle(Random(0));

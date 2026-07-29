@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oronbox/src/app/generated/app_localizations_en.dart';
 import 'package:oronbox/src/app/generated/app_localizations_zh.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/core/errors/coded_error.dart';
 
 void main() {
   final en = AppLocalizationsEn();
@@ -68,23 +69,89 @@ void main() {
       );
     });
 
-    test('unified guidance covers permission, nearby, occupied, mode, retry', () {
-      for (final message in [
-        zh.errorBluetoothConnectFailed,
-        en.errorBluetoothConnectFailed,
-      ]) {
-        expect(message.length, greaterThan(40));
+    test('maps expired OronBox sessions to a sign-in prompt', () {
+      const shapes = [
+        'invalid_refresh_token: refresh token is invalid or expired',
+        'OronBox session expired',
+        'unauthorized: OronBox access token is invalid or expired',
+      ];
+
+      for (final raw in shapes) {
+        expect(
+          localizedErrorMessage(en, raw),
+          en.errorOronBoxSessionExpired,
+          reason: raw,
+        );
+        expect(
+          localizedErrorMessage(zh, raw),
+          zh.errorOronBoxSessionExpired,
+          reason: raw,
+        );
       }
-      expect(zh.errorBluetoothConnectFailed, contains('蓝牙权限'));
-      expect(zh.errorBluetoothConnectFailed, contains('附近'));
-      expect(zh.errorBluetoothConnectFailed, contains('占用'));
-      expect(zh.errorBluetoothConnectFailed, contains('连接新手机'));
-      expect(zh.errorBluetoothConnectFailed, contains('重试'));
-      expect(en.errorBluetoothConnectFailed, contains('permission'));
-      expect(en.errorBluetoothConnectFailed, contains('nearby'));
-      expect(en.errorBluetoothConnectFailed, contains('occupied'));
-      expect(en.errorBluetoothConnectFailed, contains('Connect new phone'));
-      expect(en.errorBluetoothConnectFailed, contains('try again'));
     });
+
+    test(
+      'maps common structured service failures without exposing internals',
+      () {
+        final cases = <String, String>{
+          'forbidden': en.errorPermissionDenied,
+          'resource_not_found': en.errorContentNotFound,
+          'conflict': en.errorRequestConflict,
+          'rate_limited': en.errorRateLimited,
+          'http_413': en.errorFileTooLarge,
+          'invalid_request': en.errorInvalidRequest,
+          'network_error': en.errorNetworkUnavailable,
+          'http_503': en.errorServiceUnavailable,
+          'cancelled': en.errorOperationCancelled,
+        };
+
+        for (final entry in cases.entries) {
+          expect(
+            localizedErrorMessage(
+              en,
+              _TestCodedError(entry.key, 'sensitive backend detail'),
+            ),
+            entry.value,
+            reason: entry.key,
+          );
+        }
+      },
+    );
+
+    test(
+      'unified guidance covers permission, nearby, occupied, mode, retry',
+      () {
+        for (final message in [
+          zh.errorBluetoothConnectFailed,
+          en.errorBluetoothConnectFailed,
+        ]) {
+          expect(message.length, greaterThan(40));
+        }
+        expect(zh.errorBluetoothConnectFailed, contains('蓝牙权限'));
+        expect(zh.errorBluetoothConnectFailed, contains('附近'));
+        expect(zh.errorBluetoothConnectFailed, contains('占用'));
+        expect(zh.errorBluetoothConnectFailed, contains('连接新手机'));
+        expect(zh.errorBluetoothConnectFailed, contains('重试'));
+        expect(en.errorBluetoothConnectFailed, contains('permission'));
+        expect(en.errorBluetoothConnectFailed, contains('nearby'));
+        expect(en.errorBluetoothConnectFailed, contains('occupied'));
+        expect(en.errorBluetoothConnectFailed, contains('Connect new phone'));
+        expect(en.errorBluetoothConnectFailed, contains('try again'));
+      },
+    );
   });
+}
+
+class _TestCodedError implements CodedError {
+  const _TestCodedError(this.code, this.message);
+
+  @override
+  final String code;
+  @override
+  final String message;
+  @override
+  Object? get details => null;
+
+  @override
+  String toString() => message;
 }

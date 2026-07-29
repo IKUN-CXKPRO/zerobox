@@ -48,6 +48,29 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       ),
       fireImmediately: true,
     );
+    _bandBbsAuthSubscription = container.listen<BandBbsAuthState>(
+      bandBbsAuthProvider,
+      (previous, next) {
+        if (previous?.isSignedIn == next.isSignedIn &&
+            previous?.userId == next.userId &&
+            previous?.lastError == next.lastError) {
+          return;
+        }
+        _events.add(
+          CommandEvent(
+            'account.state',
+            data: {
+              'state': _wireValue([
+                _accountStatus('xiaomi'),
+                _accountStatus('amazfit'),
+                _accountStatus('bandbbs'),
+              ]),
+              if (next.lastError case final reason?) 'reason': reason,
+            },
+          ),
+        );
+      },
+    );
     _logSubscription = oronBoxDiagnosticStream.listen(
       (event) => _events.add(
         CommandEvent('debug.log', data: {'record': event.toJson()}),
@@ -76,6 +99,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
   DateTime? _debugSessionStartedAt;
   late final ProviderSubscription<DeviceManagerState>
   _deviceManagerSubscription;
+  late final ProviderSubscription<BandBbsAuthState> _bandBbsAuthSubscription;
   late final StreamSubscription<DiagnosticEvent> _logSubscription;
   late final StreamSubscription<Uint8List> _xiaoAiSubscription;
   bool _activeCommandCancelled = false;
@@ -1458,6 +1482,10 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
             if (params['device']?.toString().isNotEmpty == true)
               params['device'].toString(),
           };
+    final attributes = params['attributes'];
+    final selectedAttributes = attributes is List
+        ? attributes.map((item) => item.toString()).toSet()
+        : const <String>{};
     final page = await catalog.getPage(
       CommunityResourceQuery(
         page: int.tryParse(params['page']?.toString() ?? '') ?? 0,
@@ -1471,6 +1499,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
         hidePaid: params['hidePaid'] == true,
         hideForcePaid: params['hideForcePaid'] == true,
         selectedDevices: selectedDevices,
+        selectedAttributes: selectedAttributes,
       ),
     );
     return {
@@ -2013,6 +2042,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     }
     await _pluginManager.close();
     _deviceManagerSubscription.close();
+    _bandBbsAuthSubscription.close();
     await _logSubscription.cancel();
     await _xiaoAiSubscription.cancel();
     await _events.close();

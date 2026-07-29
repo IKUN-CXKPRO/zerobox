@@ -1,17 +1,18 @@
 import 'dart:async';
 
+import 'package:cross_file/cross_file.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
-import 'package:oronbox/src/core/network/dio_provider.dart';
 import 'package:oronbox/src/device/core/device_kind.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/devices/pages/install/local_file_picker_policy.dart';
 import 'package:oronbox/src/features/devices/services/firmware_catalog.dart';
 import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
 import 'package:oronbox/src/features/resources/widgets/resource_install_confirmation.dart';
@@ -29,7 +30,6 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
   bool _checked = false;
   bool _sourceUnavailable = false;
   bool _installingUpdate = false;
-  double _downloadProgress = 0;
   String? _error;
   List<FirmwareRelease> _releases = const [];
 
@@ -98,6 +98,11 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
                   'url': release.downloadUrl.toString(),
                   'fileName': release.fileName,
                   'title': release.fileName,
+                  if (!kIsWeb) ...{
+                    'queueInstall': true,
+                    'installType': 'firmware',
+                    'autoClean': true,
+                  },
                 },
               ).toJson(),
             },
@@ -118,37 +123,32 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
 
   Future<void> _installLatest(FirmwareRelease release) async {
     if (_installingUpdate) return;
-    if (kIsWeb) {
-      await _downloadLatest(release);
-      return;
-    }
-    setState(() {
-      _installingUpdate = true;
-      _downloadProgress = 0;
-    });
+    setState(() => _installingUpdate = true);
     try {
-      final file = await downloadFirmwareRelease(
-        ref.read(appDioProvider),
-        release,
-        onProgress: (progress) {
-          if (mounted) setState(() => _downloadProgress = progress);
-        },
-      );
-      if (!mounted) return;
-      await confirmAndEnqueueResourceFile(
-        context: context,
-        ref: ref,
-        file: file,
-        selectedType: LocalDeviceInstallType.firmware,
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.downloadFailed)),
-      );
+      await _downloadLatest(release);
     } finally {
       if (mounted) setState(() => _installingUpdate = false);
     }
+  }
+
+  Future<void> _installLocal() async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.any,
+      withData: shouldLoadPickedFileData,
+    );
+    if (result == null || result.files.isEmpty || !mounted) return;
+    final file = result.files.first;
+    if (file.bytes == null && file.path == null) return;
+    final selected = file.bytes == null
+        ? XFile(file.path!, name: file.name)
+        : XFile.fromData(file.bytes!, name: file.name);
+    if (!mounted) return;
+    await confirmAndEnqueueResourceFile(
+      context: context,
+      ref: ref,
+      file: selected,
+      selectedType: LocalDeviceInstallType.firmware,
+    );
   }
 
   @override
@@ -219,9 +219,7 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton.tonalIcon(
-                    onPressed: device == null
-                        ? null
-                        : () => context.push('/devices/install/firmware'),
+                    onPressed: device == null ? null : _installLocal,
                     icon: const Icon(Icons.folder_open_outlined),
                     label: Text(l10n.localFirmwareInstall),
                   ),
@@ -262,13 +260,7 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
                                     ),
                                   )
                                 : const Icon(Icons.system_update_alt),
-                            label: Text(
-                              _installingUpdate
-                                  ? l10n.firmwareDownloadingProgress(
-                                      (_downloadProgress * 100).round(),
-                                    )
-                                  : l10n.firmwareUpdateNow,
-                            ),
+                            label: Text(l10n.firmwareUpdateNow),
                           ),
                         ],
                         const SizedBox(height: 20),

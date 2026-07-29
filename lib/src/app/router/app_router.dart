@@ -32,6 +32,8 @@ import 'package:oronbox/src/features/resources/pages/creator/creator_resource_pa
 import 'package:oronbox/src/features/resources/pages/huami_publisher_page.dart';
 import 'package:oronbox/src/features/resources/pages/queue_page.dart';
 import 'package:oronbox/src/features/resources/pages/resource_detail_page.dart';
+import 'package:oronbox/src/features/resources/pages/resource_collection_page.dart';
+import 'package:oronbox/src/features/resources/pages/creator/creator_collection_page.dart';
 import 'package:oronbox/src/features/resources/pages/resources_page.dart';
 import 'package:oronbox/src/features/settings/pages/acknowledgements_page.dart';
 import 'package:oronbox/src/features/settings/pages/about_software_page.dart';
@@ -39,6 +41,7 @@ import 'package:oronbox/src/features/settings/pages/settings_page.dart';
 import 'package:oronbox/src/features/settings/pages/clean_mode_page.dart';
 import 'package:oronbox/src/features/settings/pages/bandbbs_account_page.dart';
 import 'package:oronbox/src/features/settings/pages/feedback_page.dart';
+import 'package:oronbox/src/features/settings/pages/legal_documents_page.dart';
 import 'package:oronbox/src/features/settings/services/oronbox_support_api.dart';
 import 'package:oronbox/src/features/plugins/pages/plugin_detail_page.dart';
 import 'package:oronbox/src/features/plugins/pages/plugins_page.dart';
@@ -158,6 +161,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     },
                   ),
                   GoRoute(
+                    path: 'collection/:id',
+                    builder: (context, state) => ResourceCollectionPage(
+                      collection:
+                          state.extra as CommunityResource? ??
+                          CommunityResource(
+                            ref: ResourceRef(
+                              source: CommunitySourceId.oronBox,
+                              id: state.pathParameters['id']!,
+                            ),
+                            name: '',
+                            type: CommunityResourceType.quickApp,
+                            paidType: CommunityPaidType.free,
+                            authors: const [],
+                            supportedDevices: const {},
+                            isCollection: true,
+                          ),
+                    ),
+                  ),
+                  GoRoute(
                     path: 'huami-publisher',
                     builder: (context, state) => HuamiPublisherPage(
                       publisherName: state.uri.queryParameters['name'] ?? '',
@@ -171,6 +193,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         path: 'resource',
                         builder: (context, state) =>
                             const CreatorResourcePage(),
+                      ),
+                      GoRoute(
+                        path: 'collection/:id',
+                        builder: (context, state) => CreatorCollectionPage(
+                          collectionId: state.pathParameters['id']!,
+                          item: state.extra is Map<String, Object?>
+                              ? state.extra! as Map<String, Object?>
+                              : null,
+                        ),
                       ),
                     ],
                   ),
@@ -314,6 +345,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'about',
                     builder: (context, state) => const AboutSoftwarePage(),
+                  ),
+                  GoRoute(
+                    path: 'legal/:id',
+                    builder: (context, state) => LegalDocumentPage(
+                      id: state.pathParameters['id']!,
+                      title: state.extra?.toString() ?? '',
+                    ),
                   ),
                   GoRoute(
                     path: 'logs',

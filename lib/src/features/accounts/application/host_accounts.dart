@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/errors/coded_error.dart';
 import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
@@ -52,12 +53,16 @@ class HostAccountsState {
     this.busyProvider,
     this.error,
     this.revision = 0,
+    this.noticeCode,
+    this.noticeRevision = 0,
   });
 
   final Map<String, HostAccount> accounts;
   final String? busyProvider;
   final String? error;
   final int revision;
+  final String? noticeCode;
+  final int noticeRevision;
 
   HostAccount get xiaomi => _account('xiaomi');
   HostAccount get amazfit => _account('amazfit');
@@ -83,16 +88,22 @@ class HostAccountsState {
     String? error,
     bool clearError = false,
     int? revision,
+    String? noticeCode,
+    int? noticeRevision,
   }) => HostAccountsState(
     accounts: accounts ?? this.accounts,
     busyProvider: clearBusy ? null : busyProvider ?? this.busyProvider,
     error: clearError ? null : error ?? this.error,
     revision: revision ?? this.revision,
+    noticeCode: noticeCode ?? this.noticeCode,
+    noticeRevision: noticeRevision ?? this.noticeRevision,
   );
 }
 
 class HostAccountsNotifier extends Notifier<HostAccountsState> {
   StreamSubscription<CommandEvent>? _subscription;
+  String? _lastNoticeCode;
+  DateTime? _lastNoticeAt;
 
   @override
   HostAccountsState build() {
@@ -110,10 +121,14 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
         clearError: true,
         revision: state.revision + 1,
       );
+      if (next.lastError case final code?) _publishNotice(code);
     });
     _subscription = ref.watch(applicationHostProvider).events.listen((event) {
       if (event.event == 'account.state' &&
-          _replaceAccounts(event.data['state'])) {
+          _replaceAccounts(event.data['state'], syncBandBbs: true)) {
+        if (event.data['reason'] case final Object reason) {
+          _publishNotice(reason.toString());
+        }
         return;
       }
       if (event.event == 'account.state' || event.event == 'host.connected') {
@@ -125,12 +140,29 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
     return const HostAccountsState();
   }
 
+  void _publishNotice(String code) {
+    final normalized = code.trim().toLowerCase();
+    if (normalized.isEmpty) return;
+    final now = DateTime.now();
+    if (_lastNoticeCode == normalized &&
+        _lastNoticeAt != null &&
+        now.difference(_lastNoticeAt!) < const Duration(seconds: 3)) {
+      return;
+    }
+    _lastNoticeCode = normalized;
+    _lastNoticeAt = now;
+    state = state.copyWith(
+      noticeCode: normalized,
+      noticeRevision: state.noticeRevision + 1,
+    );
+  }
+
   Future<void> refresh() async {
     final value = await _execute(const OronBoxCommand(method: 'account.list'));
     _replaceAccounts(value);
   }
 
-  bool _replaceAccounts(Object? value) {
+  bool _replaceAccounts(Object? value, {bool syncBandBbs = false}) {
     if (value is! List) return false;
     final accounts = {
       for (final row in value.whereType<Map>())
@@ -143,6 +175,14 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
       clearError: true,
       revision: state.revision + 1,
     );
+    if (syncBandBbs) {
+      final bandBbs = accounts['bandbbs'];
+      unawaited(
+        ref
+            .read(bandBbsAuthProvider.notifier)
+            .reloadCredentials(clearWhenMissing: bandBbs?.signedIn != true),
+      );
+    }
     return true;
   }
 
@@ -277,6 +317,11 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
         accounts: {...state.accounts, account.provider: account},
         clearBusy: true,
       );
+      if (provider == 'bandbbs') {
+        await ref
+            .read(bandBbsAuthProvider.notifier)
+            .reloadCredentials(clearWhenMissing: !account.signedIn);
+      }
       return account;
     } catch (error) {
       state = state.copyWith(clearBusy: true, error: error.toString());
@@ -294,10 +339,35 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
           deviceId: details['deviceId']!.toString(),
         );
       }
-      throw StateError('${result.error!.code}: ${result.error!.message}');
+      throw HostCommandException.fromCommand(result.error!);
     }
     return result.value;
   }
+}
+
+class HostCommandException implements CodedError {
+  const HostCommandException({
+    required this.code,
+    required this.message,
+    this.details,
+  });
+
+  factory HostCommandException.fromCommand(CommandError error) =>
+      HostCommandException(
+        code: error.code,
+        message: error.message,
+        details: error.details,
+      );
+
+  @override
+  final String code;
+  @override
+  final String message;
+  @override
+  final Object? details;
+
+  @override
+  String toString() => message;
 }
 
 class HostTwoFactorRequired implements Exception {

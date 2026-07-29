@@ -119,6 +119,51 @@ void main() {
     expect((install['command'] as Map)['params']['path'], '/tmp/resource.rpk');
     await host.close();
   });
+
+  test('firmware file download completion creates an install task', () async {
+    final core = _ResourceBus(autoInstall: false, disableAutoClean: true);
+    final host = ApplicationHost(core);
+    final queued = await host.execute(
+      const OronBoxCommand(
+        method: 'task.enqueue',
+        params: {
+          'command': {
+            'method': 'file.download',
+            'params': {
+              'url': 'https://example.com/firmware.bin',
+              'fileName': 'firmware.bin',
+              'title': 'firmware.bin',
+              'queueInstall': true,
+              'installType': 'firmware',
+              'autoClean': true,
+            },
+          },
+        },
+      ),
+    );
+    final downloadId = (queued.value as Map)['taskId']!.toString();
+    await host.execute(
+      OronBoxCommand(method: 'queue.wait', params: {'id': downloadId}),
+    );
+    final listed = await host.execute(
+      const OronBoxCommand(method: 'queue.list'),
+    );
+    final rows = (listed.value as List).whereType<Map>().toList();
+    final install = rows.firstWhere(
+      (row) => (row['command'] as Map)['method'] == 'install.local',
+    );
+
+    expect(install['status'], 'held');
+    expect((install['command'] as Map)['params'], {
+      'type': 'firmware',
+      'path': '/tmp/firmware.bin',
+      'title': 'firmware.bin',
+      'description': '',
+      'deleteAfter': true,
+      'autoClean': true,
+    });
+    await host.close();
+  });
 }
 
 class _RecordingBus implements OronBoxCommandBus {
@@ -154,6 +199,12 @@ class _ResourceBus implements OronBoxCommandBus {
         'path': '/tmp/resource.rpk',
         'fileName': 'resource.rpk',
         'type': 'quickapp',
+      });
+    }
+    if (command.method == 'file.download') {
+      return const CommandResult.success({
+        'path': '/tmp/firmware.bin',
+        'fileName': 'firmware.bin',
       });
     }
     if (command.method == 'settings.get') {

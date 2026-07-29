@@ -12,14 +12,26 @@ class CreatorResourceList extends StatefulWidget {
     super.key,
     required this.state,
     required this.controller,
-    required this.onCreate,
+    required this.collections,
+    required this.collectionsLoading,
+    required this.onRefresh,
+    this.onOpenCollection,
     this.onOpen,
+    this.selectedResourceIds = const {},
+    this.onSelectionChanged,
+    this.onDissolveCollection,
   });
 
   final CreatorWorkspaceState state;
   final CreatorWorkspaceController controller;
-  final VoidCallback onCreate;
+  final List<Map<String, Object?>> collections;
+  final bool collectionsLoading;
+  final Future<void> Function() onRefresh;
+  final ValueChanged<Map<String, Object?>>? onOpenCollection;
   final ValueChanged<CreatorWorkspace>? onOpen;
+  final Set<String> selectedResourceIds;
+  final ValueChanged<Set<String>>? onSelectionChanged;
+  final ValueChanged<Map<String, Object?>>? onDissolveCollection;
 
   @override
   State<CreatorResourceList> createState() => _CreatorResourceListState();
@@ -32,10 +44,23 @@ class _CreatorResourceListState extends State<CreatorResourceList> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final state = widget.state;
-    if (state.loading && state.resources.isEmpty) {
+    final entries = [
+      for (final item in widget.collections)
+        _CreatorListEntry(
+          workspace: _collectionWorkspace(item),
+          collection: item,
+          collectionResourceCount:
+              (item['resource_count'] as num?)?.toInt() ?? 0,
+        ),
+      for (final workspace in state.resources.where(
+        (workspace) => workspace.resource.collectionId.isEmpty,
+      ))
+        _CreatorListEntry(workspace: workspace),
+    ];
+    if ((state.loading || widget.collectionsLoading) && entries.isEmpty) {
       return LoadingView(message: creatorOperationLabel(l10n, state.operation));
     }
-    if (state.resources.isEmpty) {
+    if (entries.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -47,31 +72,27 @@ class _CreatorResourceListState extends State<CreatorResourceList> {
             ),
             const SizedBox(height: 12),
             Text(l10n.creatorNoResources),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: state.loading ? null : widget.onCreate,
-              icon: const Icon(Icons.add),
-              label: Text(l10n.creatorNewResource),
-            ),
           ],
         ),
       );
     }
     final presentStates = creatorStateOrder
         .where(
-          (value) => state.resources.any(
-            (workspace) => creatorWorkspaceState(workspace) == value,
+          (value) => entries.any(
+            (entry) => creatorWorkspaceState(entry.workspace) == value,
           ),
         )
         .toList();
     if (!presentStates.contains(_filter)) _filter = 'all';
     final visible = _filter == 'all'
-        ? state.resources
-        : state.resources
-              .where((workspace) => creatorWorkspaceState(workspace) == _filter)
+        ? entries
+        : entries
+              .where(
+                (entry) => creatorWorkspaceState(entry.workspace) == _filter,
+              )
               .toList();
     return RefreshIndicator(
-      onRefresh: widget.controller.refresh,
+      onRefresh: widget.onRefresh,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(bottom: 24),
@@ -88,21 +109,49 @@ class _CreatorResourceListState extends State<CreatorResourceList> {
             ),
           ),
           const SizedBox(height: 8),
-          for (final workspace in visible)
+          for (final entry in visible)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: CreatorResourceCard(
-                workspace: workspace,
+                workspace: entry.workspace,
                 controller: widget.controller,
+                isCollection: entry.collection != null,
+                collectionResourceCount: entry.collectionResourceCount,
+                selected: widget.selectedResourceIds.contains(
+                  entry.workspace.resource.id,
+                ),
+                onLongPress: () {
+                  final collection = entry.collection;
+                  if (collection != null) {
+                    widget.onDissolveCollection?.call(collection);
+                    return;
+                  }
+                  _toggleSelection(entry.workspace.resource.id);
+                },
                 onTap: () {
-                  widget.controller.select(workspace);
-                  widget.onOpen?.call(workspace);
+                  final collection = entry.collection;
+                  if (collection != null) {
+                    widget.onOpenCollection?.call(collection);
+                  } else if (widget.selectedResourceIds.isNotEmpty) {
+                    _toggleSelection(entry.workspace.resource.id);
+                  } else {
+                    widget.controller.select(entry.workspace);
+                    widget.onOpen?.call(entry.workspace);
+                  }
                 },
               ),
             ),
         ],
       ),
     );
+  }
+
+  void _toggleSelection(String resourceId) {
+    final selected = {...widget.selectedResourceIds};
+    selected.contains(resourceId)
+        ? selected.remove(resourceId)
+        : selected.add(resourceId);
+    widget.onSelectionChanged?.call(selected);
   }
 
   Widget _filterChip(String label, String value) => Padding(
@@ -114,6 +163,51 @@ class _CreatorResourceListState extends State<CreatorResourceList> {
       onSelected: (_) => setState(() => _filter = value),
     ),
   );
+
+  CreatorWorkspace _collectionWorkspace(Map<String, Object?> item) {
+    final pending = item['pending_revision'] as Map?;
+    final current = item['current_revision'] as Map?;
+    final metadata = pending ?? current;
+    final representativeId = item['representative_resource_id']?.toString();
+    final representative = widget.state.resources
+        .where((entry) => entry.resource.id == representativeId)
+        .firstOrNull;
+    final kind = item['kind'] == 'watchface'
+        ? CreatorResourceKind.watchface
+        : CreatorResourceKind.quickApp;
+    final revision = CreatorRevision(
+      id: metadata?['id']?.toString() ?? '',
+      number: (metadata?['revision_no'] as num?)?.toInt() ?? 0,
+      name: metadata?['name']?.toString() ?? '',
+      summary: metadata?['summary']?.toString() ?? '',
+      state: pending != null ? 'pending' : 'approved',
+    );
+    return CreatorWorkspace(
+      resource: CreatorResource(
+        id: item['id']?.toString() ?? '',
+        slug: item['slug']?.toString() ?? '',
+        draftName: revision.name,
+        kind: kind,
+        moderationState: pending != null ? 'pending' : 'visible',
+        updatedAt: DateTime.tryParse(item['updated_at']?.toString() ?? ''),
+      ),
+      currentRevision: revision,
+      revisions: [revision],
+      media: representative?.media ?? const [],
+    );
+  }
+}
+
+class _CreatorListEntry {
+  const _CreatorListEntry({
+    required this.workspace,
+    this.collection,
+    this.collectionResourceCount = 0,
+  });
+
+  final CreatorWorkspace workspace;
+  final Map<String, Object?>? collection;
+  final int collectionResourceCount;
 }
 
 class CreatorResourceThumbnail extends StatefulWidget {
@@ -193,11 +287,19 @@ class CreatorResourceCard extends StatelessWidget {
     required this.workspace,
     required this.controller,
     required this.onTap,
+    this.isCollection = false,
+    this.collectionResourceCount = 0,
+    this.selected = false,
+    this.onLongPress,
   });
 
   final CreatorWorkspace workspace;
   final CreatorWorkspaceController controller;
   final VoidCallback onTap;
+  final bool isCollection;
+  final int collectionResourceCount;
+  final bool selected;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -212,10 +314,13 @@ class CreatorResourceCard extends StatelessWidget {
         .length;
     return Card(
       clipBehavior: Clip.antiAlias,
-      color: colors.surfaceContainerHighest.withValues(alpha: .5),
+      color: selected
+          ? colors.primaryContainer.withValues(alpha: .72)
+          : colors.surfaceContainerHighest.withValues(alpha: .5),
       margin: EdgeInsets.zero,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -264,6 +369,10 @@ class CreatorResourceCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
+                  if (selected) ...[
+                    Icon(Icons.check_circle, color: colors.primary),
+                    const SizedBox(width: 8),
+                  ],
                   CreatorStateBadge(state: state),
                   const SizedBox(width: 8),
                   CreatorResourceThumbnail(
@@ -278,6 +387,11 @@ class CreatorResourceCard extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 4,
                 children: [
+                  if (isCollection)
+                    _CreatorResourceTag(
+                      label: l10n.creatorCollectionTag,
+                      color: colors.secondary,
+                    ),
                   _CreatorResourceTag(
                     label: creatorKindLabel(l10n, workspace.resource.kind),
                     color:
@@ -285,7 +399,15 @@ class CreatorResourceCard extends StatelessWidget {
                         ? colors.error
                         : colors.primary,
                   ),
-                  if (workspace.artifacts.isNotEmpty)
+                  if (isCollection)
+                    _CreatorResourceTag(
+                      icon: Icons.inventory_2_outlined,
+                      label: l10n.creatorCollectionResourceCount(
+                        collectionResourceCount,
+                      ),
+                      color: colors.onSurfaceVariant,
+                    ),
+                  if (!isCollection && workspace.artifacts.isNotEmpty)
                     _CreatorResourceTag(
                       icon: Icons.inventory_2_outlined,
                       label: l10n.creatorArtifactCount(

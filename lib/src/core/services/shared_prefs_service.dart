@@ -8,6 +8,8 @@ class SharedPrefsService {
 
   SharedPreferences? _prefs;
 
+  bool get isInitialized => _prefs != null;
+
   Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
   }

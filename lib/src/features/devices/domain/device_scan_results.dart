@@ -3,6 +3,7 @@ import 'package:oronbox/src/device/core/bluetooth_platform.dart';
 import 'package:oronbox/src/device/core/connect_type.dart';
 import 'package:oronbox/src/device/core/device_kind.dart';
 import 'package:oronbox/src/device/core/device_profile.dart';
+import 'package:oronbox/src/features/devices/utils/device_address.dart';
 
 /// Merges one native scan event into the user-visible device list.
 ///
@@ -43,7 +44,7 @@ List<BTDeviceInfo> mergeScannedDeviceEndpoint(
   );
   final value = BTDeviceInfo(
     name: displayName,
-    addr: endpoint.address,
+    addr: formatDeviceAddress(endpoint.address),
     connectType: endpoint.connectType.name,
   );
   if (existing >= 0) {

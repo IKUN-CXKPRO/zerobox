@@ -12,33 +12,41 @@ void main() {
     final dio = Dio();
     dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) => handler.resolve(
-          Response<Object?>(
-            requestOptions: options,
-            statusCode: 200,
-            data: {
-              'resources': [
-                {
-                  'id': 'resource',
-                  'name': 'Resource',
-                  'kind': 'quickapp',
-                  'owner': 'creator',
-                  'owner_bandbbs_user_id': 12345,
-                  'owner_avatar_url': 'https://bandbbs.example/avatar.png',
-                  'devices': <String>[],
-                  'icon_sha256': digest,
-                },
-              ],
-              'total': 1,
-            },
-          ),
-        ),
+        onRequest: (options, handler) {
+          expect(options.queryParameters['attributes'], 'original,template');
+          handler.resolve(
+            Response<Object?>(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'resources': [
+                  {
+                    'id': 'resource',
+                    'name': 'Resource',
+                    'kind': 'quickapp',
+                    'owner': 'creator',
+                    'owner_bandbbs_user_id': 12345,
+                    'owner_avatar_url': 'https://bandbbs.example/avatar.png',
+                    'devices': <String>[],
+                    'attributes': ['original', 'template'],
+                    'icon_sha256': digest,
+                  },
+                ],
+                'total': 1,
+              },
+            ),
+          );
+        },
       ),
     );
 
-    final page = await OronBoxResourceCatalog(
-      dio: dio,
-    ).getPage(const CommunityResourceQuery(page: 0, pageSize: 30));
+    final page = await OronBoxResourceCatalog(dio: dio).getPage(
+      const CommunityResourceQuery(
+        page: 0,
+        pageSize: 30,
+        selectedAttributes: {'original', 'template'},
+      ),
+    );
 
     expect(page.items.single.authors.single.name, 'creator');
     expect(
@@ -46,6 +54,7 @@ void main() {
       Uri.parse('https://bandbbs.example/avatar.png'),
     );
     expect(page.items.single.iconUrl?.queryParameters['line'], 'local');
+    expect(page.items.single.tags, ['original', 'template']);
   });
 
   test('parses preview media using the server sha256 field', () {

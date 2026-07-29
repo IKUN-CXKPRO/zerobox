@@ -16,7 +16,9 @@ import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
+import 'package:oronbox/src/features/accounts/services/oronbox_coin_service.dart';
 import 'package:oronbox/src/features/resources/application/comments/oronbox_comments.dart';
+import 'package:oronbox/src/features/resources/application/oronbox_resource_attributes.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/services/download_queue_notifier.dart';
@@ -51,6 +53,7 @@ class ResourceDetailPage extends ConsumerWidget {
         children: [
           _ResourceHeader(
             resource: visibleResource,
+            mediaResource: resource,
             animateCover: resource.coverUrl != null,
             animateIcon: resource.iconUrl != null,
           ),
@@ -110,27 +113,35 @@ class _DelayedLoadingIndicatorState extends State<_DelayedLoadingIndicator> {
   );
 }
 
-class _ResourceHeader extends StatelessWidget {
+class _ResourceHeader extends ConsumerWidget {
   const _ResourceHeader({
     required this.resource,
+    required this.mediaResource,
     required this.animateCover,
     required this.animateIcon,
   });
 
   final CommunityResource resource;
+  final CommunityResource mediaResource;
   final bool animateCover;
   final bool animateIcon;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final attributeLabels = {
+      for (final attribute
+          in ref.watch(oronBoxResourceAttributesProvider).value ??
+              const <OronBoxResourceAttribute>[])
+        attribute.id: attribute.labelFor(Localizations.localeOf(context)),
+    };
     final icon = NetworkImgLayer(
-      src: resource.iconUrl?.toString() ?? '',
+      src: mediaResource.iconUrl?.toString() ?? '',
       width: 76,
       height: 76,
     );
     return _Hero(
-      image: resource.coverUrl ?? resource.iconUrl,
+      image: mediaResource.coverUrl ?? mediaResource.iconUrl,
       resourceRef: resource.ref,
       animateCover: animateCover,
       child: PageContainer(
@@ -146,7 +157,7 @@ class _ResourceHeader extends StatelessWidget {
             if (animateIcon)
               ResourceMediaHero(
                 tag: resourceMediaHeroTag(resource.ref, 'icon'),
-                url: resource.iconUrl?.toString() ?? '',
+                url: mediaResource.iconUrl?.toString() ?? '',
                 width: 76,
                 height: 76,
                 style: const ResourceMediaHeroStyle(
@@ -191,12 +202,17 @@ class _ResourceHeader extends StatelessWidget {
                             ? Colors.green
                             : theme.colorScheme.tertiary,
                       ),
-                      if (resource.ref.source == CommunitySourceId.bandbbs)
+                      if (resource.ref.source == CommunitySourceId.bandbbs ||
+                          resource.ref.source == CommunitySourceId.oronBox)
                         ...resource.tags
-                            .take(1)
+                            .take(2)
                             .map(
                               (tag) => _Chip(
-                                label: tag,
+                                label:
+                                    resource.ref.source ==
+                                        CommunitySourceId.oronBox
+                                    ? attributeLabels[tag] ?? tag
+                                    : tag,
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
@@ -206,6 +222,18 @@ class _ResourceHeader extends StatelessWidget {
                             context,
                           )!.downloadTimes(resource.downloadCount!),
                           color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      if (resource.curationGrade == 'featured')
+                        _Chip(
+                          label: AppLocalizations.of(context)!.resourceFeatured,
+                          color: theme.colorScheme.primary,
+                        ),
+                      if (resource.coinCount > 0)
+                        _Chip(
+                          label: AppLocalizations.of(
+                            context,
+                          )!.resourceCoinCount(resource.coinCount),
+                          color: theme.colorScheme.tertiary,
                         ),
                     ],
                   ),
@@ -254,24 +282,89 @@ class _DetailContent extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
           ],
-          _Actions(detail: detail, currentCodename: currentCodename),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () => showFeedbackComposer(
-                context,
-                target: FeedbackTarget(
-                  type: FeedbackTargetType.resource,
-                  source: detail.ref.source.name,
-                  id: detail.ref.id,
-                  name: detail.name,
-                  url: detail.links.firstOrNull?.url.toString() ?? '',
+          if (detail.collectionName?.isNotEmpty == true) ...[
+            InkWell(
+              onTap: detail.collectionId?.isNotEmpty == true
+                  ? () => context.push(
+                      '/resources/collection/${detail.collectionId}',
+                    )
+                  : null,
+              child: Text(
+                l10n.resourceFromCollection(detail.collectionName!),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  decoration: TextDecoration.underline,
+                  decorationColor: theme.colorScheme.primary,
                 ),
               ),
-              icon: const Icon(Icons.flag_outlined),
-              label: Text(l10n.report),
             ),
+            const SizedBox(height: 12),
+          ],
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: _Actions(
+                  detail: detail,
+                  currentCodename: currentCodename,
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 108,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (detail.ref.source == CommunitySourceId.oronBox) ...[
+                      _CoinButton(resource: detail),
+                      const SizedBox(height: 6),
+                    ],
+                    FilledButton.tonalIcon(
+                      onPressed: () => showFeedbackComposer(
+                        context,
+                        target: FeedbackTarget(
+                          type: FeedbackTargetType.resource,
+                          source: detail.ref.source.name,
+                          id: detail.ref.id,
+                          name: detail.name,
+                          url: detail.links.firstOrNull?.url.toString() ?? '',
+                        ),
+                      ),
+                      icon: const Icon(Icons.flag_outlined),
+                      label: Text(l10n.report),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(36),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        visualDensity: VisualDensity.compact,
+                        backgroundColor: theme
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: .62),
+                        foregroundColor: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
+          if (detail.links.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final link in detail.links)
+                  TextButton.icon(
+                    onPressed: () =>
+                        openResourceExternalLink(context, link.url),
+                    icon: const Icon(Icons.link_outlined),
+                    label: Text(link.title),
+                  ),
+              ],
+            ),
+          ],
           if (previews.isNotEmpty && !isBandBbs) ...[
             const SizedBox(height: 24),
             _PreviewGallery(previews: previews),
@@ -323,6 +416,77 @@ class _DetailContent extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _CoinButton extends ConsumerStatefulWidget {
+  const _CoinButton({required this.resource});
+
+  final CommunityResource resource;
+
+  @override
+  ConsumerState<_CoinButton> createState() => _CoinButtonState();
+}
+
+class _CoinButtonState extends ConsumerState<_CoinButton> {
+  var _sending = false;
+
+  Future<void> _send() async {
+    final l10n = AppLocalizations.of(context)!;
+    final count = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.resourceCoinDialogTitle),
+        content: Text(l10n.resourceCoinDialogMessage),
+        actions: [
+          TextButton(onPressed: () => context.pop(), child: Text(l10n.cancel)),
+          TextButton(
+            onPressed: () => context.pop(1),
+            child: Text(l10n.resourceCoinOne),
+          ),
+          FilledButton(
+            onPressed: () => context.pop(2),
+            child: Text(l10n.resourceCoinTwo),
+          ),
+        ],
+      ),
+    );
+    if (count == null || _sending) return;
+    setState(() => _sending = true);
+    try {
+      await ref
+          .read(oronBoxCoinServiceProvider)
+          .coin(widget.resource.ref.id, count);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.resourceCoinSuccess)));
+      ref.invalidate(communityResourceDetailProvider(widget.resource.ref));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(localizedErrorMessage(l10n, error))),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => FilledButton.icon(
+    onPressed: _sending ? null : _send,
+    icon: _sending
+        ? const SizedBox.square(
+            dimension: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : const Icon(Icons.toll_outlined),
+    label: Text(AppLocalizations.of(context)!.resourceCoin),
+    style: FilledButton.styleFrom(
+      minimumSize: const Size.fromHeight(36),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      visualDensity: VisualDensity.compact,
+    ),
+  );
 }
 
 class _CommentsSection extends ConsumerStatefulWidget {
@@ -731,15 +895,13 @@ class _CommentTile extends StatelessWidget {
     );
     if (isReply) {
       return Padding(
-        padding: const EdgeInsets.only(left: 22),
+        padding: const EdgeInsets.only(top: 4),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(
-                color: theme.colorScheme.outlineVariant,
-                width: 2,
-              ),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: .48,
             ),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: content,
         ),
@@ -757,7 +919,6 @@ class _CommentTile extends StatelessWidget {
           children: [
             content,
             if (replies.isNotEmpty) ...[
-              Divider(height: 1, color: theme.colorScheme.outlineVariant),
               Padding(
                 padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
                 child: Column(children: replies),
@@ -898,7 +1059,7 @@ class _Actions extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final files = detail.files;
     final choices = buildResourceInstallChoices(detail);
-    if (files.isEmpty && detail.links.isEmpty) return const SizedBox.shrink();
+    if (files.isEmpty) return const SizedBox.shrink();
     final preferred = preferredResourceInstallChoice(
       detail,
       choices,
@@ -1023,12 +1184,6 @@ class _Actions extends ConsumerWidget {
                     ),
                   ),
                 ),
-              ),
-            for (final link in detail.links)
-              TextButton.icon(
-                onPressed: () => openResourceExternalLink(context, link.url),
-                icon: const Icon(Icons.open_in_new),
-                label: Text(link.title),
               ),
           ],
         );

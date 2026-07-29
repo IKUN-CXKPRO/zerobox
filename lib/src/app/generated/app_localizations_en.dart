@@ -586,6 +586,44 @@ class AppLocalizationsEn extends AppLocalizations {
       'Xiaomi account two-factor verification was not completed. Sign in again';
 
   @override
+  String get errorOronBoxSessionExpired =>
+      'Your OronBox session has expired. Sign in to BandBBS again';
+
+  @override
+  String get errorNetworkUnavailable =>
+      'Unable to reach the service. Check your network and try again';
+
+  @override
+  String get errorServiceUnavailable =>
+      'The service is temporarily unavailable. Try again later';
+
+  @override
+  String get errorPermissionDenied =>
+      'You do not have permission to perform this operation';
+
+  @override
+  String get errorContentNotFound =>
+      'The requested content no longer exists or is unavailable';
+
+  @override
+  String get errorRequestConflict =>
+      'The content has changed. Refresh it and try again';
+
+  @override
+  String get errorRateLimited =>
+      'Too many requests. Wait a moment and try again';
+
+  @override
+  String get errorFileTooLarge => 'The selected file is too large';
+
+  @override
+  String get errorInvalidRequest =>
+      'Some submitted information is invalid. Check it and try again';
+
+  @override
+  String get errorOperationCancelled => 'Operation cancelled';
+
+  @override
   String get errorUnsupportedFileType =>
       'Unsupported or unrecognized file type';
 
@@ -3336,4 +3374,240 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsCategoryAdvancedDescription =>
       'Window behavior, onboarding, and developer tools';
+
+  @override
+  String get oronBoxCoinsTitle => 'Resource coins';
+
+  @override
+  String oronBoxCoinsBalance(String balance) {
+    return 'Coin balance: $balance';
+  }
+
+  @override
+  String get oronBoxCoinsCheckin => 'Check in';
+
+  @override
+  String get oronBoxCoinsCheckedIn => 'Checked in';
+
+  @override
+  String get oronBoxCoinsCheckingIn => 'Checking in';
+
+  @override
+  String oronBoxCoinsCheckinReward(int count) {
+    return 'Received $count coins';
+  }
+
+  @override
+  String get oronBoxCoinsDescription =>
+      'Check in daily for 1–5 coins and use them to support creators';
+
+  @override
+  String resourceFromCollection(String name) {
+    return 'From collection $name';
+  }
+
+  @override
+  String get resourceCoin => 'Coin';
+
+  @override
+  String get resourceCoinDialogTitle => 'Coin this resource';
+
+  @override
+  String get resourceCoinDialogMessage =>
+      'Coin this resource?\n\nThis action cannot be undone\n\nCoins help the resource receive more exposure\n\nThe creator receives 10% of the contributed amount';
+
+  @override
+  String get resourceCoinOne => 'Give 1 coin';
+
+  @override
+  String get resourceCoinTwo => 'Give 2 coins';
+
+  @override
+  String resourceCoinCount(int count) {
+    return '$count coins';
+  }
+
+  @override
+  String get resourceCoinSuccess => 'Coin sent';
+
+  @override
+  String get resourceFeatured => 'Featured';
+
+  @override
+  String get resourceCollection => 'Collection';
+
+  @override
+  String resourceCollectionItems(int count) {
+    return '$count resources';
+  }
+
+  @override
+  String resourceCollectionCoins(int count) {
+    return '$count coins in total';
+  }
+
+  @override
+  String get creatorCollections => 'Resource collections';
+
+  @override
+  String get creatorCollectionTag => 'Collection';
+
+  @override
+  String get creatorCollectionsDescription =>
+      'Group resources of the same type into one collection card';
+
+  @override
+  String get creatorNewCollection => 'New collection';
+
+  @override
+  String get creatorMoveToCollection => 'Move to collection';
+
+  @override
+  String creatorMoveToCollectionConfirm(int count) {
+    return 'Move the $count selected resources into this collection?';
+  }
+
+  @override
+  String get creatorDissolveCollection => 'Dissolve collection';
+
+  @override
+  String get creatorResourceList => 'Resources';
+
+  @override
+  String get creatorAdditionalLinks => 'Additional links';
+
+  @override
+  String get creatorAddLink => 'Add link';
+
+  @override
+  String get creatorLinkTitle => 'Link name';
+
+  @override
+  String get creatorLinkUrl => 'Link URL';
+
+  @override
+  String get creatorCollectionName => 'Collection name';
+
+  @override
+  String get creatorCollectionSummary => 'Collection summary';
+
+  @override
+  String get creatorCollectionPending => 'Collection metadata is under review';
+
+  @override
+  String get creatorCollectionPublished => 'Published';
+
+  @override
+  String get creatorCollectionManage => 'Manage resources';
+
+  @override
+  String get creatorCollectionRepresentative => 'Representative resource';
+
+  @override
+  String get creatorCollectionDeleteConfirm =>
+      'Delete this collection? Its resources will only be unlinked.';
+
+  @override
+  String get creatorCollectionEdit => 'Edit collection metadata';
+
+  @override
+  String get creatorContentAttributes => 'Content attributes';
+
+  @override
+  String get creatorAttributeOriginal => 'Original';
+
+  @override
+  String get creatorAttributeDerivative => 'Derivative';
+
+  @override
+  String get creatorAttributePort => 'Port';
+
+  @override
+  String get creatorAttributeTemplateSkin => 'Template skin';
+
+  @override
+  String get creatorAttributeAiAssisted => 'AI-assisted';
+
+  @override
+  String get creatorAttributeAiGenerated => 'AI-generated';
+
+  @override
+  String get creatorAttribution => 'Creators and source';
+
+  @override
+  String get creatorCollaborators => 'Co-creators';
+
+  @override
+  String get creatorInvite => 'Invite';
+
+  @override
+  String get creatorInviteCollaborator => 'Invite a co-creator';
+
+  @override
+  String get creatorBandBbsUserId => 'BandBBS user ID';
+
+  @override
+  String get creatorNoCollaborators => 'No co-creators linked';
+
+  @override
+  String get creatorInvitationPending => 'Waiting for acceptance';
+
+  @override
+  String get creatorCollaboratorAccepted => 'Invitation accepted';
+
+  @override
+  String get creatorResourceSource => 'Source and authorization';
+
+  @override
+  String get creatorOriginalAuthor => 'Original author';
+
+  @override
+  String get creatorSourceUrl => 'Source URL';
+
+  @override
+  String get creatorLicense => 'License';
+
+  @override
+  String get creatorAuthorizationNote => 'Authorization note';
+
+  @override
+  String get creatorConfirm => 'Confirm';
+
+  @override
+  String get creatorRemove => 'Remove';
+
+  @override
+  String get creatorAccept => 'Accept';
+
+  @override
+  String get creatorCollaborationInvitations => 'Co-creation invitations';
+
+  @override
+  String creatorInvitedBy(String name) {
+    return 'Invited by $name';
+  }
+
+  @override
+  String get creatorCoinsLifetime => 'Lifetime coins received';
+
+  @override
+  String get creatorCoinsRecent => 'Coins received in 14 days';
+
+  @override
+  String get creatorCoinRewards => 'Creator rewards';
+
+  @override
+  String get creatorCollectionOrderHint =>
+      'Drag to reorder resources in the collection';
+
+  @override
+  String get creatorCollectionAddResource => 'Add to collection';
+
+  @override
+  String creatorCollectionResourceCount(int count) {
+    return '$count resources';
+  }
+
+  @override
+  String get creatorDecline => 'Decline';
 }
