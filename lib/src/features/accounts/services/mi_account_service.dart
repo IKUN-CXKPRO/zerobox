@@ -5,11 +5,12 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oronbox/src/core/network/app_http_transport.dart';
 import 'package:oronbox/src/core/network/dio_provider.dart';
 import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
 
 class MiAccountService {
-  MiAccountService({Dio? dio}) : _dio = dio ?? Dio();
+  MiAccountService({Dio? dio}) : _dio = dio ?? createAppHttpTransport();
 
   final Dio _dio;
 

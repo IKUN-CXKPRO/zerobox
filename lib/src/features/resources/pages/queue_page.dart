@@ -15,6 +15,7 @@ import 'package:oronbox/src/daemon/daemon_task_monitor.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 import 'package:oronbox/src/features/resources/services/download_queue_notifier.dart';
 import 'package:oronbox/src/features/resources/services/install_queue_notifier.dart';
+import 'package:oronbox/src/features/resources/services/resource_task_status.dart';
 
 class QueuePage extends ConsumerWidget {
   const QueuePage({super.key});
@@ -31,35 +32,38 @@ class QueuePage extends ConsumerWidget {
           final downloadList = const _DownloadQueuePanel();
           final installList = const _InstallQueuePanel();
 
-          return PageContainer(
-            padding: const EdgeInsets.symmetric(
-              horizontal: StyleConstants.pagePadding,
+          return ProgressIndicatorTheme(
+            data: const ProgressIndicatorThemeData(year2023: false),
+            child: PageContainer(
+              padding: const EdgeInsets.symmetric(
+                horizontal: StyleConstants.pagePadding,
+              ),
+              child: isWide
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: _PanelWrapper(child: downloadList)),
+                        Container(
+                          width: 1,
+                          margin: const EdgeInsets.symmetric(vertical: 12),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        ),
+                        Expanded(child: _PanelWrapper(child: installList)),
+                      ],
+                    )
+                  : Column(
+                      children: [
+                        Expanded(child: downloadList),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Divider(height: 1),
+                        ),
+                        Expanded(child: installList),
+                      ],
+                    ),
             ),
-            child: isWide
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: _PanelWrapper(child: downloadList)),
-                      Container(
-                        width: 1,
-                        margin: const EdgeInsets.symmetric(vertical: 12),
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                      ),
-                      Expanded(child: _PanelWrapper(child: installList)),
-                    ],
-                  )
-                : Column(
-                    children: [
-                      Expanded(child: downloadList),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Divider(height: 1),
-                      ),
-                      Expanded(child: installList),
-                    ],
-                  ),
           );
         },
       ),
@@ -89,27 +93,15 @@ class _DownloadQueuePanel extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final tasks = ref.watch(downloadQueueProvider);
     final notifier = ref.read(downloadQueueProvider.notifier);
-    final fileDownloads = (ref.watch(daemonTasksProvider).value ?? const [])
-        .where((task) => task.method == 'file.download')
-        .toList();
 
     return _QueuePanel(
       title: l10n.downloadQueueTitle,
       action: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (tasks.isNotEmpty || fileDownloads.isNotEmpty)
+          if (tasks.isNotEmpty)
             IconButton(
-              onPressed: () {
-                notifier.clearTerminal();
-                for (final task in fileDownloads.where(
-                  (task) => task.isTerminal,
-                )) {
-                  unawaited(
-                    removeHostTask(ref.read(applicationHostProvider), task.id),
-                  );
-                }
-              },
+              onPressed: () => notifier.clearTerminal(),
               icon: const Icon(Icons.delete_outline),
               tooltip: l10n.queueClear,
             ),
@@ -117,21 +109,6 @@ class _DownloadQueuePanel extends ConsumerWidget {
       ),
       emptyText: l10n.downloadQueueEmpty,
       children: [
-        for (final task in fileDownloads)
-          _QueueTile(
-            key: ValueKey('file-download-${task.id}'),
-            icon: Icons.download_outlined,
-            title: task.params['title']?.toString() ?? _daemonTaskTitle(task),
-            subtitle: task.path ?? task.params['fileName']?.toString() ?? '',
-            status: _downloadTaskStatus(task),
-            progress: task.progress,
-            error: task.error,
-            onRemove: () => unawaited(
-              task.isTerminal
-                  ? removeHostTask(ref.read(applicationHostProvider), task.id)
-                  : cancelHostTask(ref.read(applicationHostProvider), task.id),
-            ),
-          ),
         for (final task in tasks)
           _QueueTile(
             key: ValueKey('download-${task.id}'),
@@ -162,8 +139,7 @@ class _InstallQueuePanel extends ConsumerWidget {
         .where(
           (task) =>
               task.method != 'install.local' &&
-              task.method != 'resource.download' &&
-              task.method != 'file.download',
+              task.method != 'resource.download',
         )
         .toList();
     final running = state.runStatus == QueueRunStatus.running;
@@ -377,20 +353,10 @@ String _daemonTaskTitle(DaemonTaskView task) {
 }
 
 ResourceTaskStatus _daemonTaskStatus(DaemonTaskView task) =>
-    switch (task.status) {
-      'pending' => ResourceTaskStatus.pending,
-      'running' => ResourceTaskStatus.installing,
-      'completed' => ResourceTaskStatus.completed,
-      _ => ResourceTaskStatus.failed,
-    };
-
-ResourceTaskStatus _downloadTaskStatus(DaemonTaskView task) =>
-    switch (task.status) {
-      'pending' => ResourceTaskStatus.pending,
-      'running' => ResourceTaskStatus.downloading,
-      'completed' => ResourceTaskStatus.completed,
-      _ => ResourceTaskStatus.failed,
-    };
+    resourceTaskStatusFromDaemon(
+      task.status,
+      activity: ResourceTaskActivity.install,
+    );
 
 IconData _installIcon(LocalDeviceInstallType type) {
   return switch (type) {

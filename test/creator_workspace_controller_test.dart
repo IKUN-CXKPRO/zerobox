@@ -63,6 +63,7 @@ void main() {
       expect(host.methods, contains('creator.list'));
       expect(host.methods, contains('creator.devices'));
       expect(host.methods, contains('creator.grants'));
+      expect(host.methods, contains('creator.collections.list'));
     },
   );
 
@@ -82,6 +83,7 @@ void main() {
           'creator.list',
           'creator.devices',
           'creator.grants',
+          'creator.collections.list',
         }),
       );
       listGate.complete();
@@ -104,6 +106,21 @@ void main() {
     final state = container.read(creatorWorkspaceProvider);
     expect(state.resources.single.resource.id, 'existing-resource');
     expect(state.error, contains('grants unavailable'));
+  });
+
+  test('a collections failure does not discard creator resources', () async {
+    final host = _CreatorHost(collectionsFailure: true, includeResource: true);
+    final container = ProviderContainer(
+      overrides: [applicationHostProvider.overrideWithValue(host)],
+    );
+    addTearDown(container.dispose);
+
+    container.read(creatorWorkspaceProvider);
+    await _eventually(() => !container.read(creatorWorkspaceProvider).loading);
+
+    final state = container.read(creatorWorkspaceProvider);
+    expect(state.resources.single.resource.id, 'existing-resource');
+    expect(state.error, contains('collections unavailable'));
   });
 
   test(
@@ -173,12 +190,14 @@ class _CreatorHost implements OronBoxCommandBus {
   _CreatorHost({
     this.publishFailure,
     this.grantsFailure = false,
+    this.collectionsFailure = false,
     this.includeResource = false,
     this.listGate,
   });
 
   final CommandError? publishFailure;
   final bool grantsFailure;
+  final bool collectionsFailure;
   final bool includeResource;
   final Completer<void>? listGate;
   final _events = StreamController<CommandEvent>.broadcast();
@@ -212,6 +231,14 @@ class _CreatorHost implements OronBoxCommandBus {
     }
     if (command.method == 'creator.devices') {
       return const CommandResult.success({'devices': <Object?>[]});
+    }
+    if (command.method == 'creator.collections.list') {
+      if (collectionsFailure) {
+        return const CommandResult.failure(
+          CommandError('collections_failed', 'collections unavailable'),
+        );
+      }
+      return const CommandResult.success({'collections': <Object?>[]});
     }
     if (command.method == 'creator.create') {
       return CommandResult.success({

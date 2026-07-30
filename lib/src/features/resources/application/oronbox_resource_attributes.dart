@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/core/constants/oronbox_server.dart';
+import 'package:oronbox/src/core/network/app_http_transport.dart';
 
 class OronBoxResourceAttribute {
   const OronBoxResourceAttribute({
@@ -32,7 +33,11 @@ class OronBoxResourceAttribute {
 
 class OronBoxResourceAttributeCatalog {
   OronBoxResourceAttributeCatalog({Dio? dio})
-    : _dio = dio ?? Dio(BaseOptions(baseUrl: oronBoxServerBaseUrl));
+    : _dio =
+          dio ??
+          createAppHttpTransport(
+            options: BaseOptions(baseUrl: oronBoxServerBaseUrl),
+          );
 
   final Dio _dio;
 

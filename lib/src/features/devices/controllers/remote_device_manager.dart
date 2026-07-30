@@ -799,12 +799,16 @@ class HostDeviceManager extends DeviceManager {
     Map<String, Object?> extraParams = const {},
   }) async {
     if (kIsWeb) {
+      final operationId = DateTime.now().microsecondsSinceEpoch.toString();
       StreamSubscription<CommandEvent>? progressSubscription;
       try {
         progressSubscription = ref.read(applicationHostProvider).events.listen((
           event,
         ) {
-          if (event.event != 'progress') return;
+          if (event.event != 'progress' ||
+              event.data['operationId']?.toString() != operationId) {
+            return;
+          }
           final value = event.data['progress'];
           if (value is num) onProgress?.call(value.toDouble());
         });
@@ -816,6 +820,7 @@ class HostDeviceManager extends DeviceManager {
               'payloadMode': 'memory',
               'bytes': bytes,
               'fileName': 'oronbox_web.$extension',
+              'operationId': operationId,
               ...extraParams,
             },
           ),

@@ -20,6 +20,7 @@ String creatorWorkspaceState(CreatorWorkspace workspace) {
   if (workspace.resource.isFrozen) return 'frozen';
   if (workspace.resource.isSuspended) return 'suspended';
   if (workspace.revisions.isEmpty) return 'draft';
+  if (workspace.latestRevision?.state == 'draft') return 'draft';
   final review = workspace.review?['state']?.toString();
   if (review == 'pending') return 'pending';
   if (review == 'rejected') return 'rejected';
@@ -58,6 +59,8 @@ String creatorOperationLabel(
 ) => switch (operation) {
   CreatorOperation.refreshing => l10n.creatorOperationRefreshing,
   CreatorOperation.creating => l10n.creatorOperationCreating,
+  CreatorOperation.creatingCollection =>
+    l10n.creatorOperationCreatingCollection,
   CreatorOperation.saving => l10n.creatorOperationSaving,
   CreatorOperation.publishing => l10n.creatorOperationSubmitting,
   CreatorOperation.deleting => l10n.creatorOperationDeleting,

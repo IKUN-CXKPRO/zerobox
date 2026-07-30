@@ -1043,6 +1043,7 @@
   "creatorProcessingImage": "正在处理图片",
   "creatorOperationRefreshing": "正在刷新创作者数据",
   "creatorOperationCreating": "正在创建资源",
+  "creatorOperationCreatingCollection": "正在创建合集",
   "creatorOperationSaving": "正在保存更改",
   "creatorOperationUploading": "正在上传并处理文件",
   "creatorOperationBinding": "正在更新支持设备",

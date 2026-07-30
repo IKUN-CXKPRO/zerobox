@@ -1043,6 +1043,7 @@
   "creatorProcessingImage": "Processing image",
   "creatorOperationRefreshing": "Refreshing creator data",
   "creatorOperationCreating": "Creating resource",
+  "creatorOperationCreatingCollection": "Creating collection",
   "creatorOperationSaving": "Saving changes",
   "creatorOperationUploading": "Uploading and processing file",
   "creatorOperationBinding": "Updating supported devices",

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +10,51 @@ import 'package:oronbox/src/features/resources/services/download_queue_notifier.
 import 'package:oronbox/src/features/resources/services/install_queue_notifier.dart';
 import 'package:oronbox/src/features/messages/widgets/announcement_gate.dart';
 
+final _queueDoneAtProvider = NotifierProvider<_QueueDoneNotifier, DateTime?>(
+  _QueueDoneNotifier.new,
+);
+
+class _QueueDoneNotifier extends Notifier<DateTime?> {
+  @override
+  DateTime? build() => null;
+  void mark() => state = DateTime.now();
+  void clear() => state = null;
+}
+
+final _queueDoneVersionProvider = NotifierProvider<_QueueVersionNotifier, int>(
+  _QueueVersionNotifier.new,
+);
+
+class _QueueVersionNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+  int next() {
+    state = state + 1;
+    return state;
+  }
+}
+
+bool _hasPending(List<ResourceTask> dl, List<InstallTask> il) =>
+    dl.any((t) => t.status != ResourceTaskStatus.completed) ||
+    il.any((t) => t.status != ResourceTaskStatus.completed);
+
+class _QueueState {
+  const _QueueState({
+    this.active = 0,
+    this.pending = 0,
+    this.total = 0,
+    this.progress = 0,
+    this.installing = false,
+    this.hasError = false,
+  });
+  final int active;
+  final int pending;
+  final int total;
+  final double progress;
+  final bool installing;
+  final bool hasError;
+}
+
 class AppScaffold extends ConsumerWidget {
   const AppScaffold({super.key, required this.navigationShell});
 
@@ -15,9 +62,28 @@ class AppScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen(downloadQueueProvider, (prev, _) {
+      if (prev == null) return;
+      final il = ref.read(installQueueProvider).tasks;
+      if (_hasPending(prev, il) &&
+          !_hasPending(ref.read(downloadQueueProvider), il)) {
+        _markDone(ref);
+      }
+    });
+    ref.listen(installQueueProvider, (prev, _) {
+      if (prev == null) return;
+      final dl = ref.read(downloadQueueProvider);
+      if (_hasPending(dl, prev.tasks) &&
+          !_hasPending(dl, ref.read(installQueueProvider).tasks)) {
+        _markDone(ref);
+      }
+    });
+
+    final doneAt = ref.watch(_queueDoneAtProvider);
     final width = MediaQuery.sizeOf(context).width;
     final l10n = AppLocalizations.of(context)!;
-    final badgeCount = _queueBadgeCount(ref);
+    final queue = _queueCounts(ref);
+
     final showExplore = ref.watch(
       appSettingsProvider.select((state) => state.clean.exploreEnabled),
     );
@@ -38,7 +104,8 @@ class AppScaffold extends ConsumerWidget {
       return _buildSideMenu(
         context,
         l10n,
-        badgeCount,
+        queue,
+        doneAt,
         railPosition,
         branchIndices,
       );
@@ -53,22 +120,36 @@ class AppScaffold extends ConsumerWidget {
     return _buildBottomMenu(
       context,
       l10n,
-      badgeCount,
+      queue,
+      doneAt,
       branchIndices,
       showNavigation: primaryPaths.contains(GoRouterState.of(context).uri.path),
     );
   }
 
+  static void _markDone(WidgetRef ref) {
+    final version = ref.read(_queueDoneVersionProvider.notifier).next();
+    ref.read(_queueDoneAtProvider.notifier).mark();
+    Timer(const Duration(seconds: 2), () {
+      if (ref.read(_queueDoneVersionProvider) == version) {
+        ref.read(_queueDoneAtProvider.notifier).clear();
+      }
+    });
+  }
+
   Widget _buildBottomMenu(
     BuildContext context,
     AppLocalizations l10n,
-    int badgeCount,
+    _QueueState queue,
+    DateTime? doneAt,
     List<int> branchIndices, {
     required bool showNavigation,
   }) {
     final navigationBar = NavigationBar(
       destinations: branchIndices
-          .map((index) => _bottomDestination(l10n, badgeCount, index))
+          .map(
+            (index) => _bottomDestination(context, l10n, queue, doneAt, index),
+          )
           .toList(growable: false),
       selectedIndex: branchIndices
           .indexOf(navigationShell.currentIndex)
@@ -92,12 +173,13 @@ class AppScaffold extends ConsumerWidget {
   Widget _buildSideMenu(
     BuildContext context,
     AppLocalizations l10n,
-    int badgeCount,
+    _QueueState queue,
+    DateTime? doneAt,
     WideNavigationRailPosition railPosition,
     List<int> branchIndices,
   ) {
     final destinations = branchIndices
-        .map((index) => _railDestination(l10n, badgeCount, index))
+        .map((index) => _railDestination(context, l10n, queue, doneAt, index))
         .toList(growable: false);
     final selectedIndex = branchIndices.indexOf(navigationShell.currentIndex);
     return Scaffold(
@@ -142,8 +224,10 @@ class AppScaffold extends ConsumerWidget {
   }
 
   NavigationDestination _bottomDestination(
+    BuildContext context,
     AppLocalizations l10n,
-    int badgeCount,
+    _QueueState queue,
+    DateTime? doneAt,
     int branch,
   ) => switch (branch) {
     0 => NavigationDestination(
@@ -156,16 +240,7 @@ class AppScaffold extends ConsumerWidget {
       icon: const Icon(Icons.watch_outlined),
       label: l10n.devicesTab,
     ),
-    2 => NavigationDestination(
-      selectedIcon: const Icon(Icons.format_list_bulleted),
-      icon: badgeCount > 0
-          ? Badge(
-              label: Text('$badgeCount'),
-              child: const Icon(Icons.format_list_bulleted),
-            )
-          : const Icon(Icons.format_list_bulleted),
-      label: l10n.settingsQueue,
-    ),
+    2 => _queueDestination(context, queue, doneAt, l10n.settingsQueue),
     3 => NavigationDestination(
       selectedIcon: const Icon(Icons.extension),
       icon: const Icon(Icons.extension_outlined),
@@ -179,8 +254,10 @@ class AppScaffold extends ConsumerWidget {
   };
 
   NavigationRailDestination _railDestination(
+    BuildContext context,
     AppLocalizations l10n,
-    int badgeCount,
+    _QueueState queue,
+    DateTime? doneAt,
     int branch,
   ) => switch (branch) {
     0 => NavigationRailDestination(
@@ -193,16 +270,14 @@ class AppScaffold extends ConsumerWidget {
       icon: const Icon(Icons.watch_outlined),
       label: Text(l10n.devicesTab),
     ),
-    2 => NavigationRailDestination(
-      selectedIcon: const Icon(Icons.format_list_bulleted),
-      icon: badgeCount > 0
-          ? Badge(
-              label: Text('$badgeCount'),
-              child: const Icon(Icons.format_list_bulleted),
-            )
-          : const Icon(Icons.format_list_bulleted),
-      label: Text(l10n.settingsQueue),
-    ),
+    2 => () {
+      final icon = _queueIcon(context, queue, doneAt);
+      return NavigationRailDestination(
+        selectedIcon: icon,
+        icon: icon,
+        label: Text(l10n.settingsQueue),
+      );
+    }(),
     3 => NavigationRailDestination(
       selectedIcon: const Icon(Icons.extension),
       icon: const Icon(Icons.extension_outlined),
@@ -215,21 +290,106 @@ class AppScaffold extends ConsumerWidget {
     ),
   };
 
-  int _queueBadgeCount(WidgetRef ref) {
-    final downloadCount = ref.watch(
-      downloadQueueProvider.select(
-        (tasks) =>
-            tasks.where((t) => t.status != ResourceTaskStatus.completed).length,
+  NavigationDestination _queueDestination(
+    BuildContext context,
+    _QueueState queue,
+    DateTime? doneAt,
+    String label,
+  ) {
+    final icon = _queueIcon(context, queue, doneAt);
+    return NavigationDestination(selectedIcon: icon, icon: icon, label: label);
+  }
+
+  Widget _queueIcon(BuildContext context, _QueueState queue, DateTime? doneAt) {
+    if (queue.total == 0) {
+      if (doneAt != null) {
+        return Icon(Icons.check, color: Theme.of(context).colorScheme.primary);
+      }
+      return const Icon(Icons.format_list_bulleted);
+    }
+    if (queue.active == 0 && queue.hasError) {
+      return Icon(
+        Icons.priority_high,
+        color: Theme.of(context).colorScheme.error,
+      );
+    }
+    if (queue.active == 0) return const Icon(Icons.format_list_bulleted);
+    final scheme = Theme.of(context).colorScheme;
+    final color = queue.installing ? scheme.primary : scheme.secondary;
+    return SizedBox.square(
+      dimension: 24,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(end: queue.progress),
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            builder: (_, v, _) => CircularProgressIndicator(
+              value: v > 0 ? v : null,
+              strokeWidth: 2.5,
+              color: color,
+            ),
+          ),
+          Text(
+            '${queue.total}',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
-    final installCount = ref.watch(
-      installQueueProvider.select(
-        (state) => state.tasks
-            .where((t) => t.status != ResourceTaskStatus.completed)
-            .length,
-      ),
+  }
+
+  _QueueState _queueCounts(WidgetRef ref) {
+    final dl = ref.watch(downloadQueueProvider);
+    final il = ref.watch(installQueueProvider).tasks;
+    var active = 0, pending = 0, total = 0;
+    var installing = false, hasError = false;
+    double progress = 0;
+    bool hasActive = false;
+    for (final t in dl) {
+      if (t.status == ResourceTaskStatus.completed) continue;
+      total++;
+      if (t.status == ResourceTaskStatus.failed) hasError = true;
+      if (t.status == ResourceTaskStatus.downloading ||
+          t.status == ResourceTaskStatus.installing) {
+        active++;
+        if (!hasActive) {
+          progress = t.progress;
+          hasActive = true;
+        }
+      } else if (t.status == ResourceTaskStatus.pending) {
+        pending++;
+      }
+    }
+    for (final t in il) {
+      if (t.status == ResourceTaskStatus.completed) continue;
+      total++;
+      if (t.status == ResourceTaskStatus.failed) hasError = true;
+      if (t.status == ResourceTaskStatus.downloading ||
+          t.status == ResourceTaskStatus.installing) {
+        active++;
+        installing = true;
+        if (!hasActive) {
+          progress = t.progress;
+          hasActive = true;
+        }
+      } else if (t.status == ResourceTaskStatus.pending) {
+        pending++;
+      }
+    }
+    return _QueueState(
+      active: active,
+      pending: pending,
+      total: total,
+      progress: progress,
+      installing: installing,
+      hasError: hasError,
     );
-    return downloadCount + installCount;
   }
 }
 
@@ -262,9 +422,7 @@ class _WideNavigationRail extends StatelessWidget {
         onDestinationSelected: onDestinationSelected,
       );
     }
-
     final primaryCount = destinations.length - 1;
-
     return Material(
       color: color,
       child: SafeArea(

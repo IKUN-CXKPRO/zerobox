@@ -8,9 +8,7 @@ import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
-import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
-import 'package:oronbox/src/features/resources/application/creator/oronbox_creator_api.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_resource_list.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
@@ -36,16 +34,14 @@ class _CreatorCollectionPageState extends ConsumerState<CreatorCollectionPage> {
   Map<String, Object?>? _item;
   var _loading = true;
   var _saving = false;
-
-  OronBoxCreatorApi get _api =>
-      OronBoxCreatorApi(auth: ref.read(bandBbsAuthProvider.notifier));
+  var _creatingResource = false;
 
   @override
   void initState() {
     super.initState();
     _item = widget.item;
     _seedFields();
-    unawaited(_load());
+    WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_load()));
   }
 
   void _seedFields() {
@@ -58,16 +54,9 @@ class _CreatorCollectionPageState extends ConsumerState<CreatorCollectionPage> {
 
   Future<void> _load() async {
     try {
-      final items = await _api.collections();
-      final item = items
-          .where((entry) => entry['id']?.toString() == widget.collectionId)
-          .firstOrNull;
-      if (mounted && item != null) {
-        setState(() {
-          _item = item;
-          _seedFields();
-        });
-      }
+      final controller = ref.read(creatorWorkspaceProvider.notifier);
+      await controller.refresh();
+      _adoptCollectionFromWorkspace();
     } catch (error) {
       if (mounted) showCreatorFailure(context, error);
     } finally {
@@ -79,12 +68,14 @@ class _CreatorCollectionPageState extends ConsumerState<CreatorCollectionPage> {
     if (_saving || _name.text.trim().isEmpty) return;
     setState(() => _saving = true);
     try {
-      await _api.updateCollection(
-        collectionId: widget.collectionId,
-        name: _name.text.trim(),
-        summary: _summary.text.trim(),
-      );
-      await _load();
+      await ref
+          .read(creatorWorkspaceProvider.notifier)
+          .updateCollection(
+            collectionId: widget.collectionId,
+            name: _name.text.trim(),
+            summary: _summary.text.trim(),
+          );
+      _adoptCollectionFromWorkspace();
     } catch (error) {
       if (mounted) showCreatorFailure(context, error);
     } finally {
@@ -130,6 +121,7 @@ class _CreatorCollectionPageState extends ConsumerState<CreatorCollectionPage> {
     name.dispose();
     if (accepted != true || !mounted) return;
     final controller = ref.read(creatorWorkspaceProvider.notifier);
+    setState(() => _creatingResource = true);
     try {
       final slug = 'resource-${DateTime.now().microsecondsSinceEpoch}';
       await controller.create(slug, resourceName, kind);
@@ -139,7 +131,7 @@ class _CreatorCollectionPageState extends ConsumerState<CreatorCollectionPage> {
         ...children.map((entry) => entry.resource.id),
         created.resource.id,
       ];
-      await _api.setCollectionResources(
+      await controller.setCollectionResources(
         collectionId: widget.collectionId,
         resourceIds: resourceIds,
         representativeResourceId:
@@ -147,7 +139,6 @@ class _CreatorCollectionPageState extends ConsumerState<CreatorCollectionPage> {
             ? _item!['representative_resource_id'].toString()
             : created.resource.id,
       );
-      await controller.refresh();
       final attached = ref
           .read(creatorWorkspaceProvider)
           .resources
@@ -157,6 +148,8 @@ class _CreatorCollectionPageState extends ConsumerState<CreatorCollectionPage> {
       if (mounted) context.push('/resources/creator/resource');
     } catch (error) {
       if (mounted) showCreatorFailure(context, error);
+    } finally {
+      if (mounted) setState(() => _creatingResource = false);
     }
   }
 
@@ -178,15 +171,30 @@ class _CreatorCollectionPageState extends ConsumerState<CreatorCollectionPage> {
     );
     if (selected == null) return;
     try {
-      await _api.setCollectionResources(
-        collectionId: widget.collectionId,
-        resourceIds: children.map((item) => item.resource.id).toList(),
-        representativeResourceId: selected.resource.id,
-      );
-      await _load();
+      await ref
+          .read(creatorWorkspaceProvider.notifier)
+          .setCollectionResources(
+            collectionId: widget.collectionId,
+            resourceIds: children.map((item) => item.resource.id).toList(),
+            representativeResourceId: selected.resource.id,
+          );
+      _adoptCollectionFromWorkspace();
     } catch (error) {
       if (mounted) showCreatorFailure(context, error);
     }
+  }
+
+  void _adoptCollectionFromWorkspace() {
+    final item = ref
+        .read(creatorWorkspaceProvider)
+        .collections
+        .where((entry) => entry['id']?.toString() == widget.collectionId)
+        .firstOrNull;
+    if (!mounted || item == null) return;
+    setState(() {
+      _item = item;
+      _seedFields();
+    });
   }
 
   @override
@@ -236,16 +244,6 @@ class _CreatorCollectionPageState extends ConsumerState<CreatorCollectionPage> {
           ),
         ],
       ),
-      floatingActionButton: _loading
-          ? null
-          : FloatingActionButton.extended(
-              heroTag: 'creator-collection-new-resource',
-              onPressed: state.loading
-                  ? null
-                  : () => _createResource(kind, children),
-              icon: const Icon(Icons.add),
-              label: Text(l10n.creatorNewResource),
-            ),
       body: _loading && _item == null
           ? LoadingView(message: l10n.creatorOperationRefreshing)
           : SingleChildScrollView(
@@ -334,6 +332,23 @@ class _CreatorCollectionPageState extends ConsumerState<CreatorCollectionPage> {
                           },
                         ),
                       ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: FilledButton.tonalIcon(
+                        onPressed: _creatingResource
+                            ? null
+                            : () => _createResource(kind, children),
+                        icon: _creatingResource
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.add),
+                        label: Text(l10n.creatorNewResource),
+                      ),
+                    ),
                     const SizedBox(height: 88),
                   ],
                 ),
@@ -409,16 +424,20 @@ class _CollectionMediaCardState extends State<_CollectionMediaCard> {
   @override
   Widget build(BuildContext context) => SizedBox(
     width: widget.width,
-    child: CreatorEditorCard(
-      padding: const EdgeInsets.all(12),
+    child: Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
             height: 184,
             width: double.infinity,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
               child: _bytes == null
                   ? ColoredBox(
                       color: Theme.of(
@@ -433,7 +452,7 @@ class _CollectionMediaCardState extends State<_CollectionMediaCard> {
           Text(widget.title, style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 2),
           Text(
-            widget.workspace == null
+            _media() == null
                 ? ' '
                 : '${_mediaWidth()} × ${_mediaHeight()} · ${formatCreatorFileSize(_mediaSize())}',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -445,8 +464,12 @@ class _CollectionMediaCardState extends State<_CollectionMediaCard> {
               Expanded(
                 child: TextButton.icon(
                   onPressed: widget.onChange,
-                  icon: const Icon(Icons.sync, size: 18),
-                  label: Text(AppLocalizations.of(context)!.replace),
+                  icon: const Icon(Icons.file_upload_outlined, size: 18),
+                  label: Text(
+                    _media() == null
+                        ? AppLocalizations.of(context)!.add
+                        : AppLocalizations.of(context)!.replace,
+                  ),
                 ),
               ),
             ],

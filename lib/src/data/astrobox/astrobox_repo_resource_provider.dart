@@ -5,7 +5,8 @@ import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:oronbox/src/data/astrobox/astrobox_cdn.dart';
+import 'package:oronbox/src/core/network/app_http_transport.dart';
+import 'package:oronbox/src/core/network/github_cdn.dart';
 import 'package:oronbox/src/data/astrobox/models/astrobox_models.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
@@ -13,11 +14,11 @@ import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 
 class AstroBoxRepoCatalog implements CommunityResourceCatalog {
-  AstroBoxRepoCatalog({Dio? dio, this.cdn = AstroBoxCdn.raw})
-    : _dio = dio ?? Dio();
+  AstroBoxRepoCatalog({Dio? dio, this.cdn = GitHubCdn.raw})
+    : _dio = dio ?? createAppHttpTransport();
 
   final Dio _dio;
-  final AstroBoxCdn cdn;
+  final GitHubCdn cdn;
   Future<List<AstroBoxIndexItem>>? _indexRequest;
   final Map<String, AstroBoxIndexItem> _indexById = {};
 

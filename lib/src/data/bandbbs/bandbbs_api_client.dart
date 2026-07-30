@@ -1,11 +1,8 @@
 import 'package:dio/dio.dart';
-import 'package:oronbox/src/core/network/http_observability_interceptor.dart';
 import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 
 class BandBbsApiClient {
-  BandBbsApiClient({required this.dio, required this.auth}) {
-    installHttpObservability(dio);
-  }
+  BandBbsApiClient({required this.dio, required this.auth});
 
   final Dio dio;
   final BandBbsAuthNotifier auth;

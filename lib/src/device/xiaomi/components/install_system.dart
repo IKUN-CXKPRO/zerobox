@@ -281,8 +281,7 @@ class XiaomiInstallSystem extends XiaomiPbSystem {
           fileData: iconBytes,
           dataType: MassDataType.notificationIcon,
           expectedSliceLength: expectedSliceLength,
-          onProgress: (data) =>
-              _emitProgress(MassDataType.notificationIcon, data, onProgress),
+          onProgress: (data) => _emitProgress(data, onProgress),
         );
       },
     );
@@ -384,7 +383,6 @@ class XiaomiInstallSystem extends XiaomiPbSystem {
   }
 
   void _emitProgress(
-    MassDataType dataType,
     SendMassCallbackData data,
     void Function(double progress)? onProgress,
   ) {
@@ -416,7 +414,7 @@ class XiaomiInstallSystem extends XiaomiPbSystem {
       await _massSystem.sendFile(
         fileData: fileData,
         dataType: dataType,
-        onProgress: (data) => _emitProgress(dataType, data, onProgress),
+        onProgress: (data) => _emitProgress(data, onProgress),
       );
 
       try {

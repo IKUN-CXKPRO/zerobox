@@ -14,7 +14,6 @@ import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
-import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/accounts/services/oronbox_coin_service.dart';
 import 'package:oronbox/src/features/resources/application/comments/oronbox_comments.dart';
@@ -699,7 +698,7 @@ class _CommentsSectionState extends ConsumerState<_CommentsSection> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final auth = ref.watch(bandBbsAuthProvider);
+    final auth = ref.watch(hostAccountsProvider).bandbbs;
     final isAdmin = ref.watch(currentUserRoleProvider).value == 'admin';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

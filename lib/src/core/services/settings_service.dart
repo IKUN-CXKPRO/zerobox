@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oronbox/src/data/astrobox/astrobox_cdn.dart';
+import 'package:oronbox/src/core/network/github_cdn.dart';
 
 class SettingsService {
-  AstroBoxCdn getPreferredCdn() => AstroBoxCdn.raw;
+  GitHubCdn getPreferredCdn() => GitHubCdn.raw;
 
-  Future<void> setPreferredCdn(AstroBoxCdn cdn) async {}
+  Future<void> setPreferredCdn(GitHubCdn cdn) async {}
 }
 
 final settingsServiceProvider = Provider<SettingsService>((ref) {

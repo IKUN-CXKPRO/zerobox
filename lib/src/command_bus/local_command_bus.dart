@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:oronbox/src/command_bus/command_observability.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
@@ -109,7 +108,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
   DeviceManager get _manager => container.read(deviceManagerProvider.notifier);
   DeviceManagerState get _state => container.read(deviceManagerProvider);
   OronBoxCreatorApi get _creatorApi =>
-      OronBoxCreatorApi(auth: container.read(bandBbsAuthProvider.notifier));
+      OronBoxCreatorApi(sessions: container.read(bandBbsAuthProvider.notifier));
 
   @override
   Stream<CommandEvent> get events => _events.stream;
@@ -379,7 +378,6 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'resource.huami.publisher' => _huamiPublisher(command.params),
     'resource.download' => _resourceDownload(command.params, install: false),
     'resource.install' => _resourceDownload(command.params, install: true),
-    'file.download' => _fileDownload(command.params),
     'support.feedback.list' => _creatorRequest('GET', '/api/feedback'),
     'support.feedback.get' => _creatorRequest(
       'GET',
@@ -403,6 +401,13 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       data: {'message': command.params['message']},
     ),
     'account.grants' => _creatorRequest('GET', '/api/me/grants'),
+    'account.session' =>
+      container
+          .read(bandBbsAuthProvider.notifier)
+          .sessionIfNeeded()
+          .then((session) => session?.toJson()),
+    'account.session.expire' =>
+      container.read(bandBbsAuthProvider.notifier).expireSession(),
     'comment.list' => _creatorApi.publicRequest(
       'GET',
       '/api/resources/${_requiredCreatorId(command.params, 'resource')}/comments',
@@ -464,6 +469,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       },
     ),
     'creator.publish' => _creatorPublish(command.params),
+    'creator.draft' => _creatorDraft(command.params),
     'creator.blob' => _creatorBlob(command.params),
     'creator.takedown' => _creatorRequest(
       'POST',
@@ -476,6 +482,41 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'creator.delete' => _creatorRequest(
       'DELETE',
       '/api/creator/resources/${_requiredCreatorId(command.params, 'resource')}',
+    ),
+    'creator.collections.list' => _creatorRequest(
+      'GET',
+      '/api/creator/collections',
+    ),
+    'creator.collections.create' => _creatorRequest(
+      'POST',
+      '/api/creator/collections',
+      data: {
+        'slug': command.params['slug'],
+        'name': command.params['name'],
+        'summary': command.params['summary'],
+        'kind': command.params['kind'],
+      },
+    ),
+    'creator.collections.resources' => _creatorRequest(
+      'PUT',
+      '/api/creator/collections/${_requiredCreatorId(command.params, 'collection')}/resources',
+      data: {
+        'resource_ids': command.params['resourceIds'],
+        'representative_resource_id':
+            command.params['representativeResourceId'],
+      },
+    ),
+    'creator.collections.update' => _creatorRequest(
+      'PATCH',
+      '/api/creator/collections/${_requiredCreatorId(command.params, 'collection')}',
+      data: {
+        'name': command.params['name'],
+        'summary': command.params['summary'],
+      },
+    ),
+    'creator.collections.delete' => _creatorRequest(
+      'DELETE',
+      '/api/creator/collections/${_requiredCreatorId(command.params, 'collection')}',
     ),
     'account.list' => _accountList(),
     'account.status' => _freshAccountStatus(
@@ -596,6 +637,17 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
           data: {'operationId': operationId, 'progress': progress},
         ),
       ),
+    );
+  }
+
+  Future<Object?> _creatorDraft(Map<String, Object?> params) async {
+    final encoded = params['bundle']?.toString() ?? '';
+    if (encoded.isEmpty) {
+      throw const CommandFailure('usage', 'Missing draft bundle');
+    }
+    return _creatorApi.saveDraft(
+      resourceId: params['resource']?.toString() ?? '',
+      bundle: base64Decode(encoded),
     );
   }
 
@@ -1268,7 +1320,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'auto_install',
     'disable_auto_clean',
     'community_source',
-    'astrobox_cdn',
+    'github_cdn',
     'bandbbs_load_previews',
     'bandbbs_show_all_categories',
   };
@@ -1314,12 +1366,13 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       'disable_auto_clean' ||
       'bandbbs_load_previews' ||
       'bandbbs_show_all_categories' => prefs.getBool(key),
-      'community_source' || 'astrobox_cdn' => prefs.getString(key),
+      'community_source' || 'github_cdn' => prefs.getString(key),
       _ => null,
     };
   }
 
   Future<Object?> _installLocal(Map<String, Object?> params) async {
+    final operationId = params['operationId']?.toString();
     final path = params['path']?.toString() ?? '';
     final rawBytes = params['bytes'];
     final memoryPayload = params['payloadMode'] == 'memory';
@@ -1371,7 +1424,11 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
           onProgress: (progress) => _events.add(
             CommandEvent(
               'progress',
-              data: {'progress': progress, 'path': path},
+              data: {
+                'progress': progress,
+                'path': path,
+                if (operationId != null) 'operationId': operationId,
+              },
             ),
           ),
         );
@@ -1391,7 +1448,11 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
           onProgress: (progress) => _events.add(
             CommandEvent(
               'progress',
-              data: {'progress': progress, 'path': path},
+              data: {
+                'progress': progress,
+                'path': path,
+                if (operationId != null) 'operationId': operationId,
+              },
             ),
           ),
         );
@@ -1417,7 +1478,14 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       await _ensureConnected(params['device']?.toString());
       _throwIfCancelled();
       void onProgress(double progress) => _events.add(
-        CommandEvent('progress', data: {'progress': progress, 'path': path}),
+        CommandEvent(
+          'progress',
+          data: {
+            'progress': progress,
+            'path': path,
+            if (operationId != null) 'operationId': operationId,
+          },
+        ),
       );
       switch (installMode) {
         case ResourceInstallMode.automatic:
@@ -1597,27 +1665,47 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     required bool install,
   }) async {
     await _ensureAccountsRestored();
-    final ref = _resourceRef(params);
-    final catalog = _resourceCatalog(ref.source);
-    final detail = await catalog.getDetail(ref);
-    if (detail.files.isEmpty) {
-      throw CommandFailure(
-        'not_found',
-        'Resource has no downloadable files: ${ref.key}',
+    final rawResource = params['resource'];
+    final CommunityResourceDetail detail;
+    final CommunityResourceFile file;
+    final CommunityResourceCatalog catalog;
+
+    if (rawResource is Map) {
+      detail = communityResourceDetailFromJson(
+        rawResource.cast<String, Object?>(),
       );
+      final requestedFile = params['file']?.toString();
+      final files = detail.files;
+      if (files.isEmpty) {
+        throw const CommandFailure('not_found', 'Resource has no files');
+      }
+      file = requestedFile == null
+          ? files.first
+          : files.firstWhere(
+              (f) => f.id == requestedFile,
+              orElse: () => files.first,
+            );
+      final ref = _resourceRef(params);
+      catalog = _resourceCatalog(ref.source);
+    } else {
+      final ref = _resourceRef(params);
+      catalog = _resourceCatalog(ref.source);
+      detail = await catalog.getDetail(ref);
+      if (detail.files.isEmpty) {
+        throw CommandFailure(
+          'not_found',
+          'Resource has no downloadable files: ${ref.key}',
+        );
+      }
+      final requestedFile = params['file']?.toString();
+      file = requestedFile == null
+          ? detail.files.first
+          : detail.files.firstWhere(
+              (candidate) => candidate.id == requestedFile,
+              orElse: () => detail.files.first,
+            );
     }
-    final requestedFile = params['file']?.toString();
-    final file = requestedFile == null
-        ? detail.files.first
-        : detail.files
-              .where((candidate) => candidate.id == requestedFile)
-              .firstOrNull;
-    if (file == null) {
-      throw CommandFailure(
-        'not_found',
-        'Resource file not found: $requestedFile',
-      );
-    }
+
     final service = container.read(resourceInstallServiceProvider);
     final downloaded = await service.downloadResource(
       resource: detail,
@@ -1669,60 +1757,6 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       },
       'installed': install,
     };
-  }
-
-  Future<Object?> _fileDownload(Map<String, Object?> params) async {
-    final url = Uri.tryParse(params['url']?.toString() ?? '');
-    if (url == null || (url.scheme != 'https' && url.scheme != 'http')) {
-      throw const CommandFailure('validation', 'Invalid download URL');
-    }
-    final requestedName = params['fileName']?.toString().trim() ?? '';
-    if (requestedName.isEmpty) {
-      throw const CommandFailure('validation', 'Missing download file name');
-    }
-    final safeName = requestedName.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
-    final directory =
-        await getDownloadsDirectory() ??
-        await getApplicationDocumentsDirectory();
-    await directory.create(recursive: true);
-    final target = File('${directory.path}${Platform.pathSeparator}$safeName');
-    final temporary = File('${target.path}.part');
-    final client = HttpClient()..userAgent = 'OronBox firmware downloader';
-    IOSink? sink;
-    try {
-      final request = await client.getUrl(url);
-      final response = await request.close();
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw CommandFailure(
-          'download',
-          'Download failed with HTTP ${response.statusCode}',
-        );
-      }
-      final total = response.contentLength;
-      var received = 0;
-      sink = temporary.openWrite();
-      await for (final chunk in response) {
-        _throwIfCancelled();
-        sink.add(chunk);
-        received += chunk.length;
-        _events.add(
-          CommandEvent(
-            'downloading',
-            data: {'progress': total > 0 ? received / total : 0.0},
-          ),
-        );
-      }
-      await sink.flush();
-      await sink.close();
-      sink = null;
-      if (await target.exists()) await target.delete();
-      await temporary.rename(target.path);
-      return {'path': target.path, 'fileName': safeName};
-    } finally {
-      await sink?.close();
-      client.close(force: true);
-      if (await temporary.exists()) await temporary.delete();
-    }
   }
 
   CommunitySourceId _source(String? value) {

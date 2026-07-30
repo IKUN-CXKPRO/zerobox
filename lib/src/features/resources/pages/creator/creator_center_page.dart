@@ -11,8 +11,6 @@ import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
-import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
-import 'package:oronbox/src/features/resources/application/creator/oronbox_creator_api.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_resource_list.dart';
@@ -27,33 +25,10 @@ class CreatorCenterPage extends ConsumerStatefulWidget {
 }
 
 class _CreatorCenterPageState extends ConsumerState<CreatorCenterPage> {
-  List<Map<String, Object?>> _collections = const [];
-  var _collectionsLoading = true;
-  var _creatingCollection = false;
   Set<String> _selectedResourceIds = const {};
 
-  @override
-  void initState() {
-    super.initState();
-    unawaited(_loadCollections());
-  }
-
-  Future<void> _loadCollections() async {
-    if (mounted) setState(() => _collectionsLoading = true);
-    try {
-      final items = await OronBoxCreatorApi(
-        auth: ref.read(bandBbsAuthProvider.notifier),
-      ).collections();
-      if (mounted) setState(() => _collections = items);
-    } catch (error) {
-      if (mounted) showCreatorFailure(context, error);
-    } finally {
-      if (mounted) setState(() => _collectionsLoading = false);
-    }
-  }
-
   Future<void> _refresh(CreatorWorkspaceController controller) async {
-    await Future.wait([controller.refresh(), _loadCollections()]);
+    await controller.refresh();
   }
 
   @override
@@ -80,7 +55,7 @@ class _CreatorCenterPageState extends ConsumerState<CreatorCenterPage> {
           IconButton(
             tooltip: l10n.refresh,
             icon: const Icon(Icons.refresh),
-            onPressed: state.loading || _collectionsLoading
+            onPressed: state.loading
                 ? null
                 : () => unawaited(_refresh(controller)),
           ),
@@ -96,8 +71,9 @@ class _CreatorCenterPageState extends ConsumerState<CreatorCenterPage> {
           : state.governance != null
           ? _CreatorGovernanceGate(code: state.governance!)
           : _CreatorTermsGate(
-              loading: state.loading || _creatingCollection,
-              collectionLoading: _creatingCollection,
+              loading: state.loading,
+              collectionLoading:
+                  state.operation == CreatorOperation.creatingCollection,
               onCreate: () => _create(context, controller),
               onCreateCollection: () => _createCollection(context, controller),
               selectionActive: _selectedResourceIds.isNotEmpty,
@@ -110,8 +86,8 @@ class _CreatorCenterPageState extends ConsumerState<CreatorCenterPage> {
                 child: CreatorResourceList(
                   state: state,
                   controller: controller,
-                  collections: _collections,
-                  collectionsLoading: _collectionsLoading,
+                  collections: state.collections,
+                  collectionsLoading: false,
                   onRefresh: () => _refresh(controller),
                   onOpenCollection: (item) => context.push(
                     '/resources/creator/collection/${item['id']}',
@@ -141,7 +117,7 @@ class _CreatorCenterPageState extends ConsumerState<CreatorCenterPage> {
         .toList();
     if (selected.isEmpty) return;
     final kind = selected.first.resource.kind.name;
-    final choices = _collections
+    final choices = state.collections
         .where((item) => item['kind']?.toString() == kind)
         .toList();
     final target = await showDialog<Map<String, Object?>>(
@@ -187,9 +163,7 @@ class _CreatorCenterPageState extends ConsumerState<CreatorCenterPage> {
         .where((item) => item.resource.collectionId == collectionId)
         .map((item) => item.resource.id);
     try {
-      await OronBoxCreatorApi(
-        auth: ref.read(bandBbsAuthProvider.notifier),
-      ).setCollectionResources(
+      await controller.setCollectionResources(
         collectionId: collectionId,
         resourceIds: {...existing, ..._selectedResourceIds}.toList(),
         representativeResourceId:
@@ -226,10 +200,7 @@ class _CreatorCenterPageState extends ConsumerState<CreatorCenterPage> {
     );
     if (accepted != true) return;
     try {
-      await OronBoxCreatorApi(
-        auth: ref.read(bandBbsAuthProvider.notifier),
-      ).deleteCollection(item['id']!.toString());
-      await _refresh(controller);
+      await controller.deleteCollection(item['id']!.toString());
     } catch (error) {
       if (mounted) showCreatorFailure(context, error);
     }
@@ -390,22 +361,15 @@ class _CreatorCenterPageState extends ConsumerState<CreatorCenterPage> {
     name.dispose();
     summary.dispose();
     if (accepted != true || !context.mounted) return;
-    setState(() => _creatingCollection = true);
     try {
-      final api = OronBoxCreatorApi(
-        auth: ref.read(bandBbsAuthProvider.notifier),
-      );
-      await api.createCollection(
+      await controller.createCollection(
         slug: 'collection-${DateTime.now().microsecondsSinceEpoch}',
         name: collectionName,
         summary: collectionSummary,
-        kind: kind == CreatorResourceKind.watchface ? 'watchface' : 'quickapp',
+        kind: kind,
       );
-      await Future.wait([controller.refresh(), _loadCollections()]);
     } catch (error) {
       if (context.mounted) showCreatorFailure(context, error);
-    } finally {
-      if (mounted) setState(() => _creatingCollection = false);
     }
   }
 }

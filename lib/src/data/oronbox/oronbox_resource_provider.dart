@@ -4,12 +4,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:oronbox/src/core/constants/oronbox_server.dart';
+import 'package:oronbox/src/core/network/app_http_transport.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 
 class OronBoxResourceCatalog implements CommunityResourceCatalog {
-  OronBoxResourceCatalog({Dio? dio}) : _dio = dio ?? Dio();
+  OronBoxResourceCatalog({Dio? dio}) : _dio = dio ?? createAppHttpTransport();
 
   final Dio _dio;
 

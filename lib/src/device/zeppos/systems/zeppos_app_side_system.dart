@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/core/network/app_http_transport.dart';
 import 'package:oronbox/src/device/core/system.dart';
 import 'package:oronbox/src/device/zeppos/app_side/zeppos_app_side_storage.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_component.dart';
@@ -62,7 +63,7 @@ class ZeppOsAppSideSystem extends System {
   static const _maxDebugEvents = 500;
 
   final ZeppOsAppSideStorage _storage;
-  final Dio _dio = Dio();
+  final Dio _dio = createAppHttpTransport();
   final _sessions = <int, _AppSideSession>{};
   final _watchHeaders = <int, _WatchSessionHeader>{};
   final _debugEvents = <int, List<ZeppOsAppSideDebugEvent>>{};

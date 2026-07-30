@@ -1,37 +1,35 @@
-enum AstroBoxCdn { raw, ghfast, ghproxy }
+enum GitHubCdn { raw, ghfast, ghproxy }
 
-extension AstroBoxCdnExtension on AstroBoxCdn {
+extension GitHubCdnExtension on GitHubCdn {
   String get displayName {
     return switch (this) {
-      AstroBoxCdn.raw => 'Raw',
-      AstroBoxCdn.ghfast => 'GHFast',
-      AstroBoxCdn.ghproxy => 'GHProxy',
+      GitHubCdn.raw => 'Raw',
+      GitHubCdn.ghfast => 'GHFast',
+      GitHubCdn.ghproxy => 'GHProxy',
     };
   }
 }
 
-Uri rewriteGithubCdnUri(Uri uri, AstroBoxCdn cdn) {
-  if (cdn == AstroBoxCdn.raw || !_isConvertibleGithubUri(uri)) {
-    return uri;
-  }
+Uri rewriteGithubCdnUri(Uri uri, GitHubCdn cdn) {
+  if (cdn == GitHubCdn.raw || !_isConvertibleGithubUri(uri)) return uri;
 
   final origin = uri.toString();
   return switch (cdn) {
-    AstroBoxCdn.raw => uri,
-    AstroBoxCdn.ghfast => Uri.parse('https://ghfast.top/$origin'),
-    AstroBoxCdn.ghproxy => Uri.parse('https://gh-proxy.com/$origin'),
+    GitHubCdn.raw => uri,
+    GitHubCdn.ghfast => Uri.parse('https://ghfast.top/$origin'),
+    GitHubCdn.ghproxy => Uri.parse('https://gh-proxy.com/$origin'),
   };
 }
 
-String rewriteGithubCdnUrl(String url, AstroBoxCdn cdn) {
+String rewriteGithubCdnUrl(String url, GitHubCdn cdn) {
   final uri = Uri.tryParse(url);
   if (uri == null) return url;
   return rewriteGithubCdnUri(uri, cdn).toString();
 }
 
-AstroBoxCdn? astroBoxCdnByName(String name) {
+GitHubCdn? githubCdnByName(String name) {
   try {
-    return AstroBoxCdn.values.byName(name);
+    return GitHubCdn.values.byName(name);
   } on ArgumentError {
     return null;
   }

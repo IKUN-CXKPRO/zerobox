@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
-import 'package:oronbox/src/data/astrobox/astrobox_cdn.dart';
+import 'package:oronbox/src/core/network/github_cdn.dart';
 
 class GithubCdnInterceptor extends Interceptor {
   GithubCdnInterceptor({required this.cdn});
 
-  final AstroBoxCdn Function() cdn;
+  final GitHubCdn Function() cdn;
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {

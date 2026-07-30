@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/core/network/app_http_transport.dart';
 import 'package:oronbox/src/core/services/build_info_service.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
@@ -63,7 +64,7 @@ class PluginManager {
   Future<void> _rawProtocolDispatchTail = Future<void>.value();
   Future<void> _interconnectSendTail = Future<void>.value();
   Future<void> _runtimeTransition = Future<void>.value();
-  final _dio = Dio();
+  final _dio = createAppHttpTransport();
   final _installer = ResourceInstallService();
   late final Future<PluginStorage> _storage = createPluginStorage();
   late final PluginPermissionBroker _permissionBroker = PluginPermissionBroker(

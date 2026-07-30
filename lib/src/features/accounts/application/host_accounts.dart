@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/errors/coded_error.dart';
-import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
 final currentUserRoleProvider = FutureProvider<String>((ref) async {
@@ -107,25 +106,9 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
 
   @override
   HostAccountsState build() {
-    ref.listen<BandBbsAuthState>(bandBbsAuthProvider, (previous, next) {
-      final account = HostAccount(
-        provider: 'bandbbs',
-        signedIn: next.isSignedIn,
-        username: next.username,
-        userId: next.userId,
-        avatarUrl: next.avatarUrl,
-        syncedDevices: state.accounts['bandbbs']?.syncedDevices ?? 0,
-      );
-      state = state.copyWith(
-        accounts: {...state.accounts, 'bandbbs': account},
-        clearError: true,
-        revision: state.revision + 1,
-      );
-      if (next.lastError case final code?) _publishNotice(code);
-    });
     _subscription = ref.watch(applicationHostProvider).events.listen((event) {
       if (event.event == 'account.state' &&
-          _replaceAccounts(event.data['state'], syncBandBbs: true)) {
+          _replaceAccounts(event.data['state'])) {
         if (event.data['reason'] case final Object reason) {
           _publishNotice(reason.toString());
         }
@@ -162,7 +145,7 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
     _replaceAccounts(value);
   }
 
-  bool _replaceAccounts(Object? value, {bool syncBandBbs = false}) {
+  bool _replaceAccounts(Object? value) {
     if (value is! List) return false;
     final accounts = {
       for (final row in value.whereType<Map>())
@@ -175,14 +158,6 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
       clearError: true,
       revision: state.revision + 1,
     );
-    if (syncBandBbs) {
-      final bandBbs = accounts['bandbbs'];
-      unawaited(
-        ref
-            .read(bandBbsAuthProvider.notifier)
-            .reloadCredentials(clearWhenMissing: bandBbs?.signedIn != true),
-      );
-    }
     return true;
   }
 
@@ -317,11 +292,6 @@ class HostAccountsNotifier extends Notifier<HostAccountsState> {
         accounts: {...state.accounts, account.provider: account},
         clearBusy: true,
       );
-      if (provider == 'bandbbs') {
-        await ref
-            .read(bandBbsAuthProvider.notifier)
-            .reloadCredentials(clearWhenMissing: !account.signedIn);
-      }
       return account;
     } catch (error) {
       state = state.copyWith(clearBusy: true, error: error.toString());

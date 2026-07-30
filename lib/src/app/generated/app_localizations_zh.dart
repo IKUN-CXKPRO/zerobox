@@ -2739,6 +2739,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorOperationCreating => '正在创建资源';
 
   @override
+  String get creatorOperationCreatingCollection => '正在创建合集';
+
+  @override
   String get creatorOperationSaving => '正在保存更改';
 
   @override

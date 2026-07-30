@@ -16,7 +16,7 @@ import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/core/providers/theme_locale_providers.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/core/utils/layout.dart';
-import 'package:oronbox/src/data/astrobox/astrobox_cdn.dart';
+import 'package:oronbox/src/core/network/github_cdn.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
@@ -547,12 +547,12 @@ class SettingsPage extends ConsumerWidget {
       renderBox.size.height,
     );
 
-    final selected = await showMenu<AstroBoxCdn>(
+    final selected = await showMenu<GitHubCdn>(
       context: tileContext,
       position: RelativeRect.fromRect(anchor, Offset.zero & overlay.size),
       initialValue: current,
-      items: AstroBoxCdn.values.map((cdn) {
-        return PopupMenuItem<AstroBoxCdn>(
+      items: GitHubCdn.values.map((cdn) {
+        return PopupMenuItem<GitHubCdn>(
           value: cdn,
           child: Text(cdn.displayName),
         );

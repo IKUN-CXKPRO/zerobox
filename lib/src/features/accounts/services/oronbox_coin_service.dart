@@ -1,10 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/core/constants/oronbox_server.dart';
+import 'package:oronbox/src/core/network/app_http_transport.dart';
 import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
+import 'package:oronbox/src/features/accounts/services/oronbox_session_client.dart';
 
 final oronBoxCoinServiceProvider = Provider<OronBoxCoinService>(
-  (ref) => OronBoxCoinService(ref.watch(bandBbsAuthProvider.notifier)),
+  (ref) => OronBoxCoinService(ref.watch(oronBoxSessionAccessProvider)),
 );
 
 class CoinAccount {
@@ -33,30 +35,29 @@ class CoinCheckinResult {
 }
 
 class OronBoxCoinService {
-  OronBoxCoinService(this._auth)
-    : _dio = Dio(BaseOptions(baseUrl: oronBoxServerBaseUrl));
+  OronBoxCoinService(OronBoxSessionAccess sessions, {Dio? dio})
+    : _sessions = OronBoxSessionClient(sessions),
+      _dio =
+          dio ??
+          createAppHttpTransport(
+            options: BaseOptions(baseUrl: oronBoxServerBaseUrl),
+          );
 
-  final BandBbsAuthNotifier _auth;
+  final OronBoxSessionClient _sessions;
   final Dio _dio;
 
-  Future<Options> _options() async {
-    final session = await _auth.sessionIfNeeded();
-    if (session == null) throw StateError('BandBBS account is not signed in');
-    return Options(headers: {'Authorization': 'Bearer ${session.accessToken}'});
-  }
-
   Future<CoinAccount> account() async {
-    final response = await _dio.get<Object?>(
-      '/api/coins',
-      options: await _options(),
+    final response = await _sessions.send<Object?>(
+      (authorization) =>
+          _dio.get<Object?>('/api/coins', options: authorization),
     );
     return CoinAccount.fromJson(_map(response.data));
   }
 
   Future<CoinCheckinResult> checkin() async {
-    final response = await _dio.post<Object?>(
-      '/api/coins/checkin',
-      options: await _options(),
+    final response = await _sessions.send<Object?>(
+      (authorization) =>
+          _dio.post<Object?>('/api/coins/checkin', options: authorization),
     );
     final json = _map(response.data);
     return CoinCheckinResult(
@@ -66,10 +67,12 @@ class OronBoxCoinService {
   }
 
   Future<void> coin(String resourceId, int coins) async {
-    await _dio.post<Object?>(
-      '/api/resources/${Uri.encodeComponent(resourceId)}/coins',
-      data: {'coins': coins},
-      options: await _options(),
+    await _sessions.send<Object?>(
+      (authorization) => _dio.post<Object?>(
+        '/api/resources/${Uri.encodeComponent(resourceId)}/coins',
+        data: {'coins': coins},
+        options: authorization,
+      ),
     );
   }
 

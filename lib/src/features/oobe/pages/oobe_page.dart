@@ -13,10 +13,10 @@ import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/app/widgets/app_icon.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
-import 'package:oronbox/src/core/network/http_observability_interceptor.dart';
+import 'package:oronbox/src/core/network/app_http_transport.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/core/utils/app_exit.dart';
-import 'package:oronbox/src/data/astrobox/astrobox_cdn.dart';
+import 'package:oronbox/src/core/network/github_cdn.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/accounts/services/mi_account_two_factor_resolver.dart';
 import 'package:oronbox/src/features/oobe/oobe_state.dart';
@@ -571,7 +571,7 @@ class _LoginStep extends ConsumerStatefulWidget {
 
 class _LoginStepState extends ConsumerState<_LoginStep> {
   final _dio = _createOobeDio();
-  final _cdnResults = <AstroBoxCdn, int?>{};
+  final _cdnResults = <GitHubCdn, int?>{};
   bool _cdnTesting = true;
 
   static const _testUrl =
@@ -584,7 +584,7 @@ class _LoginStepState extends ConsumerState<_LoginStep> {
   }
 
   Future<void> _runCdnTests() async {
-    final cdns = AstroBoxCdn.values;
+    final cdns = GitHubCdn.values;
     final futures = cdns.map((cdn) async {
       final uri = rewriteGithubCdnUri(Uri.parse(_testUrl), cdn);
       final sw = Stopwatch()..start();
@@ -637,7 +637,7 @@ class _LoginStepState extends ConsumerState<_LoginStep> {
       ..sort((a, b) => a.value!.compareTo(b.value!));
     final fastestCdn = fastest.isNotEmpty ? fastest.first.key : null;
 
-    for (final cdn in AstroBoxCdn.values) {
+    for (final cdn in GitHubCdn.values) {
       final ms = _cdnResults[cdn];
       final isFastest = cdn == fastestCdn;
       cdnTiles.add(
@@ -725,9 +725,9 @@ class _LoginStepState extends ConsumerState<_LoginStep> {
 }
 
 Dio _createOobeDio() {
-  final dio = Dio(BaseOptions(connectTimeout: const Duration(seconds: 5)));
-  installHttpObservability(dio);
-  return dio;
+  return createAppHttpTransport(
+    options: BaseOptions(connectTimeout: const Duration(seconds: 5)),
+  );
 }
 
 Future<void> _startBandBbsLogin(BuildContext context, WidgetRef ref) async {

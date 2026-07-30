@@ -5167,6 +5167,12 @@ abstract class AppLocalizations {
   /// **'Creating resource'**
   String get creatorOperationCreating;
 
+  /// No description provided for @creatorOperationCreatingCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating collection'**
+  String get creatorOperationCreatingCollection;
+
   /// No description provided for @creatorOperationSaving.
   ///
   /// In en, this message translates to:

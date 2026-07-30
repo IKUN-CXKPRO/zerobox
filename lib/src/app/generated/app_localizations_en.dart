@@ -2867,6 +2867,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorOperationCreating => 'Creating resource';
 
   @override
+  String get creatorOperationCreatingCollection => 'Creating collection';
+
+  @override
   String get creatorOperationSaving => 'Saving changes';
 
   @override

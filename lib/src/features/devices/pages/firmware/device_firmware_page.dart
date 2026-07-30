@@ -2,21 +2,21 @@ import 'dart:async';
 
 import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
-import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/device/core/device_kind.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/devices/pages/install/local_file_picker_policy.dart';
 import 'package:oronbox/src/features/devices/services/firmware_catalog.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/features/resources/services/download_queue_notifier.dart';
 import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
 import 'package:oronbox/src/features/resources/widgets/resource_install_confirmation.dart';
-import 'package:oronbox/src/host/application_host_provider.dart';
 
 class DeviceFirmwarePage extends ConsumerStatefulWidget {
   const DeviceFirmwarePage({super.key});
@@ -86,35 +86,42 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
   }
 
   Future<void> _downloadLatest(FirmwareRelease release) async {
-    final result = await ref
-        .read(applicationHostProvider)
-        .execute(
-          OronBoxCommand(
-            method: 'task.enqueue',
-            params: {
-              'command': OronBoxCommand(
-                method: 'file.download',
-                params: {
-                  'url': release.downloadUrl.toString(),
-                  'fileName': release.fileName,
-                  'title': release.fileName,
-                  if (!kIsWeb) ...{
-                    'queueInstall': true,
-                    'installType': 'firmware',
-                    'autoClean': true,
-                  },
-                },
-              ).toJson(),
-            },
-          ),
+    final device = ref.read(deviceManagerProvider).currentDevice;
+    final codename = device?.codename ?? '';
+    final detail = CommunityResourceDetail(
+      ref: ResourceRef(
+        source: CommunitySourceId.astroboxRepo,
+        id: release.fileName,
+      ),
+      name: release.fileName,
+      type: CommunityResourceType.firmware,
+      paidType: CommunityPaidType.free,
+      authors: const [],
+      supportedDevices: codename.isEmpty ? const {} : {codename},
+      content: const CommunityResourceContent(
+        format: ResourceContentFormat.plainText,
+        value: '',
+      ),
+      files: [
+        CommunityResourceFile(
+          id: release.fileName,
+          fileName: release.fileName,
+          version: release.version,
+          downloadUrl: release.downloadUrl,
+          size: release.size,
+        ),
+      ],
+      version: release.version,
+      summary: release.releaseNotes ?? '',
+      canDownload: true,
+    );
+    ref
+        .read(downloadQueueProvider.notifier)
+        .enqueue(
+          resource: detail,
+          file: detail.files.first,
+          codename: codename,
         );
-    if (!result.ok) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.downloadFailed)),
-      );
-      return;
-    }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context)!.downloadTaskAdded)),

@@ -10,6 +10,7 @@ import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/daemon/daemon_task_models.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource_codec.dart';
+import 'package:oronbox/src/features/resources/services/daemon_task_feed.dart';
 import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
@@ -73,7 +74,7 @@ class InstallQueueState {
 }
 
 class InstallQueueNotifier extends Notifier<InstallQueueState> {
-  StreamSubscription<CommandEvent>? _subscription;
+  DaemonTaskFeed<InstallTask>? _feed;
 
   @override
   InstallQueueState build() {
@@ -82,55 +83,16 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
       return const InstallQueueState();
     }
     final host = ref.watch(applicationHostProvider);
-    _subscription = host.events.listen(_handleEvent);
-    ref.onDispose(() => unawaited(_subscription?.cancel()));
-    scheduleMicrotask(_refresh);
-    return const InstallQueueState();
-  }
-
-  Future<void> _refresh() async {
-    final result = await ref
-        .read(applicationHostProvider)
-        .execute(const OronBoxCommand(method: 'queue.list'));
-    if (!result.ok || result.value is! List) return;
-    _replaceFromRows((result.value as List).whereType<Map>());
-  }
-
-  void _handleEvent(CommandEvent event) {
-    if (event.event == 'host.connected') {
-      unawaited(_refresh());
-      return;
-    }
-    if (event.event == 'task.removed') {
-      final id = event.data['id']?.toString();
-      state = InstallQueueState(
-        tasks: state.tasks.where((task) => task.id != id).toList(),
-        runStatus: state.runStatus,
-      );
-      return;
-    }
-    if (event.event != 'task') return;
-    final view = DaemonTaskView.fromJson(event.data);
-    if (view.method != 'install.local') return;
-    final task = _fromView(view);
-    final tasks = [...state.tasks];
-    final index = tasks.indexWhere((item) => item.id == task.id);
-    if (index < 0) {
-      tasks.add(task);
-    } else {
-      tasks[index] = task;
-    }
-    _setTasks(tasks);
-  }
-
-  void _replaceFromRows(Iterable<Map> rows) {
-    _setTasks(
-      rows
-          .map((row) => DaemonTaskView.fromJson(row.cast<String, Object?>()))
-          .where((view) => view.method == 'install.local')
-          .map(_fromView)
-          .toList(),
+    _feed = DaemonTaskFeed(
+      host: host,
+      method: 'install.local',
+      decode: _fromView,
+      taskId: (task) => task.id,
+      onChanged: _setTasks,
     );
+    ref.onDispose(() => unawaited(_feed?.dispose()));
+    scheduleMicrotask(() => _feed?.start());
+    return const InstallQueueState();
   }
 
   void _setTasks(List<InstallTask> tasks) {
@@ -176,12 +138,10 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
       filePath: view.path ?? '',
       resource: resource,
       file: resourceFile,
-      status: switch (view.status) {
-        'running' => ResourceTaskStatus.installing,
-        'completed' => ResourceTaskStatus.completed,
-        'failed' || 'cancelled' => ResourceTaskStatus.failed,
-        _ => ResourceTaskStatus.pending,
-      },
+      status: resourceTaskStatusFromDaemon(
+        view.status,
+        activity: ResourceTaskActivity.install,
+      ),
       progress: view.progress,
       error: view.error,
     );
@@ -310,7 +270,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
           ),
         );
     if (!result.ok) throw StateError(result.error!.message);
-    await _refresh();
+    await _feed?.refresh();
   }
 
   void enqueueResource({
@@ -381,18 +341,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
         task == null ||
         task.status == ResourceTaskStatus.completed ||
         task.status == ResourceTaskStatus.failed;
-    final host = ref.read(applicationHostProvider);
-    await host.execute(
-      OronBoxCommand(
-        method: terminal ? 'queue.remove' : 'queue.cancel',
-        params: {'id': taskId},
-      ),
-    );
-    if (!terminal) {
-      await host.execute(
-        OronBoxCommand(method: 'queue.remove', params: {'id': taskId}),
-      );
-    }
+    await _feed?.remove(taskId, terminal: terminal);
   }
 
   void clearTerminal() {
@@ -442,13 +391,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
       );
       return;
     }
-    unawaited(
-      ref
-          .read(applicationHostProvider)
-          .execute(
-            OronBoxCommand(method: 'queue.retry', params: {'id': taskId}),
-          ),
-    );
+    unawaited(_feed?.retry(taskId));
   }
 
   void start() {

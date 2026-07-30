@@ -60,6 +60,7 @@ class _BandBbsAccountPageState extends ConsumerState<BandBbsAccountPage> {
           _checkedIn = checkedIn;
         });
       }
+      if (!checkedIn) unawaited(_checkin());
     } catch (error) {
       if (mounted) {
         setState(() => _coinAccount = null);
@@ -279,7 +280,8 @@ class _BandBbsAccountPageState extends ConsumerState<BandBbsAccountPage> {
                           keyboardType: TextInputType.number,
                           onSubmitted: (_) => _query(),
                           decoration: InputDecoration(
-                            hintText: l10n.bandBbsResourceIdHint,
+                            labelText: l10n.bandBbsResourceIdHint,
+                            border: const OutlineInputBorder(),
                           ),
                         ),
                       ),

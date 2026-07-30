@@ -9,6 +9,7 @@ import 'package:oronbox/src/device/core/ble_requirement.dart';
 import 'package:oronbox/src/device/core/system.dart';
 import 'package:oronbox/src/device/core/transport.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_services_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_v3_file_transfer.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_component.dart';
 
 class ZeppOsMapUploadSystem extends System {
@@ -33,7 +34,7 @@ class ZeppOsMapUploadSystem extends System {
   Completer<void>? _mapStart;
   Completer<_RawDownloadRequest>? _rawRequest;
   Completer<int>? _fileRequest;
-  Completer<int>? _chunkAck;
+  ZeppOsV3FileTransfer? _transfer;
 
   ZeppOsDeviceComponent get _component =>
       entity.getRequired<ZeppOsDeviceComponent>();
@@ -154,9 +155,14 @@ class ZeppOsMapUploadSystem extends System {
         'V${_fileTransferVersion ?? '未知'}',
       );
     }
+    _transfer ??= ZeppOsV3FileTransfer(
+      transport: transport,
+      characteristic: _v3Send,
+      transferLabel: 'map',
+    );
     _ackSubscription ??= await transport.subscribeToCharacteristic(
       _v3Send,
-      _handleV3Ack,
+      _transfer!.handleAck,
     );
   }
 
@@ -187,36 +193,12 @@ class ZeppOsMapUploadSystem extends System {
         throw StateError('手表返回了无效的地图传输进度：$existingProgress');
       }
 
-      var offset = existingProgress;
-      var index = offset ~/ _chunkSize;
-      onProgress?.call(bytes.isEmpty ? 1 : offset / bytes.length);
-      while (offset < bytes.length) {
-        final length = (bytes.length - offset).clamp(0, _chunkSize);
-        final last = offset + length == bytes.length;
-        final packet = Uint8List(5 + length);
-        packet[0] = 0x12;
-        packet[1] = (offset == 0 ? 1 : 0) | (last ? 2 : 0);
-        packet[2] = index & 0xff;
-        ByteData.sublistView(packet).setUint16(3, length, Endian.little);
-        packet.setRange(5, packet.length, bytes, offset);
-
-        final ack = Completer<int>();
-        _chunkAck = ack;
-        try {
-          await _writeV3Packet(packet);
-          final acknowledged = await ack.future.timeout(
-            const Duration(seconds: 20),
-          );
-          if (acknowledged != (index & 0xff)) {
-            throw StateError('地图分块确认序号不匹配：$acknowledged/${index & 0xff}');
-          }
-        } finally {
-          if (identical(_chunkAck, ack)) _chunkAck = null;
-        }
-        offset += length;
-        index += 1;
-        onProgress?.call(offset / bytes.length);
-      }
+      await _transfer!.send(
+        bytes: bytes,
+        initialOffset: existingProgress,
+        chunkSize: _chunkSize,
+        onProgress: onProgress,
+      );
 
       await _component.sendToEndpoint(
         httpEndpoint,
@@ -227,22 +209,6 @@ class ZeppOsMapUploadSystem extends System {
       _log.info('map upload completed: ${bytes.length} bytes');
     } finally {
       if (identical(_fileRequest, fileRequest)) _fileRequest = null;
-    }
-  }
-
-  Future<void> _writeV3Packet(Uint8List packet) async {
-    final transport = entity.transport as CharacteristicTransport;
-    final writeLength = _maxWriteLength ?? packet.length;
-    if (writeLength <= 0) {
-      throw StateError('BLE 最大写入长度无效：$writeLength');
-    }
-    for (var offset = 0; offset < packet.length; offset += writeLength) {
-      final end = (offset + writeLength).clamp(0, packet.length);
-      await transport.sendToCharacteristic(
-        Uint8List.sublistView(packet, offset, end),
-        _v3Send,
-        withResponse: false,
-      );
     }
   }
 
@@ -301,17 +267,6 @@ class ZeppOsMapUploadSystem extends System {
     }
   }
 
-  void _handleV3Ack(Uint8List payload) {
-    if (payload.length < 3 || payload[0] != 0x13) return;
-    final pending = _chunkAck;
-    if (pending == null || pending.isCompleted) return;
-    if (payload[1] == 0) {
-      pending.complete(payload[2]);
-    } else {
-      pending.completeError(StateError('地图分块写入失败：${payload[1]}'));
-    }
-  }
-
   static Uint8List _mapStartRequest(int uncompressedSize, String url) {
     final urlBytes = utf8.encode(url);
     final bytes = Uint8List(1 + 4 + 2 + urlBytes.length + 2);
@@ -340,7 +295,7 @@ class ZeppOsMapUploadSystem extends System {
     payload[offset++] = 0;
     final view = ByteData.sublistView(payload);
     view.setUint32(offset, bytes.length, Endian.little);
-    view.setUint32(offset + 4, _crc32(bytes), Endian.little);
+    view.setUint32(offset + 4, zeppOsFileCrc32(bytes), Endian.little);
     payload[offset + 8] = 0;
     payload[offset + 9] = 0;
     return payload;
@@ -358,17 +313,6 @@ class ZeppOsMapUploadSystem extends System {
     final payload = Uint8List.fromList([0x05, requestId, 1, 0, 0]);
     ByteData.sublistView(payload).setUint16(3, 200, Endian.little);
     return payload;
-  }
-
-  static int _crc32(List<int> bytes) {
-    var crc = 0xffffffff;
-    for (final byte in bytes) {
-      crc ^= byte;
-      for (var bit = 0; bit < 8; bit++) {
-        crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xedb88320 : crc >> 1;
-      }
-    }
-    return (crc ^ 0xffffffff) & 0xffffffff;
   }
 
   @override
@@ -429,10 +373,7 @@ class ZeppOsMapPackage {
     return GarminImgInput(
       bytes: imgBytes,
       fileName: entry.name,
-      analysis: GarminImgAnalysis.analyze(
-        imgBytes,
-        fileName: entry.name,
-      ),
+      analysis: GarminImgAnalysis.analyze(imgBytes, fileName: entry.name),
     );
   }
 
@@ -447,8 +388,7 @@ class ZeppOsMapPackage {
         final archive = ZipDecoder().decodeBytes(bytes, verify: true);
         final entry = archive.files.singleWhere(
           (candidate) =>
-              candidate.isFile &&
-              candidate.name.toLowerCase().endsWith('.img'),
+              candidate.isFile && candidate.name.toLowerCase().endsWith('.img'),
         );
         return _prepareGarminImg(
           Uint8List.fromList(entry.content as List<int>),
@@ -481,13 +421,7 @@ class ZeppOsMapPackage {
     }
     final tile = analysis.maps.single.zoom11Tile!;
     final archive = Archive()
-      ..addFile(
-        ArchiveFile(
-          '11/${tile.x}/${tile.y}.img',
-          bytes.length,
-          bytes,
-        ),
-      );
+      ..addFile(ArchiveFile('11/${tile.x}/${tile.y}.img', bytes.length, bytes));
     final zipBytes = Uint8List.fromList(ZipEncoder().encode(archive));
     final outputName = '${_baseNameWithoutExtension(fileName)}-zeppos.zip';
     return ZeppOsPreparedMap(
@@ -581,7 +515,6 @@ class ZeppOsMapPackage {
       throw FormatException('$fileName 不是有效的 Garmin IMG 地图');
     }
   }
-
 }
 
 class GarminImgAnalysis {
@@ -656,9 +589,7 @@ class GarminImgAnalysis {
     final blockSize = 1 << blockShift;
     var directorySize = math.min(bytes.length, 1024 * 1024);
     final entries = <String, _GarminFatFile>{};
-    for (var offset = 0x200;
-        offset + 512 <= directorySize;
-        offset += 512) {
+    for (var offset = 0x200; offset + 512 <= directorySize; offset += 512) {
       final entry = Uint8List.sublistView(bytes, offset, offset + 512);
       if (entry[0] != 1) continue;
       final name = ascii
@@ -693,9 +624,7 @@ class GarminImgAnalysis {
       throw FormatException('$fileName 没有可读取的 Garmin FAT 目录');
     }
 
-    final extensions = entries.values
-        .map((entry) => entry.extension)
-        .toSet();
+    final extensions = entries.values.map((entry) => entry.extension).toSet();
     final maps = <GarminImgMapInfo>[];
     var locked = false;
     for (final entry in entries.values.where(
@@ -723,8 +652,7 @@ class GarminImgAnalysis {
       extensions: extensions,
       hasTyp: extensions.contains('TYP'),
       hasDem: extensions.contains('DEM'),
-      hasRouting:
-          extensions.contains('NET') || extensions.contains('NOD'),
+      hasRouting: extensions.contains('NET') || extensions.contains('NOD'),
       isNt: extensions.contains('GMP'),
       isLocked: locked,
     );

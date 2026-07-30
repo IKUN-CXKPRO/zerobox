@@ -368,6 +368,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                         children: [
                           TextField(
                             controller: _name,
+                            onChanged: (_) => setState(() {}),
                             decoration: InputDecoration(
                               labelText: l10n.creatorResourceName,
                             ),
@@ -593,6 +594,13 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                       : l10n.creatorArchiveAction,
                 ),
               ),
+            TextButton.icon(
+              onPressed: widget.state.loading || _name.text.trim().isEmpty
+                  ? null
+                  : _saveDraft,
+              icon: const Icon(Icons.save_outlined),
+              label: Text(l10n.creatorSaveDraft),
+            ),
             TextButton.icon(
               onPressed: widget.state.loading ? null : _confirmDelete,
               icon: const Icon(Icons.delete_outline),
@@ -1014,36 +1022,8 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     );
     if (accepted != true) return;
     await _run(() async {
-      final missing = [
-        for (final asset in [_icon, _cover, ..._previews, ..._artifacts])
-          if (asset != null && asset.bytes == null) asset,
-      ];
-      var fetched = 0;
-      for (final asset in missing) {
-        if (!mounted) return;
-        setState(() {
-          _publishStage = l10n.creatorPublishPreparing(
-            fetched + 1,
-            missing.length + 1,
-          );
-          _publishStageProgress = fetched / (missing.length + 1);
-        });
-        asset.bytes = await widget.controller.blob(
-          widget.workspace.resource.id,
-          asset.sha256,
-        );
-        fetched++;
-      }
-      if (mounted) {
-        setState(() {
-          _publishStage = l10n.creatorPublishPreparing(
-            missing.length + 1,
-            missing.length + 1,
-          );
-          _publishStageProgress = 1;
-        });
-      }
-      final bundle = _buildBundle(plans);
+      final bundle = await _prepareBundle(plans);
+      if (bundle == null) return;
       if (mounted) setState(() => _publishStage = '');
       try {
         await widget.controller.publish(bundle: bundle);
@@ -1056,6 +1036,54 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
         }
       }
     });
+  }
+
+  Future<void> _saveDraft() => _run(() async {
+    final bundle = await _prepareBundle(const []);
+    if (bundle == null) return;
+    try {
+      await widget.controller.saveDraft(bundle: bundle);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _publishStage = '';
+          _publishStageProgress = 0;
+        });
+      }
+    }
+  });
+
+  Future<Uint8List?> _prepareBundle(
+    List<Map<String, Object?>> publications,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final missing = [
+      for (final asset in [_icon, _cover, ..._previews, ..._artifacts])
+        if (asset != null && asset.bytes == null) asset,
+    ];
+    for (var index = 0; index < missing.length; index++) {
+      if (!mounted) return null;
+      setState(() {
+        _publishStage = l10n.creatorPublishPreparing(
+          index + 1,
+          missing.length + 1,
+        );
+        _publishStageProgress = index / (missing.length + 1);
+      });
+      missing[index].bytes = await widget.controller.blob(
+        widget.workspace.resource.id,
+        missing[index].sha256,
+      );
+    }
+    if (!mounted) return null;
+    setState(() {
+      _publishStage = l10n.creatorPublishPreparing(
+        missing.length + 1,
+        missing.length + 1,
+      );
+      _publishStageProgress = 1;
+    });
+    return _buildBundle(publications);
   }
 
   Uint8List _buildBundle(List<Map<String, Object?>> publications) {

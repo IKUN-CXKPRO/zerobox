@@ -8,12 +8,11 @@ import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 import 'package:oronbox/src/features/resources/services/resource_payload_analyzer.dart';
+import 'package:oronbox/src/features/resources/services/resource_task_status.dart';
 
 export 'resource_task_status.dart';
 export 'resource_payload_analyzer.dart'
     show LocalDeviceInstallType, ResourceInstallMode;
-
-enum ResourceTaskStatus { pending, downloading, installing, completed, failed }
 
 class DownloadedResource {
   const DownloadedResource({
@@ -117,39 +116,6 @@ class ResourceInstallService {
         } catch (_) {}
       }
     }
-  }
-
-  Future<void> downloadAndInstall({
-    required CommunityResourceDetail resource,
-    required CommunityResourceFile file,
-    required CommunityResourceCatalog catalog,
-    String? targetDevice,
-    required DeviceManager deviceManager,
-    required void Function(
-      ResourceTaskStatus status,
-      double progress,
-      String? error,
-    )
-    onUpdate,
-    required String taskId,
-  }) async {
-    final downloaded = await downloadResource(
-      resource: resource,
-      file: file,
-      catalog: catalog,
-      targetDevice: targetDevice,
-      onUpdate: onUpdate,
-    );
-    if (downloaded == null) return;
-    await installDownloadedResource(
-      resource: resource,
-      file: file,
-      filePath: downloaded.path,
-      bytes: downloaded.bytes,
-      deviceManager: deviceManager,
-      onUpdate: onUpdate,
-      deleteAfterInstall: true,
-    );
   }
 
   Future<void> installLocalFile({

@@ -8,6 +8,7 @@ import 'package:oronbox/src/daemon/daemon_task_models.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource_codec.dart';
+import 'package:oronbox/src/features/resources/services/daemon_task_feed.dart';
 import 'package:oronbox/src/features/resources/services/install_queue_notifier.dart';
 import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
@@ -39,7 +40,7 @@ class ResourceTask {
 }
 
 class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
-  StreamSubscription<CommandEvent>? _subscription;
+  DaemonTaskFeed<ResourceTask>? _feed;
   CancelToken? _cancelToken;
   final Set<String> _enqueuing = {};
 
@@ -47,9 +48,15 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
   List<ResourceTask> build() {
     if (kIsWeb) return const [];
     final host = ref.watch(applicationHostProvider);
-    _subscription = host.events.listen(_handleEvent);
-    ref.onDispose(() => unawaited(_subscription?.cancel()));
-    scheduleMicrotask(_refresh);
+    _feed = DaemonTaskFeed(
+      host: host,
+      method: 'resource.download',
+      decode: _fromView,
+      taskId: (task) => task.id,
+      onChanged: (tasks) => state = tasks,
+    );
+    ref.onDispose(() => unawaited(_feed?.dispose()));
+    scheduleMicrotask(() => _feed?.start());
     return const [];
   }
 
@@ -126,7 +133,7 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
           ),
         );
     if (!result.ok) throw StateError(result.error!.message);
-    await _refresh();
+    await _feed?.refresh();
   }
 
   void _startNextWeb() {
@@ -204,20 +211,12 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
       _startNextWeb();
       return;
     }
-    final host = ref.read(applicationHostProvider);
-    if (task.status == ResourceTaskStatus.completed ||
-        task.status == ResourceTaskStatus.failed) {
-      await host.execute(
-        OronBoxCommand(method: 'queue.remove', params: {'id': id}),
-      );
-    } else {
-      await host.execute(
-        OronBoxCommand(method: 'queue.cancel', params: {'id': id}),
-      );
-      await host.execute(
-        OronBoxCommand(method: 'queue.remove', params: {'id': id}),
-      );
-    }
+    await _feed?.remove(
+      id,
+      terminal:
+          task.status == ResourceTaskStatus.completed ||
+          task.status == ResourceTaskStatus.failed,
+    );
   }
 
   void clearTerminal() {
@@ -257,50 +256,7 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
       _startNextWeb();
       return;
     }
-    unawaited(
-      ref
-          .read(applicationHostProvider)
-          .execute(OronBoxCommand(method: 'queue.retry', params: {'id': id})),
-    );
-  }
-
-  Future<void> _refresh() async {
-    final result = await ref
-        .read(applicationHostProvider)
-        .execute(const OronBoxCommand(method: 'queue.list'));
-    if (!result.ok || result.value is! List) return;
-    state = (result.value as List)
-        .whereType<Map>()
-        .map((row) => DaemonTaskView.fromJson(row.cast<String, Object?>()))
-        .where((view) => view.method == 'resource.download')
-        .map(_fromView)
-        .whereType<ResourceTask>()
-        .toList();
-  }
-
-  void _handleEvent(CommandEvent event) {
-    if (event.event == 'host.connected') {
-      unawaited(_refresh());
-      return;
-    }
-    if (event.event == 'task.removed') {
-      final id = event.data['id']?.toString();
-      state = state.where((task) => task.id != id).toList();
-      return;
-    }
-    if (event.event != 'task') return;
-    final view = DaemonTaskView.fromJson(event.data);
-    if (view.method != 'resource.download') return;
-    final task = _fromView(view);
-    if (task == null) return;
-    final tasks = [...state];
-    final index = tasks.indexWhere((item) => item.id == task.id);
-    if (index < 0) {
-      tasks.add(task);
-    } else {
-      tasks[index] = task;
-    }
-    state = tasks;
+    unawaited(_feed?.retry(id));
   }
 
   ResourceTask? _fromView(DaemonTaskView view) {
@@ -317,12 +273,10 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
       resource: resource,
       file: file,
       codename: view.params['targetDevice']?.toString() ?? '',
-      status: switch (view.status) {
-        'running' => ResourceTaskStatus.downloading,
-        'completed' => ResourceTaskStatus.completed,
-        'failed' || 'cancelled' => ResourceTaskStatus.failed,
-        _ => ResourceTaskStatus.pending,
-      },
+      status: resourceTaskStatusFromDaemon(
+        view.status,
+        activity: ResourceTaskActivity.download,
+      ),
       progress: view.progress,
       error: view.error,
     );

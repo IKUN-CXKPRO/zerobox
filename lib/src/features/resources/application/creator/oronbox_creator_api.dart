@@ -3,16 +3,23 @@ import 'package:flutter/foundation.dart';
 import 'package:oronbox/src/core/constants/oronbox_server.dart';
 import 'package:oronbox/src/core/errors/coded_error.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/core/network/app_http_transport.dart';
 import 'package:oronbox/src/core/network/http_observability_interceptor.dart';
 import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
+import 'package:oronbox/src/features/accounts/services/oronbox_session_client.dart';
 
 class OronBoxCreatorApi {
-  OronBoxCreatorApi({required this.auth, Dio? dio})
-    : _dio = dio ?? Dio(BaseOptions(baseUrl: oronBoxServerBaseUrl)) {
-    installHttpObservability(_dio);
-  }
+  OronBoxCreatorApi({required OronBoxSessionAccess sessions, Dio? dio})
+    : _sessionAccess = sessions,
+      _sessions = OronBoxSessionClient(sessions),
+      _dio =
+          dio ??
+          createAppHttpTransport(
+            options: BaseOptions(baseUrl: oronBoxServerBaseUrl),
+          );
 
-  final BandBbsAuthNotifier auth;
+  final OronBoxSessionAccess _sessionAccess;
+  final OronBoxSessionClient _sessions;
   final Dio _dio;
   static final _log = getLogger('CreatorApi');
 
@@ -63,15 +70,13 @@ class OronBoxCreatorApi {
     Map<String, Object?>? query,
     required String stage,
   }) async {
-    final session = await _requireSession(stage);
     final response = await _send(
-      () => _dio.request<Object?>(
-        path,
-        data: data,
-        queryParameters: query,
-        options: Options(
-          method: method,
-          headers: {'Authorization': 'Bearer ${session.accessToken}'},
+      () => _sessions.send<Object?>(
+        (authorization) => _dio.request<Object?>(
+          path,
+          data: data,
+          queryParameters: query,
+          options: authorization.copyWith(method: method),
         ),
       ),
       stage: stage,
@@ -79,32 +84,9 @@ class OronBoxCreatorApi {
     return response;
   }
 
-  Future<OronBoxSession> _requireSession(String stage) async {
-    OronBoxSession? session;
-    try {
-      session = await auth.sessionIfNeeded();
-    } on DioException catch (error) {
-      throw CreatorApiException.fromDio(error, stage: '$stage.auth');
-    } on CodedError catch (error) {
-      throw CreatorApiException(
-        code: error.code,
-        message: error.message,
-        details: {'stage': '$stage.auth', 'cause': error.details},
-      );
-    }
-    if (session == null) {
-      throw CreatorApiException(
-        code: 'auth_required',
-        message: 'BandBBS account is not signed in',
-        details: {'stage': '$stage.auth'},
-      );
-    }
-    return session;
-  }
-
   Future<OronBoxSession?> _optionalSession(String stage) async {
     try {
-      return await auth.sessionIfNeeded();
+      return await _sessionAccess.sessionIfNeeded();
     } on DioException catch (error) {
       throw CreatorApiException.fromDio(error, stage: stage);
     } on CodedError catch (error) {
@@ -129,21 +111,22 @@ class OronBoxCreatorApi {
       fields: {'resource': resourceId, 'bytes': bundle.length},
     );
     try {
-      final session = await _requireSession('publish');
       final response = await _send(
-        () => _dio.post<Object?>(
-          '/api/creator/resources/$resourceId/publish',
-          data: Stream.fromIterable([bundle]),
-          options: Options(
-            headers: {
-              'Authorization': 'Bearer ${session.accessToken}',
-              Headers.contentLengthHeader: bundle.length,
-              Headers.contentTypeHeader: 'application/zip',
+        () => _sessions.send<Object?>(
+          (authorization) => _dio.post<Object?>(
+            '/api/creator/resources/$resourceId/publish',
+            data: Stream.fromIterable([bundle]),
+            options: authorization.copyWith(
+              headers: {
+                ...?authorization.headers,
+                Headers.contentLengthHeader: bundle.length,
+                Headers.contentTypeHeader: 'application/zip',
+              },
+            ),
+            onSendProgress: (sent, total) {
+              if (total > 0) onProgress?.call(sent / total);
             },
           ),
-          onSendProgress: (sent, total) {
-            if (total > 0) onProgress?.call(sent / total);
-          },
         ),
         stage: 'publish',
       );
@@ -161,13 +144,19 @@ class OronBoxCreatorApi {
       return response.data;
     } catch (error, stackTrace) {
       stopwatch.stop();
-      final failure = error is CreatorApiException
-          ? error
-          : CreatorApiException(
-              code: 'publish_failed',
-              message: _friendlyMessage(error),
-              details: const {'stage': 'publish'},
-            );
+      final failure = switch (error) {
+        CreatorApiException value => value,
+        CodedError value => CreatorApiException(
+          code: value.code,
+          message: value.message,
+          details: {'stage': 'publish', 'cause': value.details},
+        ),
+        _ => CreatorApiException(
+          code: 'publish_failed',
+          message: _friendlyMessage(error),
+          details: const {'stage': 'publish'},
+        ),
+      };
       logDiagnostic(
         _log,
         Level.WARNING,
@@ -186,71 +175,40 @@ class OronBoxCreatorApi {
     }
   }
 
-  Future<Uint8List> downloadBlob(String resourceId, String digest) async {
-    final session = await _requireSession('blob');
+  Future<Object?> saveDraft({
+    required String resourceId,
+    required Uint8List bundle,
+  }) async {
     final response = await _send(
-      () => _dio.get<List<int>>(
-        '/api/creator/resources/$resourceId/blobs/$digest',
-        options: Options(
-          responseType: ResponseType.bytes,
-          headers: {'Authorization': 'Bearer ${session.accessToken}'},
+      () => _sessions.send<Object?>(
+        (authorization) => _dio.put<Object?>(
+          '/api/creator/resources/$resourceId/draft',
+          data: Stream.fromIterable([bundle]),
+          options: authorization.copyWith(
+            headers: {
+              ...?authorization.headers,
+              Headers.contentLengthHeader: bundle.length,
+              Headers.contentTypeHeader: 'application/zip',
+            },
+          ),
+        ),
+      ),
+      stage: 'draft',
+    );
+    return response.data;
+  }
+
+  Future<Uint8List> downloadBlob(String resourceId, String digest) async {
+    final response = await _send(
+      () => _sessions.send<List<int>>(
+        (authorization) => _dio.get<List<int>>(
+          '/api/creator/resources/$resourceId/blobs/$digest',
+          options: authorization.copyWith(responseType: ResponseType.bytes),
         ),
       ),
       stage: 'blob',
     );
     return Uint8List.fromList(response.data ?? const []);
-  }
-
-  Future<List<Map<String, Object?>>> collections() async {
-    final root = _map(await request('GET', '/api/creator/collections'));
-    return (root['collections'] as List? ?? const [])
-        .whereType<Map>()
-        .map((item) => item.cast<String, Object?>())
-        .toList();
-  }
-
-  Future<Map<String, Object?>> createCollection({
-    required String slug,
-    required String name,
-    required String summary,
-    required String kind,
-  }) async => _map(
-    await request(
-      'POST',
-      '/api/creator/collections',
-      data: {'slug': slug, 'name': name, 'summary': summary, 'kind': kind},
-    ),
-  );
-
-  Future<void> setCollectionResources({
-    required String collectionId,
-    required List<String> resourceIds,
-    required String representativeResourceId,
-  }) async {
-    await request(
-      'PUT',
-      '/api/creator/collections/$collectionId/resources',
-      data: {
-        'resource_ids': resourceIds,
-        'representative_resource_id': representativeResourceId,
-      },
-    );
-  }
-
-  Future<void> updateCollection({
-    required String collectionId,
-    required String name,
-    required String summary,
-  }) async {
-    await request(
-      'PATCH',
-      '/api/creator/collections/$collectionId',
-      data: {'name': name, 'summary': summary},
-    );
-  }
-
-  Future<void> deleteCollection(String collectionId) async {
-    await request('DELETE', '/api/creator/collections/$collectionId');
   }
 
   Future<Map<String, Object?>> resourceRelationships(String resourceId) async =>

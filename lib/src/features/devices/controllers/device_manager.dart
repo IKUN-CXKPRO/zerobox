@@ -56,6 +56,7 @@ import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_factory.dart';
 import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
 import 'package:oronbox/src/features/devices/domain/device_scan_results.dart';
+import 'package:oronbox/src/features/devices/utils/device_address.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart'
     hide ChargeStatus, BatteryInfo, DeviceInfo;
 import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
@@ -558,7 +559,7 @@ class LocalDeviceManager extends DeviceManager {
   Timer? _scanTimer;
   Timer? _batteryRefreshTimer;
   bool _batteryRefreshInProgress = false;
-  int _activeZeppOsTransfers = 0;
+  int _activeTransfers = 0;
   Completer<void>? _recordingSyncCancellation;
   BluetoothConnection? _bluetoothConnection;
   DeviceEntity? _currentEntity;
@@ -685,12 +686,6 @@ class LocalDeviceManager extends DeviceManager {
     if (endpointName.isEmpty || endpointName == 'Unknown device') return;
 
     final resolvedProfile = _resolveEndpointProfile(endpoint);
-    if (resolvedProfile.id != DeviceRegistry.unknown.id &&
-        endpoint.connectType != resolvedProfile.preferredConnectType) {
-      // Keep the endpoint but correct its connect type so the user can still
-      // discover and pair the device. The actual connect flow picks the right
-      // transport later anyway.
-    }
     // A discovered endpoint must retain its real transport. Only expose a
     // ZeppOS Classic/RFCOMM endpoint when the device catalog says BTBR is
     // supported; phone-call-only Classic advertisements must not be treated
@@ -744,7 +739,7 @@ class LocalDeviceManager extends DeviceManager {
   }
 
   String _endpointTransportKey(String address, ConnectType connectType) =>
-      '${connectType.name}:${address.trim().toLowerCase()}';
+      '${connectType.name}:${formatDeviceAddress(address).toLowerCase()}';
 
   DeviceProfile _resolveEndpointProfile(BluetoothEndpoint endpoint) {
     final profile = DeviceRegistry.resolveIdentity(name: endpoint.name);
@@ -932,7 +927,7 @@ class LocalDeviceManager extends DeviceManager {
         : 'name';
     var effectiveKind = kind == DeviceKind.xiaomi ? profile.kind : kind;
     final normalizedConnectType = connectType.toLowerCase();
-    final requestedConnectType =
+    final effectiveConnectType =
         effectiveKind == DeviceKind.zepp && normalizedConnectType.isNotEmpty
         ? normalizedConnectType
         : normalizedConnectType.isEmpty ||
@@ -941,7 +936,6 @@ class LocalDeviceManager extends DeviceManager {
                   profile.preferredConnectType.name != normalizedConnectType)
         ? profile.preferredConnectType.name
         : normalizedConnectType;
-    final effectiveConnectType = requestedConnectType;
     _log.info(
       'connect request $addr rawName="$name" displayName="$displayName" '
       'codename="$effectiveCodename" via=$effectiveConnectType '
@@ -1239,7 +1233,7 @@ class LocalDeviceManager extends DeviceManager {
 
   Future<void> _refreshBatteryInBackground() async {
     if (_batteryRefreshInProgress ||
-        _activeZeppOsTransfers > 0 ||
+        _activeTransfers > 0 ||
         _currentEntity == null ||
         state.protocolState != ProtocolState.ready) {
       return;
@@ -1959,7 +1953,7 @@ class LocalDeviceManager extends DeviceManager {
     if (entity == null || state.protocolState != ProtocolState.ready) {
       throw ProtocolException('Device not ready');
     }
-    _activeZeppOsTransfers += 1;
+    _activeTransfers += 1;
     try {
       final system = entity.system<ZeppOsScreenshotSystem>();
       if (system == null) {
@@ -1967,7 +1961,7 @@ class LocalDeviceManager extends DeviceManager {
       }
       return await system.requestScreenshot();
     } finally {
-      _activeZeppOsTransfers -= 1;
+      _activeTransfers -= 1;
     }
   }
 
@@ -1983,11 +1977,11 @@ class LocalDeviceManager extends DeviceManager {
     if (system == null) {
       throw UnsupportedError('Voice memo service unavailable');
     }
-    _activeZeppOsTransfers += 1;
+    _activeTransfers += 1;
     try {
       return await system.downloadAll(onProgress: onProgress);
     } finally {
-      _activeZeppOsTransfers -= 1;
+      _activeTransfers -= 1;
     }
   }
 
@@ -2032,11 +2026,11 @@ class LocalDeviceManager extends DeviceManager {
     }
     final system = entity.system<ZeppOsMapUploadSystem>();
     if (system == null) throw UnsupportedError('地图传输服务不可用');
-    _activeZeppOsTransfers += 1;
+    _activeTransfers += 1;
     try {
       await system.upload(bytes, fileName: fileName, onProgress: onProgress);
     } finally {
-      _activeZeppOsTransfers -= 1;
+      _activeTransfers -= 1;
     }
   }
 
@@ -2058,7 +2052,7 @@ class LocalDeviceManager extends DeviceManager {
     }
     final system = entity.system<ZeppOsMusicUploadSystem>();
     if (system == null) throw UnsupportedError('音乐传输服务不可用');
-    _activeZeppOsTransfers++;
+    _activeTransfers++;
     try {
       await system.upload(
         bytes: bytes,
@@ -2068,7 +2062,7 @@ class LocalDeviceManager extends DeviceManager {
         onProgress: onProgress,
       );
     } finally {
-      _activeZeppOsTransfers--;
+      _activeTransfers--;
     }
   }
 
@@ -2090,7 +2084,7 @@ class LocalDeviceManager extends DeviceManager {
     final system = entity.system<XiaomiMediaSystem>();
     if (system == null) throw UnsupportedError('音乐传输服务不可用');
     final id = crypto.md5.convert(bytes).bytes;
-    _activeZeppOsTransfers += 1;
+    _activeTransfers += 1;
     try {
       await system.uploadSongWithProgress(
         pb_media.Song(
@@ -2108,7 +2102,7 @@ class LocalDeviceManager extends DeviceManager {
         },
       );
     } finally {
-      _activeZeppOsTransfers -= 1;
+      _activeTransfers -= 1;
     }
   }
 
@@ -2799,8 +2793,31 @@ class LocalDeviceManager extends DeviceManager {
     );
   }
 
+  Future<T> _withTransfer<T>(Future<T> Function() operation) async {
+    _activeTransfers += 1;
+    try {
+      return await operation();
+    } finally {
+      _activeTransfers -= 1;
+    }
+  }
+
   @override
   Future<void> installApp(
+    Uint8List packageBytes, {
+    required String packageName,
+    void Function(double progress)? onProgress,
+    void Function()? onAppSideMissing,
+  }) => _withTransfer(
+    () => _installApp(
+      packageBytes,
+      packageName: packageName,
+      onProgress: onProgress,
+      onAppSideMissing: onAppSideMissing,
+    ),
+  );
+
+  Future<void> _installApp(
     Uint8List packageBytes, {
     required String packageName,
     void Function(double progress)? onProgress,
@@ -2881,6 +2898,18 @@ class LocalDeviceManager extends DeviceManager {
     Uint8List watchfaceBytes, {
     required String watchfaceId,
     void Function(double progress)? onProgress,
+  }) => _withTransfer(
+    () => _installWatchface(
+      watchfaceBytes,
+      watchfaceId: watchfaceId,
+      onProgress: onProgress,
+    ),
+  );
+
+  Future<void> _installWatchface(
+    Uint8List watchfaceBytes, {
+    required String watchfaceId,
+    void Function(double progress)? onProgress,
   }) async {
     final entity = _currentEntity;
     if (entity == null || state.protocolState != ProtocolState.ready) {
@@ -2921,6 +2950,13 @@ class LocalDeviceManager extends DeviceManager {
 
   @override
   Future<void> installFirmware(
+    Uint8List firmwareBytes, {
+    void Function(double progress)? onProgress,
+  }) => _withTransfer(
+    () => _installFirmware(firmwareBytes, onProgress: onProgress),
+  );
+
+  Future<void> _installFirmware(
     Uint8List firmwareBytes, {
     void Function(double progress)? onProgress,
   }) async {

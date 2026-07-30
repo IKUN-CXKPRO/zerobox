@@ -19,8 +19,8 @@ class _WebPluginStorage implements PluginStorage {
   static const _databaseVersion = 1;
   static const _filesStore = 'files';
   static const _separator = '\u0001';
-  static const _configFile = '.oronbox-config.json';
-  static const _permissionsFile = '.oronbox-permissions.json';
+  static const _configFile = '.oronbox/config.json';
+  static const _permissionsFile = '.oronbox/permissions.json';
 
   web.IDBDatabase? _database;
 

@@ -7,6 +7,7 @@ import 'package:oronbox/src/device/core/ble_requirement.dart';
 import 'package:oronbox/src/device/core/system.dart';
 import 'package:oronbox/src/device/core/transport.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_services_system.dart';
+import 'package:oronbox/src/device/zeppos/systems/zeppos_v3_file_transfer.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_component.dart';
 
 class ZeppOsMusicUploadSystem extends System {
@@ -28,7 +29,7 @@ class ZeppOsMusicUploadSystem extends System {
   StreamSubscription<Uint8List>? _ackSubscription;
   Completer<void>? _capabilities;
   Completer<int>? _requestAck;
-  Completer<int>? _chunkAck;
+  ZeppOsV3FileTransfer? _transfer;
 
   ZeppOsDeviceComponent get _component =>
       entity.getRequired<ZeppOsDeviceComponent>();
@@ -67,8 +68,7 @@ class ZeppOsMusicUploadSystem extends System {
       // firmwares do not URI-decode these two metadata fields.
       final safeTitle = _queryValue(cleanTitle);
       final safeArtist = _queryValue(cleanArtist);
-      final url =
-          'music://file?songName=$safeTitle&singer=$safeArtist&end=1';
+      final url = 'music://file?songName=$safeTitle&singer=$safeArtist&end=1';
       final requestAck = Completer<int>();
       _requestAck = requestAck;
       try {
@@ -84,40 +84,12 @@ class ZeppOsMusicUploadSystem extends System {
         if (existingProgress < 0 || existingProgress > bytes.length) {
           throw StateError('手表返回了无效的音乐传输进度：$existingProgress');
         }
-        var offset = existingProgress;
-        var index = offset ~/ _chunkSize;
-        onProgress?.call(offset / bytes.length);
-        while (offset < bytes.length) {
-          final length = (bytes.length - offset).clamp(0, _chunkSize);
-          final last = offset + length == bytes.length;
-          final packet = Uint8List(5 + length)
-            ..[0] = 0x12
-            ..[1] = (offset == 0 ? 1 : 0) | (last ? 2 : 0)
-            ..[2] = index & 0xff;
-          ByteData.sublistView(
-            packet,
-          ).setUint16(3, length, Endian.little);
-          packet.setRange(5, packet.length, bytes, offset);
-
-          final ack = Completer<int>();
-          _chunkAck = ack;
-          try {
-            await _writePacket(packet);
-            final acknowledged = await ack.future.timeout(
-              const Duration(seconds: 20),
-            );
-            if (acknowledged != (index & 0xff)) {
-              throw StateError(
-                '音乐分块确认序号不匹配：$acknowledged/${index & 0xff}',
-              );
-            }
-          } finally {
-            if (identical(_chunkAck, ack)) _chunkAck = null;
-          }
-          offset += length;
-          index++;
-          onProgress?.call(offset / bytes.length);
-        }
+        await _transfer!.send(
+          bytes: bytes,
+          initialOffset: existingProgress,
+          chunkSize: _chunkSize,
+          onProgress: onProgress,
+        );
         _log.info('music upload completed: $filename, ${bytes.length} bytes');
       } finally {
         if (identical(_requestAck, requestAck)) _requestAck = null;
@@ -162,13 +134,16 @@ class ZeppOsMusicUploadSystem extends System {
       );
     }
     if (!_supportedServices.contains('music')) {
-      throw UnsupportedError(
-        '手表的文件传输能力中没有 music，不能上传本地音乐',
-      );
+      throw UnsupportedError('手表的文件传输能力中没有 music，不能上传本地音乐');
     }
+    _transfer ??= ZeppOsV3FileTransfer(
+      transport: transport,
+      characteristic: _v3Send,
+      transferLabel: 'music',
+    );
     _ackSubscription ??= await transport.subscribeToCharacteristic(
       _v3Send,
-      _handleV3Ack,
+      _transfer!.handleAck,
     );
   }
 
@@ -176,9 +151,7 @@ class ZeppOsMusicUploadSystem extends System {
     if (payload.isEmpty) return;
     if (payload[0] == 0x02 && payload.length >= 4) {
       _version = payload[1];
-      _chunkSize = ByteData.sublistView(
-        payload,
-      ).getUint16(2, Endian.little);
+      _chunkSize = ByteData.sublistView(payload).getUint16(2, Endian.little);
       try {
         _supportedServices = _parseSupportedServices(payload);
       } catch (error, stackTrace) {
@@ -215,31 +188,6 @@ class ZeppOsMusicUploadSystem extends System {
     }
   }
 
-  void _handleV3Ack(Uint8List payload) {
-    if (payload.length < 3 || payload[0] != 0x13) return;
-    final pending = _chunkAck;
-    if (pending == null || pending.isCompleted) return;
-    if (payload[1] == 0) {
-      pending.complete(payload[2]);
-    } else {
-      pending.completeError(StateError('音乐分块写入失败：${payload[1]}'));
-    }
-  }
-
-  Future<void> _writePacket(Uint8List packet) async {
-    final transport = entity.transport as CharacteristicTransport;
-    final writeLength = _maxWriteLength ?? packet.length;
-    if (writeLength <= 0) throw StateError('无效的文件传输写入长度');
-    for (var offset = 0; offset < packet.length; offset += writeLength) {
-      final end = (offset + writeLength).clamp(0, packet.length);
-      await transport.sendToCharacteristic(
-        Uint8List.sublistView(packet, offset, end),
-        _v3Send,
-        withResponse: false,
-      );
-    }
-  }
-
   static Uint8List _requestPayload(
     int session,
     String url,
@@ -262,7 +210,7 @@ class ZeppOsMusicUploadSystem extends System {
     payload[offset++] = 0;
     final view = ByteData.sublistView(payload);
     view.setUint32(offset, bytes.length, Endian.little);
-    view.setUint32(offset + 4, _crc32(bytes), Endian.little);
+    view.setUint32(offset + 4, zeppOsFileCrc32(bytes), Endian.little);
     payload[offset + 8] = 0;
     payload[offset + 9] = 0;
     return payload;
@@ -279,9 +227,7 @@ class ZeppOsMusicUploadSystem extends System {
     if (payload.length < 10) {
       throw const FormatException('文件传输 V3 能力数据不完整');
     }
-    final count = ByteData.sublistView(
-      payload,
-    ).getUint16(8, Endian.little);
+    final count = ByteData.sublistView(payload).getUint16(8, Endian.little);
     var offset = 10;
     final result = <String>{};
     for (var index = 0; index < count; index++) {
@@ -293,17 +239,6 @@ class ZeppOsMusicUploadSystem extends System {
       offset = end + 1;
     }
     return Set.unmodifiable(result);
-  }
-
-  static int _crc32(List<int> bytes) {
-    var crc = 0xffffffff;
-    for (final byte in bytes) {
-      crc ^= byte;
-      for (var bit = 0; bit < 8; bit++) {
-        crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xedb88320 : crc >> 1;
-      }
-    }
-    return (crc ^ 0xffffffff) & 0xffffffff;
   }
 
   @override

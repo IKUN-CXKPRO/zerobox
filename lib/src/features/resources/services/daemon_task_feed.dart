@@ -1,0 +1,100 @@
+import 'dart:async';
+
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/daemon/daemon_task_models.dart';
+
+typedef DaemonTaskDecoder<T> = T? Function(DaemonTaskView view);
+typedef DaemonTaskId<T> = String Function(T task);
+
+/// Projects one daemon task method into a typed, live task list.
+class DaemonTaskFeed<T> {
+  DaemonTaskFeed({
+    required this.host,
+    required this.method,
+    required this.decode,
+    required this.taskId,
+    required this.onChanged,
+  });
+
+  final OronBoxCommandBus host;
+  final String method;
+  final DaemonTaskDecoder<T> decode;
+  final DaemonTaskId<T> taskId;
+  final void Function(List<T> tasks) onChanged;
+
+  StreamSubscription<CommandEvent>? _subscription;
+  List<T> _tasks = const [];
+  bool _disposed = false;
+
+  Future<void> start() async {
+    _subscription ??= host.events.listen(_handleEvent);
+    await refresh();
+  }
+
+  Future<void> refresh() async {
+    final result = await host.execute(
+      const OronBoxCommand(method: 'queue.list'),
+    );
+    if (!result.ok || result.value is! List || _disposed) return;
+    _tasks = (result.value as List)
+        .whereType<Map>()
+        .map((row) => DaemonTaskView.fromJson(row.cast<String, Object?>()))
+        .where((view) => view.method == method)
+        .map(decode)
+        .whereType<T>()
+        .toList();
+    _publish();
+  }
+
+  Future<void> remove(String id, {required bool terminal}) async {
+    if (!terminal) {
+      await _execute('queue.cancel', id);
+    }
+    await _execute('queue.remove', id);
+  }
+
+  Future<void> retry(String id) => _execute('queue.retry', id);
+
+  Future<void> dispose() async {
+    _disposed = true;
+    await _subscription?.cancel();
+  }
+
+  Future<void> _execute(String command, String id) async {
+    final result = await host.execute(
+      OronBoxCommand(method: command, params: {'id': id}),
+    );
+    if (!result.ok) throw StateError(result.error!.message);
+  }
+
+  void _handleEvent(CommandEvent event) {
+    if (event.event == 'host.connected') {
+      unawaited(refresh());
+      return;
+    }
+    if (event.event == 'task.removed') {
+      final id = event.data['id']?.toString();
+      _tasks = _tasks.where((task) => taskId(task) != id).toList();
+      _publish();
+      return;
+    }
+    if (event.event != 'task') return;
+    final view = DaemonTaskView.fromJson(event.data);
+    if (view.method != method) return;
+    final task = decode(view);
+    if (task == null) return;
+    final tasks = [..._tasks];
+    final index = tasks.indexWhere((item) => taskId(item) == taskId(task));
+    if (index < 0) {
+      tasks.add(task);
+    } else {
+      tasks[index] = task;
+    }
+    _tasks = tasks;
+    _publish();
+  }
+
+  void _publish() {
+    if (!_disposed) onChanged(List.unmodifiable(_tasks));
+  }
+}

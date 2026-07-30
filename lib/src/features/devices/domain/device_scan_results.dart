@@ -19,7 +19,7 @@ List<BTDeviceInfo> mergeScannedDeviceEndpoint(
   required DeviceProfile profile,
 }) {
   final sameAddress = current.where(
-    (device) => _sameAddress(device.addr, endpoint.address),
+    (device) => deviceAddressEquals(device.addr, endpoint.address),
   );
   if (profile.kind != DeviceKind.zepp) {
     final hasBle = sameAddress.any(
@@ -33,13 +33,13 @@ List<BTDeviceInfo> mergeScannedDeviceEndpoint(
       endpoint.connectType == ConnectType.ble) {
     updated.removeWhere(
       (device) =>
-          _sameAddress(device.addr, endpoint.address) &&
+          deviceAddressEquals(device.addr, endpoint.address) &&
           device.connectType.toLowerCase() == ConnectType.spp.name,
     );
   }
   final existing = updated.indexWhere(
     (device) =>
-        _sameAddress(device.addr, endpoint.address) &&
+        deviceAddressEquals(device.addr, endpoint.address) &&
         device.connectType.toLowerCase() == endpoint.connectType.name,
   );
   final value = BTDeviceInfo(
@@ -54,7 +54,3 @@ List<BTDeviceInfo> mergeScannedDeviceEndpoint(
   }
   return updated;
 }
-
-bool _sameAddress(String left, String right) =>
-    left.trim().toLowerCase().replaceAll('-', ':') ==
-    right.trim().toLowerCase().replaceAll('-', ':');

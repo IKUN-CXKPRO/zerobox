@@ -58,8 +58,6 @@ class _IoPluginStorage implements PluginStorage {
   static const _metadataDirectoryName = '.oronbox';
   static const _configFile = 'config.json';
   static const _permissionsFile = 'permissions.json';
-  static const _legacyConfigFile = '.oronbox-config.json';
-  static const _legacyPermissionsFile = '.oronbox-permissions.json';
 
   final Directory installedRoot;
   final Directory cacheRoot;
@@ -116,17 +114,7 @@ class _IoPluginStorage implements PluginStorage {
 
   Future<Map<String, Object?>> _readConfig(String id) async {
     await _ensureMetadataSafe(id);
-    var file = _metadataFile(id, _configFile);
-    final legacy = File(_join(_dataDirectory(id).path, _legacyConfigFile));
-    if (!await file.exists() && await legacy.exists()) {
-      final bytes = await legacy.readAsBytes();
-      await writeConfig(
-        id,
-        (jsonDecode(utf8.decode(bytes)) as Map).cast<String, Object?>(),
-      );
-      await legacy.delete();
-      file = _metadataFile(id, _configFile);
-    }
+    final file = _metadataFile(id, _configFile);
     if (!await file.exists()) return const {};
     final decoded = jsonDecode(await file.readAsString());
     if (decoded is! Map) throw const FormatException('Invalid plugin config');
@@ -190,22 +178,7 @@ class _IoPluginStorage implements PluginStorage {
   Future<Set<String>> readPermissionGrants(String pluginId) async {
     _requirePluginId(pluginId);
     await _ensureMetadataSafe(pluginId);
-    var file = _metadataFile(pluginId, _permissionsFile);
-    final legacy = File(
-      _join(_dataDirectory(pluginId).path, _legacyPermissionsFile),
-    );
-    if (!await file.exists() && await legacy.exists()) {
-      final decoded = jsonDecode(await legacy.readAsString());
-      if (decoded is! List) {
-        throw const FormatException('Invalid plugin permission grants');
-      }
-      await writePermissionGrants(
-        pluginId,
-        decoded.map((value) => value.toString()).toSet(),
-      );
-      await legacy.delete();
-      file = _metadataFile(pluginId, _permissionsFile);
-    }
+    final file = _metadataFile(pluginId, _permissionsFile);
     if (!await file.exists()) return <String>{};
     final decoded = jsonDecode(await file.readAsString());
     if (decoded is! List) {

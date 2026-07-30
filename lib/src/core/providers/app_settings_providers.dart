@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
-import 'package:oronbox/src/data/astrobox/astrobox_cdn.dart';
+import 'package:oronbox/src/core/network/github_cdn.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
@@ -109,7 +109,7 @@ class AppSettings {
     this.clean = const CleanSettings(),
   });
 
-  final AstroBoxCdn cdn;
+  final GitHubCdn cdn;
   final CommunitySourceId communitySource;
   final bool autoInstall;
   final bool disableAutoClean;
@@ -120,7 +120,7 @@ class AppSettings {
   final CleanSettings clean;
 
   AppSettings copyWith({
-    AstroBoxCdn? cdn,
+    GitHubCdn? cdn,
     CommunitySourceId? communitySource,
     bool? autoInstall,
     bool? disableAutoClean,
@@ -145,7 +145,7 @@ class AppSettings {
     );
   }
 
-  static const String _keyCdn = 'astrobox_cdn';
+  static const String _keyCdn = 'github_cdn';
   static const String _keyCommunitySource = 'community_source';
   static const String _keyAutoInstall = 'auto_install';
   static const String _keyDisableAutoClean = 'disable_auto_clean';
@@ -162,7 +162,7 @@ class AppSettings {
     final sourceRaw = prefs.getString(_keyCommunitySource);
     final railPositionRaw = prefs.getString(_keyWideNavigationRailPosition);
     return AppSettings(
-      cdn: astroBoxCdnByName(cdnRaw ?? '') ?? AstroBoxCdn.raw,
+      cdn: githubCdnByName(cdnRaw ?? '') ?? GitHubCdn.raw,
       communitySource:
           communitySourceIdByName(sourceRaw ?? '') ??
           CommunitySourceId.astroboxRepo,
@@ -197,7 +197,7 @@ class AppSettings {
   }
 
   static const defaults = AppSettings(
-    cdn: AstroBoxCdn.raw,
+    cdn: GitHubCdn.raw,
     communitySource: CommunitySourceId.astroboxRepo,
     autoInstall: true,
     disableAutoClean: false,
@@ -250,7 +250,7 @@ class AppSettings {
 }
 
 abstract class AppSettingsNotifier extends Notifier<AppSettings> {
-  Future<void> setCdn(AstroBoxCdn cdn);
+  Future<void> setCdn(GitHubCdn cdn);
   Future<void> setCommunitySource(CommunitySourceId source);
   Future<void> setAutoInstall(bool value);
   Future<void> setDisableAutoClean(bool value);
@@ -266,7 +266,7 @@ class LocalAppSettingsNotifier extends AppSettingsNotifier {
   AppSettings build() => AppSettings.load();
 
   @override
-  Future<void> setCdn(AstroBoxCdn cdn) async {
+  Future<void> setCdn(GitHubCdn cdn) async {
     state = state.copyWith(cdn: cdn);
     await state.save();
   }
@@ -345,8 +345,8 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
     final json = (result.value as Map).cast<String, Object?>();
     state = AppSettings(
       cdn:
-          astroBoxCdnByName(json['astrobox_cdn']?.toString() ?? '') ??
-          AstroBoxCdn.raw,
+          githubCdnByName(json['github_cdn']?.toString() ?? '') ??
+          GitHubCdn.raw,
       communitySource:
           communitySourceIdByName(json['community_source']?.toString() ?? '') ??
           CommunitySourceId.astroboxRepo,
@@ -377,8 +377,8 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
   }
 
   @override
-  Future<void> setCdn(AstroBoxCdn cdn) =>
-      _set('astrobox_cdn', cdn.name, state.copyWith(cdn: cdn));
+  Future<void> setCdn(GitHubCdn cdn) =>
+      _set('github_cdn', cdn.name, state.copyWith(cdn: cdn));
   @override
   Future<void> setCommunitySource(CommunitySourceId source) => _set(
     'community_source',

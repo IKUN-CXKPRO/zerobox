@@ -12,6 +12,7 @@ import 'package:oronbox/src/host/application_host_provider.dart';
 enum CreatorOperation {
   refreshing,
   creating,
+  creatingCollection,
   saving,
   publishing,
   deleting,
@@ -21,6 +22,7 @@ enum CreatorOperation {
 class CreatorWorkspaceState {
   const CreatorWorkspaceState({
     this.resources = const [],
+    this.collections = const [],
     this.devices = const [],
     this.grants = const {},
     this.selected,
@@ -31,6 +33,7 @@ class CreatorWorkspaceState {
     this.governance,
   });
   final List<CreatorWorkspace> resources;
+  final List<Map<String, Object?>> collections;
   final List<CreatorDevice> devices;
   final Map<String, Object?> grants;
   final CreatorWorkspace? selected;
@@ -44,6 +47,7 @@ class CreatorWorkspaceState {
 
   CreatorWorkspaceState copyWith({
     List<CreatorWorkspace>? resources,
+    List<Map<String, Object?>>? collections,
     List<CreatorDevice>? devices,
     Map<String, Object?>? grants,
     CreatorWorkspace? selected,
@@ -59,6 +63,7 @@ class CreatorWorkspaceState {
     bool clearGovernance = false,
   }) => CreatorWorkspaceState(
     resources: resources ?? this.resources,
+    collections: collections ?? this.collections,
     devices: devices ?? this.devices,
     grants: grants ?? this.grants,
     selected: clearSelected ? null : selected ?? this.selected,
@@ -96,20 +101,30 @@ class CreatorWorkspaceController extends Notifier<CreatorWorkspaceState> {
     return result.value;
   }
 
-  Future<void> refresh() async {
+  Future<void> refresh({
+    CreatorOperation operation = CreatorOperation.refreshing,
+  }) async {
     final generation = ++_refreshGeneration;
     state = state.copyWith(
       loading: true,
-      operation: CreatorOperation.refreshing,
+      operation: operation,
       clearError: true,
       clearGovernance: true,
     );
     try {
       final resourcesRequest = _execute('creator.list');
+      Object? collectionsValue;
       Object? devicesValue;
       Object? grantsValue;
       Object? secondaryError;
       final secondaryRequests = Future.wait([
+        () async {
+          try {
+            collectionsValue = await _execute('creator.collections.list');
+          } catch (error) {
+            secondaryError ??= error;
+          }
+        }(),
         () async {
           try {
             devicesValue = await _execute('creator.devices');
@@ -139,6 +154,12 @@ class CreatorWorkspaceController extends Notifier<CreatorWorkspaceState> {
       final selectedId = state.selected?.resource.id;
       state = state.copyWith(
         resources: resources,
+        collections: collectionsValue == null
+            ? state.collections
+            : (_map(collectionsValue)['collections'] as List? ?? const [])
+                  .whereType<Map>()
+                  .map((item) => item.cast<String, Object?>())
+                  .toList(),
         devices: devicesValue == null
             ? state.devices
             : (deviceRoot['devices'] as List? ?? const [])
@@ -217,6 +238,71 @@ class CreatorWorkspaceController extends Notifier<CreatorWorkspaceState> {
     );
   }
 
+  Future<void> createCollection({
+    required String slug,
+    required String name,
+    required String summary,
+    required CreatorResourceKind kind,
+  }) async {
+    await _runCollectionMutation('creator.collections.create', {
+      'slug': slug,
+      'name': name,
+      'summary': summary,
+      'kind': kind == CreatorResourceKind.watchface ? 'watchface' : 'quickapp',
+    }, CreatorOperation.creatingCollection);
+  }
+
+  Future<void> setCollectionResources({
+    required String collectionId,
+    required List<String> resourceIds,
+    required String representativeResourceId,
+  }) => _runCollectionMutation('creator.collections.resources', {
+    'collection': collectionId,
+    'resourceIds': resourceIds,
+    'representativeResourceId': representativeResourceId,
+  }, CreatorOperation.saving);
+
+  Future<void> deleteCollection(String collectionId) => _runCollectionMutation(
+    'creator.collections.delete',
+    {'collection': collectionId},
+    CreatorOperation.deleting,
+  );
+
+  Future<void> updateCollection({
+    required String collectionId,
+    required String name,
+    required String summary,
+  }) => _runCollectionMutation('creator.collections.update', {
+    'collection': collectionId,
+    'name': name,
+    'summary': summary,
+  }, CreatorOperation.saving);
+
+  Future<void> _runCollectionMutation(
+    String method,
+    Map<String, Object?> params,
+    CreatorOperation operation,
+  ) async {
+    state = state.copyWith(
+      loading: true,
+      operation: operation,
+      clearError: true,
+    );
+    try {
+      await _execute(method, params);
+      await refresh(operation: operation);
+    } catch (error) {
+      if (ref.mounted) {
+        state = state.copyWith(
+          loading: false,
+          clearOperation: true,
+          error: creatorFailureMessage(error),
+        );
+      }
+      rethrow;
+    }
+  }
+
   Future<void> publish({required Uint8List bundle}) async {
     final workspace = state.selected;
     if (workspace == null) return;
@@ -273,6 +359,11 @@ class CreatorWorkspaceController extends Notifier<CreatorWorkspaceState> {
       }
     }
   }
+
+  Future<void> saveDraft({required Uint8List bundle}) => _mutate(
+    'creator.draft',
+    {'resource': state.selected!.resource.id, 'bundle': base64Encode(bundle)},
+  );
 
   final _blobCache = <String, Uint8List>{};
 

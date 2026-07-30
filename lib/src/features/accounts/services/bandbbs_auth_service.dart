@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/core/errors/coded_error.dart';
 import 'package:oronbox/src/core/constants/oronbox_server.dart';
+import 'package:oronbox/src/core/network/app_http_transport.dart';
 import 'package:oronbox/src/core/network/http_observability_interceptor.dart';
 import 'package:oronbox/src/core/services/build_info_service.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
@@ -43,8 +44,12 @@ class BandBbsToken {
 
   static BandBbsToken fromTokenResponse(Map<String, Object?> json) {
     final expiresIn = _asInt(json['expires_in']);
+    final accessToken = json['access_token']?.toString().trim() ?? '';
+    if (accessToken.isEmpty || expiresIn <= 0) {
+      throw const FormatException('Invalid BandBBS token response');
+    }
     return BandBbsToken(
-      accessToken: json['access_token']?.toString() ?? '',
+      accessToken: accessToken,
       tokenType: json['token_type']?.toString() ?? 'bearer',
       expiresAt: DateTime.now().toUtc().add(Duration(seconds: expiresIn)),
       scope: json['scope']?.toString() ?? '',
@@ -97,9 +102,14 @@ class OronBoxSession {
 
   static OronBoxSession fromTokenResponse(Map<String, Object?> json) {
     final expiresIn = BandBbsToken._asInt(json['expires_in']);
+    final accessToken = json['access_token']?.toString().trim() ?? '';
+    final refreshToken = json['refresh_token']?.toString().trim() ?? '';
+    if (accessToken.isEmpty || refreshToken.isEmpty || expiresIn <= 0) {
+      throw const FormatException('Invalid OronBox session response');
+    }
     return OronBoxSession(
-      accessToken: json['access_token']?.toString() ?? '',
-      refreshToken: json['refresh_token']?.toString() ?? '',
+      accessToken: accessToken,
+      refreshToken: refreshToken,
       expiresAt: DateTime.now().toUtc().add(Duration(seconds: expiresIn)),
     );
   }
@@ -118,6 +128,12 @@ class OronBoxSession {
       expiresAt: expiresAt.toUtc(),
     );
   }
+}
+
+abstract interface class OronBoxSessionAccess {
+  Future<OronBoxSession?> sessionIfNeeded();
+
+  Future<void> expireSession();
 }
 
 class BandBbsSessionExpiredException implements CodedError {
@@ -197,7 +213,8 @@ class BandBbsAuthState {
   );
 }
 
-class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
+class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
+    implements OronBoxSessionAccess {
   static const _keyToken = 'bandbbs.oauth.token';
   static const _keySession = 'oronbox.session.token';
   static const _keyUserId = 'bandbbs.oauth.user_id';
@@ -211,8 +228,8 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
   Future<void>? _credentialRestore;
   int _credentialRevision = 0;
 
-  final Dio _dio = Dio(
-    BaseOptions(
+  final Dio _dio = createAppHttpTransport(
+    options: BaseOptions(
       baseUrl: oronBoxServerBaseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 20),
@@ -512,6 +529,7 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
   }
 
   /// OronBox session for ob-api endpoints, rotated when expired.
+  @override
   Future<OronBoxSession?> sessionIfNeeded() async {
     await _credentialRestore;
     var session = state.session;
@@ -598,6 +616,9 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState> {
       _deleteCredential(_keySession),
     ]);
   }
+
+  @override
+  Future<void> expireSession() => _forgetExpiredCredentials();
 
   Future<void> signOut() async {
     ++_credentialRevision;
