@@ -77,9 +77,9 @@ class XiaomiAuthSystem extends XiaomiPbSystem {
         c.complete();
       }
     } else {
-      const error = 'auth confirm rejected by device';
+      final error = 'auth confirm rejected by device';
       _log.warning('[${entity.id}] $error');
-      entity.emit(const AuthFailed(deviceId: '', error: error));
+      entity.emit(AuthFailed(deviceId: entity.id, error: error));
       _completeError(Exception(error));
     }
   }

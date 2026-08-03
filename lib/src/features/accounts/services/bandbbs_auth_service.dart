@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/core/errors/coded_error.dart';
@@ -222,7 +221,6 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
   static const _keyAvatarUrl = 'bandbbs.oauth.avatar_url';
 
   final Logger _log = getLogger('BandBbsAuthService');
-  static const _secureStorage = FlutterSecureStorage();
   Future<BandBbsToken?>? _tokenRefresh;
   Future<OronBoxSession?>? _sessionRefresh;
   Future<void>? _credentialRestore;
@@ -251,25 +249,9 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
   Future<void> _restoreCredentials() async {
     final revision = _credentialRevision;
     try {
-      var tokenRaw = await _readCredential(_keyToken);
-      var sessionRaw = await _readCredential(_keySession);
       final prefs = SharedPrefsService.instance;
-      tokenRaw ??= prefs.getString(_keyToken);
-      sessionRaw ??= prefs.getString(_keySession);
-      var tokenMigrated = tokenRaw == null;
-      var sessionMigrated = sessionRaw == null;
-      if (tokenRaw != null) {
-        tokenMigrated = await _writeCredential(_keyToken, tokenRaw);
-      }
-      if (sessionRaw != null) {
-        sessionMigrated = await _writeCredential(_keySession, sessionRaw);
-      }
-      if (tokenMigrated) {
-        await prefs.remove(_keyToken);
-      }
-      if (sessionMigrated) {
-        await prefs.remove(_keySession);
-      }
+      final tokenRaw = prefs.getString(_keyToken);
+      final sessionRaw = prefs.getString(_keySession);
       if (!ref.mounted || revision != _credentialRevision) return;
       final token = _restore(tokenRaw, BandBbsToken.fromJson);
       final session = _restore(sessionRaw, OronBoxSession.fromJson);
@@ -278,10 +260,7 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
         await _fetchCurrentUser(session);
       }
     } catch (error) {
-      _log.warning(
-        'Credential storage is unavailable; login remains in memory for this run',
-        error,
-      );
+      _log.warning('Unable to restore persisted credentials', error);
     }
   }
 
@@ -295,14 +274,10 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
     _sessionRefresh = null;
     _tokenRefresh = null;
     final prefs = SharedPrefsService.instance;
-    final storedToken = await _readCredential(_keyToken);
-    final storedSession = await _readCredential(_keySession);
-    final tokenRaw =
-        storedToken ??
-        (prefs.isInitialized ? prefs.getString(_keyToken) : null);
-    final sessionRaw =
-        storedSession ??
-        (prefs.isInitialized ? prefs.getString(_keySession) : null);
+    final tokenRaw = prefs.isInitialized ? prefs.getString(_keyToken) : null;
+    final sessionRaw = prefs.isInitialized
+        ? prefs.getString(_keySession)
+        : null;
     if (!ref.mounted || revision != _credentialRevision) return;
     if (sessionRaw == null && !clearWhenMissing) return;
     final userId = prefs.isInitialized ? prefs.getString(_keyUserId) : null;
@@ -507,17 +482,29 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
     if (session == null) {
       throw StateError('BandBBS account is not signed in');
     }
-    final response = await _send<Object?>(
-      () async => _dio.post<Object?>(
-        '/api/oauth/bandbbs/token/refresh',
-        options: Options(
-          headers: {
-            ...await _clientHeaders(),
-            'Authorization': 'Bearer ${session.accessToken}',
-          },
+    final Response<Object?> response;
+    try {
+      response = await _send<Object?>(
+        () async => _dio.post<Object?>(
+          '/api/oauth/bandbbs/token/refresh',
+          options: Options(
+            headers: {
+              ...await _clientHeaders(),
+              'Authorization': 'Bearer ${session.accessToken}',
+            },
+          ),
         ),
-      ),
-    );
+      );
+    } on DioException catch (error) {
+      // A rejected refresh means the server-side credential is dead too;
+      // wipe instead of looping on a token that will never work again.
+      if (error.response?.statusCode != 401) rethrow;
+      if (revision == _credentialRevision &&
+          state.token?.accessToken == token.accessToken) {
+        await _forgetExpiredCredentials();
+      }
+      throw const BandBbsSessionExpiredException();
+    }
     final refreshed = BandBbsToken.fromTokenResponse(_objectMap(response.data));
     if (revision != _credentialRevision ||
         state.token?.accessToken != token.accessToken) {
@@ -539,7 +526,7 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
     // once more so the frontend picks up a login that happened in the
     // background.
     if (session == null) {
-      final raw = await _readCredential(_keySession);
+      final raw = SharedPrefsService.instance.getString(_keySession);
       if (raw != null) {
         final restored = _restore(raw, OronBoxSession.fromJson);
         if (restored != null) {
@@ -593,12 +580,10 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
     }
   }
 
-  bool _isInvalidRefreshToken(DioException error) {
-    if (error.response?.statusCode != 401) return false;
-    final body = _objectMap(error.response?.data);
-    return body['code'] == 'invalid_refresh_token' ||
-        _objectMap(body['error'])['code'] == 'invalid_refresh_token';
-  }
+  // Any 401 from the refresh endpoint is terminal for this credential; the
+  // specific body code only exists for older server versions.
+  bool _isInvalidRefreshToken(DioException error) =>
+      error.response?.statusCode == 401;
 
   Future<void> _forgetExpiredCredentials() async {
     ++_credentialRevision;
@@ -612,8 +597,6 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
       prefs.remove(_keyUserId),
       prefs.remove(_keyUsername),
       prefs.remove(_keyAvatarUrl),
-      _deleteCredential(_keyToken),
-      _deleteCredential(_keySession),
     ]);
   }
 
@@ -643,8 +626,6 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
     final prefs = SharedPrefsService.instance;
     await prefs.remove(_keyToken);
     await prefs.remove(_keySession);
-    await _deleteCredential(_keyToken);
-    await _deleteCredential(_keySession);
     await prefs.remove(_keyUserId);
     await prefs.remove(_keyUsername);
     await prefs.remove(_keyAvatarUrl);
@@ -661,45 +642,17 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
   }
 
   Future<void> _saveToken(BandBbsToken token) async {
-    if (await _writeCredential(_keyToken, jsonEncode(token.toJson()))) {
-      await SharedPrefsService.instance.remove(_keyToken);
-    }
+    await SharedPrefsService.instance.setString(
+      _keyToken,
+      jsonEncode(token.toJson()),
+    );
   }
 
   Future<void> _saveSession(OronBoxSession session) async {
-    if (await _writeCredential(_keySession, jsonEncode(session.toJson()))) {
-      await SharedPrefsService.instance.remove(_keySession);
-    }
-  }
-
-  Future<String?> _readCredential(String key) async {
-    try {
-      return await _secureStorage.read(key: key);
-    } catch (error) {
-      _log.warning('Unable to read a credential from secure storage', error);
-      return null;
-    }
-  }
-
-  Future<bool> _writeCredential(String key, String value) async {
-    try {
-      await _secureStorage.write(key: key, value: value);
-      return true;
-    } catch (error) {
-      _log.warning(
-        'Unable to persist a credential; it will remain in memory',
-        error,
-      );
-      return false;
-    }
-  }
-
-  Future<void> _deleteCredential(String key) async {
-    try {
-      await _secureStorage.delete(key: key);
-    } catch (error) {
-      _log.warning('Unable to remove a credential from secure storage', error);
-    }
+    await SharedPrefsService.instance.setString(
+      _keySession,
+      jsonEncode(session.toJson()),
+    );
   }
 
   Future<void> _fetchCurrentUser(OronBoxSession session) async {

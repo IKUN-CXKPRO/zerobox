@@ -95,6 +95,10 @@ class CommunityResource {
     this.collectionName,
     this.isCollection = false,
     this.resourceCount = 0,
+    this.sourceSectionId,
+    this.sourceRepoOwner,
+    this.sourceRepoName,
+    this.sourceRepoCommitHash,
   });
 
   final ResourceRef ref;
@@ -118,6 +122,17 @@ class CommunityResource {
   final String? collectionName;
   final bool isCollection;
   final int resourceCount;
+
+  /// Platform-specific listing section id (BandBBS resource_category_id);
+  /// lets an import bind back to the exact section it came from.
+  final String? sourceSectionId;
+
+  /// Repository the external item is published from (AstroBox index
+  /// repo_owner/repo_name); recorded into the binding so later publications
+  /// update that repo instead of creating a new one.
+  final String? sourceRepoOwner;
+  final String? sourceRepoName;
+  final String? sourceRepoCommitHash;
 
   String get authorName => authors.firstOrNull?.name ?? '';
 }
@@ -173,6 +188,10 @@ class CommunityResourceDetail extends CommunityResource {
     super.collectionName,
     super.isCollection,
     super.resourceCount,
+    super.sourceSectionId,
+    super.sourceRepoOwner,
+    super.sourceRepoName,
+    super.sourceRepoCommitHash,
     this.previews = const [],
     this.previewImages = const [],
     this.links = const [],

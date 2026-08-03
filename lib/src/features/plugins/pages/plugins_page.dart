@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,10 +11,9 @@ import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
-import 'package:oronbox/src/core/network/dio_provider.dart';
 import 'package:oronbox/src/core/utils/layout.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
-import 'package:oronbox/src/features/plugins/application/abv1_plugin_store.dart';
+import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/plugins/domain/plugin_package.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
@@ -31,7 +31,9 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
   var _loading = true;
   var _query = '';
   var _section = 0;
-  var _marketPlugins = <StorePlugin>[];
+  var _sources = <Map<String, Object?>>[];
+  String? _marketSource;
+  var _marketEntries = <Map<String, Object?>>[];
   var _marketLoading = false;
   Object? _marketError;
   final _installing = <String>{};
@@ -48,8 +50,14 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
     if (mounted) setState(() => _loading = true);
     try {
       final values = await Future.wait([
-        _execute(const OronBoxCommand(method: 'plugin.list')),
+        _execute(
+          OronBoxCommand(
+            method: 'plugin.list',
+            params: {'includeIcons': kIsWeb},
+          ),
+        ),
         _execute(const OronBoxCommand(method: 'plugin.safeMode.get')),
+        _execute(const OronBoxCommand(method: 'plugin.repositories')),
       ]);
       if (!mounted) return;
       setState(() {
@@ -58,6 +66,13 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
             .map((row) => row.cast<String, Object?>())
             .toList(growable: false);
         _safeMode = (values[1] as Map?)?['enabled'] == true;
+        _sources = (values[2] as List)
+            .whereType<Map>()
+            .map((row) => row.cast<String, Object?>())
+            .toList(growable: false);
+        if (!_sources.any((source) => source['id'] == _marketSource)) {
+          _marketSource = _sources.firstOrNull?['id']?.toString();
+        }
         final ids = _plugins.map((plugin) => plugin['id']?.toString()).toSet();
         if (!ids.contains(_selectedPluginId)) {
           _selectedPluginId = null;
@@ -70,57 +85,28 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
     }
   }
 
-  Future<void> _importPlugin() async {
-    final picked = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const ['zbp', 'abp'],
-      withData: true,
-    );
-    if (picked == null || picked.files.isEmpty) return;
-    final file = picked.files.single;
-    final bytes = file.bytes;
-    if (bytes == null) {
-      _showError(StateError('Unable to read ${file.name}'));
-      return;
-    }
-    try {
-      final package = const PluginPackageReader().read(
-        bytes,
-        fileName: file.name,
-      );
-      final updating = _plugins.any(
-        (plugin) => plugin['id']?.toString() == package.manifest.id,
-      );
-      if (!await _confirmPluginInstall(
-        name: package.manifest.name,
-        permissions: package.manifest.permissions,
-        updating: updating,
-      )) {
-        return;
-      }
-      await _execute(
-        OronBoxCommand(
-          method: 'plugin.install',
-          params: {'bytes': base64Encode(bytes), 'fileName': file.name},
-        ),
-      );
-      await _load();
-    } catch (error) {
-      if (mounted) _showError(error);
-    }
-  }
-
   Future<void> _loadMarket({bool force = false}) async {
-    if (_marketLoading || (!force && _marketPlugins.isNotEmpty)) return;
+    final source = _marketSource;
+    if (source == null || _marketLoading) return;
+    if (!force && _marketEntries.isNotEmpty) return;
     setState(() {
       _marketLoading = true;
       _marketError = null;
     });
     try {
-      final plugins = await AbV1PluginStore(ref.read(appDioProvider)).load();
+      final value = await _execute(
+        OronBoxCommand(
+          method: 'plugin.repository.catalog',
+          params: {'source': source, 'force': force},
+        ),
+      );
       if (mounted) {
-        setState(() => _marketPlugins = plugins);
-        unawaited(_loadMarketIcons(plugins));
+        setState(
+          () => _marketEntries = (value as List)
+              .whereType<Map>()
+              .map((row) => row.cast<String, Object?>())
+              .toList(growable: false),
+        );
       }
     } catch (error) {
       if (mounted) setState(() => _marketError = error);
@@ -129,64 +115,317 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
     }
   }
 
-  Future<void> _loadMarketIcons(List<StorePlugin> plugins) async {
-    final store = AbV1PluginStore(ref.read(appDioProvider));
-    final icons = await Future.wait(plugins.map(store.loadIcon));
-    if (!mounted) return;
-    setState(() {
-      final byKey = <String, Uint8List?>{
-        for (var index = 0; index < plugins.length; index++)
-          _marketPluginKey(plugins[index]): icons[index],
-      };
-      _marketPlugins = _marketPlugins
-          .map(
-            (plugin) =>
-                plugin.copyWith(iconBytes: byKey[_marketPluginKey(plugin)]),
-          )
-          .toList(growable: false);
-    });
+  Future<Uint8List?> _pickPackage(List<String> extensions) async {
+    final picked = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: extensions,
+      withData: true,
+    );
+    if (picked == null || picked.files.isEmpty) return null;
+    final bytes = picked.files.single.bytes;
+    if (bytes == null) {
+      _showError(StateError('Unable to read ${picked.files.single.name}'));
+    }
+    return bytes;
   }
 
-  Future<void> _installMarketPlugin(StorePlugin plugin) async {
-    final installedVersion = _plugins
-        .where((installed) => installed['name']?.toString() == plugin.name)
-        .map((installed) => installed['version']?.toString())
-        .firstOrNull;
-    final updating = installedVersion != null;
-    if (!await _confirmPluginInstall(
-      name: plugin.name,
-      permissions: plugin.permissions,
-      updating: updating,
-    )) {
-      return;
-    }
-    final key = _marketPluginKey(plugin);
-    setState(() => _installing.add(key));
+  Future<void> _importPlugin() async {
+    final bytes = await _pickPackage(const ['obp', 'abp', 'zip']);
+    if (bytes == null) return;
     try {
-      final bytes = await AbV1PluginStore(
-        ref.read(appDioProvider),
-      ).download(plugin);
+      final package = const PluginPackageReader().read(bytes);
+      final manifest = package.manifest;
+      final updating = _plugins.any(
+        (plugin) => plugin['id']?.toString() == manifest.id,
+      );
+      if (!await _confirmPluginInstall(
+        name: manifest.name,
+        permissions: manifest.permissions,
+        updating: updating,
+        legacy: manifest.runtime == PluginRuntimeType.legacy,
+      )) {
+        return;
+      }
       await _execute(
         OronBoxCommand(
           method: 'plugin.install',
-          params: {
-            'bytes': base64Encode(bytes),
-            'fileName': '${plugin.name}.abp',
-          },
+          params: {'bytes': base64Encode(bytes), 'includeIcon': false},
         ),
       );
       await _load();
     } catch (error) {
       if (mounted) _showError(error);
-    } finally {
-      if (mounted) setState(() => _installing.remove(key));
     }
+  }
+
+  Future<void> _installMarketPlugin(Map<String, Object?> entry) async {
+    final legacy = entry['legacy'] == true;
+    if (!await _confirmPluginInstall(
+      name: entry['name']?.toString() ?? '',
+      permissions: (entry['permissions'] as List? ?? const [])
+          .map((value) => value.toString())
+          .toList(growable: false),
+      updating: entry['updateAvailable'] == true,
+      legacy: legacy,
+    )) {
+      return;
+    }
+    final id = entry['id']?.toString() ?? '';
+    setState(() => _installing.add(id));
+    try {
+      await _execute(
+        OronBoxCommand(
+          method: 'plugin.repository.install',
+          params: {'source': entry['source']?.toString() ?? '', 'id': id},
+        ),
+      );
+      await _load();
+      await _loadMarket(force: true);
+    } catch (error) {
+      if (mounted) _showError(error);
+    } finally {
+      if (mounted) setState(() => _installing.remove(id));
+    }
+  }
+
+  Future<void> _uploadPlugin() async {
+    final l10n = AppLocalizations.of(context)!;
+    if (!ref.read(hostAccountsProvider).bandbbs.isSignedIn) {
+      _showError(StateError(l10n.pluginLoginRequired));
+      return;
+    }
+    final bytes = await _pickPackage(const ['obp', 'zip']);
+    if (bytes == null) return;
+    try {
+      final package = const PluginPackageReader().read(bytes);
+      final manifest = package.manifest;
+      if (manifest.runtime == PluginRuntimeType.legacy) {
+        _showError(const FormatException('Legacy plugins cannot be published'));
+        return;
+      }
+      final existing = _marketEntries
+          .where((entry) => entry['id']?.toString() == manifest.id)
+          .firstOrNull;
+      if (existing != null && existing['owned'] != true) {
+        _showError(
+          StateError('Plugin id is published by another user: ${manifest.id}'),
+        );
+        return;
+      }
+      if (!mounted) return;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) =>
+            _PluginPublishDialog(package: package, updating: existing != null),
+      );
+      if (confirmed != true) return;
+      await _execute(
+        OronBoxCommand(
+          method: 'plugin.repository.upload',
+          params: {'source': 'oronbox', 'bytes': base64Encode(bytes)},
+        ),
+      );
+      await _loadMarket(force: true);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.pluginSubmittedForReview)));
+      }
+    } catch (error) {
+      if (mounted) _showError(error);
+    }
+  }
+
+  Future<void> _takedownPlugin(Map<String, Object?> entry) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(l10n.pluginTakedown),
+            content: Text(l10n.pluginTakedownConfirm),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l10n.pluginTakedown),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+    try {
+      await _execute(
+        OronBoxCommand(
+          method: 'plugin.repository.remove',
+          params: {'source': 'oronbox', 'id': entry['id']?.toString() ?? ''},
+        ),
+      );
+      await _loadMarket(force: true);
+    } catch (error) {
+      if (mounted) _showError(error);
+    }
+  }
+
+  Future<void> _showMarketEntry(Map<String, Object?> entry) async {
+    final l10n = AppLocalizations.of(context)!;
+    final permissions = (entry['permissions'] as List? ?? const [])
+        .map((value) => value.toString())
+        .toList(growable: false);
+    final installed = entry['installed'] == true;
+    final updateAvailable = entry['updateAvailable'] == true;
+    final owned = entry['owned'] == true;
+    final state = entry['state']?.toString();
+    final listed = state == null || state == 'listed';
+    final stateLabel = switch (state) {
+      'pending' => l10n.pluginStatePending,
+      'rejected' => l10n.pluginStateRejected,
+      'delisted' => l10n.pluginStateDelisted,
+      _ => null,
+    };
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(entry['name']?.toString() ?? ''),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _MarketIcon(iconUrl: entry['iconUrl']?.toString(), size: 56),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${entry['author'] ?? ''} · ${entry['version'] ?? ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        if (entry['uploaderName'] != null)
+                          Text(
+                            entry['uploaderName'].toString(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (stateLabel != null) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(
+                      state == 'pending' ? Icons.schedule : Icons.error_outline,
+                      size: 18,
+                      color: state == 'pending'
+                          ? Theme.of(context).colorScheme.onSurfaceVariant
+                          : Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        entry['moderationReason']?.toString().isNotEmpty == true
+                            ? '$stateLabel:${entry['moderationReason']}'
+                            : stateLabel,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (entry['description']?.toString().isNotEmpty == true) ...[
+                const SizedBox(height: 16),
+                Text(entry['description'].toString()),
+              ],
+              const SizedBox(height: 16),
+              Text(l10n.pluginDeclaredPermissions),
+              const SizedBox(height: 8),
+              if (permissions.isEmpty)
+                Text(
+                  l10n.pluginNoPermissions,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                )
+              else
+                ...permissions.map(
+                  (permission) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.circle, size: 7),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(permission)),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          if (owned) ...[
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _takedownPlugin(entry);
+              },
+              child: Text(l10n.pluginTakedown),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _uploadPlugin();
+              },
+              child: Text(l10n.update),
+            ),
+          ],
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: installed || !listed
+                ? null
+                : () {
+                    Navigator.pop(context);
+                    _installMarketPlugin(entry);
+                  },
+            child: Text(
+              updateAvailable
+                  ? l10n.update
+                  : installed
+                  ? l10n.pluginUpToDate
+                  : l10n.install,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<bool> _confirmPluginInstall({
     required String name,
     required List<String> permissions,
     required bool updating,
+    required bool legacy,
   }) async {
     final l10n = AppLocalizations.of(context)!;
     return await showDialog<bool>(
@@ -204,6 +443,10 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(name, style: Theme.of(context).textTheme.titleMedium),
+                  if (legacy) ...[
+                    const SizedBox(height: 16),
+                    const _LegacyWarning(),
+                  ],
                   const SizedBox(height: 16),
                   Text(l10n.pluginDeclaredPermissions),
                   const SizedBox(height: 8),
@@ -245,9 +488,6 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
         false;
   }
 
-  String _marketPluginKey(StorePlugin plugin) =>
-      '${plugin.repositoryUrl}|${plugin.folder}';
-
   Future<void> _exitSafeMode() async {
     await _execute(
       const OronBoxCommand(
@@ -262,42 +502,61 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final query = _query.trim().toLowerCase();
+    bool matches(Iterable<Object?> values) => values.any(
+      (value) => value?.toString().toLowerCase().contains(query) ?? false,
+    );
     final visiblePlugins = query.isEmpty
         ? _plugins
         : _plugins
-              .where((plugin) {
-                return [
+              .where(
+                (plugin) => matches([
                   plugin['name'],
                   plugin['description'],
                   plugin['author'],
-                ].any(
-                  (value) =>
-                      value?.toString().toLowerCase().contains(query) ?? false,
-                );
-              })
+                ]),
+              )
               .toList(growable: false);
-    final visibleMarketPlugins = query.isEmpty
-        ? _marketPlugins
-        : _marketPlugins
+    final visibleEntries = query.isEmpty
+        ? _marketEntries
+        : _marketEntries
               .where(
-                (plugin) => [
-                  plugin.name,
-                  plugin.description,
-                  plugin.author,
-                ].any((value) => value.toLowerCase().contains(query)),
+                (entry) => matches([
+                  entry['name'],
+                  entry['description'],
+                  entry['author'],
+                ]),
               )
               .toList(growable: false);
     return Scaffold(
       appBar: SysAppBar(
         title: Text(l10n.pluginsTab),
         actions: [
+          if (_section == 1) ...[
+            _PluginSourceMenu(
+              sources: _sources,
+              selected: _marketSource,
+              onSelected: (source) {
+                setState(() {
+                  _marketSource = source;
+                  _marketEntries = const [];
+                });
+                _loadMarket();
+              },
+            ),
+            if (_marketSource == 'oronbox')
+              IconButton(
+                onPressed: _uploadPlugin,
+                icon: const Icon(Icons.upload_outlined),
+                tooltip: l10n.pluginUpload,
+              ),
+          ],
           IconButton(
             onPressed: _importPlugin,
             icon: const Icon(Icons.add_box_outlined),
             tooltip: l10n.pluginImport,
           ),
           IconButton(
-            onPressed: _load,
+            onPressed: _section == 0 ? _load : () => _loadMarket(force: true),
             icon: const Icon(Icons.refresh),
             tooltip: l10n.refresh,
           ),
@@ -310,14 +569,9 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
             section: _section,
             loading: _loading,
             plugins: visiblePlugins,
-            marketPlugins: visibleMarketPlugins,
+            entries: visibleEntries,
             marketLoading: _marketLoading,
             marketError: _marketError,
-            installedVersions: {
-              for (final plugin in _plugins)
-                if (plugin['name'] != null && plugin['version'] != null)
-                  plugin['name'].toString(): plugin['version'].toString(),
-            },
             installing: _installing,
             selectedPluginId: wide ? _selectedPluginId : null,
             emptyText: l10n.pluginEmpty,
@@ -331,6 +585,7 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
             },
             onRefreshMarket: () => _loadMarket(force: true),
             onInstall: _installMarketPlugin,
+            onOpenEntry: _showMarketEntry,
             onOpen: (id) {
               if (wide) {
                 setState(() => _selectedPluginId = id);
@@ -400,6 +655,198 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
   }
 }
 
+class _PluginSourceMenu extends StatelessWidget {
+  const _PluginSourceMenu({
+    required this.sources,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<Map<String, Object?>> sources;
+  final String? selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = sources
+        .where((source) => source['id'] == selected)
+        .firstOrNull;
+    return MenuAnchor(
+      menuChildren: sources
+          .map(
+            (source) => MenuItemButton(
+              trailingIcon: source['id'] == selected
+                  ? Icon(
+                      Icons.check,
+                      color: Theme.of(context).colorScheme.primary,
+                    )
+                  : null,
+              onPressed: source['id'] == selected
+                  ? null
+                  : () => onSelected(source['id'].toString()),
+              child: Text(source['name']?.toString() ?? ''),
+            ),
+          )
+          .toList(growable: false),
+      builder: (context, controller, child) => TextButton(
+        onPressed: () =>
+            controller.isOpen ? controller.close() : controller.open(),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(current?['name']?.toString() ?? ''),
+            const Icon(Icons.arrow_drop_down),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LegacyWarning extends StatelessWidget {
+  const _LegacyWarning();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = Theme.of(context).colorScheme;
+    return ColoredBox(
+      color: colors.tertiaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.history_toggle_off, color: colors.onTertiaryContainer),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.pluginLegacyWarningTitle,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: colors.onTertiaryContainer,
+                    ),
+                  ),
+                  Text(
+                    l10n.pluginLegacyWarningMessage,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colors.onTertiaryContainer,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PluginPublishDialog extends StatelessWidget {
+  const _PluginPublishDialog({required this.package, required this.updating});
+
+  final PluginPackage package;
+  final bool updating;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final manifest = package.manifest;
+    return AlertDialog(
+      title: Text(l10n.pluginPublishTitle),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                PluginIcon(base64: package.installed().iconBase64, size: 56),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        manifest.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        '${manifest.author} · ${manifest.version}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      Text(
+                        manifest.id,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (manifest.description.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(manifest.description),
+            ],
+            const SizedBox(height: 16),
+            Text(l10n.pluginDeclaredPermissions),
+            const SizedBox(height: 8),
+            if (manifest.permissions.isEmpty)
+              Text(
+                l10n.pluginNoPermissions,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              )
+            else
+              ...manifest.permissions.map(
+                (permission) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.circle, size: 7),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(permission)),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 16),
+            Text(
+              updating ? l10n.pluginPublishUpdate : l10n.pluginPublishNew,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: Text(updating ? l10n.update : l10n.pluginUpload),
+        ),
+      ],
+    );
+  }
+}
+
 class _PluginSafeModeBanner extends StatelessWidget {
   const _PluginSafeModeBanner({required this.onExit});
 
@@ -442,10 +889,9 @@ class _PluginCatalog extends StatelessWidget {
     required this.section,
     required this.loading,
     required this.plugins,
-    required this.marketPlugins,
+    required this.entries,
     required this.marketLoading,
     required this.marketError,
-    required this.installedVersions,
     required this.installing,
     required this.selectedPluginId,
     required this.emptyText,
@@ -456,16 +902,16 @@ class _PluginCatalog extends StatelessWidget {
     required this.onSectionChanged,
     required this.onRefreshMarket,
     required this.onInstall,
+    required this.onOpenEntry,
     required this.onOpen,
   });
 
   final int section;
   final bool loading;
   final List<Map<String, Object?>> plugins;
-  final List<StorePlugin> marketPlugins;
+  final List<Map<String, Object?>> entries;
   final bool marketLoading;
   final Object? marketError;
-  final Map<String, String> installedVersions;
   final Set<String> installing;
   final String? selectedPluginId;
   final String emptyText;
@@ -475,7 +921,8 @@ class _PluginCatalog extends StatelessWidget {
   final ValueChanged<String> onQueryChanged;
   final ValueChanged<int> onSectionChanged;
   final VoidCallback onRefreshMarket;
-  final ValueChanged<StorePlugin> onInstall;
+  final ValueChanged<Map<String, Object?>> onInstall;
+  final ValueChanged<Map<String, Object?>> onOpenEntry;
   final ValueChanged<String> onOpen;
 
   @override
@@ -519,12 +966,12 @@ class _PluginCatalog extends StatelessWidget {
               : _PluginMarket(
                   loading: marketLoading,
                   error: marketError,
-                  plugins: marketPlugins,
-                  installedVersions: installedVersions,
+                  entries: entries,
                   installing: installing,
                   emptyText: marketUnavailableText,
                   onRefresh: onRefreshMarket,
                   onInstall: onInstall,
+                  onOpen: onOpenEntry,
                 ),
         ),
       ],
@@ -603,7 +1050,11 @@ class _PluginCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _PluginIcon(base64: plugin['icon']?.toString(), size: 56),
+              PluginIcon(
+                base64: plugin['icon']?.toString(),
+                path: plugin['iconPath']?.toString(),
+                size: 56,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -666,29 +1117,29 @@ class _PluginMarket extends StatelessWidget {
   const _PluginMarket({
     required this.loading,
     required this.error,
-    required this.plugins,
-    required this.installedVersions,
+    required this.entries,
     required this.installing,
     required this.emptyText,
     required this.onRefresh,
     required this.onInstall,
+    required this.onOpen,
   });
 
   final bool loading;
   final Object? error;
-  final List<StorePlugin> plugins;
-  final Map<String, String> installedVersions;
+  final List<Map<String, Object?>> entries;
   final Set<String> installing;
   final String emptyText;
   final VoidCallback onRefresh;
-  final ValueChanged<StorePlugin> onInstall;
+  final ValueChanged<Map<String, Object?>> onInstall;
+  final ValueChanged<Map<String, Object?>> onOpen;
 
   @override
   Widget build(BuildContext context) {
-    if (loading && plugins.isEmpty) {
+    if (loading && entries.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (error != null && plugins.isEmpty) {
+    if (error != null && entries.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -704,94 +1155,81 @@ class _PluginMarket extends StatelessWidget {
         ),
       );
     }
-    if (plugins.isEmpty) return Center(child: Text(emptyText));
+    if (entries.isEmpty) return Center(child: Text(emptyText));
     return RefreshIndicator(
       onRefresh: () async => onRefresh(),
       child: ListView.separated(
         padding: const EdgeInsets.only(bottom: 16),
-        itemCount: plugins.length,
+        itemCount: entries.length,
         separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
-          final plugin = plugins[index];
-          final key = '${plugin.repositoryUrl}|${plugin.folder}';
-          final isInstalling = installing.contains(key);
-          final installedVersion = installedVersions[plugin.name];
-          final updateAvailable =
-              installedVersion != null &&
-              comparePluginVersions(plugin.version, installedVersion) > 0;
-          final installed = installedVersion != null && !updateAvailable;
+          final entry = entries[index];
+          final id = entry['id']?.toString() ?? '';
+          final isInstalling = installing.contains(id);
+          final installed = entry['installed'] == true;
+          final updateAvailable = entry['updateAvailable'] == true;
           return Card(
             elevation: 0,
             margin: EdgeInsets.zero,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: plugin.iconBytes == null
-                        ? const SizedBox(
-                            width: 56,
-                            height: 56,
-                            child: Icon(Icons.extension_outlined),
-                          )
-                        : Image.memory(
-                            plugin.iconBytes!,
-                            width: 56,
-                            height: 56,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => const SizedBox(
-                              width: 56,
-                              height: 56,
-                              child: Icon(Icons.extension_outlined),
-                            ),
-                          ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          plugin.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        Text(
-                          '${plugin.author} · ${plugin.version}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => onOpen(entry),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    _MarketIcon(
+                      iconUrl: entry['iconUrl']?.toString(),
+                      size: 56,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  isInstalling
-                      ? IconButton.filledTonal(
-                          onPressed: null,
-                          icon: const SizedBox.square(
-                            dimension: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            entry['name']?.toString() ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleSmall,
                           ),
-                        )
-                      : IconButton.filledTonal(
-                          onPressed: installed ? null : () => onInstall(plugin),
-                          icon: Icon(
-                            installed
-                                ? Icons.check_rounded
+                          Text(
+                            '${entry['author'] ?? ''} · ${entry['version'] ?? ''}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    isInstalling
+                        ? IconButton.filledTonal(
+                            onPressed: null,
+                            icon: const SizedBox.square(
+                              dimension: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : IconButton.filledTonal(
+                            onPressed: installed
+                                ? null
+                                : () => onInstall(entry),
+                            icon: Icon(
+                              installed
+                                  ? Icons.check_rounded
+                                  : updateAvailable
+                                  ? Icons.upgrade_rounded
+                                  : Icons.add_rounded,
+                            ),
+                            tooltip: installed
+                                ? AppLocalizations.of(context)!.pluginUpToDate
                                 : updateAvailable
-                                ? Icons.upgrade_rounded
-                                : Icons.add_rounded,
+                                ? AppLocalizations.of(context)!.update
+                                : AppLocalizations.of(context)!.install,
                           ),
-                          tooltip: installed
-                              ? AppLocalizations.of(context)!.pluginUpToDate
-                              : updateAvailable
-                              ? AppLocalizations.of(context)!.update
-                              : AppLocalizations.of(context)!.install,
-                        ),
-                ],
+                  ],
+                ),
               ),
             ),
           );
@@ -801,20 +1239,51 @@ class _PluginMarket extends StatelessWidget {
   }
 }
 
-class PluginIcon extends _PluginIcon {
-  const PluginIcon({super.key, required super.base64, required super.size});
-}
+class _MarketIcon extends StatelessWidget {
+  const _MarketIcon({required this.iconUrl, required this.size});
 
-class _PluginIcon extends StatelessWidget {
-  const _PluginIcon({super.key, required this.base64, required this.size});
-
-  final String? base64;
+  final String? iconUrl;
   final double size;
 
   @override
   Widget build(BuildContext context) {
-    final data = base64;
+    Widget fallback(BuildContext context) => ColoredBox(
+      color: Theme.of(context).colorScheme.secondaryContainer,
+      child: Icon(
+        Icons.extension,
+        color: Theme.of(context).colorScheme.onSecondaryContainer,
+      ),
+    );
+    final url = iconUrl;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(size * 0.22),
+      child: SizedBox.square(
+        dimension: size,
+        child: url == null
+            ? fallback(context)
+            : Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (context, _, _) => fallback(context),
+                loadingBuilder: (context, child, progress) =>
+                    progress == null ? child : fallback(context),
+              ),
+      ),
+    );
+  }
+}
+
+class PluginIcon extends StatelessWidget {
+  const PluginIcon({super.key, this.base64, this.path, required this.size});
+
+  final String? base64;
+  final String? path;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
     Uint8List? bytes;
+    final data = base64;
     if (data != null) {
       try {
         bytes = base64Decode(data);
@@ -829,18 +1298,26 @@ class _PluginIcon extends StatelessWidget {
         color: Theme.of(context).colorScheme.onSecondaryContainer,
       ),
     );
+    Widget child;
+    final nativePath = path;
+    if (!kIsWeb && nativePath != null && File(nativePath).existsSync()) {
+      child = Image.file(
+        File(nativePath),
+        fit: BoxFit.cover,
+        errorBuilder: (context, _, _) => fallback(context),
+      );
+    } else if (bytes != null) {
+      child = Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        errorBuilder: (context, _, _) => fallback(context),
+      );
+    } else {
+      child = fallback(context);
+    }
     return ClipRRect(
       borderRadius: BorderRadius.circular(size * 0.22),
-      child: SizedBox.square(
-        dimension: size,
-        child: bytes == null
-            ? fallback(context)
-            : Image.memory(
-                bytes,
-                fit: BoxFit.cover,
-                errorBuilder: (context, _, _) => fallback(context),
-              ),
-      ),
+      child: SizedBox.square(dimension: size, child: child),
     );
   }
 }

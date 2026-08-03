@@ -440,7 +440,8 @@ class _DeviceInfoPanel extends StatelessWidget {
                 _ActionButton(
                   icon: Icons.sync,
                   label: l10n.deviceSyncTime,
-                  onPressed: syncingTime ? null : onSyncTime,
+                  loading: syncingTime,
+                  onPressed: onSyncTime,
                 ),
               _ActionButton(
                 icon: Icons.swap_horiz,
@@ -1239,19 +1240,30 @@ class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.icon,
     required this.label,
+    this.loading = false,
     this.onPressed,
   });
 
   final IconData icon;
   final String label;
+  final bool loading;
   final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return TextButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 18),
+      onPressed: loading ? null : onPressed,
+      icon: loading
+          ? SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: colorScheme.onSurface.withAlpha(96),
+              ),
+            )
+          : Icon(icon, size: 18),
       label: Text(label),
       style: TextButton.styleFrom(
         foregroundColor: colorScheme.onSurface,

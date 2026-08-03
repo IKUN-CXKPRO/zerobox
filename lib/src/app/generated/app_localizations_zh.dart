@@ -87,6 +87,46 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pluginUninstallMessage => '插件数据也将被删除';
 
   @override
+  String get pluginUpload => '上传插件';
+
+  @override
+  String get pluginPublishTitle => '发布插件';
+
+  @override
+  String get pluginPublishNew => '将作为新插件发布';
+
+  @override
+  String get pluginPublishUpdate => '将更新已发布的同名插件';
+
+  @override
+  String get pluginTakedown => '下架';
+
+  @override
+  String get pluginTakedownConfirm => '下架后该插件将从市场永久移除';
+
+  @override
+  String get pluginLoginRequired => '登录后上传插件';
+
+  @override
+  String get pluginSubmittedForReview => '已提交审核，通过后将上架';
+
+  @override
+  String get pluginStatePending => '审核中';
+
+  @override
+  String get pluginStateRejected => '审核未通过';
+
+  @override
+  String get pluginStateDelisted => '已被下架';
+
+  @override
+  String get pluginLegacyWarningTitle => 'Legacy 插件';
+
+  @override
+  String get pluginLegacyWarningMessage =>
+      '这是一个 AstroBox v1 插件，OronBox 会尝试以兼容模式转译运行，但可能遇到一些问题\n请尝试检查并更新 OronBox 原生插件或与插件作者联系适配';
+
+  @override
   String get settingsTab => '设置';
 
   @override
@@ -772,6 +812,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String firmwareDownloadingProgress(int progress) {
     return '正在下载 $progress%';
   }
+
+  @override
+  String get download => '下载';
 
   @override
   String get downloadFailed => '下载失败，请稍后重试';
@@ -1784,6 +1827,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noDescription => '暂无描述';
 
   @override
+  String get noContent => '暂无内容';
+
+  @override
   String get preview => '预览';
 
   @override
@@ -2298,7 +2344,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get acknowledgementsGadgetbridge => 'ZeppOS 与可穿戴设备协议研究参考';
 
   @override
-  String get resourceHomeEmptyTitle => '首页未完成';
+  String get resourceHomeRecommended => '每日推荐';
+
+  @override
+  String get resourceHomeFeatured => '每日精选';
+
+  @override
+  String get resourceHomeUpdates => '最新动态';
+
+  @override
+  String get blogTypeAnnouncement => '公告';
+
+  @override
+  String get blogTypeRecommendation => '推荐';
+
+  @override
+  String get blogTypeDocs => '文档';
+
+  @override
+  String get blogPostUnavailable => '文章不存在或已下线';
+
+  @override
+  String get resourceHomeEmptyTitle => '暂无推荐内容';
+
+  @override
+  String get resourceLibraryEndOfList => '到底了，看看来自其他源的资源？';
 
   @override
   String get resourceHomeEmptySubtitle => '您可以在资源库获取资源';
@@ -2671,23 +2741,47 @@ class AppLocalizationsZh extends AppLocalizations {
   String get submitForReview => '提交审核';
 
   @override
-  String get creatorConfirmTitle => '确认发布计划';
+  String get creatorConfirmTitle => '确认提交';
 
   @override
-  String get creatorConfirmOronBox => '资源将提交至 OronBox 审核，审核通过后在 OronBox 资源中发布';
+  String get creatorConfirmOronBox => '提交至 OronBox';
 
   @override
   String creatorConfirmBandBbs(Object category) {
-    return '审核通过后将直接发布到米坛分区 $category';
+    return '同步至米坛：$category';
   }
 
   @override
   String creatorConfirmAstroBox(Object owner, Object repository) {
-    return '审核通过后将由 GitHub 用户 $owner 创建或更新仓库 $repository，并向 ABRepo 提交 PR';
+    return '同步至 AstroBox：$owner/$repository';
   }
 
   @override
-  String get creatorBandBbsDirectPublish => 'OronBox 审核通过之后直接发布到米坛社区';
+  String get creatorBandBbsDirectPublish => '同步到米坛';
+
+  @override
+  String get creatorBandBbsBoundUpdate => '已关联 · 同步到米坛';
+
+  @override
+  String creatorLinkedSections(int count) {
+    return '已关联 $count 个分区';
+  }
+
+  @override
+  String creatorBandBbsBindingIds(Object categoryId, Object resourceId) {
+    return '分区 $categoryId · 资源 $resourceId';
+  }
+
+  @override
+  String creatorAstroBoxBinding(Object itemId, Object repository) {
+    return 'Item $itemId · $repository';
+  }
+
+  @override
+  String get creatorAstroBoxBoundSync => '已关联 · 同步到 AstroBox';
+
+  @override
+  String get creatorThisCommit => '本次提交';
 
   @override
   String get bandBbsCategoryId => '米坛资源分区 ID';
@@ -2697,7 +2791,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String creatorAstroBoxPrPublish(Object repository) {
-    return 'OronBox 审核通过之后创建资源分仓库 $repository 并向 AstroBox 官方仓库提交 PR';
+    return '同步到 AstroBox · $repository';
   }
 
   @override
@@ -2710,7 +2804,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorAstroTags => 'AstroBox 标签';
 
   @override
-  String get creatorAstroTagsHint => '使用逗号或分号分隔多个标签';
+  String get creatorAstroTagsHint => '多个标签使用英文分号 ; 分隔';
 
   @override
   String get retry => '重试';
@@ -2794,9 +2888,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorLoginAction => '登录米坛';
 
   @override
-  String get creatorSelectHint => '从左侧选择资源，或新建一个资源';
-
-  @override
   String get creatorOronBoxReady => 'OronBox 与米坛读取权限可用';
 
   @override
@@ -2807,7 +2898,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String creatorGitHubOwnPublishReady(Object login) {
-    return '已连接 GitHub，可使用 $login 发布';
+    return '已连接 GitHub · $login';
   }
 
   @override
@@ -3111,6 +3202,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loadMore => '加载更多';
 
   @override
+  String get more => '更多';
+
+  @override
   String get reply => '回复';
 
   @override
@@ -3184,6 +3278,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cleanExploreContentGroup => '探索内容';
+
+  @override
+  String get cleanHomeSectionsGroup => '首页板块';
+
+  @override
+  String get cleanHomeBanner => 'Banner 轮播';
+
+  @override
+  String get cleanHomeEditorSections => '编辑分区';
 
   @override
   String get cleanResourceSourcesGroup => '资源源';
@@ -3452,4 +3555,136 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get creatorDecline => '拒绝';
+
+  @override
+  String communityImportSelected(int count) {
+    return '已选择 $count 项';
+  }
+
+  @override
+  String get communityImportForce => '已存在的资源也重新导入';
+
+  @override
+  String get communityImportStart => '开始导入';
+
+  @override
+  String get communityImportResultCreated => '已创建草稿';
+
+  @override
+  String get communityImportResultFailed => '失败';
+
+  @override
+  String get communityImportUnsupported => '该类型暂不支持导入';
+
+  @override
+  String get communityImportDuplicate => '创作者中心已存在同名资源';
+
+  @override
+  String get communityImportNoArtifacts => '没有可导入的资源文件';
+
+  @override
+  String get creatorImportExternal => '导入外部平台已有资源';
+
+  @override
+  String get creatorNewResourceDescription => '从 OronBox 开始创建并维护一个资源';
+
+  @override
+  String get creatorNewCollectionDescription => '创建合集并集中整理同类资源';
+
+  @override
+  String get creatorImportExternalDescription =>
+      '实验性，从 米坛社区/ AstroBox-Repo 导入您的已有资源';
+
+  @override
+  String get creatorImportAlreadyImported => '已导入并绑定';
+
+  @override
+  String get creatorImportReviewNotice =>
+      '导入内容可能存在缺失或识别偏差\n请逐项检查并手动调整，确认无误后再提交';
+
+  @override
+  String get creatorImportLogTitle => '处理日志';
+
+  @override
+  String get communityImportMyResources => '我的资源';
+
+  @override
+  String get communityImportPickerEmpty => '暂无资源';
+
+  @override
+  String get creatorWizardChooseAction => '新建';
+
+  @override
+  String get creatorImportSelectTitle => '选择资源';
+
+  @override
+  String get creatorImportPreviewTitle => '导入预览';
+
+  @override
+  String get creatorImportProgressTitle => '正在导入';
+
+  @override
+  String get creatorImportResultTitle => '导入结果';
+
+  @override
+  String get creatorImportBindingsTitle => '关联信息';
+
+  @override
+  String creatorImportBandbbsSections(int count) {
+    return '$count 个分区';
+  }
+
+  @override
+  String get creatorImportGitHubHint => '连接 GitHub 后列出你在 AstroBox 的资源';
+
+  @override
+  String get creatorImportGitHubConnect => '连接 GitHub';
+
+  @override
+  String get creatorImportStageDetails => '获取详情';
+
+  @override
+  String get creatorImportStageDownloading => '下载文件';
+
+  @override
+  String get creatorImportStageMedia => '处理图片';
+
+  @override
+  String get creatorImportStageUploading => '创建草稿';
+
+  @override
+  String get creatorImportContinue => '继续导入';
+
+  @override
+  String creatorImportWarnings(int count) {
+    return '$count 条警告';
+  }
+
+  @override
+  String get creatorDeleteExternalBandbbs => '同时删除米坛资源';
+
+  @override
+  String get creatorDeleteExternalAstrobox => '同时向 AstroBox-Repo 提交资源删除 PR';
+
+  @override
+  String get creatorDeleteExternalWarning => '外部平台的删除操作不可撤销';
+
+  @override
+  String get creatorDeletePrSubmitted => '删除 PR 已提交';
+
+  @override
+  String githubCdnFallback(Object cdn) {
+    return 'GitHub 连接失败，正在切换至 $cdn';
+  }
+
+  @override
+  String creatorImportSourceVersion(Object source, Object version) {
+    return '$source · $version';
+  }
+
+  @override
+  String get creatorImportPaid => '付费';
+
+  @override
+  String get creatorImportBandbbsPaidEncrypted => '米坛付费资源文件已加密，无法导入';
 }

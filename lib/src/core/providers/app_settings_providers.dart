@@ -25,6 +25,11 @@ class CleanSettings {
     this.bandBbs = true,
     this.astroBox = true,
     this.huamiAppStore = true,
+    this.homeBanner = true,
+    this.homeEditorSections = true,
+    this.homeFeatured = true,
+    this.homeRecommended = true,
+    this.homeLatest = true,
   });
   final bool exploreEntry,
       pluginsEntry,
@@ -39,7 +44,12 @@ class CleanSettings {
       oronBox,
       bandBbs,
       astroBox,
-      huamiAppStore;
+      huamiAppStore,
+      homeBanner,
+      homeEditorSections,
+      homeFeatured,
+      homeRecommended,
+      homeLatest;
   bool get exploreEnabled => exploreEntry;
   bool get pluginsEnabled => pluginsEntry;
   bool get homeFeedEnabled => exploreEnabled && homeFeed;
@@ -55,13 +65,31 @@ class CleanSettings {
   bool get bandBbsLoginEnabled => bandBbsLogin;
   bool get githubLoginEnabled => bandBbsLoginEnabled && githubLogin;
   bool get announcementsEnabled => announcements;
+  bool get hasHomeSection =>
+      homeBanner ||
+      homeEditorSections ||
+      homeFeatured ||
+      homeRecommended ||
+      homeLatest;
+  bool get homeBannerEnabled => homeFeedEnabled && homeBanner;
+  bool get homeEditorSectionsEnabled => homeFeedEnabled && homeEditorSections;
+  bool get homeFeaturedEnabled => homeFeedEnabled && homeFeatured;
+  bool get homeRecommendedEnabled => homeFeedEnabled && homeRecommended;
+  bool get homeLatestEnabled => homeFeedEnabled && homeLatest;
   bool get hasResourceSource =>
       oronBoxSourceEnabled ||
       bandBbsSourceEnabled ||
       astroBoxSourceEnabled ||
       huamiAppStoreSourceEnabled;
 
-  CleanSettings get normalized => this;
+  // 子项全关时联动关父项
+  CleanSettings get normalized {
+    final feed = homeFeed && hasHomeSection;
+    return copyWith(
+      homeFeed: feed,
+      exploreEntry: exploreEntry && (feed || explore),
+    );
+  }
 
   CleanSettings copyWith({
     bool? exploreEntry,
@@ -78,6 +106,11 @@ class CleanSettings {
     bool? bandBbs,
     bool? astroBox,
     bool? huamiAppStore,
+    bool? homeBanner,
+    bool? homeEditorSections,
+    bool? homeFeatured,
+    bool? homeRecommended,
+    bool? homeLatest,
   }) => CleanSettings(
     exploreEntry: exploreEntry ?? this.exploreEntry,
     pluginsEntry: pluginsEntry ?? this.pluginsEntry,
@@ -93,6 +126,11 @@ class CleanSettings {
     bandBbs: bandBbs ?? this.bandBbs,
     astroBox: astroBox ?? this.astroBox,
     huamiAppStore: huamiAppStore ?? this.huamiAppStore,
+    homeBanner: homeBanner ?? this.homeBanner,
+    homeEditorSections: homeEditorSections ?? this.homeEditorSections,
+    homeFeatured: homeFeatured ?? this.homeFeatured,
+    homeRecommended: homeRecommended ?? this.homeRecommended,
+    homeLatest: homeLatest ?? this.homeLatest,
   );
 }
 
@@ -192,6 +230,11 @@ class AppSettings {
         bandBbs: prefs.getBool('clean_source_bandbbs') ?? true,
         astroBox: prefs.getBool('clean_source_astrobox') ?? true,
         huamiAppStore: prefs.getBool('clean_source_huami_app_store') ?? true,
+        homeBanner: prefs.getBool('clean_home_banner') ?? true,
+        homeEditorSections: prefs.getBool('clean_home_editor_sections') ?? true,
+        homeFeatured: prefs.getBool('clean_home_featured') ?? true,
+        homeRecommended: prefs.getBool('clean_home_recommended') ?? true,
+        homeLatest: prefs.getBool('clean_home_latest') ?? true,
       ),
     );
   }
@@ -234,6 +277,11 @@ class AppSettings {
     await prefs.setBool('clean_source_bandbbs', clean.bandBbs);
     await prefs.setBool('clean_source_astrobox', clean.astroBox);
     await prefs.setBool('clean_source_huami_app_store', clean.huamiAppStore);
+    await prefs.setBool('clean_home_banner', clean.homeBanner);
+    await prefs.setBool('clean_home_editor_sections', clean.homeEditorSections);
+    await prefs.setBool('clean_home_featured', clean.homeFeatured);
+    await prefs.setBool('clean_home_recommended', clean.homeRecommended);
+    await prefs.setBool('clean_home_latest', clean.homeLatest);
   }
 
   static T _enumByName<T extends Enum>(

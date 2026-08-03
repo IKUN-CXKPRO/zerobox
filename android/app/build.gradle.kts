@@ -1,7 +1,16 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android Gradle plugin.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val keyPropertiesFile = rootProject.file("key.properties")
+val keyProperties = Properties()
+if (keyPropertiesFile.exists()) {
+    keyProperties.load(FileInputStream(keyPropertiesFile))
 }
 
 android {
@@ -25,9 +34,18 @@ android {
         versionName = flutter.versionName
     }
 
-    // Compress native libraries inside the APK (they are extracted at install
-    // time). Direct APK distribution makes the download ~2.3x smaller at the
-    // cost of ~16MB extra on-device storage.
+    signingConfigs {
+        create("release") {
+            keyAlias = keyProperties.getProperty("keyAlias")
+            keyPassword = keyProperties.getProperty("keyPassword")
+            storeFile = keyProperties.getProperty("storeFile")?.let { path -> file(path) }
+            storePassword = keyProperties.getProperty("storePassword")
+        }
+    }
+
+    // Store native libraries uncompressed and page-aligned so the system maps
+    // them straight from the APK instead of extracting a second copy. The APK
+    // download grows, but installed size drops by roughly the same amount.
     packaging {
         jniLibs {
             useLegacyPackaging = true
@@ -36,9 +54,13 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Release builds use the upload key from android/key.properties
+            // when present; local builds without it fall back to debug keys.
+            signingConfig = if (keyPropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

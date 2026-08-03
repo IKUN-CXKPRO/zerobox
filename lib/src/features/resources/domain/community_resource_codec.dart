@@ -50,6 +50,14 @@ Map<String, Object?> communityResourceToJson(CommunityResource resource) => {
   if (resource.downloadCount != null) 'downloadCount': resource.downloadCount,
   if (resource.version != null) 'version': resource.version,
   if (resource.priceLabel != null) 'priceLabel': resource.priceLabel,
+  if (resource.sourceSectionId != null)
+    'sourceSectionId': resource.sourceSectionId,
+  if (resource.sourceRepoOwner != null)
+    'sourceRepoOwner': resource.sourceRepoOwner,
+  if (resource.sourceRepoName != null)
+    'sourceRepoName': resource.sourceRepoName,
+  if (resource.sourceRepoCommitHash != null)
+    'sourceRepoCommitHash': resource.sourceRepoCommitHash,
 };
 
 Map<String, Object?> communityResourceDetailToJson(
@@ -101,6 +109,10 @@ CommunityResource communityResourceFromJson(Map<String, Object?> json) {
     downloadCount: common.downloadCount,
     version: common.version,
     priceLabel: common.priceLabel,
+    sourceSectionId: common.sourceSectionId,
+    sourceRepoOwner: common.sourceRepoOwner,
+    sourceRepoName: common.sourceRepoName,
+    sourceRepoCommitHash: common.sourceRepoCommitHash,
   );
 }
 
@@ -125,6 +137,10 @@ CommunityResourceDetail communityResourceDetailFromJson(
     downloadCount: common.downloadCount,
     version: common.version,
     priceLabel: common.priceLabel,
+    sourceSectionId: common.sourceSectionId,
+    sourceRepoOwner: common.sourceRepoOwner,
+    sourceRepoName: common.sourceRepoName,
+    sourceRepoCommitHash: common.sourceRepoCommitHash,
     content: CommunityResourceContent(
       format: _enum(ResourceContentFormat.values, content['format']),
       value: content['value']?.toString() ?? '',
@@ -181,6 +197,10 @@ class _CommonResourceFields {
     this.downloadCount,
     this.version,
     this.priceLabel,
+    this.sourceSectionId,
+    this.sourceRepoOwner,
+    this.sourceRepoName,
+    this.sourceRepoCommitHash,
   });
 
   final ResourceRef ref;
@@ -198,6 +218,10 @@ class _CommonResourceFields {
   final int? downloadCount;
   final String? version;
   final String? priceLabel;
+  final String? sourceSectionId;
+  final String? sourceRepoOwner;
+  final String? sourceRepoName;
+  final String? sourceRepoCommitHash;
 }
 
 _CommonResourceFields _common(Map<String, Object?> json) =>
@@ -224,6 +248,10 @@ _CommonResourceFields _common(Map<String, Object?> json) =>
       downloadCount: (json['downloadCount'] as num?)?.toInt(),
       version: json['version']?.toString(),
       priceLabel: json['priceLabel']?.toString(),
+      sourceSectionId: json['sourceSectionId']?.toString(),
+      sourceRepoOwner: json['sourceRepoOwner']?.toString(),
+      sourceRepoName: json['sourceRepoName']?.toString(),
+      sourceRepoCommitHash: json['sourceRepoCommitHash']?.toString(),
     );
 
 T _enum<T extends Enum>(List<T> values, Object? raw) => values.firstWhere(

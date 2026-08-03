@@ -18,7 +18,12 @@ class BandBbsCatalog implements CommunityResourceCatalog {
     required Dio dio,
     required BandBbsAuthNotifier auth,
     this.showAllCategories = false,
-  }) : _api = BandBbsApiClient(dio: dio, auth: auth);
+    Future<void> Function()? onSessionExpired,
+  }) : _api = BandBbsApiClient(
+         dio: dio,
+         auth: auth,
+         onSessionExpired: onSessionExpired,
+       );
 
   final BandBbsApiClient _api;
   final bool showAllCategories;
@@ -102,6 +107,24 @@ class BandBbsCatalog implements CommunityResourceCatalog {
       hasMore: hasMore,
       total: total == 0 ? null : total,
     );
+  }
+
+  /// Resources published by the given bandbbs user, newest first.
+  Future<List<CommunityResource>> myResources(String creatorId) async {
+    final resources = <CommunityResource>[];
+    final seen = <String>{};
+    for (var page = 1; page <= 10; page++) {
+      final batch = await _api.getMyResources(creatorId: creatorId, page: page);
+      if (batch.isEmpty) break;
+      for (final value in batch) {
+        final resource = _summaryFromResource(value);
+        if (resource != null && seen.add(resource.ref.key)) {
+          resources.add(resource);
+        }
+      }
+      if (batch.length < 20) break;
+    }
+    return resources;
   }
 
   @override
@@ -400,6 +423,9 @@ class BandBbsCatalog implements CommunityResourceCatalog {
       downloadCount: _intValue(resource['download_count']),
       version: resource['version']?.toString(),
       priceLabel: _priceLabelFromResource(resource),
+      sourceSectionId: _intValue(
+        category['resource_category_id'],
+      )?.toString(),
     );
   }
 
@@ -451,6 +477,7 @@ class BandBbsCatalog implements CommunityResourceCatalog {
       downloadCount: summary.downloadCount,
       version: summary.version,
       priceLabel: summary.priceLabel,
+      sourceSectionId: summary.sourceSectionId,
       content: CommunityResourceContent(
         format: html.isNotEmpty
             ? ResourceContentFormat.html

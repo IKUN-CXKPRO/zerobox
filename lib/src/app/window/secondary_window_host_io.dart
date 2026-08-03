@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:oronbox/src/app/window/debug_window_preference.dart';
 import 'package:oronbox/src/app/window/window_launcher.dart';
 
 class SecondaryWindowHost extends StatefulWidget {
@@ -43,6 +44,13 @@ class _SecondaryWindowHostState extends State<SecondaryWindowHost>
 
   @override
   void onWindowMove() => _scheduleSave();
+
+  @override
+  Future<void> onWindowClose() async {
+    if (widget.role == 'debug') await setDebugWindowEnabled(false);
+    await windowManager.setPreventClose(false);
+    await windowManager.close();
+  }
 
   void _scheduleSave() {
     _saveTimer?.cancel();

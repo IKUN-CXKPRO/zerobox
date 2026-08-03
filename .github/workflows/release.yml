@@ -1,0 +1,217 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-android-web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Build scripts derive the build number from git history
+          fetch-depth: 0
+
+      - name: Check tag matches pubspec version
+        run: |
+          PUBSPEC=$(grep -m1 '^version:' pubspec.yaml | cut -d' ' -f2 | cut -d+ -f1)
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "$PUBSPEC" != "$TAG" ]; then
+            echo "tag $TAG does not match pubspec version $PUBSPEC"
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          # Keep in sync with .fvmrc
+          flutter-version: "3.44.8"
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # tool/build_common.sh picks these up and writes android/key.properties;
+      # without them the Android build falls back to the debug signature
+      - name: Decode release keystore
+        env:
+          ORONBOX_KEYSTORE_BASE64: ${{ secrets.ORONBOX_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$ORONBOX_KEYSTORE_BASE64" ]; then
+            echo "$ORONBOX_KEYSTORE_BASE64" | base64 -d > android/keystore.jks
+            echo "ORONBOX_KEYSTORE_PATH=$PWD/android/keystore.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::ORONBOX_KEYSTORE_BASE64 is not set, Android packages will use the debug signature"
+          fi
+
+      - name: Configure signing credentials
+        if: env.ORONBOX_KEYSTORE_PATH != ''
+        run: |
+          echo "ORONBOX_KEYSTORE_PASSWORD=${{ secrets.ORONBOX_KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "ORONBOX_KEY_ALIAS=${{ secrets.ORONBOX_KEY_ALIAS }}" >> "$GITHUB_ENV"
+          echo "ORONBOX_KEY_PASSWORD=${{ secrets.ORONBOX_KEY_PASSWORD }}" >> "$GITHUB_ENV"
+
+      - name: Build Android packages
+        run: tool/build_android.sh
+
+      - name: Build Web package
+        run: tool/build_web.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-android-web
+          path: build/release/*
+          retention-days: 1
+
+  build-linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x64
+            abi: x86_64
+            arch_image: archlinux:base-devel
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            abi: aarch64
+            # Official archlinux images are x86_64 only
+            arch_image: menci/archlinuxarm:base-devel
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Flutter (x64)
+        if: matrix.arch == 'x64'
+        uses: subosito/flutter-action@v2
+        with:
+          # Keep in sync with .fvmrc
+          flutter-version: "3.44.8"
+          channel: stable
+          cache: true
+
+      # Release tarballs ship x64 binaries only; on arm64 hosts the SDK
+      # must come from git so the tool bootstraps an arm64 Dart SDK
+      - name: Install Flutter (arm64)
+        if: matrix.arch == 'arm64'
+        run: |
+          git clone --depth 1 --branch 3.44.8 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+          flutter config --no-analytics
+          flutter --version
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config zip \
+            libgtk-3-dev libblkid-dev liblzma-dev libwebkit2gtk-4.1-dev \
+            libbluetooth-dev dpkg-dev rpm flatpak flatpak-builder
+
+      - run: flutter pub get
+
+      # linuxdeploy and its auto-downloaded appimage plugin are AppImages;
+      # extract-and-run avoids the FUSE requirement on runners
+      - name: Install linuxdeploy
+        run: |
+          case "$(uname -m)" in aarch64) LD_ARCH=aarch64 ;; *) LD_ARCH=x86_64 ;; esac
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSL -o "$RUNNER_TEMP/bin/linuxdeploy" \
+            "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${LD_ARCH}.AppImage"
+          curl -fsSL -o "$RUNNER_TEMP/bin/linuxdeploy-plugin-appimage" \
+            "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-${LD_ARCH}.AppImage"
+          chmod +x "$RUNNER_TEMP/bin/"*
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          echo "APPIMAGE_EXTRACT_AND_RUN=1" >> "$GITHUB_ENV"
+
+      - name: Install the Flatpak runtime and SDK
+        run: |
+          RUNTIME_VERSION=$(awk -F'"' '/^runtime-version:/ { print $2; exit }' tool/flatpak/org.zxor.oronbox.yml)
+          sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install -y --noninteractive flathub "org.gnome.Platform//${RUNTIME_VERSION}" "org.gnome.Sdk//${RUNTIME_VERSION}"
+
+      # makepkg is the only missing piece here, so --format all skips it
+      # gracefully and the Arch package is filled in by the container step
+      - name: Build Linux packages
+        run: tool/build_linux.sh --format all --abi "${{ matrix.abi }}"
+
+      - name: Build Arch package in container
+        run: |
+          chmod -R a+rwX build
+          docker run --rm -v "$PWD:/ws" -w /ws "${{ matrix.arch_image }}" \
+            bash -c "useradd -m builder && su builder -c 'tool/build_linux.sh --format arch --abi ${{ matrix.abi }} --skip-build'"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-linux-${{ matrix.arch }}
+          path: build/release/*
+          retention-days: 1
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.8"
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Build macOS packages
+        run: tool/build_macos.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-macos
+          path: build/release/*
+          retention-days: 1
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.8"
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Build Windows package
+        run: tool\build_windows.bat
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-windows
+          path: build/release/*
+          retention-days: 1
+
+  publish:
+    needs: [build-android-web, build-linux, build-macos, build-windows]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Generate checksums
+        run: |
+          source tool/build_common.sh
+          generate_checksums "$PWD/dist"
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}

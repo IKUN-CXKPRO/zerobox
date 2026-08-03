@@ -3,78 +3,13 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:dio/dio.dart';
+import 'package:oronbox/src/core/network/github_cdn.dart';
+import 'package:oronbox/src/features/plugins/application/plugin_repository.dart';
+import 'package:oronbox/src/features/plugins/domain/plugin_package.dart';
 
 const abV1PluginStoreIndexUrl =
     'https://raw.githubusercontent.com/AstralSightStudios/'
     'AstroBox-Plugin-Repo/refs/heads/main/index.txt';
-
-int comparePluginVersions(String left, String right) {
-  final leftVersion = _PluginVersion.parse(left);
-  final rightVersion = _PluginVersion.parse(right);
-  return leftVersion.compareTo(rightVersion);
-}
-
-class _PluginVersion implements Comparable<_PluginVersion> {
-  const _PluginVersion(this.core, this.preRelease);
-
-  final List<int> core;
-  final List<String> preRelease;
-
-  factory _PluginVersion.parse(String value) {
-    var normalized = value.trim().toLowerCase();
-    if (normalized.startsWith('v')) normalized = normalized.substring(1);
-    normalized = normalized.split('+').first;
-    final parts = normalized.split('-');
-    final core = parts.first
-        .split('.')
-        .map(
-          (part) => int.tryParse(RegExp(r'^\d+').stringMatch(part) ?? '') ?? 0,
-        )
-        .toList(growable: true);
-    while (core.length < 3) {
-      core.add(0);
-    }
-    final preRelease = parts.length <= 1
-        ? const <String>[]
-        : parts.skip(1).join('-').split('.');
-    return _PluginVersion(core, preRelease);
-  }
-
-  @override
-  int compareTo(_PluginVersion other) {
-    final length = core.length > other.core.length
-        ? core.length
-        : other.core.length;
-    for (var index = 0; index < length; index++) {
-      final comparison = (index < core.length ? core[index] : 0).compareTo(
-        index < other.core.length ? other.core[index] : 0,
-      );
-      if (comparison != 0) return comparison;
-    }
-    if (preRelease.isEmpty != other.preRelease.isEmpty) {
-      return preRelease.isEmpty ? 1 : -1;
-    }
-    for (
-      var index = 0;
-      index < preRelease.length && index < other.preRelease.length;
-      index++
-    ) {
-      final left = preRelease[index];
-      final right = other.preRelease[index];
-      final leftNumber = int.tryParse(left);
-      final rightNumber = int.tryParse(right);
-      final comparison = leftNumber != null && rightNumber != null
-          ? leftNumber.compareTo(rightNumber)
-          : leftNumber != null
-          ? -1
-          : rightNumber != null
-          ? 1
-          : left.compareTo(right);
-      if (comparison != 0) return comparison;
-    }
-    return preRelease.length.compareTo(other.preRelease.length);
-  }
-}
 
 class StorePlugin {
   const StorePlugin({
@@ -90,7 +25,6 @@ class StorePlugin {
     required this.apiLevel,
     required this.permissions,
     required this.additionalFiles,
-    this.iconBytes,
   });
 
   final Uri repositoryUrl;
@@ -105,42 +39,104 @@ class StorePlugin {
   final int apiLevel;
   final List<String> permissions;
   final List<String> additionalFiles;
-  final Uint8List? iconBytes;
-
-  StorePlugin copyWith({Uint8List? iconBytes}) => StorePlugin(
-    repositoryUrl: repositoryUrl,
-    folder: folder,
-    name: name,
-    icon: icon,
-    version: version,
-    description: description,
-    author: author,
-    website: website,
-    entry: entry,
-    apiLevel: apiLevel,
-    permissions: permissions,
-    additionalFiles: additionalFiles,
-    iconBytes: iconBytes ?? this.iconBytes,
-  );
 
   Uri fileUrl(String path) => repositoryUrl.resolve('$folder/$path');
   Uri get iconUrl => fileUrl(icon);
 }
 
-class AbV1PluginStore {
-  AbV1PluginStore(this._dio);
+/// AstroBox v1 遗产插件源。
+///
+/// 该仓库已停止维护，仅保留只读的目录浏览与安装能力，
+/// 不做任何版本更新检测。
+class AbV1PluginRepository implements PluginRepository {
+  AbV1PluginRepository(this._dio, {GitHubCdn Function()? readCdn})
+    : _readCdn = readCdn ?? (() => GitHubCdn.raw);
 
   final Dio _dio;
+  final GitHubCdn Function() _readCdn;
 
-  Future<List<StorePlugin>> load() async {
+  List<StorePlugin>? _cache;
+  final _byEntryId = <String, StorePlugin>{};
+
+  @override
+  String get id => 'abv1';
+
+  @override
+  String get displayName => 'AstroBox';
+
+  @override
+  bool get isLegacy => true;
+
+  @override
+  Future<List<PluginCatalogEntry>> load({bool force = false}) async {
+    if (!force && _cache != null) return _entries(_cache!);
+    final storePlugins = await _loadStorePlugins();
+    _cache = storePlugins;
+    _byEntryId
+      ..clear()
+      ..addEntries(
+        storePlugins.map((plugin) => MapEntry(entryId(plugin), plugin)),
+      );
+    return _entries(storePlugins);
+  }
+
+  @override
+  Future<Uint8List> download(PluginCatalogEntry entry) async {
+    final plugin = await _findPlugin(entry.id);
+    final files = <String>{
+      'manifest.json',
+      plugin.entry,
+      plugin.icon,
+      ...plugin.additionalFiles,
+    };
+    final archive = Archive();
+    for (final path in files) {
+      final bytes = await _getBytes(_cdnUri(plugin.fileUrl(path)));
+      archive.addFile(ArchiveFile(path, bytes.length, bytes));
+    }
+    return Uint8List.fromList(ZipEncoder().encode(archive));
+  }
+
+  Future<StorePlugin> _findPlugin(String id) async {
+    await load();
+    final plugin = _byEntryId[id];
+    if (plugin == null) {
+      throw StateError('Plugin not found in ABv1 repository: $id');
+    }
+    return plugin;
+  }
+
+  List<PluginCatalogEntry> _entries(List<StorePlugin> plugins) => plugins
+      .map(
+        (plugin) => PluginCatalogEntry(
+          source: id,
+          id: entryId(plugin),
+          installedId: PluginPackageReader.legacyPluginId(plugin.name),
+          name: plugin.name,
+          version: plugin.version,
+          author: plugin.author,
+          description: plugin.description,
+          permissions: plugin.permissions,
+          iconUrl: _cdnUri(plugin.iconUrl).toString(),
+          isLegacy: true,
+        ),
+      )
+      .toList(growable: false);
+
+  static String entryId(StorePlugin plugin) =>
+      '${plugin.repositoryUrl}|${plugin.folder}';
+
+  Uri _cdnUri(Uri uri) => rewriteGithubCdnUri(uri, _readCdn());
+
+  Future<List<StorePlugin>> _loadStorePlugins() async {
     final repositories = _lines(
-      await _getText(Uri.parse(abV1PluginStoreIndexUrl)),
+      await _getText(_cdnUri(Uri.parse(abV1PluginStoreIndexUrl))),
     );
     final entries = (await Future.wait(
       repositories.map((repository) async {
         final repositoryUrl = _directoryUri(repository);
         final folders = _lines(
-          await _getText(repositoryUrl.resolve('index.txt')),
+          await _getText(_cdnUri(repositoryUrl.resolve('index.txt'))),
         );
         return folders
             .map((folder) => (repositoryUrl: repositoryUrl, folder: folder))
@@ -151,7 +147,9 @@ class AbV1PluginStore {
       entries.map((entry) async {
         final repositoryUrl = entry.repositoryUrl;
         final folder = entry.folder;
-        final manifestUri = repositoryUrl.resolve('$folder/manifest.json');
+        final manifestUri = _cdnUri(
+          repositoryUrl.resolve('$folder/manifest.json'),
+        );
         final response = await _dio.getUri<Object?>(manifestUri);
         final raw = response.data is String
             ? jsonDecode(response.data! as String)
@@ -164,29 +162,6 @@ class AbV1PluginStore {
     );
     plugins.sort((a, b) => a.name.compareTo(b.name));
     return List.unmodifiable(plugins);
-  }
-
-  Future<Uint8List?> loadIcon(StorePlugin plugin) async {
-    try {
-      return await _getBytes(plugin.iconUrl);
-    } on DioException {
-      return null;
-    }
-  }
-
-  Future<Uint8List> download(StorePlugin plugin) async {
-    final files = <String>{
-      'manifest.json',
-      plugin.entry,
-      plugin.icon,
-      ...plugin.additionalFiles,
-    };
-    final archive = Archive();
-    for (final path in files) {
-      final bytes = await _getBytes(plugin.fileUrl(path));
-      archive.addFile(ArchiveFile(path, bytes.length, bytes));
-    }
-    return Uint8List.fromList(ZipEncoder().encode(archive));
   }
 
   StorePlugin _parse(

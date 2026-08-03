@@ -2,10 +2,18 @@ import 'package:dio/dio.dart';
 import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 
 class BandBbsApiClient {
-  BandBbsApiClient({required this.dio, required this.auth});
+  BandBbsApiClient({
+    required this.dio,
+    required this.auth,
+    this.onSessionExpired,
+  });
 
   final Dio dio;
   final BandBbsAuthNotifier auth;
+
+  /// Runs after a 401 wiped the local credentials; lets the wiring propagate
+  /// the expiry to the daemon so every login gate observes it.
+  final Future<void> Function()? onSessionExpired;
 
   static const _baseUrl = 'https://www.bandbbs.cn';
   static const _developerApiBaseUrl = 'https://api.bandbbs.cn';
@@ -185,8 +193,22 @@ class BandBbsApiClient {
     throw FormatException('BandBBS API returned ${value.runtimeType}');
   }
 
-  Future<Response<T>> _send<T>(Future<Response<T>> Function() request) =>
-      request();
+  Future<Response<T>> _send<T>(Future<Response<T>> Function() request) async {
+    try {
+      return await request();
+    } on DioException catch (error) {
+      if (error.response?.statusCode != 401) rethrow;
+      // The token was rejected: the credential is dead everywhere, wipe it
+      // and propagate instead of leaving UI gated on a stale login.
+      try {
+        await auth.expireSession();
+      } catch (_) {}
+      try {
+        await onSessionExpired?.call();
+      } catch (_) {}
+      throw const BandBbsSessionExpiredException();
+    }
+  }
 }
 
 class BandBbsResourceLicense {

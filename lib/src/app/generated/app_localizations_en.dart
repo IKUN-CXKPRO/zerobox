@@ -90,6 +90,49 @@ class AppLocalizationsEn extends AppLocalizations {
       'The plugin\'s data will also be removed';
 
   @override
+  String get pluginUpload => 'Upload plugin';
+
+  @override
+  String get pluginPublishTitle => 'Publish plugin';
+
+  @override
+  String get pluginPublishNew => 'Will be published as a new plugin';
+
+  @override
+  String get pluginPublishUpdate =>
+      'Will update the published plugin with the same ID';
+
+  @override
+  String get pluginTakedown => 'Take down';
+
+  @override
+  String get pluginTakedownConfirm =>
+      'The plugin will be permanently removed from the market';
+
+  @override
+  String get pluginLoginRequired => 'Sign in to upload plugins';
+
+  @override
+  String get pluginSubmittedForReview =>
+      'Submitted for review. It will be listed once approved';
+
+  @override
+  String get pluginStatePending => 'Pending review';
+
+  @override
+  String get pluginStateRejected => 'Rejected';
+
+  @override
+  String get pluginStateDelisted => 'Delisted';
+
+  @override
+  String get pluginLegacyWarningTitle => 'Legacy plugin';
+
+  @override
+  String get pluginLegacyWarningMessage =>
+      'This is an AstroBox v1 plugin. OronBox will try to run it in compatibility mode, but issues may occur.\nCheck for an updated native OronBox plugin, or ask the author to adapt it';
+
+  @override
   String get settingsTab => 'Settings';
 
   @override
@@ -812,6 +855,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String firmwareDownloadingProgress(int progress) {
     return 'Downloading $progress%';
   }
+
+  @override
+  String get download => 'Download';
 
   @override
   String get downloadFailed => 'Download failed. Try again later.';
@@ -1858,6 +1904,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noDescription => 'No description';
 
   @override
+  String get noContent => 'No content';
+
+  @override
   String get preview => 'Preview';
 
   @override
@@ -2412,7 +2461,32 @@ class AppLocalizationsEn extends AppLocalizations {
       'Reference for ZeppOS and wearable protocol research.';
 
   @override
-  String get resourceHomeEmptyTitle => 'Home page is under construction';
+  String get resourceHomeRecommended => 'Recommended';
+
+  @override
+  String get resourceHomeFeatured => 'Featured';
+
+  @override
+  String get resourceHomeUpdates => 'Updates';
+
+  @override
+  String get blogTypeAnnouncement => 'Announcement';
+
+  @override
+  String get blogTypeRecommendation => 'Recommendation';
+
+  @override
+  String get blogTypeDocs => 'Docs';
+
+  @override
+  String get blogPostUnavailable => 'Post unavailable';
+
+  @override
+  String get resourceHomeEmptyTitle => 'Nothing to recommend yet';
+
+  @override
+  String get resourceLibraryEndOfList =>
+      'You\'ve reached the end — check out resources from other sources?';
 
   @override
   String get resourceHomeEmptySubtitle =>
@@ -2795,25 +2869,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get submitForReview => 'Submit for review';
 
   @override
-  String get creatorConfirmTitle => 'Confirm publishing plan';
+  String get creatorConfirmTitle => 'Confirm commit';
 
   @override
-  String get creatorConfirmOronBox =>
-      'The resource will be reviewed by OronBox and published in OronBox Resources after approval';
+  String get creatorConfirmOronBox => 'Commit to OronBox';
 
   @override
   String creatorConfirmBandBbs(Object category) {
-    return 'After approval, the resource will be published directly to BandBBS category $category';
+    return 'Sync to BandBBS: $category';
   }
 
   @override
   String creatorConfirmAstroBox(Object owner, Object repository) {
-    return 'After approval, GitHub user $owner will create or update repository $repository and open an ABRepo pull request';
+    return 'Sync to AstroBox: $owner/$repository';
   }
 
   @override
-  String get creatorBandBbsDirectPublish =>
-      'Published directly to the BandBBS community after OronBox review';
+  String get creatorBandBbsDirectPublish => 'Sync to BandBBS';
+
+  @override
+  String get creatorBandBbsBoundUpdate => 'Linked · Sync to BandBBS';
+
+  @override
+  String creatorLinkedSections(int count) {
+    return '$count linked sections';
+  }
+
+  @override
+  String creatorBandBbsBindingIds(Object categoryId, Object resourceId) {
+    return 'Section $categoryId · Resource $resourceId';
+  }
+
+  @override
+  String creatorAstroBoxBinding(Object itemId, Object repository) {
+    return 'Item $itemId · $repository';
+  }
+
+  @override
+  String get creatorAstroBoxBoundSync => 'Linked · Sync to AstroBox';
+
+  @override
+  String get creatorThisCommit => 'This commit';
 
   @override
   String get bandBbsCategoryId => 'BandBBS resource category ID';
@@ -2823,7 +2919,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String creatorAstroBoxPrPublish(Object repository) {
-    return 'After OronBox review, create resource repository $repository and submit a PR to the official AstroBox repo';
+    return 'Sync to AstroBox · $repository';
   }
 
   @override
@@ -2837,8 +2933,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorAstroTags => 'AstroBox tags';
 
   @override
-  String get creatorAstroTagsHint =>
-      'Separate multiple tags with commas or semicolons';
+  String get creatorAstroTagsHint => 'Separate tags with English semicolons ;';
 
   @override
   String get retry => 'Retry';
@@ -2924,10 +3019,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorLoginAction => 'Sign in to BandBBS';
 
   @override
-  String get creatorSelectHint =>
-      'Select a resource on the left, or create a new one';
-
-  @override
   String get creatorOronBoxReady =>
       'OronBox and BandBBS read access are available';
 
@@ -2941,7 +3032,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String creatorGitHubOwnPublishReady(Object login) {
-    return 'GitHub is connected; publish as $login';
+    return 'GitHub connected · $login';
   }
 
   @override
@@ -3262,6 +3353,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loadMore => 'Load more';
 
   @override
+  String get more => 'More';
+
+  @override
   String get reply => 'Reply';
 
   @override
@@ -3336,6 +3430,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cleanExploreContentGroup => 'Explore content';
+
+  @override
+  String get cleanHomeSectionsGroup => 'Home sections';
+
+  @override
+  String get cleanHomeBanner => 'Banner carousel';
+
+  @override
+  String get cleanHomeEditorSections => 'Editor sections';
 
   @override
   String get cleanResourceSourcesGroup => 'Resource sources';
@@ -3613,4 +3716,144 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creatorDecline => 'Decline';
+
+  @override
+  String communityImportSelected(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get communityImportForce => 'Also re-import items that already exist';
+
+  @override
+  String get communityImportStart => 'Start import';
+
+  @override
+  String get communityImportResultCreated => 'Draft created';
+
+  @override
+  String get communityImportResultFailed => 'Failed';
+
+  @override
+  String get communityImportUnsupported => 'This type cannot be imported yet';
+
+  @override
+  String get communityImportDuplicate => 'Already exists in the creator center';
+
+  @override
+  String get communityImportNoArtifacts => 'No importable resource files';
+
+  @override
+  String get creatorImportExternal =>
+      'Import existing resources from other platforms';
+
+  @override
+  String get creatorNewResourceDescription =>
+      'Create and maintain a resource from OronBox';
+
+  @override
+  String get creatorNewCollectionDescription =>
+      'Create a collection for related resources';
+
+  @override
+  String get creatorImportExternalDescription =>
+      'Experimental, Import your existing resources from BandBBS or AstroBox-Repo';
+
+  @override
+  String get creatorImportAlreadyImported => 'Imported and linked';
+
+  @override
+  String get creatorImportReviewNotice =>
+      'Imported content may be incomplete or misidentified. Review and adjust every field before submitting.';
+
+  @override
+  String get creatorImportLogTitle => 'Processing log';
+
+  @override
+  String get communityImportMyResources => 'My resources';
+
+  @override
+  String get communityImportPickerEmpty => 'No resources';
+
+  @override
+  String get creatorWizardChooseAction => 'Create';
+
+  @override
+  String get creatorImportSelectTitle => 'Select resources';
+
+  @override
+  String get creatorImportPreviewTitle => 'Import preview';
+
+  @override
+  String get creatorImportProgressTitle => 'Importing';
+
+  @override
+  String get creatorImportResultTitle => 'Import result';
+
+  @override
+  String get creatorImportBindingsTitle => 'Linked resources';
+
+  @override
+  String creatorImportBandbbsSections(int count) {
+    return '$count sections';
+  }
+
+  @override
+  String get creatorImportGitHubHint =>
+      'Connect GitHub to list your AstroBox resources';
+
+  @override
+  String get creatorImportGitHubConnect => 'Connect GitHub';
+
+  @override
+  String get creatorImportStageDetails => 'Fetching details';
+
+  @override
+  String get creatorImportStageDownloading => 'Downloading files';
+
+  @override
+  String get creatorImportStageMedia => 'Processing images';
+
+  @override
+  String get creatorImportStageUploading => 'Creating draft';
+
+  @override
+  String get creatorImportContinue => 'Import another';
+
+  @override
+  String creatorImportWarnings(int count) {
+    return '$count warnings';
+  }
+
+  @override
+  String get creatorDeleteExternalBandbbs =>
+      'Also delete the BandBBS resources';
+
+  @override
+  String get creatorDeleteExternalAstrobox =>
+      'Also submit a deletion PR to AstroBox-Repo';
+
+  @override
+  String get creatorDeleteExternalWarning =>
+      'External deletions cannot be undone';
+
+  @override
+  String get creatorDeletePrSubmitted => 'Deletion PR submitted';
+
+  @override
+  String githubCdnFallback(Object cdn) {
+    return 'GitHub request failed, retrying via $cdn';
+  }
+
+  @override
+  String creatorImportSourceVersion(Object source, Object version) {
+    return '$source · $version';
+  }
+
+  @override
+  String get creatorImportPaid => 'Paid';
+
+  @override
+  String get creatorImportBandbbsPaidEncrypted =>
+      'Paid BandBBS files are license-encrypted and cannot be imported';
 }

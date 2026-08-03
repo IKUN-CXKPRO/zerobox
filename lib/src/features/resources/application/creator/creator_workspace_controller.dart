@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -388,6 +389,16 @@ class CreatorWorkspaceController extends Notifier<CreatorWorkspaceState> {
         .toList();
   }
 
+  /// Provenance recorded for this resource (author/source/license), null when
+  /// none was set.
+  Future<Map<String, Object?>?> resourceSource(String resourceId) async {
+    final value = _map(
+      await _execute('creator.relationships', {'resource': resourceId}),
+    );
+    final source = value['source'];
+    return source is Map ? source.cast<String, Object?>() : null;
+  }
+
   Future<Map<String, Object?>> startGitHubAuthorization() async {
     state = state.copyWith(
       loading: true,
@@ -459,7 +470,12 @@ class CreatorWorkspaceController extends Notifier<CreatorWorkspaceState> {
     );
   }
 
-  Future<void> deleteResource() async {
+  /// Deletes the selected resource. External platforms are only touched when
+  /// listed in [deleteExternal]; returns the server result (e.g. the AstroBox
+  /// removal PR link).
+  Future<Map<String, Object?>> deleteResource({
+    List<String> deleteExternal = const [],
+  }) async {
     final id = state.selected!.resource.id;
     state = state.copyWith(
       loading: true,
@@ -467,17 +483,28 @@ class CreatorWorkspaceController extends Notifier<CreatorWorkspaceState> {
       clearError: true,
     );
     try {
-      await _execute('creator.delete', {'resource': id});
+      final value = await _execute('creator.delete', {
+        'resource': id,
+        'deleteExternal': deleteExternal,
+      });
       logDiagnostic(
         _log,
         Level.INFO,
         'Creator resource deleted',
-        fields: {'resource': id},
+        fields: {'resource': id, 'deleteExternal': deleteExternal.join(',')},
       );
-      state = state.copyWith(clearSelected: true);
-      await refresh();
+      state = state.copyWith(
+        resources: state.resources
+            .where((workspace) => workspace.resource.id != id)
+            .toList(growable: false),
+        clearSelected: true,
+        loading: false,
+        clearOperation: true,
+      );
+      unawaited(refresh());
+      return (value as Map?)?.cast<String, Object?>() ?? const {};
     } catch (error) {
-      if (!ref.mounted) return;
+      if (!ref.mounted) return const {};
       final failure = CreatorCommandException.from(error);
       state = state.copyWith(
         loading: false,

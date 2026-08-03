@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_editor_page.dart';
@@ -11,15 +11,14 @@ class CreatorResourcePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(creatorWorkspaceProvider);
     final controller = ref.read(creatorWorkspaceProvider.notifier);
     final workspace = state.selected;
     if (workspace == null) {
-      return Scaffold(
-        appBar: SysAppBar(secondary: true, title: Text(l10n.creatorCenter)),
-        body: Center(child: Text(l10n.creatorSelectHint)),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) context.go('/resources/creator');
+      });
+      return const SizedBox.shrink();
     }
     return Scaffold(
       appBar: SysAppBar(

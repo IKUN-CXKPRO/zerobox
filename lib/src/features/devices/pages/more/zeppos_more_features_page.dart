@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:segmented_list/segmented_list.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -241,6 +242,7 @@ class _ZeppOsMoreFeaturesPageState
                   leading: const Icon(Icons.tune),
                   title: Text(l10n.zeppOsAppSettings),
                   description: Text(l10n.zeppOsAppSettingsDescription),
+                  enabled: !kIsWeb,
                   onPressed: (_) =>
                       context.push('/devices/zeppos-more/settings'),
                 ),

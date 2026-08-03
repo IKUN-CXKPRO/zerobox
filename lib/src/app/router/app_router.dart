@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oronbox/src/app/layout/app_navigation_bar.dart';
 import 'package:oronbox/src/app/layout/app_scaffold.dart';
 import 'package:oronbox/src/app/theme/app_theme.dart';
 import 'package:oronbox/src/app/widgets/dialog_helper.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/data/oronbox/oronbox_home_api.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/devices/pages/apps/device_apps_page.dart';
@@ -30,10 +32,12 @@ import 'package:oronbox/src/features/devices/services/device_share_link.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_center_page.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_resource_page.dart';
 import 'package:oronbox/src/features/resources/pages/huami_publisher_page.dart';
+import 'package:oronbox/src/features/resources/pages/blog_post_page.dart';
 import 'package:oronbox/src/features/resources/pages/queue_page.dart';
 import 'package:oronbox/src/features/resources/pages/resource_detail_page.dart';
 import 'package:oronbox/src/features/resources/pages/resource_collection_page.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_collection_page.dart';
+import 'package:oronbox/src/features/resources/pages/creator/creator_create_wizard.dart';
 import 'package:oronbox/src/features/resources/pages/resources_page.dart';
 import 'package:oronbox/src/features/settings/pages/acknowledgements_page.dart';
 import 'package:oronbox/src/features/settings/pages/about_software_page.dart';
@@ -114,7 +118,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/resources',
-                builder: (context, state) => const ResourcesPage(),
+                builder: (context, state) => const PrimaryBranchScaffold(
+                  branch: 0,
+                  child: ResourcesPage(),
+                ),
                 routes: [
                   GoRoute(
                     path: 'detail/:id',
@@ -186,9 +193,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     ),
                   ),
                   GoRoute(
+                    path: 'blog/:slug',
+                    builder: (context, state) => BlogPostPage(
+                      slug: state.pathParameters['slug']!,
+                      preview: state.extra is BlogCard
+                          ? state.extra! as BlogCard
+                          : null,
+                    ),
+                  ),
+                  GoRoute(
                     path: 'creator',
                     builder: (context, state) => const CreatorCenterPage(),
                     routes: [
+                      GoRoute(
+                        path: 'create',
+                        builder: (context, state) =>
+                            const CreatorCreateWizard(),
+                      ),
                       GoRoute(
                         path: 'resource',
                         builder: (context, state) =>
@@ -217,7 +238,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/devices',
-                builder: (context, state) => const DevicesPage(),
+                builder: (context, state) => const PrimaryBranchScaffold(
+                  branch: 1,
+                  child: DevicesPage(),
+                ),
                 routes: [
                   GoRoute(
                     path: 'switch',
@@ -307,7 +331,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/queue',
-                builder: (context, state) => const QueuePage(),
+                builder: (context, state) =>
+                    const PrimaryBranchScaffold(branch: 2, child: QueuePage()),
               ),
             ],
           ),
@@ -315,7 +340,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/plugins',
-                builder: (context, state) => const PluginsPage(),
+                builder: (context, state) => const PrimaryBranchScaffold(
+                  branch: 3,
+                  child: PluginsPage(),
+                ),
                 routes: [
                   GoRoute(
                     path: ':id',
@@ -330,7 +358,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/settings',
-                builder: (context, state) => const SettingsPage(),
+                builder: (context, state) => const PrimaryBranchScaffold(
+                  branch: 4,
+                  child: SettingsPage(),
+                ),
                 routes: [
                   for (final category in SettingsCategory.values)
                     GoRoute(

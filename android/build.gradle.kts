@@ -44,10 +44,6 @@ subprojects {
     if (name == "quickjs_engine") {
         pluginManager.withPlugin("com.android.library") {
             extensions.configure<com.android.build.api.dsl.LibraryExtension> {
-                compileOptions {
-                    sourceCompatibility = JavaVersion.VERSION_17
-                    targetCompatibility = JavaVersion.VERSION_17
-                }
                 defaultConfig {
                     externalNativeBuild {
                         cmake {
@@ -56,6 +52,13 @@ subprojects {
                     }
                 }
             }
+        }
+        // The plugin's own build script re-pins compileOptions to 1.8 after
+        // any extension-level override, and AGP finalizes compileOptions
+        // during evaluation. Align Java with the Kotlin target at task level.
+        tasks.withType<JavaCompile>().configureEach {
+            sourceCompatibility = "17"
+            targetCompatibility = "17"
         }
     }
     if (name == "app" || name == "file_picker" || name == "quickjs_engine") {

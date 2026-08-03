@@ -13,10 +13,16 @@ typedef GithubCdnResolver = GitHubCdn Function();
 Dio createAppHttpTransport({
   BaseOptions? options,
   GithubCdnResolver? githubCdn,
+  void Function(GitHubCdn fallback)? onGithubCdnFallback,
 }) {
   final dio = Dio(options);
   if (githubCdn != null) {
-    dio.interceptors.add(GithubCdnInterceptor(cdn: githubCdn));
+    final interceptor = GithubCdnInterceptor(
+      cdn: githubCdn,
+      onFallback: onGithubCdnFallback,
+    );
+    dio.interceptors.add(interceptor);
+    interceptor.retryDio = dio;
   }
   installHttpObservability(dio);
   return dio;

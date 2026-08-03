@@ -116,7 +116,7 @@ class PluginPackageReader {
   static const _maxExpandedBytes = 64 * 1024 * 1024;
   static const _maxEntries = 4096;
 
-  PluginPackage read(Uint8List bytes, {String? fileName}) {
+  PluginPackage read(Uint8List bytes) {
     if (bytes.isEmpty || bytes.length > _maxPackageBytes) {
       throw const FormatException('Invalid ABP package size');
     }
@@ -148,15 +148,6 @@ class PluginPackageReader {
       throw const FormatException('ABP manifest.json is missing');
     }
     final manifest = readManifest(manifestBytes);
-    final extension = fileName?.trim().toLowerCase().split('.').lastOrNull;
-    if (extension == 'zbp' && manifest.runtime == PluginRuntimeType.legacy) {
-      throw const FormatException('ZBP manifest must declare runtime');
-    }
-    if (extension == 'abp' && manifest.runtime != PluginRuntimeType.legacy) {
-      throw const FormatException(
-        'OronBox plugins must use the .zbp extension',
-      );
-    }
     if (!entries.containsKey(manifest.entry)) {
       throw FormatException('ABP entry is missing: ${manifest.entry}');
     }
@@ -198,7 +189,7 @@ class PluginPackageReader {
         ? null
         : _normalizePath(iconPath);
     final id = runtime == PluginRuntimeType.legacy
-        ? _legacyId(name)
+        ? PluginPackageReader.legacyPluginId(name)
         : _requiredPluginId(json);
     final suffix = entry.split('.').last.toLowerCase();
     if (runtime == PluginRuntimeType.wasm && suffix != 'wasm') {
@@ -267,7 +258,9 @@ class PluginPackageReader {
     return id;
   }
 
-  String _legacyId(String name) {
+  /// Computes the install-time plugin ID for a legacy (AstroBox v1) plugin
+  /// from its manifest name, matching what [read] produces.
+  static String legacyPluginId(String name) {
     final hash = sha256.convert(utf8.encode(name)).toString().substring(0, 12);
     final slug = name
         .toLowerCase()
@@ -301,10 +294,7 @@ class AbPluginPackageReader {
   const AbPluginPackageReader();
 
   PluginPackage read(Uint8List bytes) {
-    final package = const PluginPackageReader().read(
-      bytes,
-      fileName: 'legacy.abp',
-    );
+    final package = const PluginPackageReader().read(bytes);
     if (package.manifest.runtime != PluginRuntimeType.legacy) {
       throw const FormatException('Not an AstroBox legacy plugin');
     }

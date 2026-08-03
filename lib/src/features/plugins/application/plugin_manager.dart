@@ -225,18 +225,19 @@ class PluginManager {
 
   Future<List<Map<String, Object?>>> list({bool includeIcons = true}) async {
     await initialize();
-    return _plugins.values
-        .map((plugin) => _summary(plugin, includeIcon: includeIcons))
-        .toList(growable: false);
+    return Future.wait(
+      _plugins.values.map(
+        (plugin) => _summary(plugin, includeIcon: includeIcons),
+      ),
+    );
   }
 
   Future<Map<String, Object?>> install(
     Uint8List bytes, {
-    String? fileName,
     bool includeIcon = true,
   }) async {
     await initialize();
-    final package = const PluginPackageReader().read(bytes, fileName: fileName);
+    final package = const PluginPackageReader().read(bytes);
     final id = package.manifest.id;
     final config = _plugins[id]?.config ?? const <String, Object?>{};
     await _closeRuntime(id);
@@ -244,14 +245,14 @@ class PluginManager {
     final plugin = await (await _storage).install(package, config: config);
     _plugins[id] = plugin;
     _emitState(id);
-    return plugin.summaryJson(includeIcon: includeIcon);
+    return _summary(plugin, includeIcon: includeIcon);
   }
 
   Future<Map<String, Object?>> get(String id) async {
     await initialize();
     final plugin = _requirePlugin(id);
     return {
-      ..._summary(plugin),
+      ...await _summary(plugin),
       'ui': _uiNodes[id] ?? const <Object?>[],
       if (_openPages[id] != null) 'page': _openPages[id],
     };
@@ -1206,8 +1207,12 @@ class PluginManager {
     final data = _bytes(arguments.firstOrNull);
     final options = _jsonMap(arguments.elementAtOrNull(1));
     _deviceArg([options['id']]);
-    await deviceManager.sendRaw(data);
-    return {};
+    final timeoutMs = (options['timeout'] as num?)?.toInt() ?? 5000;
+    final response = await deviceManager.requestRaw(
+      data,
+      timeout: Duration(milliseconds: timeoutMs),
+    );
+    return {'data': base64Encode(response)};
   }
 
   String _osArch() => pluginHostArchitecture();
@@ -1928,16 +1933,26 @@ class PluginManager {
     );
   }
 
-  Map<String, Object?> _summary(
+  Future<Map<String, Object?>> _summary(
     InstalledPlugin plugin, {
     bool includeIcon = true,
-  }) => {
-    ...plugin.summaryJson(includeIcon: includeIcon),
-    if (_failures[plugin.manifest.id] case final failure?)
-      'failure': failure.toJson(),
-    'safeMode': _safeMode,
-    'running': _runtimes.containsKey(plugin.manifest.id),
-  };
+  }) async {
+    final json = plugin.summaryJson(includeIcon: includeIcon);
+    final icon = plugin.manifest.iconPath;
+    if (icon != null) {
+      final native = (await _storage).nativePath(
+        plugin.manifest.id,
+        PluginStoragePath.parse('/plugin/$icon'),
+      );
+      if (native != null) json['iconPath'] = native;
+    }
+    if (_failures[plugin.manifest.id] case final failure?) {
+      json['failure'] = failure.toJson();
+    }
+    json['safeMode'] = _safeMode;
+    json['running'] = _runtimes.containsKey(plugin.manifest.id);
+    return json;
+  }
 
   Future<T> _runPluginOperation<T>(
     InstalledPlugin plugin,

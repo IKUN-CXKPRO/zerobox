@@ -13,6 +13,7 @@ class ResourceFilters {
     this.sort = CommunitySortRule.recommendation,
     this.hidePaid = false,
     this.hideForcePaid = false,
+    this.featured = false,
     this.selectedDevices = const {},
     this.selectedAttributes = const {},
   });
@@ -22,6 +23,7 @@ class ResourceFilters {
   final CommunitySortRule sort;
   final bool hidePaid;
   final bool hideForcePaid;
+  final bool featured;
   final Set<String> selectedDevices;
   final Set<String> selectedAttributes;
 
@@ -31,6 +33,7 @@ class ResourceFilters {
     CommunitySortRule? sort,
     bool? hidePaid,
     bool? hideForcePaid,
+    bool? featured,
     Set<String>? selectedDevices,
     Set<String>? selectedAttributes,
   }) {
@@ -42,6 +45,7 @@ class ResourceFilters {
       sort: sort ?? this.sort,
       hidePaid: hidePaid ?? this.hidePaid,
       hideForcePaid: hideForcePaid ?? this.hideForcePaid,
+      featured: featured ?? this.featured,
       selectedDevices: selectedDevices ?? this.selectedDevices,
       selectedAttributes: selectedAttributes ?? this.selectedAttributes,
     );
@@ -90,6 +94,7 @@ class ResourceFiltersNotifier extends Notifier<ResourceFilters> {
   void setHidePaid(bool value) => state = state.copyWith(hidePaid: value);
   void setHideForcePaid(bool value) =>
       state = state.copyWith(hideForcePaid: value);
+  void setFeatured(bool value) => state = state.copyWith(featured: value);
 
   void toggleDevice(String device) {
     final updated = Set<String>.from(state.selectedDevices);

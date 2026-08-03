@@ -426,7 +426,6 @@ Future<OronBoxCommand> _pluginInstallCommand(CliInvocation invocation) async {
     method: 'plugin.install',
     params: {
       'bytes': base64Encode(await file.readAsBytes()),
-      'fileName': file.uri.pathSegments.last,
       'includeIcon': false,
     },
   );

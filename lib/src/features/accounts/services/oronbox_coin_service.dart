@@ -1,12 +1,10 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oronbox/src/core/constants/oronbox_server.dart';
-import 'package:oronbox/src/core/network/app_http_transport.dart';
-import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
-import 'package:oronbox/src/features/accounts/services/oronbox_session_client.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/errors/coded_error.dart';
+import 'package:oronbox/src/host/application_host_provider.dart';
 
 final oronBoxCoinServiceProvider = Provider<OronBoxCoinService>(
-  (ref) => OronBoxCoinService(ref.watch(oronBoxSessionAccessProvider)),
+  (ref) => OronBoxCoinService(ref.watch(applicationHostProvider)),
 );
 
 class CoinAccount {
@@ -35,31 +33,16 @@ class CoinCheckinResult {
 }
 
 class OronBoxCoinService {
-  OronBoxCoinService(OronBoxSessionAccess sessions, {Dio? dio})
-    : _sessions = OronBoxSessionClient(sessions),
-      _dio =
-          dio ??
-          createAppHttpTransport(
-            options: BaseOptions(baseUrl: oronBoxServerBaseUrl),
-          );
+  const OronBoxCoinService(this._host);
 
-  final OronBoxSessionClient _sessions;
-  final Dio _dio;
+  final OronBoxCommandBus _host;
 
   Future<CoinAccount> account() async {
-    final response = await _sessions.send<Object?>(
-      (authorization) =>
-          _dio.get<Object?>('/api/coins', options: authorization),
-    );
-    return CoinAccount.fromJson(_map(response.data));
+    return CoinAccount.fromJson(_map(await _execute('coins.account')));
   }
 
   Future<CoinCheckinResult> checkin() async {
-    final response = await _sessions.send<Object?>(
-      (authorization) =>
-          _dio.post<Object?>('/api/coins/checkin', options: authorization),
-    );
-    final json = _map(response.data);
+    final json = _map(await _execute('coins.checkin'));
     return CoinCheckinResult(
       reward: (json['reward_coins'] as num?)?.toInt() ?? 0,
       account: CoinAccount.fromJson(_map(json['account'])),
@@ -67,16 +50,37 @@ class OronBoxCoinService {
   }
 
   Future<void> coin(String resourceId, int coins) async {
-    await _sessions.send<Object?>(
-      (authorization) => _dio.post<Object?>(
-        '/api/resources/${Uri.encodeComponent(resourceId)}/coins',
-        data: {'coins': coins},
-        options: authorization,
-      ),
+    await _execute('coins.resource', {'resource': resourceId, 'coins': coins});
+  }
+
+  Future<Object?> _execute(
+    String method, [
+    Map<String, Object?> params = const {},
+  ]) async {
+    final result = await _host.execute(
+      OronBoxCommand(method: method, params: params),
     );
+    if (!result.ok) throw CoinCommandException(result.error!);
+    return result.value;
   }
 
   Map<String, Object?> _map(Object? value) => value is Map
       ? value.cast<String, Object?>()
       : throw FormatException('OronBox server returned ${value.runtimeType}');
+}
+
+class CoinCommandException implements CodedError {
+  const CoinCommandException(this.error);
+
+  final CommandError error;
+
+  @override
+  String get code => error.code;
+  @override
+  String get message => error.message;
+  @override
+  Object? get details => error.details;
+
+  @override
+  String toString() => message;
 }

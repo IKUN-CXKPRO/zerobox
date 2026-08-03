@@ -19,6 +19,7 @@ class CleanModePage extends ConsumerWidget {
     Future<void> update(CleanSettings next) => notifier.setClean(next);
     final exploreOn = value.exploreEnabled;
     final libraryOn = value.resourceLibraryEnabled;
+    final homeFeedOn = value.homeFeedEnabled;
     final bandBbsOn = value.bandBbsLoginEnabled;
 
     return Scaffold(
@@ -58,15 +59,21 @@ class CleanModePage extends ConsumerWidget {
               _switch(
                 l10n.cleanHomeFeed,
                 exploreOn && value.homeFeed,
-                (enabled) => update(value.copyWith(homeFeed: enabled)),
-                enabled: exploreOn && (!value.homeFeed || value.explore),
+                (enabled) {
+                  var next = value.copyWith(homeFeed: enabled);
+                  if (enabled && !value.hasHomeSection) {
+                    next = next.copyWith(homeRecommended: true);
+                  }
+                  update(next);
+                },
+                enabled: exploreOn,
                 icon: Icons.home_outlined,
               ),
               _switch(
                 l10n.cleanExplore,
                 exploreOn && value.explore,
                 (enabled) => update(value.copyWith(explore: enabled)),
-                enabled: exploreOn && (!value.explore || value.homeFeed),
+                enabled: exploreOn,
                 icon: Icons.library_books_outlined,
               ),
               _switch(
@@ -89,6 +96,47 @@ class CleanModePage extends ConsumerWidget {
                 (enabled) => update(value.copyWith(comments: enabled)),
                 enabled: libraryOn,
                 icon: Icons.forum_outlined,
+              ),
+            ],
+          ),
+          SegmentedSection(
+            title: Text(l10n.cleanHomeSectionsGroup),
+            tiles: [
+              _switch(
+                l10n.cleanHomeBanner,
+                homeFeedOn && value.homeBanner,
+                (enabled) => update(value.copyWith(homeBanner: enabled)),
+                enabled: homeFeedOn,
+                icon: Icons.view_carousel_outlined,
+              ),
+              _switch(
+                l10n.cleanHomeEditorSections,
+                homeFeedOn && value.homeEditorSections,
+                (enabled) =>
+                    update(value.copyWith(homeEditorSections: enabled)),
+                enabled: homeFeedOn,
+                icon: Icons.dashboard_customize_outlined,
+              ),
+              _switch(
+                l10n.resourceHomeFeatured,
+                homeFeedOn && value.homeFeatured,
+                (enabled) => update(value.copyWith(homeFeatured: enabled)),
+                enabled: homeFeedOn,
+                icon: Icons.star_outline,
+              ),
+              _switch(
+                l10n.resourceHomeRecommended,
+                homeFeedOn && value.homeRecommended,
+                (enabled) => update(value.copyWith(homeRecommended: enabled)),
+                enabled: homeFeedOn,
+                icon: Icons.recommend_outlined,
+              ),
+              _switch(
+                l10n.newlyPublished,
+                homeFeedOn && value.homeLatest,
+                (enabled) => update(value.copyWith(homeLatest: enabled)),
+                enabled: homeFeedOn,
+                icon: Icons.schedule,
               ),
             ],
           ),

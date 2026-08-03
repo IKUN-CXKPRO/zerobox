@@ -10,6 +10,7 @@ class CreatorWorkspace {
     this.links = const [],
     this.review,
     this.publications = const [],
+    this.bindings = const [],
   });
 
   final CreatorResource resource;
@@ -20,6 +21,9 @@ class CreatorWorkspace {
   final List<CreatorLink> links;
   final Map<String, Object?>? review;
   final List<Map<String, Object?>> publications;
+
+  /// External identities this resource is bound to (BandBBS / AstroBox).
+  final List<Map<String, Object?>> bindings;
 
   /// Latest revision, which is the editing baseline for the next publish.
   CreatorRevision? get latestRevision =>
@@ -42,6 +46,7 @@ class CreatorWorkspace {
       links: _maps(json['links']).map(CreatorLink.fromJson).toList(),
       review: json['review'] is Map ? _map(json['review']) : null,
       publications: _maps(json['publications']),
+      bindings: _maps(json['bindings']),
     );
   }
 }
@@ -114,6 +119,7 @@ class CreatorRevision {
     required this.summary,
     required this.state,
     this.attributes = const [],
+    this.publicationPlan,
   });
   final String id;
   final int number;
@@ -121,6 +127,11 @@ class CreatorRevision {
   final String summary;
   final String state;
   final List<String> attributes;
+
+  /// Saved publish intent ({target, config} entries); editor baseline, never
+  /// a dispatchable job. Null means no intent was ever saved (fresh import),
+  /// so the editor derives one from the imported bindings instead.
+  final List<Map<String, Object?>>? publicationPlan;
 
   factory CreatorRevision.fromJson(Map<String, Object?> json) =>
       CreatorRevision(
@@ -132,6 +143,9 @@ class CreatorRevision {
         attributes: (json['attributes'] as List? ?? const [])
             .map((value) => value.toString())
             .toList(),
+        publicationPlan: json['publication_plan'] == null
+            ? null
+            : _maps(json['publication_plan']),
       );
 }
 

@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/widgets/network_img_layer.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
@@ -12,9 +14,14 @@ import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/data/bandbbs/bandbbs_resource_provider.dart';
+import 'package:oronbox/src/data/oronbox/oronbox_home_api.dart';
+import 'package:oronbox/src/device/core/device_kind.dart';
+import 'package:oronbox/src/device/core/device_profile.dart';
 import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/messages/application/message_center.dart';
+import 'package:oronbox/src/features/resources/application/home_providers.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
 import 'package:oronbox/src/features/resources/application/oronbox_resource_attributes.dart';
 import 'package:oronbox/src/features/resources/controllers/resource_filter_controller.dart';
@@ -22,7 +29,33 @@ import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 import 'package:oronbox/src/features/resources/widgets/bandbbs_category_sidebar.dart';
 import 'package:oronbox/src/features/resources/widgets/bandbbs_resource_card.dart';
+import 'package:oronbox/src/features/resources/widgets/blog_labels.dart';
+import 'package:oronbox/src/features/resources/widgets/resource_external_link.dart';
 import 'package:oronbox/src/features/resources/widgets/resource_media_hero.dart';
+
+final _homeFeedProvider = FutureProvider.autoDispose
+    .family<List<CommunityResource>, CommunitySortRule>((ref, sort) async {
+      ref.watch(resourceRefreshProvider);
+      final page = await ref
+          .watch(communityCatalogProviderForSource(CommunitySourceId.oronBox))
+          .getPage(CommunityResourceQuery(pageSize: 12, sort: sort));
+      return page.items;
+    });
+
+final _featuredFeedProvider =
+    FutureProvider.autoDispose<List<CommunityResource>>((ref) async {
+      ref.watch(resourceRefreshProvider);
+      final page = await ref
+          .watch(communityCatalogProviderForSource(CommunitySourceId.oronBox))
+          .getPage(
+            const CommunityResourceQuery(
+              pageSize: 12,
+              sort: CommunitySortRule.recommendation,
+              featured: true,
+            ),
+          );
+      return page.items;
+    });
 
 class ResourcesPage extends ConsumerWidget {
   const ResourcesPage({super.key});
@@ -124,7 +157,7 @@ class ResourcesPage extends ConsumerWidget {
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               child: switch (displayMode) {
-                ResourceMode.home => const _ResourceHomePlaceholder(
+                ResourceMode.home => const _ResourceHomeView(
                   key: ValueKey('home'),
                 ),
                 _ => const _ResourceLibraryView(key: ValueKey('library')),
@@ -155,44 +188,258 @@ class _InboxAction extends StatelessWidget {
   );
 }
 
-class _ResourceHomePlaceholder extends ConsumerWidget {
-  const _ResourceHomePlaceholder({super.key});
+class _ResourceHomeView extends ConsumerWidget {
+  const _ResourceHomeView({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final clean = ref.watch(appSettingsProvider.select((state) => state.clean));
+    final home = ref.watch(homeFeedProvider);
+    final sections = [
+      if (clean.homeFeaturedEnabled)
+        (
+          l10n.resourceHomeFeatured,
+          CommunitySortRule.recommendation,
+          ref.watch(_featuredFeedProvider),
+        ),
+      if (clean.homeRecommendedEnabled)
+        (
+          l10n.resourceHomeRecommended,
+          CommunitySortRule.recommendation,
+          ref.watch(_homeFeedProvider(CommunitySortRule.recommendation)),
+        ),
+      if (clean.homeLatestEnabled)
+        (
+          l10n.newlyPublished,
+          CommunitySortRule.time,
+          ref.watch(_homeFeedProvider(CommunitySortRule.time)),
+        ),
+    ];
+    final curated = home.value;
+    final curatedEmpty =
+        curated == null ||
+        ((!clean.homeBannerEnabled || curated.banners.isEmpty) &&
+            curated.blogs.isEmpty &&
+            (!clean.homeEditorSectionsEnabled ||
+                curated.sections.every((section) => section.cards.isEmpty)));
+    final allFailed =
+        home.hasError && sections.every((section) => section.$3.hasError);
+    final allEmpty =
+        !allFailed &&
+        curatedEmpty &&
+        sections.every(
+          (section) => section.$3.hasValue && section.$3.value!.isEmpty,
+        );
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(homeFeedProvider);
+        ref.invalidate(_featuredFeedProvider);
+        ref.invalidate(_homeFeedProvider);
+      },
+      child: ScrollConfiguration(
+        behavior: const _NoStretchScrollBehavior(),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            if (allFailed)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _HomeEmpty(
+                  error: sections
+                      .map((section) => section.$3.error)
+                      .firstOrNull,
+                ),
+              )
+            else if (allEmpty)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: _HomeEmpty(),
+              )
+            else
+              SliverList.list(
+                children: [
+                  if (clean.homeBannerEnabled)
+                    if (curated == null && !home.hasError)
+                      const _HomeBannerSkeleton()
+                    else if (curated != null && curated.banners.isNotEmpty)
+                      _HomeBannerCarousel(banners: curated.banners),
+                  if (curated == null && !home.hasError)
+                    const _HomeBlogSkeleton()
+                  else if (curated != null && curated.blogs.isNotEmpty)
+                    _HomeBlogSection(blogs: curated.blogs),
+                  if (clean.homeEditorSectionsEnabled && curated != null)
+                    for (final section in curated.sections)
+                      if (section.cards.isNotEmpty)
+                        _HomeEditorSection(section: section),
+                  for (final (title, sort, feed) in sections)
+                    _HomeSection(title: title, sort: sort, feed: feed),
+                  const SizedBox(height: StyleConstants.pagePadding),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeSection extends ConsumerWidget {
+  const _HomeSection({
+    required this.title,
+    required this.sort,
+    required this.feed,
+  });
+
+  final String title;
+  final CommunitySortRule sort;
+  final AsyncValue<List<CommunityResource>> feed;
+
+  static const _cardSpacing = 12.0;
+  static const _cardTargetWidth = 190.0;
+  static const _cardBodyHeight = 76.0;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    return PageContainer(
+      padding: const EdgeInsets.fromLTRB(
+        StyleConstants.pagePadding,
+        StyleConstants.pagePadding,
+        StyleConstants.pagePadding,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  ref.read(resourceFiltersProvider.notifier).reset();
+                  ref.read(resourceFiltersProvider.notifier).setSort(sort);
+                  ref
+                      .read(resourceModeControllerProvider.notifier)
+                      .setMode(ResourceMode.library);
+                },
+                child: Text(l10n.more),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final count = math.max(
+                2,
+                (constraints.maxWidth / _cardTargetWidth).floor(),
+              );
+              final cardWidth =
+                  (constraints.maxWidth - (count - 1) * _cardSpacing) / count;
+              final coverHeight = cardWidth * 0.64;
+              return SizedBox(
+                height: coverHeight + _cardBodyHeight,
+                child: switch (feed) {
+                  AsyncData(:final value) => value.isEmpty
+                      ? _HomeSlotEmpty(height: coverHeight + _cardBodyHeight)
+                      : ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: value.length,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(width: _cardSpacing),
+                    itemBuilder: (context, index) => SizedBox(
+                      width: cardWidth,
+                      child: _ResourceCard(
+                        item: value[index],
+                        coverHeight: coverHeight,
+                        heroEnabled: false,
+                      ),
+                    ),
+                  ),
+                  AsyncError(:final error) => Center(
+                    child: Text(
+                      localizedErrorMessage(l10n, error),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  _ => ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: count,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(width: _cardSpacing),
+                    itemBuilder: (_, _) => SizedBox(
+                      width: cardWidth,
+                      child: _HomeResourceSkeleton(coverHeight: coverHeight),
+                    ),
+                  ),
+                },
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeEmpty extends ConsumerWidget {
+  const _HomeEmpty({this.error});
+
+  final Object? error;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
-
     return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: StyleConstants.pageMaxWidth,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(StyleConstants.pagePadding),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.construction_outlined,
-                size: 64,
+      child: Padding(
+        padding: const EdgeInsets.all(StyleConstants.pagePadding * 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              error != null ? Icons.cloud_off_outlined : Icons.home_outlined,
+              size: 64,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              error != null
+                  ? localizedErrorMessage(l10n, error!)
+                  : l10n.resourceHomeEmptyTitle,
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.resourceHomeEmptySubtitle,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.resourceHomeEmptyTitle,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.resourceHomeEmptySubtitle,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 24),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            if (error != null)
+              FilledButton.icon(
+                onPressed: () {
+                  ref.invalidate(homeFeedProvider);
+                  ref.invalidate(_featuredFeedProvider);
+                  ref.invalidate(_homeFeedProvider);
+                },
+                icon: const Icon(Icons.refresh),
+                label: Text(l10n.retry),
+              )
+            else
               FilledButton.icon(
                 onPressed: () {
                   ref
@@ -202,8 +449,634 @@ class _ResourceHomePlaceholder extends ConsumerWidget {
                 icon: const Icon(Icons.library_books_outlined),
                 label: Text(l10n.openResourceLibrary),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeSlotEmpty extends StatelessWidget {
+  const _HomeSlotEmpty({required this.height});
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest.withValues(alpha: .3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Text(
+          AppLocalizations.of(context)!.noContent,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeBannerSkeleton extends StatelessWidget {
+  const _HomeBannerSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(
+      context,
+    ).colorScheme.onSurfaceVariant.withValues(alpha: .12);
+    return PageContainer(
+      padding: const EdgeInsets.fromLTRB(
+        StyleConstants.pagePadding,
+        0,
+        StyleConstants.pagePadding,
+        8,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) => Container(
+          height: math.min(constraints.maxWidth * 9 / 21, 340),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeBlogSkeleton extends StatelessWidget {
+  const _HomeBlogSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(
+      context,
+    ).colorScheme.onSurfaceVariant.withValues(alpha: .12);
+    return PageContainer(
+      padding: const EdgeInsets.fromLTRB(
+        StyleConstants.pagePadding,
+        8,
+        StyleConstants.pagePadding,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppLocalizations.of(context)!.resourceHomeUpdates,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) => Container(
+              height: math.min(constraints.maxWidth * 9 / 21, 240) + 110,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeResourceSkeleton extends StatelessWidget {
+  const _HomeResourceSkeleton({required this.coverHeight});
+
+  final double coverHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(
+      context,
+    ).colorScheme.onSurfaceVariant.withValues(alpha: .12);
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(height: coverHeight, color: color),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 112,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  width: 68,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeBannerCarousel extends ConsumerStatefulWidget {
+  const _HomeBannerCarousel({required this.banners});
+
+  final List<HomeBanner> banners;
+
+  @override
+  ConsumerState<_HomeBannerCarousel> createState() =>
+      _HomeBannerCarouselState();
+}
+
+class _HomeBannerCarouselState extends ConsumerState<_HomeBannerCarousel> {
+  final _controller = PageController();
+  Timer? _timer;
+  var _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (!mounted || !_controller.hasClients || widget.banners.length < 2) {
+        return;
+      }
+      _controller.animateToPage(
+        (_index + 1) % widget.banners.length,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _open(HomeBanner banner) {
+    switch (banner.type) {
+      case HomeBannerType.resource:
+        if (banner.resourceId.isNotEmpty) {
+          context.push(
+            '/resources/detail/${banner.resourceId}?source=${CommunitySourceId.oronBox.storageKey}',
+          );
+        }
+      case HomeBannerType.blog:
+        if (banner.blogSlug.isNotEmpty) {
+          context.push(
+            '/resources/blog/${banner.blogSlug}',
+            extra: BlogCard(
+              slug: banner.blogSlug,
+              type: 'announcement',
+              title: banner.title,
+              subtitle: banner.subtitle,
+              author: '',
+              coverUrl: banner.coverUrl,
+            ),
+          );
+        }
+      case HomeBannerType.link:
+        final url = banner.linkUrl;
+        if (url != null) openResourceExternalLink(context, url);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return PageContainer(
+      padding: const EdgeInsets.fromLTRB(
+        StyleConstants.pagePadding,
+        0,
+        StyleConstants.pagePadding,
+        8,
+      ),
+      child: Column(
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) => SizedBox(
+              height: math.min(constraints.maxWidth * 9 / 21, 340),
+              child: PageView.builder(
+              controller: _controller,
+              itemCount: widget.banners.length,
+              onPageChanged: (index) => setState(() => _index = index),
+              itemBuilder: (context, index) {
+                final banner = widget.banners[index];
+                return Card(
+                  margin: EdgeInsets.zero,
+                  clipBehavior: Clip.antiAlias,
+                  color: colors.surfaceContainerHighest.withValues(alpha: .5),
+                  child: InkWell(
+                    onTap: () => _open(banner),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (banner.coverUrl != null)
+                          NetworkImgLayer(
+                            src: banner.coverUrl!.toString(),
+                            fit: BoxFit.cover,
+                            borderRadius: BorderRadius.zero,
+                          ),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: .72),
+                              ],
+                              stops: const [.38, 1],
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: 18,
+                          right: 18,
+                          bottom: 14,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                banner.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              if (banner.subtitle.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  banner.subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        color: Colors.white.withValues(
+                                          alpha: .85,
+                                        ),
+                                      ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              ),
+            ),
+          ),
+          if (widget.banners.length > 1) ...[
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var i = 0; i < widget.banners.length; i++)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: i == _index ? 18 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: i == _index
+                          ? colors.primary
+                          : colors.onSurfaceVariant.withValues(alpha: .35),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeEditorSection extends StatelessWidget {
+  const _HomeEditorSection({required this.section});
+
+  final HomeSection section;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return PageContainer(
+      padding: const EdgeInsets.fromLTRB(
+        StyleConstants.pagePadding,
+        8,
+        StyleConstants.pagePadding,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            section.name,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          if (section.description.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              section.description,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+            ),
+          ],
+          const SizedBox(height: 12),
+          for (final card in section.cards) ...[
+            if (card.resource != null)
+              _WideResourceCard(card: card.resource!)
+            else if (card.blog != null)
+              _HomeBlogCard(card: card.blog!, heroEnabled: false),
+            const SizedBox(height: 12),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeBlogSection extends StatelessWidget {
+  const _HomeBlogSection({required this.blogs});
+
+  final List<BlogCard> blogs;
+
+  @override
+  Widget build(BuildContext context) => PageContainer(
+    padding: const EdgeInsets.fromLTRB(
+      StyleConstants.pagePadding,
+      8,
+      StyleConstants.pagePadding,
+      0,
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppLocalizations.of(context)!.resourceHomeUpdates,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 12),
+        for (final blog in blogs) ...[
+          _HomeBlogCard(card: blog, heroEnabled: true),
+          const SizedBox(height: 12),
+        ],
+      ],
+    ),
+  );
+}
+
+CommunityResourceType _homeCardKind(String kind) => switch (kind) {
+  'zepp_app' => CommunityResourceType.miniprogram,
+  'watchface' => CommunityResourceType.watchface,
+  'firmware' => CommunityResourceType.firmware,
+  _ => CommunityResourceType.quickApp,
+};
+
+class _WideResourceCard extends StatelessWidget {
+  const _WideResourceCard({required this.card});
+
+  final HomeResourceCard card;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      color: colors.surfaceContainerHighest.withValues(alpha: .5),
+      child: InkWell(
+        onTap: () => context.push(
+          '/resources/detail/${card.id}',
+          extra: CommunityResource(
+            ref: ResourceRef(source: CommunitySourceId.oronBox, id: card.id),
+            name: card.name,
+            type: _homeCardKind(card.kind),
+            paidType: CommunityPaidType.free,
+            authors: [
+              if (card.owner.isNotEmpty)
+                CommunityResourceAuthor(name: card.owner),
+            ],
+            supportedDevices: const {},
+            iconUrl: card.iconUrl,
+            coverUrl: card.coverUrl,
+            summary: card.summary,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  NetworkImgLayer(
+                    src: (card.iconUrl ?? card.coverUrl)?.toString(),
+                    width: 56,
+                    height: 56,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          card.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        if (card.summary.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            card.summary,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: colors.onSurfaceVariant),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _ResourceLabel(
+                    label: _typeLabel(
+                      l10n,
+                      _homeCardKind(card.kind),
+                      source: CommunitySourceId.oronBox,
+                    ),
+                    color: colors.primary,
+                  ),
+                  if (card.owner.isNotEmpty) ...[
+                    const SizedBox(width: 12),
+                    Icon(
+                      Icons.person_outline,
+                      size: 14,
+                      color: colors.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        card.owner,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              if (card.previews.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    for (var i = 0; i < card.previews.take(3).length; i++) ...[
+                      Expanded(
+                        child: AspectRatio(
+                          aspectRatio: 16 / 10,
+                          child: NetworkImgLayer(
+                            src: card.previews[i].toString(),
+                            fit: BoxFit.cover,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      if (i < card.previews.take(3).length - 1)
+                        const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
+              ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeBlogCard extends StatelessWidget {
+  const _HomeBlogCard({required this.card, required this.heroEnabled});
+
+  final BlogCard card;
+  final bool heroEnabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      color: colors.surfaceContainerHighest.withValues(alpha: .5),
+      child: InkWell(
+        onTap: () => context.push('/resources/blog/${card.slug}', extra: card),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final height = math.min(constraints.maxWidth * 9 / 21, 240.0);
+                return card.coverUrl != null
+                    ? HeroMode(
+                        enabled: heroEnabled,
+                        child: ResourceMediaHero(
+                          tag: 'blog-cover-${card.slug}',
+                          url: card.coverUrl!.toString(),
+                          width: double.infinity,
+                          height: height,
+                          style: const ResourceMediaHeroStyle(
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(12),
+                            ),
+                          ),
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : Container(
+                        height: height,
+                        color: colors.primaryContainer.withValues(alpha: .35),
+                      );
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ResourceLabel(
+                    label: blogTypeLabel(l10n, card.type),
+                    color: colors.primary,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    card.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (card.subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      card.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -384,6 +1257,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
               type: filters.type,
               hidePaid: filters.hidePaid,
               hideForcePaid: filters.hideForcePaid,
+              featured: filters.featured,
               selectedDevices: filters.selectedDevices,
               selectedAttributes: filters.selectedAttributes,
             ),
@@ -633,70 +1507,155 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
   }) {
     return RefreshIndicator(
       onRefresh: _reset,
-      child: CustomScrollView(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          if (_loading)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_error != null)
-            SliverFillRemaining(
-              child: Center(child: Text(localizedErrorMessage(l10n, _error!))),
-            )
-          else ...[
-            if (!gridView)
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: StyleConstants.pagePadding,
-                ),
-                sliver: SliverList.builder(
-                  itemCount: _items.length,
-                  itemBuilder: (context, index) => Padding(
-                    padding: EdgeInsets.only(
-                      bottom: index == _items.length - 1 ? 0 : 10,
-                    ),
-                    child: _animateResourceLayout(
-                      _items[index],
-                      BandBbsResourceCard(
-                        key: ValueKey(_items[index].ref.key),
-                        item: _items[index],
-                      ),
-                    ),
-                  ),
+      child: ScrollConfiguration(
+        behavior: const _NoStretchScrollBehavior(),
+        child: CustomScrollView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            if (_loading)
+              const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_error != null)
+              SliverFillRemaining(
+                child: Center(
+                  child: Text(localizedErrorMessage(l10n, _error!)),
                 ),
               )
-            else
-              SliverToBoxAdapter(
-                child: PageContainer(
+            else ...[
+              if (!gridView)
+                SliverPadding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: StyleConstants.pagePadding,
                   ),
-                  child: _ResourceGrid(
-                    items: _items,
-                    animateItem: _animateResourceLayout,
+                  sliver: SliverList.builder(
+                    itemCount: _items.length,
+                    itemBuilder: (context, index) => Padding(
+                      padding: EdgeInsets.only(
+                        bottom: index == _items.length - 1 ? 0 : 10,
+                      ),
+                      child: _animateResourceLayout(
+                        _items[index],
+                        BandBbsResourceCard(
+                          key: ValueKey(_items[index].ref.key),
+                          item: _items[index],
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                SliverToBoxAdapter(
+                  child: PageContainer(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: StyleConstants.pagePadding,
+                    ),
+                    child: _ResourceGrid(
+                      items: _items,
+                      animateItem: _animateResourceLayout,
+                    ),
                   ),
                 ),
-              ),
-            if (_loadingMore)
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Center(child: CircularProgressIndicator()),
+              if (_loadingMore)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                )
+              else if (_items.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: Text(l10n.notFound)),
+                )
+              else if (!_hasMore)
+                SliverToBoxAdapter(
+                  child: PageContainer(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: StyleConstants.pagePadding,
+                    ),
+                    child: _OtherSourcesFooter(currentSource: source),
+                  ),
                 ),
-              )
-            else if (_items.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(child: Text(l10n.notFound)),
-              ),
+            ],
+            const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
           ],
-          const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
-        ],
+        ),
       ),
     );
   }
+}
+
+// Android 默认的拉伸 overscroll 会把边缘卡片的圆角拉变形,禁掉
+class _NoStretchScrollBehavior extends MaterialScrollBehavior {
+  const _NoStretchScrollBehavior();
+
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) => child;
+}
+
+bool _hasPairedZeppDevice(DeviceManagerState state) => [
+  ...state.pairedDevices,
+  if (state.currentDevice != null) state.currentDevice!,
+].any(
+  (device) =>
+      DeviceRegistry.resolveIdentity(
+        name: device.name,
+        codename: device.codename,
+      ).kind ==
+      DeviceKind.zepp,
+);
+
+List<CommunitySourceId> _enabledCommunitySources(
+  List<CommunitySourceId>? loadedSources,
+  CleanSettings clean, {
+  required bool hasZeppDevice,
+}) => [
+  for (final candidate in loadedSources ?? CommunitySourceId.values)
+    if ((candidate != CommunitySourceId.oronBox ||
+            clean.oronBoxSourceEnabled) &&
+        (candidate != CommunitySourceId.bandbbs ||
+            clean.bandBbsSourceEnabled) &&
+        (candidate != CommunitySourceId.astroboxRepo ||
+            clean.astroBoxSourceEnabled) &&
+        (candidate != CommunitySourceId.huamiAppStore ||
+            (clean.huamiAppStoreSourceEnabled && hasZeppDevice)))
+      candidate,
+];
+
+Future<void> _switchCommunitySource(
+  BuildContext context,
+  WidgetRef ref,
+  CommunitySourceId candidate,
+) async {
+  final l10n = AppLocalizations.of(context)!;
+  if (candidate == CommunitySourceId.bandbbs) {
+    final host = ref.read(hostAccountsProvider.notifier);
+    await host.refresh();
+    if (!context.mounted) return;
+    if (!ref.read(hostAccountsProvider).bandbbs.isSignedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.settingsBandBbsAccountRequired)),
+      );
+      return;
+    }
+  }
+  if (candidate == CommunitySourceId.huamiAppStore &&
+      !ref.read(hostAccountsProvider).amazfit.isSignedIn) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.settingsHuamiAccountRequired)),
+    );
+    return;
+  }
+  await ref
+      .read(appSettingsProvider.notifier)
+      .setCommunitySource(candidate);
+  ref.read(resourceFiltersProvider.notifier).reset();
 }
 
 class _CommunitySourceMenu extends ConsumerWidget {
@@ -707,16 +1666,12 @@ class _CommunitySourceMenu extends ConsumerWidget {
     final loadedSources = ref.watch(communitySourcesProvider).value;
     final clean = ref.watch(appSettingsProvider).clean;
     final sourceById = <String, CommunitySourceId>{
-      for (final candidate in loadedSources ?? CommunitySourceId.values)
-        if ((candidate != CommunitySourceId.oronBox ||
-                clean.oronBoxSourceEnabled) &&
-            (candidate != CommunitySourceId.bandbbs ||
-                clean.bandBbsSourceEnabled) &&
-            (candidate != CommunitySourceId.astroboxRepo ||
-                clean.astroBoxSourceEnabled) &&
-            (candidate != CommunitySourceId.huamiAppStore ||
-                clean.huamiAppStoreSourceEnabled))
-          candidate.storageKey: candidate,
+      for (final candidate in _enabledCommunitySources(
+        loadedSources,
+        clean,
+        hasZeppDevice: _hasPairedZeppDevice(ref.watch(deviceManagerProvider)),
+      ))
+        candidate.storageKey: candidate,
     };
     if (!sourceById.containsKey(source.storageKey) && sourceById.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -738,39 +1693,7 @@ class _CommunitySourceMenu extends ConsumerWidget {
                   : null,
               onPressed: candidate == source
                   ? null
-                  : () async {
-                      if (candidate == CommunitySourceId.bandbbs) {
-                        final host = ref.read(hostAccountsProvider.notifier);
-                        await host.refresh();
-                        if (!context.mounted) return;
-                        if (!ref
-                            .read(hostAccountsProvider)
-                            .bandbbs
-                            .isSignedIn) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                l10n.settingsBandBbsAccountRequired,
-                              ),
-                            ),
-                          );
-                          return;
-                        }
-                      }
-                      if (candidate == CommunitySourceId.huamiAppStore &&
-                          !ref.read(hostAccountsProvider).amazfit.isSignedIn) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(l10n.settingsHuamiAccountRequired),
-                          ),
-                        );
-                        return;
-                      }
-                      await ref
-                          .read(appSettingsProvider.notifier)
-                          .setCommunitySource(candidate);
-                      ref.read(resourceFiltersProvider.notifier).reset();
-                    },
+                  : () => _switchCommunitySource(context, ref, candidate),
               child: Text(_communitySourceLabel(l10n, candidate)),
             ),
           )
@@ -779,6 +1702,62 @@ class _CommunitySourceMenu extends ConsumerWidget {
         onPressed: controller.isOpen ? controller.close : controller.open,
         icon: const Icon(Icons.arrow_drop_down),
         label: Text(_communitySourceLabel(l10n, source)),
+      ),
+    );
+  }
+}
+
+class _OtherSourcesFooter extends ConsumerWidget {
+  const _OtherSourcesFooter({required this.currentSource});
+
+  final CommunitySourceId currentSource;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = Theme.of(context).colorScheme;
+    final clean = ref.watch(appSettingsProvider).clean;
+    final loadedSources = ref.watch(communitySourcesProvider).value;
+    final others =
+        _enabledCommunitySources(
+              loadedSources,
+              clean,
+              hasZeppDevice: _hasPairedZeppDevice(
+                ref.watch(deviceManagerProvider),
+              ),
+            )
+            .where((candidate) => candidate != currentSource)
+            .toList();
+    if (others.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Column(
+        children: [
+          Text(
+            l10n.resourceLibraryEndOfList,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final candidate in others)
+                FilledButton.tonal(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colors.surfaceContainerHighest,
+                    foregroundColor: colors.onSurface,
+                  ),
+                  onPressed: () =>
+                      _switchCommunitySource(context, ref, candidate),
+                  child: Text(_communitySourceLabel(l10n, candidate)),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -824,6 +1803,7 @@ class _FilterBar extends ConsumerWidget {
     final hasActiveFilters =
         filters.type != null ||
         filters.hidePaid ||
+        filters.featured ||
         (source == CommunitySourceId.astroboxRepo && filters.hideForcePaid) ||
         filters.selectedDevices.isNotEmpty ||
         filters.selectedAttributes.isNotEmpty;
@@ -900,6 +1880,17 @@ class _FilterBar extends ConsumerWidget {
                 onSelected: (_) => ref
                     .read(resourceFiltersProvider.notifier)
                     .setHidePaid(false),
+              ),
+            ),
+          if (filters.featured)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: FilterChip(
+                label: Text(l10n.resourceHomeFeatured),
+                selected: true,
+                onSelected: (_) => ref
+                    .read(resourceFiltersProvider.notifier)
+                    .setFeatured(false),
               ),
             ),
           if (source == CommunitySourceId.astroboxRepo && filters.hideForcePaid)
@@ -1085,6 +2076,13 @@ class _FilterSheet extends ConsumerWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
+              FilterChip(
+                label: Text(l10n.resourceHomeFeatured),
+                selected: filters.featured,
+                onSelected: (value) => ref
+                    .read(resourceFiltersProvider.notifier)
+                    .setFeatured(value),
+              ),
               for (final attribute in resourceAttributes)
                 FilterChip(
                   label: Text(
@@ -1383,9 +2381,14 @@ class _ResourceLayoutTransition extends StatelessWidget {
 }
 
 class _ResourceCard extends ConsumerWidget {
-  const _ResourceCard({required this.item, required this.coverHeight});
+  const _ResourceCard({
+    required this.item,
+    required this.coverHeight,
+    this.heroEnabled = true,
+  });
   final CommunityResource item;
   final double coverHeight;
+  final bool heroEnabled;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1409,13 +2412,16 @@ class _ResourceCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ResourceMediaHero(
-              tag: resourceMediaHeroTag(item.ref, heroRole),
-              url: image?.toString() ?? '',
-              width: double.infinity,
-              height: coverHeight,
-              style: const ResourceMediaHeroStyle(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
+            HeroMode(
+              enabled: heroEnabled,
+              child: ResourceMediaHero(
+                tag: resourceMediaHeroTag(item.ref, heroRole),
+                url: image?.toString() ?? '',
+                width: double.infinity,
+                height: coverHeight,
+                style: const ResourceMediaHeroStyle(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
               ),
             ),
             Padding(
@@ -1423,19 +2429,13 @@ class _ResourceCard extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(
-                    height: 35,
-                    child: Align(
-                      alignment: Alignment.bottomLeft,
-                      child: Text(
-                        item.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          height: 1.25,
-                        ),
-                      ),
+                  Text(
+                    item.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      height: 1.25,
                     ),
                   ),
                   const SizedBox(height: 8),

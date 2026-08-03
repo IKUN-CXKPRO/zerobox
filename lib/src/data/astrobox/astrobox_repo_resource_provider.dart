@@ -119,6 +119,11 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
       supportedDevices: files.expand((file) => file.supportedDevices).toSet(),
       iconUrl: Uri.tryParse(_resolveAssetUrl(item, manifestItem.icon)),
       coverUrl: Uri.tryParse(_resolveAssetUrl(item, manifestItem.cover)),
+      publicUrl: _repositoryUrl(item),
+      tags: item.tags,
+      sourceRepoOwner: item.repoOwner,
+      sourceRepoName: item.repoName,
+      sourceRepoCommitHash: item.repoCommitHash,
       summary: manifestItem.description,
       content: CommunityResourceContent(
         format: ResourceContentFormat.plainText,
@@ -291,7 +296,11 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
       supportedDevices: item.devices.toSet(),
       iconUrl: Uri.tryParse(_resolveAssetUrl(item, item.icon)),
       coverUrl: Uri.tryParse(_resolveAssetUrl(item, item.cover)),
+      publicUrl: _repositoryUrl(item),
       tags: item.tags,
+      sourceRepoOwner: item.repoOwner,
+      sourceRepoName: item.repoName,
+      sourceRepoCommitHash: item.repoCommitHash,
     );
   }
 
@@ -330,6 +339,13 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
 
   String _buildRepoRawUrl(AstroBoxIndexItem item) =>
       'https://raw.githubusercontent.com/${item.repoOwner}/${item.repoName}/${item.repoCommitHash}';
+
+  Uri? _repositoryUrl(AstroBoxIndexItem item) {
+    if (item.repoOwner.trim().isEmpty || item.repoName.trim().isEmpty) {
+      return null;
+    }
+    return Uri.https('github.com', '/${item.repoOwner}/${item.repoName}');
+  }
 
   CommunityResourceType _mapType(AstroBoxResourceType value) => switch (value) {
     AstroBoxResourceType.quickApp => CommunityResourceType.quickApp,

@@ -20,6 +20,7 @@ class CreatorResourceList extends StatefulWidget {
     this.selectedResourceIds = const {},
     this.onSelectionChanged,
     this.onDissolveCollection,
+    this.bottomPadding = 24,
   });
 
   final CreatorWorkspaceState state;
@@ -32,6 +33,7 @@ class CreatorResourceList extends StatefulWidget {
   final Set<String> selectedResourceIds;
   final ValueChanged<Set<String>>? onSelectionChanged;
   final ValueChanged<Map<String, Object?>>? onDissolveCollection;
+  final double bottomPadding;
 
   @override
   State<CreatorResourceList> createState() => _CreatorResourceListState();
@@ -66,7 +68,7 @@ class _CreatorResourceListState extends State<CreatorResourceList> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.inventory_2_outlined,
+              Icons.edit_outlined,
               size: 56,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -95,7 +97,7 @@ class _CreatorResourceListState extends State<CreatorResourceList> {
       onRefresh: widget.onRefresh,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 24),
+        padding: EdgeInsets.only(bottom: widget.bottomPadding),
         children: [
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,

@@ -26,6 +26,19 @@
   "pluginUpToDate": "已安装且为最新版本",
   "pluginUninstallTitle": "卸载插件",
   "pluginUninstallMessage": "插件数据也将被删除",
+  "pluginUpload": "上传插件",
+  "pluginPublishTitle": "发布插件",
+  "pluginPublishNew": "将作为新插件发布",
+  "pluginPublishUpdate": "将更新已发布的同名插件",
+  "pluginTakedown": "下架",
+  "pluginTakedownConfirm": "下架后该插件将从市场永久移除",
+  "pluginLoginRequired": "登录后上传插件",
+  "pluginSubmittedForReview": "已提交审核，通过后将上架",
+  "pluginStatePending": "审核中",
+  "pluginStateRejected": "审核未通过",
+  "pluginStateDelisted": "已被下架",
+  "pluginLegacyWarningTitle": "Legacy 插件",
+  "pluginLegacyWarningMessage": "这是一个 AstroBox v1 插件，OronBox 会尝试以兼容模式转译运行，但可能遇到一些问题\n请尝试检查并更新 OronBox 原生插件或与插件作者联系适配",
   "settingsTab": "设置",
   "search": "搜索",
   "resourceListView": "列表视图",
@@ -57,9 +70,18 @@
   "creatorInvalidImage": "无法解码该图片，请使用 PNG/JPEG/WebP",
   "creatorInvalidPackage": "该文件不是 Vela 快应用或表盘",
   "creatorPublishPreparing": "正在处理文件 {done}/{total}",
-  "@creatorPublishPreparing": {"placeholders": {"done": {}, "total": {}}},
+  "@creatorPublishPreparing": {
+    "placeholders": {
+      "done": {},
+      "total": {}
+    }
+  },
   "creatorPublishUploading": "正在上传 {percent}%",
-  "@creatorPublishUploading": {"placeholders": {"percent": {}}},
+  "@creatorPublishUploading": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
   "creatorPublishServer": "服务器处理中…",
   "creatorAstroBoxItemId": "资源 ID",
   "creatorAstroBoxRepository": "仓库名",
@@ -77,17 +99,34 @@
   "creatorDeleteConfirm": "将永久删除该草稿资源，无法恢复",
   "creatorDeletePublishedConfirm": "将永久删除 OronBox 资源，并同步删除对应的米坛资源，无法恢复\nAstroBox 上已发布的内容不受影响，如需下架请联系 AstroBox-Repo 维护者",
   "creatorArtifactCount": "{count} 个安装包",
-  "@creatorArtifactCount": {"placeholders": {"count": {}}},
+  "@creatorArtifactCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
   "creatorKindMismatchTitle": "文件类型不匹配",
   "creatorKindMismatchMessage": "这似乎是一个{detected}文件，而你正在创建{expected}资源。可以继续保留，但提交审核前请确认。",
-  "@creatorKindMismatchMessage": {"placeholders": {"detected": {}, "expected": {}}},
+  "@creatorKindMismatchMessage": {
+    "placeholders": {
+      "detected": {},
+      "expected": {}
+    }
+  },
   "creatorKeepFile": "仍然保留",
   "creatorDeviceMoveBlocked": "「{name}」仅剩这一台绑定设备，无法移动",
-  "@creatorDeviceMoveBlocked": {"placeholders": {"name": {}}},
+  "@creatorDeviceMoveBlocked": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "creatorAssetsReusedHint": "现有安装包与预览图将沿用，无需重新上传",
   "creatorRevisionHistory": "版本历史",
   "creatorUploadProgress": "正在上传 {progress}%",
-  "@creatorUploadProgress": {"placeholders": {"progress": {}}},
+  "@creatorUploadProgress": {
+    "placeholders": {
+      "progress": {}
+    }
+  },
   "filter": "筛选",
   "importLocalResource": "导入本地资源",
   "allDevices": "全部设备",
@@ -110,10 +149,21 @@
   "supportedDevices": "支持的设备",
   "resourceProfile": "资源平台与类型",
   "creatorArtifactProfileMismatch": "文件 {fileName} 与所选的 {profile} 不匹配，未添加该文件",
-  "@creatorArtifactProfileMismatch": {"placeholders": {"fileName": {}, "profile": {}}},
+  "@creatorArtifactProfileMismatch": {
+    "placeholders": {
+      "fileName": {},
+      "profile": {}
+    }
+  },
   "downloads": "下载包",
   "downloadTimes": "{count} 次下载",
-  "@downloadTimes": {"placeholders": {"count": {"type": "int"}}},
+  "@downloadTimes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "changelog": "更新日志",
   "notFound": "未找到",
   "downloadStarted": "开始下载",
@@ -131,14 +181,22 @@
   "creatorSuspendedByAdminNotice": "资源已被管理员下架，可修改后重新提交审核，审核通过后自动恢复上架",
   "creatorFrozenNotice": "资源已被管理员冻结，内容不可修改，仅管理员可解除",
   "creatorModerationReason": "原因：{reason}",
-  "@creatorModerationReason": {"placeholders": {"reason": {}}},
+  "@creatorModerationReason": {
+    "placeholders": {
+      "reason": {}
+    }
+  },
   "creatorBannedTitle": "账号已被封禁",
   "creatorBannedDescription": "你的账号已被管理员封禁，无法使用创作者中心。如有疑问请通过工单联系管理员",
   "creatorFrozenTitle": "创作者功能已被冻结",
   "creatorFrozenDescription": "你的创作者功能已被管理员冻结，暂时无法提交或管理资源。账号的其它功能不受影响",
   "creatorBandBbsNoDevices": "请先为资源文件选择支持的设备",
   "creatorBandBbsUnmappedDevices": "无法确定以下设备对应的米坛资源分区：{devices}",
-  "@creatorBandBbsUnmappedDevices": {"placeholders": {"devices": {}}},
+  "@creatorBandBbsUnmappedDevices": {
+    "placeholders": {
+      "devices": {}
+    }
+  },
   "creatorBandBbsSharedCategory": "同一米坛分区的设备绑定了多个安装包，请让每个分区只对应一个包",
   "creatorBandBbsUnresolved": "无法自动确定米坛分区",
   "creatorOptionalIcon": "图标（可选，1:1）",
@@ -215,7 +273,13 @@
   "communitySourceHuamiAppStore": "华米应用商店",
   "devices": "设备",
   "creatorCompatibleDeviceCount": "{count} 个设备",
-  "@creatorCompatibleDeviceCount": {"placeholders": {"count": {"type": "int"}}},
+  "@creatorCompatibleDeviceCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "categories": "分区",
   "advanced": "高级",
   "aboutOronBox": "关于 OronBox",
@@ -233,11 +297,29 @@
   "deviceCharging": "充电中",
   "deviceLastChargedNow": "刚刚充电",
   "deviceLastChargedMinutes": "{count} 分钟前充电",
-  "@deviceLastChargedMinutes": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceLastChargedMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceLastChargedHours": "{count} 小时前充电",
-  "@deviceLastChargedHours": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceLastChargedHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceLastChargedDays": "{count} 天前充电",
-  "@deviceLastChargedDays": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceLastChargedDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceFeaturesInstallApp": "安装应用",
   "deviceFeaturesInstallAppDesc": "从本地文件安装第三方应用",
   "deviceFeaturesInstallWatchface": "安装表盘",
@@ -260,7 +342,14 @@
   "firmwareReleaseNotes": "更新日志",
   "firmwareReleaseNotesUnavailable": "暂无更新日志",
   "firmwareDownloadingProgress": "正在下载 {progress}%",
-  "@firmwareDownloadingProgress": {"placeholders": {"progress": {"type": "int"}}},
+  "@firmwareDownloadingProgress": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "download": "下载",
   "downloadFailed": "下载失败，请稍后重试",
   "downloadTaskAdded": "已加入下载队列",
   "deviceFeaturesManageApps": "管理应用",
@@ -277,7 +366,11 @@
   "zeppOsScreenMirrorDescription": "在当前设备上查看手表画面",
   "zeppOsScreenMirrorSemantics": "Zepp OS 手表屏幕镜像",
   "zeppOsScreenMirrorUnsupported": "无法显示当前画面格式：{error}",
-  "@zeppOsScreenMirrorUnsupported": {"placeholders": {"error": {}}},
+  "@zeppOsScreenMirrorUnsupported": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "expand": "展开",
   "collapse": "收起",
   "voiceLabTitle": "语音实验室",
@@ -304,28 +397,62 @@
   "voiceLabSaveOpus": "保存 Opus 音频",
   "voiceLabAudioProcessingFailedPrefix": "音频处理失败",
   "voiceLabAudioProcessingFailed": "音频处理失败：{error}",
-  "@voiceLabAudioProcessingFailed": {"placeholders": {"error": {}}},
+  "@voiceLabAudioProcessingFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "voiceLabContinuousCaptureFailed": "无法设置连续采集：{error}",
-  "@voiceLabContinuousCaptureFailed": {"placeholders": {"error": {}}},
+  "@voiceLabContinuousCaptureFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "voiceLabAssistantSwitchFailed": "无法切换语音助手：{error}",
-  "@voiceLabAssistantSwitchFailed": {"placeholders": {"error": {}}},
+  "@voiceLabAssistantSwitchFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "voiceLabExportWavFailed": "导出 WAV 失败：{error}",
-  "@voiceLabExportWavFailed": {"placeholders": {"error": {}}},
+  "@voiceLabExportWavFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "voiceLabExportOpusFailed": "导出 Opus 失败：{error}",
-  "@voiceLabExportOpusFailed": {"placeholders": {"error": {}}},
+  "@voiceLabExportOpusFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "send": "发送",
   "sendFailed": "发送失败：{error}",
-  "@sendFailed": {"placeholders": {"error": {}}},
+  "@sendFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "ready": "已就绪",
   "initializing": "初始化中",
   "zeppOsMapSelectPackage": "选择 Zepp OS 地图包",
   "zeppOsMapReadFailed": "无法读取地图包",
   "zeppOsMapTransferTitle": "传输离线地图",
   "zeppOsMapGarminDetected": "{fileName}\n已识别为单文件 Garmin IMG 地图：{mapName}",
-  "@zeppOsMapGarminDetected": {"placeholders": {"fileName": {}, "mapName": {}}},
+  "@zeppOsMapGarminDetected": {
+    "placeholders": {
+      "fileName": {},
+      "mapName": {}
+    }
+  },
   "zeppOsMapGarminNoPreview": "该地图不包含 Zepp OS 的 11/x/y 瓦片目录，将保留原始 IMG 并作为单文件地图包传输，因此无法提供覆盖范围预览。",
   "zeppOsMapTileSummary": "{fileName} · {count} 个瓦片\n预览仅表示地图包的覆盖范围，不代表手表上的 Garmin IMG 渲染效果。",
-  "@zeppOsMapTileSummary": {"placeholders": {"fileName": {}, "count": {}}},
+  "@zeppOsMapTileSummary": {
+    "placeholders": {
+      "fileName": {},
+      "count": {}
+    }
+  },
   "zeppOsMapWatchConfirmationHint": "开始后还需在手表上确认安装。传输期间请保持手表靠近当前设备。",
   "zeppOsMapStartTransfer": "开始传输",
   "zeppOsMapTransferringBluetooth": "正在通过蓝牙传输",
@@ -338,11 +465,23 @@
   "zeppOsMapBleHint": "BLE 仅支持不超过 2 MB 的地图包；传输更大的地图前请切换至 BT Classic。开始传输后，请同时在手表上确认安装。",
   "zeppOsMapPreviewTooLarge": "地图范围过大，无法完整预览",
   "zeppOsSettingPageLoadFailed": "设置页面加载失败：{error}",
-  "@zeppOsSettingPageLoadFailed": {"placeholders": {"error": {}}},
+  "@zeppOsSettingPageLoadFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "zeppOsAppCompatibilitySaved": "{appId} 兼容文件已保存",
-  "@zeppOsAppCompatibilitySaved": {"placeholders": {"appId": {}}},
+  "@zeppOsAppCompatibilitySaved": {
+    "placeholders": {
+      "appId": {}
+    }
+  },
   "zeppOsAppStorageSaved": "{appId} settingsStorage 已保存",
-  "@zeppOsAppStorageSaved": {"placeholders": {"appId": {}}},
+  "@zeppOsAppStorageSaved": {
+    "placeholders": {
+      "appId": {}
+    }
+  },
   "zeppOsAppSupplementFiles": "添加 app-side 或 setting 文件",
   "zeppOsAppSupplementCompatibility": "添加小程序兼容文件",
   "zeppOsAppReplaceCompatibility": "添加或替换兼容文件",
@@ -353,7 +492,11 @@
   "zeppOsAppEditStorage": "编辑 settingsStorage",
   "zeppOsStorageKeyRequired": "键名不能为空",
   "zeppOsStorageDuplicateKey": "键名重复：{key}",
-  "@zeppOsStorageDuplicateKey": {"placeholders": {"key": {}}},
+  "@zeppOsStorageDuplicateKey": {
+    "placeholders": {
+      "key": {}
+    }
+  },
   "zeppOsStorageDescription": "这些数据由 setting 页面与 app-side 共享，并按照 Zepp OS 规范以字符串保存。",
   "zeppOsStorageEmpty": "暂无存储项",
   "zeppOsStorageKey": "键",
@@ -370,11 +513,19 @@
   "selectFile": "选择文件",
   "zeppOsAppCompatibilityOverwriteHint": "保存会覆盖该 App ID 下的同名兼容文件，但不会修改手表内的小程序。",
   "zeppOsDebugRefreshFailed": "自动刷新失败：{error}",
-  "@zeppOsDebugRefreshFailed": {"placeholders": {"error": {}}},
+  "@zeppOsDebugRefreshFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "zeppOsDebugInvalidHex": "HEX 只能包含完整字节，以及空格、换行、0x、逗号等分隔符",
   "zeppOsDebugClearEventsTitle": "清空当前 App 的事件？",
   "zeppOsDebugClearEventsDescription": "将清空 {appId} 的全部调试事件。",
-  "@zeppOsDebugClearEventsDescription": {"placeholders": {"appId": {}}},
+  "@zeppOsDebugClearEventsDescription": {
+    "placeholders": {
+      "appId": {}
+    }
+  },
   "zeppOsDebugClearEvents": "清空事件",
   "zeppOsDebugRefresh": "刷新状态与事件",
   "zeppOsDebugAppList": "App-side 列表",
@@ -396,7 +547,12 @@
   "zeppOsDebugEncodingFailed": "无法按所选模式编码当前内容",
   "zeppOsDebugByteCountUnavailable": "字节数：--",
   "zeppOsDebugBytePreview": "字节数：{count}\nHEX：{hex}",
-  "@zeppOsDebugBytePreview": {"placeholders": {"count": {}, "hex": {}}},
+  "@zeppOsDebugBytePreview": {
+    "placeholders": {
+      "count": {},
+      "hex": {}
+    }
+  },
   "zeppOsDebugInjectLocal": "模拟入站消息到本地 runtime",
   "zeppOsDebugSendToWatch": "发送到手表",
   "zeppOsDebugWaitingForWatch": "发送到手表（等待真实会话）",
@@ -411,11 +567,23 @@
   "zeppOsDebugCopyText": "复制文本",
   "zeppOsDebugSessionStatus": "运行与会话状态",
   "zeppOsDebugCachedScript": "缓存脚本：{status}",
-  "@zeppOsDebugCachedScript": {"placeholders": {"status": {}}},
+  "@zeppOsDebugCachedScript": {
+    "placeholders": {
+      "status": {}
+    }
+  },
   "zeppOsDebugLocalRuntimeStatus": "本地 runtime：{status}",
-  "@zeppOsDebugLocalRuntimeStatus": {"placeholders": {"status": {}}},
+  "@zeppOsDebugLocalRuntimeStatus": {
+    "placeholders": {
+      "status": {}
+    }
+  },
   "zeppOsDebugWatchSession": "手表会话：{status}",
-  "@zeppOsDebugWatchSession": {"placeholders": {"status": {}}},
+  "@zeppOsDebugWatchSession": {
+    "placeholders": {
+      "status": {}
+    }
+  },
   "exists": "存在",
   "notExists": "不存在",
   "running": "运行中",
@@ -424,7 +592,11 @@
   "zeppOsDebugWatchSessionOpen": "真实会话已打开",
   "zeppOsDebugRealHeader": "真实 header",
   "zeppOsDebugLatestStartup": "最近启动状态：{status}",
-  "@zeppOsDebugLatestStartup": {"placeholders": {"status": {}}},
+  "@zeppOsDebugLatestStartup": {
+    "placeholders": {
+      "status": {}
+    }
+  },
   "zeppOsDebugWatchInbound": "手表入站",
   "zeppOsDebugWatchOutbound": "发往手表",
   "zeppOsDebugLifecycle": "生命周期",
@@ -443,38 +615,92 @@
   "deviceMusicChooseDialog": "选择要同步至设备的 MP3 文件",
   "deviceMusicReadFailed": "无法读取所选 MP3 文件",
   "deviceMusicSizeInvalid": "MP3 文件大小须大于 0 且不超过 {maxMb} MB",
-  "@deviceMusicSizeInvalid": {"placeholders": {"maxMb": {"type": "int"}}},
+  "@deviceMusicSizeInvalid": {
+    "placeholders": {
+      "maxMb": {
+        "type": "int"
+      }
+    }
+  },
   "deviceMusicUnknownArtist": "未知艺术家",
   "deviceMusicTransferred": "音乐传输完成",
   "deviceMusicLibrary": "设备音乐",
   "deviceMusicLibraryDescription": "管理设备中的歌曲与歌单",
   "deviceMusicSongs": "歌曲",
   "deviceMusicSongsTotal": "共 {count} 首",
-  "@deviceMusicSongsTotal": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceMusicSongsTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceMusicNoPlaylist": "未加入歌单",
   "deviceMusicPlaylists": "歌单",
   "deviceMusicEmpty": "设备中暂无歌曲",
   "deviceMusicNoPlaylists": "尚未创建歌单",
   "deviceMusicLoadFailed": "读取设备音乐失败：{error}",
-  "@deviceMusicLoadFailed": {"placeholders": {"error": {"type": "String"}}},
+  "@deviceMusicLoadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "deviceMusicPlaylistCreate": "新建歌单",
   "deviceMusicPlaylistRename": "重命名歌单",
   "deviceMusicPlaylistName": "歌单名称",
   "deviceMusicPlaylistLimit": "最多可创建 {count} 个歌单",
-  "@deviceMusicPlaylistLimit": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceMusicPlaylistLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceMusicSongCount": "{count} 首歌曲",
-  "@deviceMusicSongCount": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceMusicSongCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceMusicDeleteSong": "从设备删除歌曲？",
   "deviceMusicDeletePlaylist": "删除歌单？",
   "deviceMusicDeletePlaylistDescription": "歌单中的歌曲不会从设备删除。",
   "deviceMusicManagePlaylists": "管理所属歌单",
   "deviceMusicPlaylistMembership": "所属歌单",
   "deviceMusicTransferSpeed": "{speed}/s",
-  "@deviceMusicTransferSpeed": {"placeholders": {"speed": {"type": "String"}}},
+  "@deviceMusicTransferSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
   "deviceMusicSelectedFiles": "已选择 {count} 个文件",
-  "@deviceMusicSelectedFiles": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceMusicSelectedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceMusicQueueProgress": "正在传输 {current}/{total}：{name}",
-  "@deviceMusicQueueProgress": {"placeholders": {"current": {"type": "int"}, "total": {"type": "int"}, "name": {"type": "String"}}},
+  "@deviceMusicQueueProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "deviceRecordingsTitle": "录音同步",
   "deviceRecordingsDescription": "从手表同步并导出录音",
   "deviceRecordingsHint": "录音通过设备文件通道逐条接收并校验，完成后可单独导出原始文件。",
@@ -482,16 +708,49 @@
   "deviceRecordingsSyncing": "正在接收",
   "deviceRecordingsReading": "正在读取录音列表",
   "deviceRecordingsProgress": "已接收 {completed}/{total}：{name}",
-  "@deviceRecordingsProgress": {"placeholders": {"completed": {"type": "int"}, "total": {"type": "int"}, "name": {"type": "String"}}},
+  "@deviceRecordingsProgress": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "deviceRecordingsProgressCount": "已接收 {completed}/{total}",
-  "@deviceRecordingsProgressCount": {"placeholders": {"completed": {"type": "int"}, "total": {"type": "int"}}},
+  "@deviceRecordingsProgressCount": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "deviceRecordingsEmpty": "连接手表后点击“同步录音”",
   "deviceRecordingsSave": "导出录音",
   "deviceRecordingsNoneOnWatch": "手表中没有新的录音",
   "deviceRecordingsSynced": "已同步 {count} 条录音",
-  "@deviceRecordingsSynced": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceRecordingsSynced": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceRecordingsSaveFailed": "导出录音失败：{error}",
-  "@deviceRecordingsSaveFailed": {"placeholders": {"error": {"type": "String"}}},
+  "@deviceRecordingsSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "deviceMusicTransferTitle": "传输 MP3 文件",
   "deviceMusicVelaDescription": "将 MP3 文件同步至设备，单个文件不得超过 100 MB。",
   "deviceMusicZeppDescription": "支持最大 50 MB 的 MP3 文件。建议使用经典蓝牙以获得更快的传输速度；也可使用 BLE，但传输时间较长。",
@@ -499,9 +758,17 @@
   "deviceMusicSongTitle": "歌曲名称",
   "deviceMusicArtist": "艺术家",
   "deviceMusicFileSize": "文件大小：{size}",
-  "@deviceMusicFileSize": {"placeholders": {"size": {}}},
+  "@deviceMusicFileSize": {
+    "placeholders": {
+      "size": {}
+    }
+  },
   "deviceMusicProgress": "传输进度：{progress}%",
-  "@deviceMusicProgress": {"placeholders": {"progress": {}}},
+  "@deviceMusicProgress": {
+    "placeholders": {
+      "progress": {}
+    }
+  },
   "deviceMusicTransferring": "正在传输",
   "deviceMusicSend": "开始传输",
   "zeppOsFindDevice": "查找设备",
@@ -543,7 +810,9 @@
   "deviceEndpointUnavailable": "未发现可用的 {transport} 端点，请先完成系统蓝牙配对，然后重新扫描。",
   "@deviceEndpointUnavailable": {
     "placeholders": {
-      "transport": {"type": "String"}
+      "transport": {
+        "type": "String"
+      }
     }
   },
   "deviceTransportSpp": "SPP",
@@ -588,7 +857,9 @@
   "externalLinkDescription": "即将跳转到 {url}\n\n该网站由第三方运营，与 OronBox 没有从属关系，安全性未知，请注意辨别，是否继续访问？",
   "@externalLinkDescription": {
     "placeholders": {
-      "url": {"type": "String"}
+      "url": {
+        "type": "String"
+      }
     }
   },
   "externalLinkAstroBoxResourceHint": "这似乎是一个 AstroBox 资源，您也可以在 OronBox内访问并安装",
@@ -627,6 +898,7 @@
   "forcePaid": "强制付费",
   "version": "版本",
   "noDescription": "暂无描述",
+  "noContent": "暂无内容",
   "preview": "预览",
   "productAbout": "关于",
   "productDeviceRequirements": "系统要求",
@@ -670,7 +942,11 @@
   "bandBbsLogout": "退出登录",
   "bandBbsLoggedOut": "已退出登录",
   "accountSignOutTitle": "退出 {accountName}？",
-  "@accountSignOutTitle": {"placeholders": {"accountName": {}}},
+  "@accountSignOutTitle": {
+    "placeholders": {
+      "accountName": {}
+    }
+  },
   "accountSignOutMessage": "退出后，如需继续使用相关功能，需要重新登录。",
   "bandBbsLoadPreviews": "加载资源帖预览图",
   "bandBbsLoadPreviewsDesc": "在资源列表中自动加载帖子附件预览图",
@@ -812,7 +1088,15 @@
   "acknowledgementsAstroBoxNgProvider": "社区资源索引、CDN 与清单解析流程参考",
   "acknowledgementsAstroBoxNgAppWasm": "Web Serial 与浏览器端连接流程参考",
   "acknowledgementsGadgetbridge": "ZeppOS 与可穿戴设备协议研究参考",
-  "resourceHomeEmptyTitle": "首页未完成",
+  "resourceHomeRecommended": "每日推荐",
+  "resourceHomeFeatured": "每日精选",
+  "resourceHomeUpdates": "最新动态",
+  "blogTypeAnnouncement": "公告",
+  "blogTypeRecommendation": "推荐",
+  "blogTypeDocs": "文档",
+  "blogPostUnavailable": "文章不存在或已下线",
+  "resourceHomeEmptyTitle": "暂无推荐内容",
+  "resourceLibraryEndOfList": "到底了，看看来自其他源的资源？",
   "resourceHomeEmptySubtitle": "您可以在资源库获取资源",
   "resourceCreatorEmptyTitle": "创作者中心未完成",
   "resourceCreatorEmptySubtitle": "您可以在资源库管理已获取资源",
@@ -878,10 +1162,18 @@
   "settingsAboutLogs": "运行日志",
   "settingsAboutLogsDescription": "查看、导出和管理应用与设备的运行日志",
   "settingsAboutLogsSize": "当前占用 {size}",
-  "@settingsAboutLogsSize": {"placeholders": {"size": {}}},
+  "@settingsAboutLogsSize": {
+    "placeholders": {
+      "size": {}
+    }
+  },
   "settingsAboutLogsExport": "导出",
   "settingsAboutLogsExported": "已导出到 {path}",
-  "@settingsAboutLogsExported": {"placeholders": {"path": {}}},
+  "@settingsAboutLogsExported": {
+    "placeholders": {
+      "path": {}
+    }
+  },
   "settingsAboutLogsEmpty": "暂无可导出的日志",
   "settingsAboutLogsClear": "清理",
   "settingsDeviceLogsPull": "拉取设备日志",
@@ -889,11 +1181,23 @@
   "settingsDeviceLogsStart": "开始",
   "settingsDeviceLogsPulling": "正在拉取设备日志",
   "settingsDeviceLogsProgress": "已接收 {progress}%",
-  "@settingsDeviceLogsProgress": {"placeholders": {"progress": {}}},
+  "@settingsDeviceLogsProgress": {
+    "placeholders": {
+      "progress": {}
+    }
+  },
   "settingsDeviceLogsSaved": "设备日志已保存为 {name}",
-  "@settingsDeviceLogsSaved": {"placeholders": {"name": {}}},
+  "@settingsDeviceLogsSaved": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "settingsDeviceLogsFailed": "设备日志拉取失败：{error}",
-  "@settingsDeviceLogsFailed": {"placeholders": {"error": {}}},
+  "@settingsDeviceLogsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "settingsAboutLogsClearConfirm": "将删除当前会话之外的全部日志文件。",
   "settingsAboutLogsOpen": "打开日志文件夹",
   "settingsAboutLogsOpenFailed": "无法打开日志文件夹",
@@ -972,7 +1276,9 @@
   "resourceInstallForceCountdown": "强制安装 ({seconds}s)",
   "@resourceInstallForceCountdown": {
     "placeholders": {
-      "seconds": {"type": "int"}
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "resourceInstallAsSelected": "继续以{type}安装",
@@ -985,7 +1291,9 @@
   "@resourceInstallAsSelectedCountdown": {
     "placeholders": {
       "type": {},
-      "seconds": {"type": "int"}
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "resourceInstallAsDetected": "以{type}安装",
@@ -1019,26 +1327,52 @@
   "submit": "提交",
   "currentAccount": "当前账号",
   "submitForReview": "提交审核",
-  "creatorConfirmTitle": "确认发布计划",
-  "creatorConfirmOronBox": "资源将提交至 OronBox 审核，审核通过后在 OronBox 资源中发布",
-  "creatorConfirmBandBbs": "审核通过后将直接发布到米坛分区 {category}",
-  "@creatorConfirmBandBbs": {"placeholders": {"category": {}}},
-  "creatorConfirmAstroBox": "审核通过后将由 GitHub 用户 {owner} 创建或更新仓库 {repository}，并向 ABRepo 提交 PR",
-  "@creatorConfirmAstroBox": {"placeholders": {"owner": {}, "repository": {}}},
-  "creatorBandBbsDirectPublish": "OronBox 审核通过之后直接发布到米坛社区",
+  "creatorConfirmTitle": "确认提交",
+  "creatorConfirmOronBox": "提交至 OronBox",
+  "creatorConfirmBandBbs": "同步至米坛：{category}",
+  "@creatorConfirmBandBbs": {
+    "placeholders": {
+      "category": {}
+    }
+  },
+  "creatorConfirmAstroBox": "同步至 AstroBox：{owner}/{repository}",
+  "@creatorConfirmAstroBox": {
+    "placeholders": {
+      "owner": {},
+      "repository": {}
+    }
+  },
+  "creatorBandBbsDirectPublish": "同步到米坛",
+  "creatorBandBbsBoundUpdate": "已关联 · 同步到米坛",
+  "creatorLinkedSections": "已关联 {count} 个分区",
+  "@creatorLinkedSections": {"placeholders": {"count": {"type": "int"}}},
+  "creatorBandBbsBindingIds": "分区 {categoryId} · 资源 {resourceId}",
+  "@creatorBandBbsBindingIds": {"placeholders": {"categoryId": {}, "resourceId": {}}},
+  "creatorAstroBoxBinding": "Item {itemId} · {repository}",
+  "@creatorAstroBoxBinding": {"placeholders": {"itemId": {}, "repository": {}}},
+  "creatorAstroBoxBoundSync": "已关联 · 同步到 AstroBox",
+  "creatorThisCommit": "本次提交",
   "bandBbsCategoryId": "米坛资源分区 ID",
   "bandBbsCategory": "米坛资源分区",
-  "creatorAstroBoxPrPublish": "OronBox 审核通过之后创建资源分仓库 {repository} 并向 AstroBox 官方仓库提交 PR",
-  "@creatorAstroBoxPrPublish": {"placeholders": {"repository": {}}},
+  "creatorAstroBoxPrPublish": "同步到 AstroBox · {repository}",
+  "@creatorAstroBoxPrPublish": {
+    "placeholders": {
+      "repository": {}
+    }
+  },
   "creatorOronBoxRequired": "必选，资源需经过 OronBox 审核",
   "creatorOpenInOronBox": "在 OronBox 中查看",
   "creatorAstroTags": "AstroBox 标签",
-  "creatorAstroTagsHint": "使用逗号或分号分隔多个标签",
+  "creatorAstroTagsHint": "多个标签使用英文分号 ; 分隔",
   "retry": "重试",
   "reviewNote": "审核意见",
   "creatorReviewRejected": "资源已被打回",
   "creatorReviewState": "审核状态：{state}",
-  "@creatorReviewState": {"placeholders": {"state": {}}},
+  "@creatorReviewState": {
+    "placeholders": {
+      "state": {}
+    }
+  },
   "creatorOperationWorking": "正在处理",
   "creatorProcessingImage": "正在处理图片",
   "creatorOperationRefreshing": "正在刷新创作者数据",
@@ -1061,18 +1395,25 @@
   "creatorLoginRequiredTitle": "登录后使用创作者中心",
   "creatorLoginRequiredDescription": "需要登录米坛并连接 OronBox 账号，才能创建、编辑和提交资源",
   "creatorLoginAction": "登录米坛",
-  "creatorSelectHint": "从左侧选择资源，或新建一个资源",
   "creatorOronBoxReady": "OronBox 与米坛读取权限可用",
   "creatorBandBbsWriteReady": "已获得米坛资源发布权限",
   "creatorBandBbsWriteMissing": "未获得米坛写入授权，无法发布到米坛",
-  "creatorGitHubOwnPublishReady": "已连接 GitHub，可使用 {login} 发布",
-  "@creatorGitHubOwnPublishReady": {"placeholders": {"login": {}}},
+  "creatorGitHubOwnPublishReady": "已连接 GitHub · {login}",
+  "@creatorGitHubOwnPublishReady": {
+    "placeholders": {
+      "login": {}
+    }
+  },
   "creatorGitHubOwnPublishMissing": "未连接 GitHub，无法以自己的账号发布 AstroBox 资源",
   "creatorAuthorize": "授权",
   "openCreatorCenter": "进入创作者中心",
   "creatorGitHubNotConnected": "尚未连接 GitHub 账号",
   "creatorGitHubConnected": "已连接 GitHub 账号 {login}",
-  "@creatorGitHubConnected": {"placeholders": {"login": {}}},
+  "@creatorGitHubConnected": {
+    "placeholders": {
+      "login": {}
+    }
+  },
   "githubAuthorizationFailed": "无法打开 GitHub 授权页面",
   "githubAuthorizationTimedOut": "GitHub 授权超时",
   "authorize": "授权",
@@ -1094,7 +1435,6 @@
   "feedbackSubject": "标题",
   "feedbackMessage": "意见或问题",
   "reportReason": "举报理由",
-  "submit": "提交",
   "submitted": "已提交",
   "myFeedback": "我的反馈",
   "noFeedback": "暂无记录",
@@ -1115,7 +1455,11 @@
   "updateCheckFailed": "暂时无法检查更新",
   "latestVersionInstalled": "当前已是最新版本",
   "newVersionAvailable": "发现新版本 {version}",
-  "@newVersionAvailable": {"placeholders": {"version": {}}},
+  "@newVersionAvailable": {
+    "placeholders": {
+      "version": {}
+    }
+  },
   "viewUpdate": "查看更新",
   "oobeWelcomeSlogan": "一个又好看又快的 VelaOS / ZeppOS 可穿戴设备管理软件，使用 Flutter 构建",
   "oobeNext": "下一步",
@@ -1156,7 +1500,12 @@
   "back": "返回",
   "creatorConnect": "连接",
   "creatorReviewItemsProgress": "需要修改（已解决 {done}/{total}）",
-  "@creatorReviewItemsProgress": {"placeholders": {"done": {}, "total": {}}},
+  "@creatorReviewItemsProgress": {
+    "placeholders": {
+      "done": {},
+      "total": {}
+    }
+  },
   "comments": "评论",
   "commentEmpty": "还没有评论",
   "commentHint": "写下评论",
@@ -1168,6 +1517,7 @@
   "commentRateLimited": "评论过于频繁，请稍后再试",
   "commentReplying": "正在回复这条评论",
   "loadMore": "加载更多",
+  "more": "更多",
   "reply": "回复",
   "inbox": "消息箱",
   "inboxLoading": "正在加载消息",
@@ -1193,6 +1543,9 @@
   "cleanExploreEntry": "探索主入口",
   "cleanNavigationGroup": "主导航",
   "cleanExploreContentGroup": "探索内容",
+  "cleanHomeSectionsGroup": "首页板块",
+  "cleanHomeBanner": "Banner 轮播",
+  "cleanHomeEditorSections": "编辑分区",
   "cleanResourceSourcesGroup": "资源源",
   "cleanCommunityGroup": "社区能力",
   "settingsCategoryAccounts": "账号与授权",
@@ -1207,36 +1560,78 @@
   "settingsCategoryAdvancedDescription": "窗口行为、重新引导与开发工具",
   "oronBoxCoinsTitle": "资源投币",
   "oronBoxCoinsBalance": "硬币余额：{balance}",
-  "@oronBoxCoinsBalance": {"placeholders": {"balance": {"type": "String"}}},
+  "@oronBoxCoinsBalance": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
   "oronBoxCoinsCheckin": "签到",
   "oronBoxCoinsCheckedIn": "已签到",
   "oronBoxCoinsCheckingIn": "签到中",
   "oronBoxCoinsCheckinReward": "签到获得 {count} 枚硬币",
-  "@oronBoxCoinsCheckinReward": {"placeholders": {"count": {"type": "int"}}},
+  "@oronBoxCoinsCheckinReward": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "oronBoxCoinsDescription": "每日签到可获得 1～5 枚硬币，硬币可投给资源以支持创作者",
   "resourceFromCollection": "来自合集 {name}",
-  "@resourceFromCollection": {"placeholders": {"name": {"type": "String"}}},
+  "@resourceFromCollection": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resourceCoin": "投币",
   "resourceCoinDialogTitle": "投币资源",
   "resourceCoinDialogMessage": "确认要为这个资源投币吗？\n\n投币后无法撤回\n\n投币有助于资源获得更多展示机会\n\n创作者将获得投币数量 10% 的硬币收益",
   "resourceCoinOne": "投 1 颗",
   "resourceCoinTwo": "投 2 颗",
   "resourceCoinCount": "{count} 枚硬币",
-  "@resourceCoinCount": {"placeholders": {"count": {"type": "int"}}},
+  "@resourceCoinCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "resourceCoinSuccess": "投币成功",
   "resourceFeatured": "精选",
   "resourceCollection": "合集",
   "resourceCollectionItems": "共 {count} 个资源",
-  "@resourceCollectionItems": {"placeholders": {"count": {"type": "int"}}},
+  "@resourceCollectionItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "resourceCollectionCoins": "累计 {count} 枚硬币",
-  "@resourceCollectionCoins": {"placeholders": {"count": {"type": "int"}}},
+  "@resourceCollectionCoins": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "creatorCollections": "资源合集",
   "creatorCollectionTag": "合集",
   "creatorCollectionsDescription": "将同类型资源整理为一张合集卡片",
   "creatorNewCollection": "新建合集",
   "creatorMoveToCollection": "移入合集",
   "creatorMoveToCollectionConfirm": "确认将选中的 {count} 个资源移入这个合集吗",
-  "@creatorMoveToCollectionConfirm": {"placeholders": {"count": {"type": "int"}}},
+  "@creatorMoveToCollectionConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "creatorDissolveCollection": "拆散合集",
   "creatorResourceList": "资源列表",
   "creatorAdditionalLinks": "附加链接",
@@ -1276,13 +1671,97 @@
   "creatorAccept": "接受",
   "creatorCollaborationInvitations": "联合创作邀请",
   "creatorInvitedBy": "由 {name} 邀请",
-  "@creatorInvitedBy": {"placeholders": {"name": {"type": "String"}}},
+  "@creatorInvitedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "creatorCoinsLifetime": "累计获投硬币",
   "creatorCoinsRecent": "近 14 天获投",
   "creatorCoinRewards": "创作激励",
   "creatorCollectionOrderHint": "拖动调整合集内资源顺序",
   "creatorCollectionAddResource": "加入合集",
   "creatorCollectionResourceCount": "{count} 个资源",
-  "@creatorCollectionResourceCount": {"placeholders": {"count": {"type": "int"}}},
-  "creatorDecline": "拒绝"
+  "@creatorCollectionResourceCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "creatorDecline": "拒绝",
+  "communityImportSelected": "已选择 {count} 项",
+  "@communityImportSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "communityImportForce": "已存在的资源也重新导入",
+  "communityImportStart": "开始导入",
+  "communityImportResultCreated": "已创建草稿",
+  "communityImportResultFailed": "失败",
+  "communityImportUnsupported": "该类型暂不支持导入",
+  "communityImportDuplicate": "创作者中心已存在同名资源",
+  "communityImportNoArtifacts": "没有可导入的资源文件",
+  "creatorImportExternal": "导入外部平台已有资源",
+  "creatorNewResourceDescription": "从 OronBox 开始创建并维护一个资源",
+  "creatorNewCollectionDescription": "创建合集并集中整理同类资源",
+  "creatorImportExternalDescription": "实验性，从 米坛社区/ AstroBox-Repo 导入您的已有资源",
+  "creatorImportAlreadyImported": "已导入并绑定",
+  "creatorImportReviewNotice": "导入内容可能存在缺失或识别偏差\n请逐项检查并手动调整，确认无误后再提交",
+  "creatorImportLogTitle": "处理日志",
+  "communityImportMyResources": "我的资源",
+  "communityImportPickerEmpty": "暂无资源",
+  "creatorWizardChooseAction": "新建",
+  "creatorImportSelectTitle": "选择资源",
+  "creatorImportPreviewTitle": "导入预览",
+  "creatorImportProgressTitle": "正在导入",
+  "creatorImportResultTitle": "导入结果",
+  "creatorImportBindingsTitle": "关联信息",
+  "creatorImportBandbbsSections": "{count} 个分区",
+  "@creatorImportBandbbsSections": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "creatorImportGitHubHint": "连接 GitHub 后列出你在 AstroBox 的资源",
+  "creatorImportGitHubConnect": "连接 GitHub",
+  "creatorImportStageDetails": "获取详情",
+  "creatorImportStageDownloading": "下载文件",
+  "creatorImportStageMedia": "处理图片",
+  "creatorImportStageUploading": "创建草稿",
+  "creatorImportContinue": "继续导入",
+  "creatorImportWarnings": "{count} 条警告",
+  "@creatorImportWarnings": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "creatorDeleteExternalBandbbs": "同时删除米坛资源",
+  "creatorDeleteExternalAstrobox": "同时向 AstroBox-Repo 提交资源删除 PR",
+  "creatorDeleteExternalWarning": "外部平台的删除操作不可撤销",
+  "creatorDeletePrSubmitted": "删除 PR 已提交",
+  "githubCdnFallback": "GitHub 连接失败，正在切换至 {cdn}",
+  "@githubCdnFallback": {
+    "placeholders": {
+      "cdn": {}
+    }
+  },
+  "creatorImportSourceVersion": "{source} · {version}",
+  "@creatorImportSourceVersion": {
+    "placeholders": {
+      "source": {},
+      "version": {}
+    }
+  },
+  "creatorImportPaid": "付费",
+  "creatorImportBandbbsPaidEncrypted": "米坛付费资源文件已加密，无法导入"
 }

@@ -100,7 +100,7 @@ Future<void> initializeFileLogSink({List<String> arguments = const []}) async {
 }
 
 Future<void> _removeExpiredLogs(Directory directory) async {
-  final cutoff = DateTime.now().subtract(const Duration(days: 7));
+  final cutoff = DateTime.now().subtract(const Duration(days: 3));
   await for (final entity in directory.list()) {
     if (entity is! File || !entity.path.endsWith('.log')) continue;
     try {

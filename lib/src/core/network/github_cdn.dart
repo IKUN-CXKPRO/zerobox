@@ -11,7 +11,7 @@ extension GitHubCdnExtension on GitHubCdn {
 }
 
 Uri rewriteGithubCdnUri(Uri uri, GitHubCdn cdn) {
-  if (cdn == GitHubCdn.raw || !_isConvertibleGithubUri(uri)) return uri;
+  if (cdn == GitHubCdn.raw || !isConvertibleGithubUri(uri)) return uri;
 
   final origin = uri.toString();
   return switch (cdn) {
@@ -35,7 +35,7 @@ GitHubCdn? githubCdnByName(String name) {
   }
 }
 
-bool _isConvertibleGithubUri(Uri uri) {
+bool isConvertibleGithubUri(Uri uri) {
   if (uri.scheme != 'https') return false;
   if (uri.host == 'raw.githubusercontent.com' ||
       uri.host == 'gist.githubusercontent.com') {

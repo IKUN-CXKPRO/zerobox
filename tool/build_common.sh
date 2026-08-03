@@ -13,7 +13,7 @@ APP_NAME="oronbox"
 PACKAGE_NAME="org.zxor.oronbox"
 DESCRIPTION="A pretty fast wearable management tool for VelaOS and ZeppOS built with Flutter."
 MAINTAINER="OronBox Team"
-LICENSE="MIT"
+LICENSE="AGPL-3.0"
 HOMEPAGE="https://github.com/zxor-org/OronBox"
 
 RED='\033[0;31m'
@@ -112,16 +112,41 @@ compute_version() {
   fi
 
   if [[ "${dev_mode}" == "true" ]]; then
-    local suffix="git.${GIT_HASH:-$(get_git_hash)}"
+    local suffix="dev.${GIT_HASH:-$(get_git_hash)}"
     if is_git_dirty; then
-      suffix="dirty.${GIT_HASH:-$(get_git_hash)}"
+      suffix="${suffix}.dirty"
     fi
-    version="${version}.${suffix}"
+    version="${version}-${suffix}"
   else
     check_clean_tree
   fi
 
   echo "${version}"
+}
+
+# Debian forbids '-' in the upstream version; '~' sorts a prerelease before
+# the release it precedes (1.0.0~rc.1 < 1.0.0).
+deb_upstream_version() {
+  echo "${1//-/'~'}"
+}
+
+# RPM forbids '-' in Version; prereleases go into Release as 0.1.<pre>
+# (Fedora convention) so 1.0.0-0.1.rc.1 < 1.0.0-1.
+rpm_version_release() {
+  local base="${1%%-*}"
+  local pre=""
+  [[ "$1" == *-* ]] && pre="${1#*-}"
+  if [[ -n "${pre}" ]]; then
+    echo "${base} 0.1.${pre//-/.}"
+  else
+    echo "${base} 1"
+  fi
+}
+
+# pacman pkgver forbids '-'; alphabetic segments sort before numeric ones in
+# vercmp, so dotted prereleases order correctly (1.0.0.rc.1 < 1.0.0).
+arch_pkgver() {
+  echo "${1//-/.}"
 }
 
 init_build() {
@@ -158,6 +183,12 @@ flutter_release_defines() {
 }
 
 build_number_or_default() {
+  # Monotonic across commits so Android versionCode always increases; pubspec
+  # +N is only a fallback for sources exported without git history.
+  if git -C "${PROJECT_ROOT}" rev-parse --git-dir >/dev/null 2>&1; then
+    git -C "${PROJECT_ROOT}" rev-list --count HEAD
+    return
+  fi
   local build_number
   build_number="$(get_build_number)"
   if [[ -z "${build_number}" || "${build_number}" == "$(get_version)" ]]; then

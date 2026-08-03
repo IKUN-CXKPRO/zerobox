@@ -12,7 +12,6 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
-import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_resource_list.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
 import 'package:oronbox/src/features/settings/pages/legal_documents_page.dart';
@@ -26,6 +25,8 @@ class CreatorCenterPage extends ConsumerStatefulWidget {
 
 class _CreatorCenterPageState extends ConsumerState<CreatorCenterPage> {
   Set<String> _selectedResourceIds = const {};
+  var _authorizingBandBbs = false;
+  var _authorizingGitHub = false;
 
   Future<void> _refresh(CreatorWorkspaceController controller) async {
     await controller.refresh();
@@ -72,12 +73,16 @@ class _CreatorCenterPageState extends ConsumerState<CreatorCenterPage> {
           ? _CreatorGovernanceGate(code: state.governance!)
           : _CreatorTermsGate(
               loading: state.loading,
-              collectionLoading:
-                  state.operation == CreatorOperation.creatingCollection,
-              onCreate: () => _create(context, controller),
-              onCreateCollection: () => _createCollection(context, controller),
+              onCreate: () => _openCreateWizard(context, controller),
               selectionActive: _selectedResourceIds.isNotEmpty,
               onMoveSelection: () => _moveSelection(state, controller),
+              floatingAccess: _PublishingAccessCard(
+                grants: state.grants,
+                bandBbsBusy: _authorizingBandBbs,
+                githubBusy: _authorizingGitHub,
+                onAuthorizeBandBbs: () => _authorizeBandBbs(controller),
+                onConnectGitHub: () => _authorizeGitHub(controller),
+              ),
               child: PageContainer(
                 maxWidth: 1000,
                 padding: const EdgeInsets.symmetric(
@@ -102,10 +107,49 @@ class _CreatorCenterPageState extends ConsumerState<CreatorCenterPage> {
                       setState(() => _selectedResourceIds = value),
                   onDissolveCollection: (item) =>
                       _dissolveCollection(item, controller),
+                  bottomPadding: 220,
                 ),
               ),
             ),
     );
+  }
+
+  Future<void> _authorizeBandBbs(CreatorWorkspaceController controller) async {
+    if (_authorizingBandBbs) return;
+    setState(() => _authorizingBandBbs = true);
+    try {
+      await ref
+          .read(hostAccountsProvider.notifier)
+          .startBandBbsPublishingAuthorization();
+      await controller.refresh();
+    } catch (error) {
+      if (mounted) showCreatorFailure(context, error);
+    } finally {
+      if (mounted) setState(() => _authorizingBandBbs = false);
+    }
+  }
+
+  Future<void> _authorizeGitHub(CreatorWorkspaceController controller) async {
+    if (_authorizingGitHub) return;
+    setState(() => _authorizingGitHub = true);
+    try {
+      final started = await controller.startGitHubAuthorization();
+      final flowId = started['flow_id']?.toString() ?? '';
+      final uri = Uri.tryParse(started['authorization_url']?.toString() ?? '');
+      if (flowId.isEmpty || uri == null || !await launchUrl(uri)) {
+        throw StateError('githubAuthorizationFailed');
+      }
+      for (var attempt = 0; attempt < 60 && mounted; attempt++) {
+        await Future<void>.delayed(const Duration(seconds: 2));
+        if (await controller.pollGitHubAuthorization(flowId)) return;
+      }
+      throw StateError('githubAuthorizationTimedOut');
+    } catch (error) {
+      controller.finishAuthorization();
+      if (mounted) showCreatorFailure(context, error);
+    } finally {
+      if (mounted) setState(() => _authorizingGitHub = false);
+    }
   }
 
   Future<void> _moveSelection(
@@ -206,177 +250,103 @@ class _CreatorCenterPageState extends ConsumerState<CreatorCenterPage> {
     }
   }
 
-  Future<void> _create(
+  Future<void> _openCreateWizard(
     BuildContext context,
     CreatorWorkspaceController controller,
   ) async {
-    final l10n = AppLocalizations.of(context)!;
-    var kind = CreatorResourceKind.quickApp;
-    final name = TextEditingController();
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(l10n.creatorNewResource),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SegmentedButton<CreatorResourceKind>(
-                segments: [
-                  ButtonSegment(
-                    value: CreatorResourceKind.quickApp,
-                    label: Text(l10n.quickApp),
-                    icon: const Icon(Icons.apps_outlined),
-                  ),
-                  ButtonSegment(
-                    value: CreatorResourceKind.watchface,
-                    label: Text(l10n.watchface),
-                    icon: const Icon(Icons.watch_outlined),
-                  ),
-                ],
-                selected: {kind},
-                onSelectionChanged: (value) =>
-                    setState(() => kind = value.single),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: name,
-                autofocus: true,
-                maxLength: 120,
-                textInputAction: TextInputAction.done,
-                decoration: InputDecoration(
-                  labelText: l10n.creatorResourceName,
-                ),
-                onSubmitted: (value) {
-                  if (value.trim().isNotEmpty) Navigator.pop(context, true);
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (name.text.trim().isNotEmpty) Navigator.pop(context, true);
-              },
-              child: Text(l10n.creatorNewResource),
-            ),
-          ],
-        ),
-      ),
-    );
-    final resourceName = name.text.trim();
-    name.dispose();
-    if (accepted == true) {
-      const rulesSeenKey = 'creator.reviewRules.seen';
-      final rulesSeen =
-          SharedPrefsService.instance.getBool(rulesSeenKey) ?? false;
-      if (!rulesSeen) {
-        if (!context.mounted) return;
-        final rulesAccepted = await showDialog<bool>(
-          context: context,
-          builder: (context) => const _ReviewRulesDialog(),
-        );
-        if (rulesAccepted != true) return;
-        await SharedPrefsService.instance.setBool(rulesSeenKey, true);
-      }
-      try {
-        final slug = 'resource-${DateTime.now().microsecondsSinceEpoch}';
-        await controller.create(slug, resourceName, kind);
-      } catch (error) {
-        if (context.mounted) showCreatorFailure(context, error);
-      }
-    }
+    await context.push('/resources/creator/create');
+    if (context.mounted) await _refresh(controller);
   }
+}
 
-  Future<void> _createCollection(
-    BuildContext context,
-    CreatorWorkspaceController controller,
-  ) async {
+class _PublishingAccessCard extends StatelessWidget {
+  const _PublishingAccessCard({
+    required this.grants,
+    required this.bandBbsBusy,
+    required this.githubBusy,
+    required this.onAuthorizeBandBbs,
+    required this.onConnectGitHub,
+  });
+
+  final Map<String, Object?> grants;
+  final bool bandBbsBusy;
+  final bool githubBusy;
+  final VoidCallback onAuthorizeBandBbs;
+  final VoidCallback onConnectGitHub;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final name = TextEditingController();
-    final summary = TextEditingController();
-    var kind = CreatorResourceKind.quickApp;
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(l10n.creatorNewCollection),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SegmentedButton<CreatorResourceKind>(
-                segments: [
-                  ButtonSegment(
-                    value: CreatorResourceKind.quickApp,
-                    label: Text(l10n.quickApp),
+    final bandBbsReady = grants['bandbbs_publish'] == true;
+    final githubLogin = grants['github_login']?.toString() ?? '';
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 6,
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          ListTile(
+            leading: const CreatorBrandLogo(
+              asset: 'assets/images/brands/bandbbs.svg',
+              label: 'BandBBS',
+            ),
+            title: Text(
+              'BandBBS',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            subtitle: Text(
+              bandBbsReady
+                  ? l10n.creatorBandBbsWriteReady
+                  : l10n.creatorBandBbsWriteMissing,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            trailing: bandBbsReady
+                ? const Icon(Icons.check_circle_outline)
+                : FilledButton.tonal(
+                    onPressed: bandBbsBusy ? null : onAuthorizeBandBbs,
+                    child: bandBbsBusy
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(l10n.creatorAuthorize),
                   ),
-                  ButtonSegment(
-                    value: CreatorResourceKind.watchface,
-                    label: Text(l10n.watchface),
-                  ),
-                ],
-                selected: {kind},
-                onSelectionChanged: (value) =>
-                    setDialogState(() => kind = value.single),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: name,
-                autofocus: true,
-                maxLength: 120,
-                decoration: InputDecoration(
-                  labelText: l10n.creatorCollectionName,
-                ),
-              ),
-              TextField(
-                controller: summary,
-                minLines: 2,
-                maxLines: 5,
-                decoration: InputDecoration(
-                  labelText: l10n.creatorCollectionSummary,
-                ),
-              ),
-            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l10n.cancel),
+          ListTile(
+            leading: const CreatorBrandLogo(
+              asset: 'assets/images/brands/github.svg',
+              label: 'GitHub',
             ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.pop(context, name.text.trim().isNotEmpty),
-              child: Text(l10n.creatorNewCollection),
+            title: Text(
+              'GitHub',
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-          ],
-        ),
+            subtitle: Text(
+              githubLogin.isEmpty
+                  ? l10n.creatorGitHubOwnPublishMissing
+                  : l10n.creatorGitHubOwnPublishReady(githubLogin),
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            trailing: githubLogin.isNotEmpty
+                ? const Icon(Icons.check_circle_outline)
+                : FilledButton.tonal(
+                    onPressed: githubBusy ? null : onConnectGitHub,
+                    child: githubBusy
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(l10n.creatorConnect),
+                  ),
+          ),
+        ],
       ),
     );
-    final collectionName = name.text.trim();
-    final collectionSummary = summary.text.trim();
-    name.dispose();
-    summary.dispose();
-    if (accepted != true || !context.mounted) return;
-    try {
-      await controller.createCollection(
-        slug: 'collection-${DateTime.now().microsecondsSinceEpoch}',
-        name: collectionName,
-        summary: collectionSummary,
-        kind: kind,
-      );
-    } catch (error) {
-      if (context.mounted) showCreatorFailure(context, error);
-    }
   }
 }
 
 class _CreatorGovernanceGate extends StatelessWidget {
   const _CreatorGovernanceGate({required this.code});
-
   final String code;
 
   @override
@@ -489,20 +459,18 @@ class _CreatorTermsGate extends ConsumerStatefulWidget {
   const _CreatorTermsGate({
     required this.child,
     required this.loading,
-    required this.collectionLoading,
     required this.onCreate,
-    required this.onCreateCollection,
     required this.selectionActive,
     required this.onMoveSelection,
+    required this.floatingAccess,
   });
 
   final Widget child;
   final bool loading;
-  final bool collectionLoading;
   final VoidCallback onCreate;
-  final VoidCallback onCreateCollection;
   final bool selectionActive;
   final VoidCallback onMoveSelection;
+  final Widget floatingAccess;
 
   @override
   ConsumerState<_CreatorTermsGate> createState() => _CreatorTermsGateState();
@@ -549,6 +517,16 @@ class _CreatorTermsGateState extends ConsumerState<_CreatorTermsGate> {
         children: [
           widget.child,
           Positioned(
+            left: 16,
+            bottom: 16,
+            child: SizedBox(
+              width: (MediaQuery.sizeOf(context).width - 32)
+                  .clamp(0, 360)
+                  .toDouble(),
+              child: widget.floatingAccess,
+            ),
+          ),
+          Positioned(
             right: 16,
             bottom: 16,
             child: Column(
@@ -561,32 +539,13 @@ class _CreatorTermsGateState extends ConsumerState<_CreatorTermsGate> {
                     icon: const Icon(Icons.drive_file_move_outline),
                     label: Text(l10n.creatorMoveToCollection),
                   )
-                else ...[
+                else
                   FloatingActionButton.extended(
                     heroTag: 'creator-new-resource',
                     onPressed: widget.loading ? null : widget.onCreate,
                     icon: const Icon(Icons.add),
                     label: Text(l10n.creatorNewResource),
                   ),
-                  const SizedBox(height: 10),
-                  FloatingActionButton.extended(
-                    heroTag: 'creator-new-collection',
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHigh,
-                    foregroundColor: Theme.of(context).colorScheme.onSurface,
-                    onPressed: widget.loading
-                        ? null
-                        : widget.onCreateCollection,
-                    icon: widget.collectionLoading
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.add),
-                    label: Text(l10n.creatorNewCollection),
-                  ),
-                ],
               ],
             ),
           ),
@@ -717,104 +676,6 @@ class _CreatorTermsGateState extends ConsumerState<_CreatorTermsGate> {
           ],
         ),
       ],
-    );
-  }
-}
-
-class _ReviewRulesDialog extends ConsumerWidget {
-  const _ReviewRulesDialog();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final language = Localizations.localeOf(context).languageCode == 'en'
-        ? 'en'
-        : 'zh';
-    return Dialog.fullscreen(
-      child: Column(
-        children: [
-          Expanded(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 840),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: colors.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: FutureBuilder<String>(
-                        future: loadLegalDocument(
-                          ref,
-                          'review-rules',
-                          language,
-                        ),
-                        builder: (context, snapshot) {
-                          if (!snapshot.hasData) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          }
-                          return Markdown(
-                            data: snapshot.data!,
-                            selectable: true,
-                            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-                            styleSheet: MarkdownStyleSheet.fromTheme(theme)
-                                .copyWith(
-                                  p: theme.textTheme.bodyMedium?.copyWith(
-                                    height: 1.5,
-                                  ),
-                                  pPadding: const EdgeInsets.only(bottom: 12),
-                                  h1: theme.textTheme.headlineSmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                  h1Padding: const EdgeInsets.only(
-                                    top: 16,
-                                    bottom: 8,
-                                  ),
-                                  h2: theme.textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                  h2Padding: const EdgeInsets.only(
-                                    top: 12,
-                                    bottom: 6,
-                                  ),
-                                ),
-                            onTapLink: (_, href, _) {
-                              final uri = Uri.tryParse(href ?? '');
-                              if (uri != null && uri.hasScheme) {
-                                launchUrl(uri);
-                              }
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          CreatorBottomBar(
-            children: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(l10n.cancel),
-              ),
-              const Spacer(),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(l10n.creatorRulesAccept),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

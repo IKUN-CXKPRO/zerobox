@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:crypto/crypto.dart' as crypto;
 
 import 'package:flutter/foundation.dart';
@@ -443,6 +444,10 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
   Future<void> fetchWatchfaces();
   Future<void> openApp(AppInfo app, {String page = ''});
   Future<void> sendRaw(Uint8List payload);
+  Future<Uint8List> requestRaw(
+    Uint8List payload, {
+    Duration timeout = const Duration(seconds: 5),
+  });
   Future<void> sendInterconnectMessage(String packageName, Uint8List payload);
   Future<void> uninstallApp(AppInfo app);
   Future<void> uninstallWatchface(WatchfaceInfo watchface);
@@ -1770,17 +1775,21 @@ class LocalDeviceManager extends DeviceManager {
     }
     final now = DateTime.now();
     final offset = now.timeZoneOffset;
+    final adjusted = now.add(const Duration(hours: 4));
     await system.syncTime(
       TimeSyncProps(
-        date: SyncDate(year: now.year, month: now.month, day: now.day),
+        date: SyncDate(
+          year: adjusted.year,
+          month: adjusted.month,
+          day: adjusted.day,
+        ),
         time: SyncTime(
-          hour: now.hour,
-          minute: now.minute,
-          second: now.second,
-          millisecond: now.millisecond,
+          hour: adjusted.hour,
+          minute: adjusted.minute,
+          second: adjusted.second,
+          millisecond: adjusted.millisecond,
         ),
         timezone: SyncTimeZone(
-          // Xiaomi encodes timezone offsets in 15-minute units, not minutes.
           offset: offset.inMinutes ~/ 15,
           dstOffset: 0,
           id: now.timeZoneName,
@@ -2596,6 +2605,38 @@ class LocalDeviceManager extends DeviceManager {
       throw ProtocolException('Device not ready');
     }
     await entity.transport.send(payload);
+  }
+
+  @override
+  Future<Uint8List> requestRaw(
+    Uint8List payload, {
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    final entity = _currentEntity;
+    if (entity == null || state.protocolState != ProtocolState.ready) {
+      throw ProtocolException('Device not ready');
+    }
+    final buffer = BytesBuilder();
+    final completer = Completer<Uint8List>();
+    Timer? quiet;
+    final overall = Timer(timeout, () {
+      if (!completer.isCompleted) completer.complete(buffer.takeBytes());
+    });
+    final subscription = rawProtocolFrames.listen((frame) {
+      buffer.add(frame);
+      quiet?.cancel();
+      quiet = Timer(const Duration(milliseconds: 300), () {
+        if (!completer.isCompleted) completer.complete(buffer.takeBytes());
+      });
+    });
+    try {
+      await entity.transport.send(payload);
+      return await completer.future;
+    } finally {
+      quiet?.cancel();
+      overall.cancel();
+      await subscription.cancel();
+    }
   }
 
   @override

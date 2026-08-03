@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
+import 'package:oronbox/src/features/settings/pages/legal_documents_page.dart';
 
 const creatorStateOrder = [
   'draft',
@@ -340,6 +344,105 @@ class CreatorBottomBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: Row(children: children),
         ),
+      ),
+    );
+  }
+}
+
+/// First-time publishing rules; shown before the very first resource create.
+class CreatorReviewRulesDialog extends ConsumerWidget {
+  const CreatorReviewRulesDialog({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final language = Localizations.localeOf(context).languageCode == 'en'
+        ? 'en'
+        : 'zh';
+    return Dialog.fullscreen(
+      child: Column(
+        children: [
+          Expanded(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 840),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: FutureBuilder<String>(
+                        future: loadLegalDocument(
+                          ref,
+                          'review-rules',
+                          language,
+                        ),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          return Markdown(
+                            data: snapshot.data!,
+                            selectable: true,
+                            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                            styleSheet: MarkdownStyleSheet.fromTheme(theme)
+                                .copyWith(
+                                  p: theme.textTheme.bodyMedium?.copyWith(
+                                    height: 1.5,
+                                  ),
+                                  pPadding: const EdgeInsets.only(bottom: 12),
+                                  h1: theme.textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  h1Padding: const EdgeInsets.only(
+                                    top: 16,
+                                    bottom: 8,
+                                  ),
+                                  h2: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  h2Padding: const EdgeInsets.only(
+                                    top: 12,
+                                    bottom: 6,
+                                  ),
+                                ),
+                            onTapLink: (_, href, _) {
+                              final uri = Uri.tryParse(href ?? '');
+                              if (uri != null && uri.hasScheme) {
+                                launchUrl(uri);
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          CreatorBottomBar(
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.cancel),
+              ),
+              const Spacer(),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l10n.creatorRulesAccept),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

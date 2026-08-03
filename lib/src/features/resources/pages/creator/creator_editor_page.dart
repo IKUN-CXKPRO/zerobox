@@ -15,6 +15,7 @@ import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
 import 'package:oronbox/src/features/resources/application/oronbox_resource_attributes.dart';
+import 'package:oronbox/src/features/resources/domain/creator_external_binding.dart';
 import 'package:oronbox/src/features/resources/domain/creator_publication_plan.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
@@ -85,6 +86,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
   bool _publishBandBbs = false;
   bool _publishAstroBox = false;
   bool _astroBindABAccount = true;
+  String _astroPaidType = '';
   List<Map<String, Object?>>? _publicationCategories;
   CreatorPublicationPlan? _publicationPlan;
   bool _loadingPublicationPlan = false;
@@ -115,7 +117,19 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     super.initState();
     unawaited(_loadAttributes());
     _seedAssets();
-    for (final publication in widget.workspace.publications) {
+    // The saved publish intent on the draft revision is the editing baseline;
+    // submitted revisions only have dispatch rows, which double as the intent
+    // of the last submit.
+    CreatorRevision? draft;
+    for (final revision in widget.workspace.revisions) {
+      if (revision.state == 'draft') {
+        draft = revision;
+        break;
+      }
+    }
+    final draftPlan = draft?.publicationPlan;
+    final planned = draftPlan ?? widget.workspace.publications;
+    for (final publication in planned) {
       final config = publication['config'] is Map
           ? (publication['config'] as Map).cast<String, Object?>()
           : const <String, Object?>{};
@@ -126,9 +140,57 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
           _publishAstroBox = true;
           _astroItemId.text = config['item_id']?.toString() ?? '';
           _astroRepository.text = config['repo_name']?.toString() ?? '';
-          _astroTags.text = (config['tags'] as List? ?? const []).join(', ');
+          _astroTags.text = (config['tags'] as List? ?? const []).join(';');
           _astroAuthor.text = config['author']?.toString() ?? '';
+          _astroPaidType = config['paid_type']?.toString() ?? '';
           _astroBindABAccount = config['bind_ab_account'] != false;
+      }
+    }
+    // No publish intent recorded (fresh import, or an empty one): derive it
+    // from the imported external identities so their targets start enabled.
+    if ((draftPlan == null || draftPlan.isEmpty) &&
+        widget.workspace.publications.isEmpty) {
+      for (final binding in widget.workspace.bindings) {
+        switch (binding['provider']) {
+          case 'bandbbs':
+            _publishBandBbs = true;
+          case 'astrobox':
+            _publishAstroBox = true;
+        }
+      }
+    }
+    // Imported resources carry their existing external identity; prefill the
+    // publish form from it so a publication updates in place.
+    for (final binding in widget.workspace.bindings) {
+      if (binding['provider'] != 'astrobox') continue;
+      if (_astroItemId.text.isEmpty) {
+        _astroItemId.text = binding['external_id']?.toString() ?? '';
+      }
+      final meta = binding['meta'];
+      if (meta is Map) {
+        if (_astroRepository.text.isEmpty) {
+          _astroRepository.text = meta['repo_name']?.toString() ?? '';
+        }
+        if (_astroTags.text.isEmpty) {
+          final rawTags = meta['tags']?.toString() ?? '';
+          try {
+            _astroTags.text = (jsonDecode(rawTags) as List? ?? const []).join(
+              ';',
+            );
+          } catch (_) {
+            _astroTags.text = rawTags
+                .split(RegExp(r'[,;，；]'))
+                .map((value) => value.trim())
+                .where((value) => value.isNotEmpty)
+                .join(';');
+          }
+        }
+        if (_astroAuthor.text.isEmpty) {
+          _astroAuthor.text = meta['author']?.toString() ?? '';
+        }
+        if (_astroPaidType.isEmpty) {
+          _astroPaidType = meta['paid_type']?.toString() ?? '';
+        }
       }
     }
     if (_astroAuthor.text.isEmpty) {
@@ -227,6 +289,9 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
       _lastAutoItemId = candidate;
     }
     final repoCandidate = 'astrobox-resource-$candidate';
+    if (creatorExternalBinding(widget.workspace.bindings, 'astrobox') != null) {
+      return;
+    }
     if (_astroRepository.text.isEmpty ||
         _astroRepository.text == _lastAutoRepo) {
       _astroRepository.text = repoCandidate;
@@ -285,6 +350,21 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                     ],
                     if (workspace.review case final review?) ...[
                       CreatorReviewFeedback(review: review),
+                      const SizedBox(height: 16),
+                    ],
+                    if (workspace.bindings.any((binding) {
+                      final meta = binding['meta'];
+                      return meta is Map &&
+                          meta['imported']?.toString() == 'true';
+                    })) ...[
+                      Card(
+                        color: colors.secondaryContainer,
+                        margin: EdgeInsets.zero,
+                        child: ListTile(
+                          leading: const Icon(Icons.fact_check_outlined),
+                          title: Text(l10n.creatorImportReviewNotice),
+                        ),
+                      ),
                       const SizedBox(height: 16),
                     ],
                     if (workspace.publications.isNotEmpty) ...[
@@ -577,7 +657,9 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
         ),
         CreatorBottomBar(
           children: [
-            if (widget.workspace.revisions.isNotEmpty &&
+            if (widget.workspace.revisions.any(
+                  (revision) => revision.state != 'draft',
+                ) &&
                 !widget.workspace.resource.isFrozen &&
                 (widget.workspace.resource.moderationState == 'visible' ||
                     widget.workspace.resource.canRestore))
@@ -595,9 +677,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                 ),
               ),
             TextButton.icon(
-              onPressed: widget.state.loading || _name.text.trim().isEmpty
-                  ? null
-                  : _saveDraft,
+              onPressed: widget.state.loading ? null : _saveDraft,
               icon: const Icon(Icons.save_outlined),
               label: Text(l10n.creatorSaveDraft),
             ),
@@ -955,39 +1035,44 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     if (mounted) setState(() => _publicationPlan = plan);
   }
 
+  List<Map<String, Object?>> _publishPlans() => [
+    if (_publishBandBbs)
+      {
+        'target': 'bandbbs',
+        'config': <String, Object?>{
+          'agreement': true,
+          'targets': [
+            for (final target
+                in _publicationPlan?.bandBbsTargets ??
+                    const <CreatorBandBbsTarget>[])
+              target.toJson(),
+          ],
+        },
+      },
+    if (_publishAstroBox)
+      {
+        'target': 'astrobox',
+        'config': <String, Object?>{
+          'item_id': _astroItemId.text.trim(),
+          'repo_name': _astroRepository.text.trim(),
+          'tags': _astroTags.text
+              .split(RegExp(r'[,;，；]'))
+              .map((value) => value.trim())
+              .where((value) => value.isNotEmpty)
+              .toList(),
+          'author': _astroAuthor.text.trim(),
+          if (_astroPaidType.isNotEmpty) 'paid_type': _astroPaidType,
+          'bind_ab_account': _astroBindABAccount,
+          'agreement': true,
+        },
+      },
+  ];
+
   Future<void> _publish() async {
     final l10n = AppLocalizations.of(context)!;
     final plans = <Map<String, Object?>>[
       {'target': 'oronbox', 'config': <String, Object?>{}},
-      if (_publishBandBbs)
-        {
-          'target': 'bandbbs',
-          'config': <String, Object?>{
-            'agreement': true,
-            'targets': [
-              for (final target
-                  in _publicationPlan?.bandBbsTargets ??
-                      const <CreatorBandBbsTarget>[])
-                target.toJson(),
-            ],
-          },
-        },
-      if (_publishAstroBox)
-        {
-          'target': 'astrobox',
-          'config': <String, Object?>{
-            'item_id': _astroItemId.text.trim(),
-            'repo_name': _astroRepository.text.trim(),
-            'tags': _astroTags.text
-                .split(RegExp(r'[,;，；]'))
-                .map((value) => value.trim())
-                .where((value) => value.isNotEmpty)
-                .toList(),
-            'author': _astroAuthor.text.trim(),
-            'bind_ab_account': _astroBindABAccount,
-            'agreement': true,
-          },
-        },
+      ..._publishPlans(),
     ];
     final summary = <String>[
       l10n.creatorConfirmOronBox,
@@ -1039,7 +1124,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
   }
 
   Future<void> _saveDraft() => _run(() async {
-    final bundle = await _prepareBundle(const []);
+    final bundle = await _prepareBundle(_publishPlans());
     if (bundle == null) return;
     try {
       await widget.controller.saveDraft(bundle: bundle);
@@ -1566,6 +1651,18 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     final grants = widget.state.grants;
     final githubLogin = grants['github_login']?.toString() ?? '';
     final bandAuthorized = grants['bandbbs_publish'] == true;
+    final boundToBandBbs = widget.workspace.bindings.any(
+      (binding) => binding['provider'] == 'bandbbs',
+    );
+    final bandBinding = creatorExternalBinding(
+      widget.workspace.bindings,
+      'bandbbs',
+    );
+    final bandEntries = parseCreatorBandBbsBinding(bandBinding?['external_id']);
+    final astroBinding = creatorExternalBinding(
+      widget.workspace.bindings,
+      'astrobox',
+    );
     return CreatorEditorCard(
       padding: EdgeInsets.zero,
       child: Column(
@@ -1592,22 +1689,62 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
               label: 'BandBBS',
             ),
             title: const Text('BandBBS'),
-            subtitle: Text(l10n.creatorBandBbsDirectPublish),
+            subtitle: Text(
+              boundToBandBbs
+                  ? l10n.creatorBandBbsBoundUpdate
+                  : l10n.creatorBandBbsDirectPublish,
+            ),
           ),
-          if (_publishBandBbs) ...[
+          if (!bandAuthorized)
             ListTile(
-              title: Text(
-                bandAuthorized
-                    ? l10n.creatorBandBbsAuthorized
-                    : l10n.creatorBandBbsAuthorizationRequired,
-              ),
+              title: Text(l10n.creatorBandBbsAuthorizationRequired),
               trailing: FilledButton.tonal(
-                onPressed: bandAuthorized ? null : _authorizeBandBbs,
-                child: Text(
-                  bandAuthorized ? l10n.creatorAuthorized : l10n.creatorConnect,
-                ),
+                onPressed: _authorizeBandBbs,
+                child: Text(l10n.creatorAuthorize),
               ),
             ),
+          if (_publishBandBbs) ...[
+            if (bandEntries.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      l10n.creatorLinkedSections(bandEntries.length),
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    for (final entry in bandEntries)
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.link, size: 18),
+                        title: Text(
+                          _publicationPlan?.bandBbsTargets
+                                  .where(
+                                    (target) =>
+                                        target.categoryId.toString() ==
+                                        entry.categoryId,
+                                  )
+                                  .firstOrNull
+                                  ?.categoryName ??
+                              'BandBBS',
+                        ),
+                        subtitle: Text(
+                          l10n.creatorBandBbsBindingIds(
+                            entry.categoryId,
+                            entry.resourceId,
+                          ),
+                        ),
+                      ),
+                    const Divider(),
+                    Text(
+                      l10n.creatorThisCommit,
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                  ],
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
@@ -1669,8 +1806,11 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
             title: const Text('AstroBox-Repo'),
             subtitle: ValueListenableBuilder<TextEditingValue>(
               valueListenable: _astroRepository,
-              builder: (context, value, _) =>
-                  Text(l10n.creatorAstroBoxPrPublish(value.text.trim())),
+              builder: (context, value, _) => Text(
+                astroBinding == null
+                    ? l10n.creatorAstroBoxPrPublish(value.text.trim())
+                    : l10n.creatorAstroBoxBoundSync,
+              ),
             ),
           ),
           if (_publishAstroBox) ...[
@@ -1696,6 +1836,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                     controller: _astroTags,
                     decoration: InputDecoration(
                       labelText: l10n.creatorAstroBoxTags,
+                      hintText: l10n.creatorAstroTagsHint,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1802,22 +1943,33 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
   }
 
   Future<void> _authorizeBandBbs() async {
-    await _run(
-      widget.ref
+    await _run(() async {
+      await widget.ref
           .read(hostAccountsProvider.notifier)
-          .startBandBbsPublishingAuthorization,
-    );
+          .startBandBbsPublishingAuthorization();
+      await widget.controller.refresh();
+    });
   }
 
   Future<void> _authorizeGitHub() async {
     await _run(() async {
-      final started = await widget.controller.startGitHubAuthorization();
-      final flowId = started['flow_id']?.toString() ?? '';
-      final uri = Uri.tryParse(started['authorization_url']?.toString() ?? '');
-      if (flowId.isEmpty || uri == null || !await launchUrl(uri)) return;
-      for (var attempt = 0; attempt < 60 && mounted; attempt++) {
-        await Future<void>.delayed(const Duration(seconds: 2));
-        if (await widget.controller.pollGitHubAuthorization(flowId)) break;
+      try {
+        final started = await widget.controller.startGitHubAuthorization();
+        final flowId = started['flow_id']?.toString() ?? '';
+        final uri = Uri.tryParse(
+          started['authorization_url']?.toString() ?? '',
+        );
+        if (flowId.isEmpty || uri == null || !await launchUrl(uri)) {
+          throw StateError('githubAuthorizationFailed');
+        }
+        for (var attempt = 0; attempt < 60 && mounted; attempt++) {
+          await Future<void>.delayed(const Duration(seconds: 2));
+          if (await widget.controller.pollGitHubAuthorization(flowId)) return;
+        }
+        throw StateError('githubAuthorizationTimedOut');
+      } catch (_) {
+        widget.controller.finishAuthorization();
+        rethrow;
       }
     });
   }
@@ -1852,29 +2004,169 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
 
   Future<void> _confirmDelete() async {
     final l10n = AppLocalizations.of(context)!;
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.creatorDeleteResource),
-        content: Text(
-          widget.workspace.revisions.isEmpty
-              ? l10n.creatorDeleteConfirm
-              : l10n.creatorDeletePublishedConfirm,
+    final workspace = widget.workspace;
+    final published = workspace.revisions.any(
+      (revision) => revision.state != 'draft',
+    );
+    final providers = published
+        ? workspace.bindings
+              .map((binding) => binding['provider']?.toString() ?? '')
+              .where((provider) => provider.isNotEmpty)
+              .toSet()
+        : const <String>{};
+    if (providers.isEmpty) {
+      final accepted = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.creatorDeleteResource),
+          content: Text(
+            published
+                ? l10n.creatorDeletePublishedConfirm
+                : l10n.creatorDeleteConfirm,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.creatorDeleteResource),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.creatorDeleteResource),
-          ),
-        ],
+      );
+      if (accepted == true) {
+        await _deleteResource();
+      }
+      return;
+    }
+    final selected = <String>{};
+    var countdown = 0;
+    Timer? timer;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          void toggle(String provider, bool checked) {
+            setDialogState(() {
+              if (checked) {
+                if (selected.isEmpty) {
+                  // Hard-block the confirm button for 3 seconds once any
+                  // external deletion gets selected.
+                  countdown = 3;
+                  timer?.cancel();
+                  timer = Timer.periodic(const Duration(seconds: 1), (tick) {
+                    if (countdown <= 1) {
+                      tick.cancel();
+                      setDialogState(() => countdown = 0);
+                    } else {
+                      setDialogState(() => countdown -= 1);
+                    }
+                  });
+                }
+                selected.add(provider);
+              } else {
+                selected.remove(provider);
+                if (selected.isEmpty) {
+                  timer?.cancel();
+                  countdown = 0;
+                }
+              }
+            });
+          }
+
+          return AlertDialog(
+            title: Text(l10n.creatorDeleteResource),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.creatorDeletePublishedConfirm),
+                const SizedBox(height: 8),
+                if (providers.contains('bandbbs'))
+                  CheckboxListTile(
+                    value: selected.contains('bandbbs'),
+                    onChanged: (value) => toggle('bandbbs', value == true),
+                    title: Text(l10n.creatorDeleteExternalBandbbs),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                if (providers.contains('astrobox'))
+                  CheckboxListTile(
+                    value: selected.contains('astrobox'),
+                    onChanged: (value) => toggle('astrobox', value == true),
+                    title: Text(l10n.creatorDeleteExternalAstrobox),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                if (selected.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      l10n.creatorDeleteExternalWarning,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: countdown == 0
+                    ? () => Navigator.pop(context, true)
+                    : null,
+                child: Text(
+                  countdown > 0
+                      ? '${l10n.creatorDeleteResource} ($countdown)'
+                      : l10n.creatorDeleteResource,
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
-    if (accepted == true) {
-      await _run(widget.controller.deleteResource);
+    timer?.cancel();
+    if (confirmed != true) return;
+    if (!mounted) return;
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final rootContext = navigator.context;
+    final result = await _deleteResource(deleteExternal: selected.toList());
+    if (result == null) return;
+    final pr = result['astrobox_removal_pr']?.toString() ?? '';
+    if (pr.isNotEmpty && rootContext.mounted) {
+      await showDialog<void>(
+        context: rootContext,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.creatorDeletePrSubmitted),
+          content: SelectableText(pr),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.creatorConfirm),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Future<Map<String, Object?>?> _deleteResource({
+    List<String> deleteExternal = const [],
+  }) async {
+    try {
+      return await widget.controller.deleteResource(
+        deleteExternal: deleteExternal,
+      );
+    } catch (error) {
+      if (mounted) showCreatorFailure(context, error);
+      return null;
     }
   }
 

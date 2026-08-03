@@ -22,6 +22,7 @@ class HostDeviceManager extends DeviceManager {
   bool _disposed = false;
   var _connectGeneration = 0;
   String? _pendingConnectionAddr;
+  final _zmlHandlers = <int, ZeppOsZmlHookHandler>{};
 
   @override
   DeviceManagerState build() {
@@ -47,6 +48,10 @@ class HostDeviceManager extends DeviceManager {
       }
       return;
     }
+    if (event.event == 'device.zeppos.zml.hook') {
+      unawaited(_dispatchZmlHook(event.data));
+      return;
+    }
     if (event.event == 'host.disconnected') {
       if (!_disposed) {
         state = state.copyWith(
@@ -59,11 +64,37 @@ class HostDeviceManager extends DeviceManager {
     }
     if (event.event == 'host.connected') {
       unawaited(_refreshSnapshot());
+      for (final appId in _zmlHandlers.keys.toList(growable: false)) {
+        unawaited(_attachZmlOnHost(appId));
+      }
       return;
     }
     if (event.event != 'device.state') return;
     final raw = event.data['state'];
     if (raw is Map) _applyState(raw.cast<String, Object?>());
+  }
+
+  Future<void> _dispatchZmlHook(Map<String, Object?> data) async {
+    final appId = (data['appId'] as num?)?.toInt();
+    final requestId = data['requestId']?.toString() ?? '';
+    final handler = appId == null ? null : _zmlHandlers[appId];
+    if (handler == null || requestId.isEmpty) return;
+    Object? result;
+    try {
+      result = await handler(data['hook']?.toString() ?? '', data['payload']);
+    } catch (error) {
+      _log.warning('ZML hook handler failed for appId $appId', error);
+    }
+    try {
+      await _execute(
+        OronBoxCommand(
+          method: 'device.zeppos.zml.respond',
+          params: {'requestId': requestId, 'result': result},
+        ),
+      );
+    } catch (error) {
+      _log.warning('ZML hook response lost for appId $appId', error);
+    }
   }
 
   Future<CommandResult> _execute(OronBoxCommand command) async {
@@ -444,6 +475,28 @@ class HostDeviceManager extends DeviceManager {
   }
 
   @override
+  Future<Uint8List> requestRaw(
+    Uint8List payload, {
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    final value = await _execute(
+      OronBoxCommand(
+        method: 'device.raw.request',
+        params: {
+          'payload': payload.toList(growable: false),
+          'timeoutMs': timeout.inMilliseconds,
+        },
+      ),
+    );
+    return Uint8List.fromList(
+      (value as List)
+          .whereType<num>()
+          .map((byte) => byte.toInt() & 0xff)
+          .toList(growable: false),
+    );
+  }
+
+  @override
   Future<Uint8List> requestZeppOsScreenshot() async {
     final result = await _execute(
       const OronBoxCommand(method: 'device.zeppos.screenshot'),
@@ -752,7 +805,20 @@ class HostDeviceManager extends DeviceManager {
 
   @override
   Future<void> attachZeppOsZml(int appId, ZeppOsZmlHookHandler hookHandler) {
-    throw UnsupportedError('ZML plugin hooks require the local device manager');
+    _zmlHandlers[appId] = hookHandler;
+    return _attachZmlOnHost(appId).onError((error, stackTrace) {
+      _zmlHandlers.remove(appId);
+      throw error!;
+    });
+  }
+
+  Future<void> _attachZmlOnHost(int appId) async {
+    await _execute(
+      OronBoxCommand(
+        method: 'device.zeppos.zml.attach',
+        params: {'appId': appId},
+      ),
+    );
   }
 
   @override
@@ -760,8 +826,14 @@ class HostDeviceManager extends DeviceManager {
     int appId,
     String method,
     List<Object?> arguments,
-  ) {
-    throw UnsupportedError('ZML plugin hooks require the local device manager');
+  ) async {
+    final result = await _execute(
+      OronBoxCommand(
+        method: 'device.zeppos.zml.invoke',
+        params: {'appId': appId, 'method': method, 'arguments': arguments},
+      ),
+    );
+    return result.value;
   }
 
   @override

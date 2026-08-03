@@ -398,9 +398,10 @@ class _Result extends ConsumerWidget {
               title: Text(file.fileName),
               subtitle: Text(file.version),
               trailing: FilledButton.icon(
-                onPressed: resource.canDownload
+                onPressed:
+                    resource.canDownload && file.supportedDevices.isNotEmpty
                     ? () {
-                        final target = file.supportedDevices.firstOrNull ?? '';
+                        final target = file.supportedDevices.first;
                         ref
                             .read(downloadQueueProvider.notifier)
                             .enqueue(
@@ -411,7 +412,7 @@ class _Result extends ConsumerWidget {
                       }
                     : null,
                 icon: const Icon(Icons.download),
-                label: const Icon(Icons.download),
+                label: Text(AppLocalizations.of(context)!.download),
               ),
             ),
           ),

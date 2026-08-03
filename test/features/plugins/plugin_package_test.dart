@@ -7,10 +7,9 @@ import 'package:oronbox/src/features/plugins/domain/plugin_package.dart';
 
 void main() {
   group('PluginPackageReader', () {
-    test('reads native JavaScript ZBP', () {
+    test('reads native JavaScript plugins', () {
       final package = const PluginPackageReader().read(
         _package(runtime: 'js', entry: 'main.js'),
-        fileName: 'example.zbp',
       );
 
       expect(package.manifest.id, 'org.example.plugin');
@@ -21,11 +20,9 @@ void main() {
     test('reads native hybrid and WASM manifests', () {
       final hybrid = const PluginPackageReader().read(
         _package(runtime: 'hybrid', entry: 'main.mjs'),
-        fileName: 'hybrid.zbp',
       );
       final wasm = const PluginPackageReader().read(
         _package(runtime: 'wasm', entry: 'main.wasm'),
-        fileName: 'wasm.zbp',
       );
 
       expect(hybrid.manifest.runtime, PluginRuntimeType.hybrid);
@@ -35,38 +32,16 @@ void main() {
     test('routes manifests without runtime to Legacy', () {
       final package = const PluginPackageReader().read(
         _package(entry: 'main.js'),
-        fileName: 'legacy.abp',
       );
 
       expect(package.manifest.runtime, PluginRuntimeType.legacy);
       expect(package.manifest.id, startsWith('example-plugin-'));
     });
 
-    test('rejects Legacy manifests in ZBP packages', () {
-      expect(
-        () => const PluginPackageReader().read(
-          _package(entry: 'main.js'),
-          fileName: 'legacy.zbp',
-        ),
-        throwsFormatException,
-      );
-    });
-
-    test('rejects native manifests in ABP packages', () {
-      expect(
-        () => const PluginPackageReader().read(
-          _package(runtime: 'js', entry: 'main.js'),
-          fileName: 'native.abp',
-        ),
-        throwsFormatException,
-      );
-    });
-
     test('validates runtime entry type', () {
       expect(
         () => const PluginPackageReader().read(
           _package(runtime: 'wasm', entry: 'main.js'),
-          fileName: 'invalid.zbp',
         ),
         throwsFormatException,
       );
@@ -80,7 +55,6 @@ void main() {
             entry: 'main.js',
             permissions: const ['filesystem'],
           ),
-          fileName: 'invalid.zbp',
         ),
         throwsFormatException,
       );
@@ -94,7 +68,6 @@ void main() {
             entry: 'main.wasm',
             entryBytes: const [1, 2, 3, 4],
           ),
-          fileName: 'invalid.zbp',
         ),
         throwsFormatException,
       );
@@ -104,7 +77,6 @@ void main() {
       expect(
         () => const PluginPackageReader().read(
           _package(entry: 'main.js', archiveEntryName: '../main.js'),
-          fileName: 'unsafe.zbp',
         ),
         throwsFormatException,
       );
@@ -114,17 +86,6 @@ void main() {
       expect(
         () => const PluginPackageReader().read(
           _package(entry: 'main.js', includeEntry: false),
-          fileName: 'missing.zbp',
-        ),
-        throwsFormatException,
-      );
-    });
-
-    test('rejects duplicate manifest entries', () {
-      expect(
-        () => const PluginPackageReader().read(
-          _package(entry: 'main.js', duplicateManifest: true),
-          fileName: 'duplicate.zbp',
         ),
         throwsFormatException,
       );
@@ -139,7 +100,6 @@ Uint8List _package({
   List<int>? entryBytes,
   String? archiveEntryName,
   bool includeEntry = true,
-  bool duplicateManifest = false,
 }) {
   final manifest = <String, Object?>{
     'id': 'org.example.plugin',
@@ -160,9 +120,6 @@ Uint8List _package({
   final manifestBytes = utf8.encode(jsonEncode(manifest));
   final archive = Archive()
     ..addFile(ArchiveFile('manifest.json', 0, manifestBytes));
-  if (duplicateManifest) {
-    archive.addFile(ArchiveFile('manifest.json', 0, manifestBytes));
-  }
   if (includeEntry) {
     archive.addFile(ArchiveFile(archiveEntryName ?? entry, 0, content));
   }

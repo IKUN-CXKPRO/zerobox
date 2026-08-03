@@ -12,6 +12,7 @@ class CommunityResourceQuery {
     this.type,
     this.hidePaid = false,
     this.hideForcePaid = false,
+    this.featured = false,
     this.selectedDevices = const {},
     this.selectedAttributes = const {},
   });
@@ -23,6 +24,7 @@ class CommunityResourceQuery {
   final CommunityResourceType? type;
   final bool hidePaid;
   final bool hideForcePaid;
+  final bool featured;
   final Set<String> selectedDevices;
   final Set<String> selectedAttributes;
 }

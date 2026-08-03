@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/build_common.sh"
 
 FORMAT="all"
+SKIP_BUILD="false"
 case "$(uname -m)" in
   aarch64|arm64) ABI="aarch64" ;;
   *) ABI="x86_64" ;;
@@ -22,6 +23,8 @@ Options:
                   Cross-building aarch64 from x86_64 requires an arm64 sysroot
                   in ORONBOX_LINUX_ARM64_SYSROOT, and only produces tar.gz,
                   deb, rpm and arch packages
+  --skip-build    Reuse the existing release bundle instead of running
+                  "flutter build linux" (useful when repackaging)
   --dev           Allow a dirty worktree and append git metadata to the package version
   -h, --help      Show this help
 EOF
@@ -43,6 +46,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --abi=*)
       ABI="${1#*=}"
+      shift
+      ;;
+    --skip-build)
+      SKIP_BUILD="true"
       shift
       ;;
     -h|--help)
@@ -110,18 +117,22 @@ fi
 init_build "${COMMON_ARGS[@]}"
 log_info "Building Linux release packages for version ${VERSION} (format=${FORMAT}, abi=${ABI})"
 
-require_flutter
 require_command tar
 ensure_release_dir
 
-mapfile -t DART_DEFINES < <(flutter_release_defines)
+if [[ "${SKIP_BUILD}" == "true" ]]; then
+  log_info "Skipping Flutter build, reusing the existing release bundle"
+else
+  require_flutter
+  mapfile -t DART_DEFINES < <(flutter_release_defines)
 
-run_cmd flutter build linux \
-  --release \
-  --obfuscate \
-  --split-debug-info=symbols/linux \
-  "${TARGET_ARGS[@]}" \
-  "${DART_DEFINES[@]}"
+  run_cmd flutter build linux \
+    --release \
+    --obfuscate \
+    --split-debug-info=symbols/linux \
+    "${TARGET_ARGS[@]}" \
+    "${DART_DEFINES[@]}"
+fi
 
 BUNDLE_DIR="${PROJECT_ROOT}/build/linux/${BUNDLE_ARCH_DIR}/release/bundle"
 SYMBOLS_DIR="${PROJECT_ROOT}/symbols/linux"
@@ -186,9 +197,11 @@ build_deb() {
   copy_system_icons_to "${deb_root}"
   mkdir -p "${deb_root}/DEBIAN"
 
+  local deb_version
+  deb_version="$(deb_upstream_version "${VERSION}")-1"
   cat > "${deb_root}/DEBIAN/control" <<EOF
 Package: ${APP_NAME}
-Version: ${VERSION}
+Version: ${deb_version}
 Section: utils
 Priority: optional
 Architecture: ${DEB_ARCH}
@@ -197,7 +210,7 @@ Maintainer: ${MAINTAINER}
 Description: ${DESCRIPTION}
 EOF
 
-  local deb_out="${RELEASE_DIR}/${APP_NAME}_${VERSION}_${DEB_ARCH}.deb"
+  local deb_out="${RELEASE_DIR}/${APP_NAME}_${deb_version}_${DEB_ARCH}.deb"
   rm -f "${deb_out}"
   run_cmd dpkg-deb --root-owner-group --build "${deb_root}" "${deb_out}"
   log_info "Produced ${deb_out}"
@@ -210,8 +223,8 @@ build_rpm() {
   fi
 
   local rpm_top="${STAGING_ROOT}/rpm"
-  local rpm_version="${VERSION//-/.}"
-  local release_num="1"
+  local rpm_version rpm_release
+  read -r rpm_version rpm_release <<< "$(rpm_version_release "${VERSION}")"
   rm -rf "${rpm_top}"
   mkdir -p "${rpm_top}"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
   mkdir -p "${rpm_top}/rpmdb"
@@ -220,7 +233,7 @@ build_rpm() {
   cat > "${rpm_top}/SPECS/${APP_NAME}.spec" <<EOF
 Name:           ${APP_NAME}
 Version:        ${rpm_version}
-Release:        ${release_num}%{?dist}
+Release:        ${rpm_release}%{?dist}
 Summary:        ${DESCRIPTION}
 License:        ${LICENSE}
 URL:            ${HOMEPAGE}
@@ -244,7 +257,7 @@ ${INSTALL_PREFIX}
 /usr/share/icons/hicolor
 
 %changelog
-* $(LC_ALL=C date +"%a %b %d %Y") ${MAINTAINER} - ${rpm_version}-${release_num}
+* $(LC_ALL=C date +"%a %b %d %Y") ${MAINTAINER} - ${rpm_version}-${rpm_release}
 - Package release
 EOF
 
@@ -258,7 +271,7 @@ EOF
     log_error "RPM build failed: no .rpm file produced"
     exit 1
   fi
-  copy_artifact "${rpm_src}" "${RELEASE_DIR}/${APP_NAME}-${VERSION}-${release_num}.${RPM_ARCH}.rpm"
+  copy_artifact "${rpm_src}" "${RELEASE_DIR}/${APP_NAME}-${rpm_version}-${rpm_release}.${RPM_ARCH}.rpm"
 }
 
 build_arch() {
@@ -275,7 +288,7 @@ build_arch() {
   cat > "${arch_root}/PKGBUILD" <<EOF
 # Maintainer: ${MAINTAINER}
 pkgname=${APP_NAME}
-pkgver=${VERSION}
+pkgver=$(arch_pkgver "${VERSION}")
 pkgrel=1
 pkgdesc="${DESCRIPTION}"
 arch=('${RPM_ARCH}')
@@ -306,7 +319,7 @@ EOF
     log_error "Arch package build failed: no .pkg.tar.zst file produced"
     exit 1
   fi
-  copy_artifact "${arch_src}" "${RELEASE_DIR}/${APP_NAME}-${VERSION}-1-${RPM_ARCH}.pkg.tar.zst"
+  copy_artifact "${arch_src}" "${RELEASE_DIR}/${APP_NAME}-$(arch_pkgver "${VERSION}")-1-${RPM_ARCH}.pkg.tar.zst"
 }
 
 build_appimage() {
@@ -381,7 +394,13 @@ build_flatpak() {
     return 0
   fi
 
-  local manifest="${PROJECT_ROOT}/tool/flatpak/${PACKAGE_NAME}.yml"
+  # The checked-in manifest points at the x64 bundle; render an
+  # arch-correct copy with absolute source paths into the staging tree
+  local manifest="${STAGING_ROOT}/flatpak/${PACKAGE_NAME}.yml"
+  mkdir -p "$(dirname "${manifest}")"
+  sed -e "s|path: ../../|path: ${PROJECT_ROOT}/|g" \
+      -e "s|build/linux/x64/release/bundle|build/linux/${BUNDLE_ARCH_DIR}/release/bundle|" \
+    "${PROJECT_ROOT}/tool/flatpak/${PACKAGE_NAME}.yml" > "${manifest}"
   local runtime_version
   runtime_version="$(awk -F'"' '/^runtime-version:/ { print $2; exit }' "${manifest}")"
   if ! flatpak info "org.gnome.Sdk//${runtime_version}" >/dev/null 2>&1; then

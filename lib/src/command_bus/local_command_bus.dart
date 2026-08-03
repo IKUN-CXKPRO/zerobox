@@ -25,6 +25,7 @@ import 'package:oronbox/src/features/resources/services/resource_install_service
 import 'package:oronbox/src/features/debug/application/debug_environment.dart';
 import 'package:oronbox/src/features/plugins/application/plugin_community_catalog.dart';
 import 'package:oronbox/src/features/plugins/application/plugin_manager.dart';
+import 'package:oronbox/src/features/plugins/application/plugin_repositories.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
 import 'package:oronbox/src/features/resources/application/creator/oronbox_creator_api.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
@@ -88,6 +89,10 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       readDeviceState: () => _state,
       emitEvent: _events.add,
     );
+    _pluginRepositories = PluginRepositories(
+      manager: _pluginManager,
+      container: container,
+    );
     unawaited(_pluginManager.initialize());
   }
 
@@ -104,6 +109,10 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
   bool _activeCommandCancelled = false;
   Future<void> _commandTail = Future<void>.value();
   late final PluginManager _pluginManager;
+  late final PluginRepositories _pluginRepositories;
+  final _zmlAttachments = <int>{};
+  final _zmlHookResponses = <String, Completer<Object?>>{};
+  var _zmlHookCounter = 0;
 
   DeviceManager get _manager => container.read(deviceManagerProvider.notifier);
   DeviceManagerState get _state => container.read(deviceManagerProvider);
@@ -351,6 +360,10 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     ),
     'device.interconnect.send' => _sendInterconnectMessage(command.params),
     'device.raw.send' => _sendRaw(command.params),
+    'device.raw.request' => _requestRaw(command.params),
+    'device.zeppos.zml.attach' => _zmlAttach(command.params),
+    'device.zeppos.zml.invoke' => _zmlInvoke(command.params),
+    'device.zeppos.zml.respond' => _zmlRespond(command.params),
     'device.remove' => _removeDevice(command.params['device']?.toString()),
     'device.import' => _importDevice(command.params),
     'app.list' => _listApps(),
@@ -401,13 +414,15 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       data: {'message': command.params['message']},
     ),
     'account.grants' => _creatorRequest('GET', '/api/me/grants'),
-    'account.session' =>
-      container
-          .read(bandBbsAuthProvider.notifier)
-          .sessionIfNeeded()
-          .then((session) => session?.toJson()),
     'account.session.expire' =>
       container.read(bandBbsAuthProvider.notifier).expireSession(),
+    'coins.account' => _creatorRequest('GET', '/api/coins'),
+    'coins.checkin' => _creatorRequest('POST', '/api/coins/checkin'),
+    'coins.resource' => _creatorRequest(
+      'POST',
+      '/api/resources/${_requiredCreatorId(command.params, 'resource')}/coins',
+      data: {'coins': command.params['coins']},
+    ),
     'comment.list' => _creatorApi.publicRequest(
       'GET',
       '/api/resources/${_requiredCreatorId(command.params, 'resource')}/comments',
@@ -470,7 +485,22 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     ),
     'creator.publish' => _creatorPublish(command.params),
     'creator.draft' => _creatorDraft(command.params),
+    'creator.source' => () async {
+      await _creatorApi.setResourceSource(
+        resourceId: _requiredCreatorId(command.params, 'resource'),
+        authorName: command.params['authorName']?.toString() ?? '',
+        sourceUrl: command.params['sourceUrl']?.toString() ?? '',
+        licenseName: command.params['licenseName']?.toString() ?? '',
+        authorizationNote:
+            command.params['authorizationNote']?.toString() ?? '',
+      );
+      return null;
+    }(),
     'creator.blob' => _creatorBlob(command.params),
+    'creator.relationships' => _creatorRequest(
+      'GET',
+      '/api/creator/resources/${_requiredCreatorId(command.params, 'resource')}/relationships',
+    ),
     'creator.takedown' => _creatorRequest(
       'POST',
       '/api/creator/resources/${_requiredCreatorId(command.params, 'resource')}/takedown',
@@ -482,6 +512,12 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'creator.delete' => _creatorRequest(
       'DELETE',
       '/api/creator/resources/${_requiredCreatorId(command.params, 'resource')}',
+      query: {
+        if ((command.params['deleteExternal'] as List? ?? const []).isNotEmpty)
+          'delete_external': (command.params['deleteExternal'] as List).join(
+            ',',
+          ),
+      },
     ),
     'creator.collections.list' => _creatorRequest(
       'GET',
@@ -585,6 +621,23 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       command.params['provider']?.toString() ?? '',
       command.params['operation']?.toString() ?? '',
       (command.params['arguments'] as List?)?.cast<Object?>() ?? const [],
+    ),
+    'plugin.repositories' => Future.value(_pluginRepositories.sources()),
+    'plugin.repository.catalog' => _pluginRepositories.catalog(
+      command.params['source']?.toString() ?? '',
+      force: command.params['force'] == true,
+    ),
+    'plugin.repository.install' => _pluginRepositories.install(
+      command.params['source']?.toString() ?? '',
+      command.params['id']?.toString() ?? '',
+    ),
+    'plugin.repository.upload' => _pluginRepositories.upload(
+      command.params['source']?.toString() ?? '',
+      _pluginRepositoryUploadBytes(command.params),
+    ),
+    'plugin.repository.remove' => _pluginRepositories.remove(
+      command.params['source']?.toString() ?? '',
+      command.params['id']?.toString() ?? '',
     ),
     'install.local' => _installLocal(command.params),
     _ => throw CommandFailure(
@@ -736,9 +789,20 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     };
     return _pluginManager.install(
       bytes,
-      fileName: params['fileName']?.toString(),
       includeIcon: params['includeIcon'] != false,
     );
+  }
+
+  Uint8List _pluginRepositoryUploadBytes(Map<String, Object?> params) {
+    final raw = params['bytes'];
+    return switch (raw) {
+      Uint8List value => value,
+      List value => Uint8List.fromList(
+        value.whereType<num>().map((item) => item.toInt() & 0xff).toList(),
+      ),
+      String value => base64Decode(value),
+      _ => throw const CommandFailure('usage', 'Plugin bytes are required'),
+    };
   }
 
   Future<Object?> _removePlugin(Map<String, Object?> params) async {
@@ -792,6 +856,82 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     }
     await _manager.sendRaw(Uint8List.fromList(payload));
     return {'sent': true};
+  }
+
+  Future<Object?> _requestRaw(Map<String, Object?> params) async {
+    final payload = (params['payload'] as List?)
+        ?.whereType<num>()
+        .map((value) => value.toInt() & 0xff)
+        .toList(growable: false);
+    if (payload == null) {
+      throw const CommandFailure('usage', 'payload is required');
+    }
+    final timeoutMs = (params['timeoutMs'] as num?)?.toInt() ?? 5000;
+    final response = await _manager.requestRaw(
+      Uint8List.fromList(payload),
+      timeout: Duration(milliseconds: timeoutMs),
+    );
+    return response.toList(growable: false);
+  }
+
+  Future<Object?> _zmlAttach(Map<String, Object?> params) async {
+    final appId = (params['appId'] as num?)?.toInt();
+    if (appId == null || appId == 0) {
+      throw const CommandFailure('usage', 'appId is required');
+    }
+    if (!_zmlAttachments.add(appId)) return {'attached': true};
+    try {
+      await _manager.attachZeppOsZml(
+        appId,
+        (hook, payload) => _forwardZmlHook(appId, hook, payload),
+      );
+    } catch (_) {
+      _zmlAttachments.remove(appId);
+      rethrow;
+    }
+    return {'attached': true};
+  }
+
+  Future<Object?> _forwardZmlHook(int appId, String hook, Object? payload) {
+    final requestId = 'zml-${++_zmlHookCounter}';
+    final completer = Completer<Object?>();
+    _zmlHookResponses[requestId] = completer;
+    _events.add(
+      CommandEvent(
+        'device.zeppos.zml.hook',
+        data: {
+          'appId': appId,
+          'requestId': requestId,
+          'hook': hook,
+          'payload': payload,
+        },
+      ),
+    );
+    return completer.future
+        .timeout(const Duration(seconds: 10), onTimeout: () => null)
+        .whenComplete(() => _zmlHookResponses.remove(requestId));
+  }
+
+  Future<Object?> _zmlRespond(Map<String, Object?> params) async {
+    final requestId = params['requestId']?.toString() ?? '';
+    final completer = _zmlHookResponses.remove(requestId);
+    if (completer != null && !completer.isCompleted) {
+      completer.complete(params['result']);
+    }
+    return {'ok': true};
+  }
+
+  Future<Object?> _zmlInvoke(Map<String, Object?> params) async {
+    final appId = (params['appId'] as num?)?.toInt();
+    if (appId == null || appId == 0) {
+      throw const CommandFailure('usage', 'appId is required');
+    }
+    final method = params['method']?.toString() ?? '';
+    if (method.isEmpty) {
+      throw const CommandFailure('usage', 'method is required');
+    }
+    final arguments = (params['arguments'] as List?) ?? const [];
+    return _manager.invokeZeppOsZml(appId, method, arguments);
   }
 
   Map<String, Object?> _status() {

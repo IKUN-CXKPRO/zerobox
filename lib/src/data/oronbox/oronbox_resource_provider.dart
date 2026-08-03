@@ -37,6 +37,7 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
           'devices': query.selectedDevices.join(','),
         if (query.selectedAttributes.isNotEmpty)
           'attributes': query.selectedAttributes.join(','),
+        if (query.featured) 'featured': '1',
         'sort': query.sort.name,
       },
     );

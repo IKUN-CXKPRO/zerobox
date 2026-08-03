@@ -281,23 +281,29 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     Uint8List? bytes,
   }) {
     assert(kIsWeb);
+    final installType = switch (resource.type) {
+      CommunityResourceType.quickApp => LocalDeviceInstallType.app,
+      CommunityResourceType.miniprogram => LocalDeviceInstallType.app,
+      CommunityResourceType.watchface => LocalDeviceInstallType.watchface,
+      CommunityResourceType.firmware => LocalDeviceInstallType.firmware,
+      _ => null,
+    };
     _addWebTask(
       InstallTask(
         id: '${resource.ref.key}:${file.id}:$codename',
         name: resource.name,
         description: codename,
-        type: switch (resource.type) {
-          CommunityResourceType.quickApp => LocalDeviceInstallType.app,
-          CommunityResourceType.miniprogram => LocalDeviceInstallType.app,
-          CommunityResourceType.watchface => LocalDeviceInstallType.watchface,
-          CommunityResourceType.firmware => LocalDeviceInstallType.firmware,
-          CommunityResourceType.fontpack || CommunityResourceType.iconpack =>
-            throw UnsupportedError('${resource.type} install not implemented'),
-        },
+        type: installType ?? LocalDeviceInstallType.app,
         filePath: filePath,
         bytes: bytes,
         resource: resource,
         file: file,
+        status: installType == null
+            ? ResourceTaskStatus.failed
+            : ResourceTaskStatus.pending,
+        error: installType == null
+            ? 'Unsupported or unrecognized resource type'
+            : null,
       ),
     );
     if (ref.read(appSettingsProvider).autoInstall && _webDeviceReady()) {

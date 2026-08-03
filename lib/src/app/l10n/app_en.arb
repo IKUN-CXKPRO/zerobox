@@ -26,6 +26,19 @@
   "pluginUpToDate": "Installed and up to date",
   "pluginUninstallTitle": "Uninstall plugin",
   "pluginUninstallMessage": "The plugin's data will also be removed",
+  "pluginUpload": "Upload plugin",
+  "pluginPublishTitle": "Publish plugin",
+  "pluginPublishNew": "Will be published as a new plugin",
+  "pluginPublishUpdate": "Will update the published plugin with the same ID",
+  "pluginTakedown": "Take down",
+  "pluginTakedownConfirm": "The plugin will be permanently removed from the market",
+  "pluginLoginRequired": "Sign in to upload plugins",
+  "pluginSubmittedForReview": "Submitted for review. It will be listed once approved",
+  "pluginStatePending": "Pending review",
+  "pluginStateRejected": "Rejected",
+  "pluginStateDelisted": "Delisted",
+  "pluginLegacyWarningTitle": "Legacy plugin",
+  "pluginLegacyWarningMessage": "This is an AstroBox v1 plugin. OronBox will try to run it in compatibility mode, but issues may occur.\nCheck for an updated native OronBox plugin, or ask the author to adapt it",
   "settingsTab": "Settings",
   "search": "Search",
   "resourceListView": "List view",
@@ -57,9 +70,18 @@
   "creatorInvalidImage": "Unable to decode this image; use PNG/JPEG/WebP",
   "creatorInvalidPackage": "This file is not a Vela quick app or watchface",
   "creatorPublishPreparing": "Processing file {done}/{total}",
-  "@creatorPublishPreparing": {"placeholders": {"done": {}, "total": {}}},
+  "@creatorPublishPreparing": {
+    "placeholders": {
+      "done": {},
+      "total": {}
+    }
+  },
   "creatorPublishUploading": "Uploading {percent}%",
-  "@creatorPublishUploading": {"placeholders": {"percent": {}}},
+  "@creatorPublishUploading": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
   "creatorPublishServer": "Server is processing…",
   "creatorAstroBoxItemId": "Item ID",
   "creatorAstroBoxRepository": "Repository name",
@@ -77,17 +99,34 @@
   "creatorDeleteConfirm": "This draft resource will be permanently deleted.",
   "creatorDeletePublishedConfirm": "Permanently deletes the OronBox resource and the corresponding BandBBS resources. This cannot be undone. Content already published on AstroBox is not affected; contact the AstroBox-Repo maintainers to delist it.",
   "creatorArtifactCount": "{count} packages",
-  "@creatorArtifactCount": {"placeholders": {"count": {}}},
+  "@creatorArtifactCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
   "creatorKindMismatchTitle": "File type mismatch",
   "creatorKindMismatchMessage": "This file looks like a {detected}, but this resource is a {expected}. You can keep it, but please confirm before submitting for review.",
-  "@creatorKindMismatchMessage": {"placeholders": {"detected": {}, "expected": {}}},
+  "@creatorKindMismatchMessage": {
+    "placeholders": {
+      "detected": {},
+      "expected": {}
+    }
+  },
   "creatorKeepFile": "Keep anyway",
   "creatorDeviceMoveBlocked": "\"{name}\" has only this device bound and cannot be moved",
-  "@creatorDeviceMoveBlocked": {"placeholders": {"name": {}}},
+  "@creatorDeviceMoveBlocked": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "creatorAssetsReusedHint": "Existing packages and previews are reused — no need to re-upload",
   "creatorRevisionHistory": "Revision history",
   "creatorUploadProgress": "Uploading {progress}%",
-  "@creatorUploadProgress": {"placeholders": {"progress": {}}},
+  "@creatorUploadProgress": {
+    "placeholders": {
+      "progress": {}
+    }
+  },
   "filter": "Filter",
   "importLocalResource": "Import local resource",
   "allDevices": "All devices",
@@ -110,10 +149,21 @@
   "supportedDevices": "Supported devices",
   "resourceProfile": "Resource platform and type",
   "creatorArtifactProfileMismatch": "{fileName} does not match the selected {profile} profile and was not added",
-  "@creatorArtifactProfileMismatch": {"placeholders": {"fileName": {}, "profile": {}}},
+  "@creatorArtifactProfileMismatch": {
+    "placeholders": {
+      "fileName": {},
+      "profile": {}
+    }
+  },
   "downloads": "Downloads",
   "downloadTimes": "{count} downloads",
-  "@downloadTimes": {"placeholders": {"count": {"type": "int"}}},
+  "@downloadTimes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "changelog": "Changelog",
   "notFound": "Not found",
   "downloadStarted": "Download started",
@@ -131,14 +181,22 @@
   "creatorSuspendedByAdminNotice": "An administrator delisted this resource. Edit and resubmit for review; it is restored once approved",
   "creatorFrozenNotice": "An administrator froze this resource. It can no longer be edited and only an administrator can lift the freeze",
   "creatorModerationReason": "Reason: {reason}",
-  "@creatorModerationReason": {"placeholders": {"reason": {}}},
+  "@creatorModerationReason": {
+    "placeholders": {
+      "reason": {}
+    }
+  },
   "creatorBannedTitle": "Account banned",
   "creatorBannedDescription": "Your account was banned by an administrator and the creator center is unavailable. Contact the team through a support ticket if you believe this is a mistake",
   "creatorFrozenTitle": "Creator capability frozen",
   "creatorFrozenDescription": "An administrator froze your creator capability, so you cannot submit or manage resources for now. The rest of your account is unaffected",
   "creatorBandBbsNoDevices": "Select supported devices for the resource file first",
   "creatorBandBbsUnmappedDevices": "No BandBBS category could be resolved for: {devices}",
-  "@creatorBandBbsUnmappedDevices": {"placeholders": {"devices": {}}},
+  "@creatorBandBbsUnmappedDevices": {
+    "placeholders": {
+      "devices": {}
+    }
+  },
   "creatorBandBbsSharedCategory": "Devices in the same BandBBS category are bound to multiple packages. Bind one package per category",
   "creatorBandBbsUnresolved": "Unable to resolve a BandBBS category",
   "creatorOptionalIcon": "Icon (optional, 1:1)",
@@ -215,7 +273,13 @@
   "communitySourceHuamiAppStore": "Amazfit App Store",
   "devices": "Devices",
   "creatorCompatibleDeviceCount": "{count} devices",
-  "@creatorCompatibleDeviceCount": {"placeholders": {"count": {"type": "int"}}},
+  "@creatorCompatibleDeviceCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "categories": "Categories",
   "advanced": "Advanced",
   "aboutOronBox": "About OronBox",
@@ -233,11 +297,29 @@
   "deviceCharging": "Charging",
   "deviceLastChargedNow": "Charged just now",
   "deviceLastChargedMinutes": "Charged {count} min ago",
-  "@deviceLastChargedMinutes": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceLastChargedMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceLastChargedHours": "Charged {count} hr ago",
-  "@deviceLastChargedHours": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceLastChargedHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceLastChargedDays": "Charged {count} days ago",
-  "@deviceLastChargedDays": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceLastChargedDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceFeaturesInstallApp": "Install app",
   "deviceFeaturesInstallAppDesc": "Install third-party app from local file",
   "deviceFeaturesInstallWatchface": "Install watchface",
@@ -260,7 +342,14 @@
   "firmwareReleaseNotes": "Release notes",
   "firmwareReleaseNotesUnavailable": "No release notes available",
   "firmwareDownloadingProgress": "Downloading {progress}%",
-  "@firmwareDownloadingProgress": {"placeholders": {"progress": {"type": "int"}}},
+  "@firmwareDownloadingProgress": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "download": "Download",
   "downloadFailed": "Download failed. Try again later.",
   "downloadTaskAdded": "Added to the download queue",
   "deviceFeaturesManageApps": "Manage apps",
@@ -277,7 +366,11 @@
   "zeppOsScreenMirrorDescription": "View the watch screen on this device",
   "zeppOsScreenMirrorSemantics": "Zepp OS watch screen mirror",
   "zeppOsScreenMirrorUnsupported": "This screen format cannot be displayed: {error}",
-  "@zeppOsScreenMirrorUnsupported": {"placeholders": {"error": {}}},
+  "@zeppOsScreenMirrorUnsupported": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "expand": "Expand",
   "collapse": "Collapse",
   "voiceLabTitle": "Voice lab",
@@ -304,28 +397,62 @@
   "voiceLabSaveOpus": "Save Opus audio",
   "voiceLabAudioProcessingFailedPrefix": "Audio processing failed",
   "voiceLabAudioProcessingFailed": "Audio processing failed: {error}",
-  "@voiceLabAudioProcessingFailed": {"placeholders": {"error": {}}},
+  "@voiceLabAudioProcessingFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "voiceLabContinuousCaptureFailed": "Could not configure continuous capture: {error}",
-  "@voiceLabContinuousCaptureFailed": {"placeholders": {"error": {}}},
+  "@voiceLabContinuousCaptureFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "voiceLabAssistantSwitchFailed": "Could not switch voice assistant: {error}",
-  "@voiceLabAssistantSwitchFailed": {"placeholders": {"error": {}}},
+  "@voiceLabAssistantSwitchFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "voiceLabExportWavFailed": "Could not export WAV: {error}",
-  "@voiceLabExportWavFailed": {"placeholders": {"error": {}}},
+  "@voiceLabExportWavFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "voiceLabExportOpusFailed": "Could not export Opus: {error}",
-  "@voiceLabExportOpusFailed": {"placeholders": {"error": {}}},
+  "@voiceLabExportOpusFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "send": "Send",
   "sendFailed": "Could not send: {error}",
-  "@sendFailed": {"placeholders": {"error": {}}},
+  "@sendFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "ready": "Ready",
   "initializing": "Initializing",
   "zeppOsMapSelectPackage": "Select a Zepp OS map package",
   "zeppOsMapReadFailed": "Could not read the map package",
   "zeppOsMapTransferTitle": "Transfer offline map",
   "zeppOsMapGarminDetected": "{fileName}\nDetected a single-file Garmin IMG map: {mapName}",
-  "@zeppOsMapGarminDetected": {"placeholders": {"fileName": {}, "mapName": {}}},
+  "@zeppOsMapGarminDetected": {
+    "placeholders": {
+      "fileName": {},
+      "mapName": {}
+    }
+  },
   "zeppOsMapGarminNoPreview": "This map does not contain a Zepp OS 11/x/y tile tree. The original IMG will be transferred as a single-file map package, so a coverage preview is unavailable.",
   "zeppOsMapTileSummary": "{fileName} · {count} tiles\nThe preview shows package coverage, not the Garmin IMG rendering on the watch.",
-  "@zeppOsMapTileSummary": {"placeholders": {"fileName": {}, "count": {}}},
+  "@zeppOsMapTileSummary": {
+    "placeholders": {
+      "fileName": {},
+      "count": {}
+    }
+  },
   "zeppOsMapWatchConfirmationHint": "You must also confirm the installation on the watch. Keep it close to this device during transfer.",
   "zeppOsMapStartTransfer": "Start transfer",
   "zeppOsMapTransferringBluetooth": "Transferring over Bluetooth",
@@ -338,11 +465,23 @@
   "zeppOsMapBleHint": "BLE supports map packages up to 2 MB. Switch to BT Classic before transferring a larger map. After transfer starts, confirm the installation on the watch.",
   "zeppOsMapPreviewTooLarge": "The map area is too large to preview in full",
   "zeppOsSettingPageLoadFailed": "Could not load the settings page: {error}",
-  "@zeppOsSettingPageLoadFailed": {"placeholders": {"error": {}}},
+  "@zeppOsSettingPageLoadFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "zeppOsAppCompatibilitySaved": "Compatibility files saved for {appId}",
-  "@zeppOsAppCompatibilitySaved": {"placeholders": {"appId": {}}},
+  "@zeppOsAppCompatibilitySaved": {
+    "placeholders": {
+      "appId": {}
+    }
+  },
   "zeppOsAppStorageSaved": "settingsStorage saved for {appId}",
-  "@zeppOsAppStorageSaved": {"placeholders": {"appId": {}}},
+  "@zeppOsAppStorageSaved": {
+    "placeholders": {
+      "appId": {}
+    }
+  },
   "zeppOsAppSupplementFiles": "Add app-side or setting files",
   "zeppOsAppSupplementCompatibility": "Add mini-app compatibility files",
   "zeppOsAppReplaceCompatibility": "Add or replace compatibility files",
@@ -353,7 +492,11 @@
   "zeppOsAppEditStorage": "Edit settingsStorage",
   "zeppOsStorageKeyRequired": "Key is required",
   "zeppOsStorageDuplicateKey": "Duplicate key: {key}",
-  "@zeppOsStorageDuplicateKey": {"placeholders": {"key": {}}},
+  "@zeppOsStorageDuplicateKey": {
+    "placeholders": {
+      "key": {}
+    }
+  },
   "zeppOsStorageDescription": "This data is shared by the setting page and app-side, and is stored as strings according to the Zepp OS specification.",
   "zeppOsStorageEmpty": "No stored entries",
   "zeppOsStorageKey": "Key",
@@ -370,11 +513,19 @@
   "selectFile": "Select file",
   "zeppOsAppCompatibilityOverwriteHint": "Saving replaces compatibility files with the same name for this App ID, but does not modify the mini app on the watch.",
   "zeppOsDebugRefreshFailed": "Automatic refresh failed: {error}",
-  "@zeppOsDebugRefreshFailed": {"placeholders": {"error": {}}},
+  "@zeppOsDebugRefreshFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "zeppOsDebugInvalidHex": "HEX must contain complete bytes separated by spaces, line breaks, 0x, commas, or similar separators",
   "zeppOsDebugClearEventsTitle": "Clear events for the current app?",
   "zeppOsDebugClearEventsDescription": "All debug events for {appId} will be cleared.",
-  "@zeppOsDebugClearEventsDescription": {"placeholders": {"appId": {}}},
+  "@zeppOsDebugClearEventsDescription": {
+    "placeholders": {
+      "appId": {}
+    }
+  },
   "zeppOsDebugClearEvents": "Clear events",
   "zeppOsDebugRefresh": "Refresh status and events",
   "zeppOsDebugAppList": "App-side list",
@@ -396,7 +547,12 @@
   "zeppOsDebugEncodingFailed": "The current content cannot be encoded in the selected mode",
   "zeppOsDebugByteCountUnavailable": "Bytes: --",
   "zeppOsDebugBytePreview": "Bytes: {count}\nHEX: {hex}",
-  "@zeppOsDebugBytePreview": {"placeholders": {"count": {}, "hex": {}}},
+  "@zeppOsDebugBytePreview": {
+    "placeholders": {
+      "count": {},
+      "hex": {}
+    }
+  },
   "zeppOsDebugInjectLocal": "Inject inbound message into local runtime",
   "zeppOsDebugSendToWatch": "Send to watch",
   "zeppOsDebugWaitingForWatch": "Send to watch (waiting for a real session)",
@@ -411,11 +567,23 @@
   "zeppOsDebugCopyText": "Copy text",
   "zeppOsDebugSessionStatus": "Runtime and session status",
   "zeppOsDebugCachedScript": "Cached script: {status}",
-  "@zeppOsDebugCachedScript": {"placeholders": {"status": {}}},
+  "@zeppOsDebugCachedScript": {
+    "placeholders": {
+      "status": {}
+    }
+  },
   "zeppOsDebugLocalRuntimeStatus": "Local runtime: {status}",
-  "@zeppOsDebugLocalRuntimeStatus": {"placeholders": {"status": {}}},
+  "@zeppOsDebugLocalRuntimeStatus": {
+    "placeholders": {
+      "status": {}
+    }
+  },
   "zeppOsDebugWatchSession": "Watch session: {status}",
-  "@zeppOsDebugWatchSession": {"placeholders": {"status": {}}},
+  "@zeppOsDebugWatchSession": {
+    "placeholders": {
+      "status": {}
+    }
+  },
   "exists": "Available",
   "notExists": "Unavailable",
   "running": "Running",
@@ -424,7 +592,11 @@
   "zeppOsDebugWatchSessionOpen": "Real session open",
   "zeppOsDebugRealHeader": "Real header",
   "zeppOsDebugLatestStartup": "Latest startup status: {status}",
-  "@zeppOsDebugLatestStartup": {"placeholders": {"status": {}}},
+  "@zeppOsDebugLatestStartup": {
+    "placeholders": {
+      "status": {}
+    }
+  },
   "zeppOsDebugWatchInbound": "From watch",
   "zeppOsDebugWatchOutbound": "To watch",
   "zeppOsDebugLifecycle": "Lifecycle",
@@ -443,38 +615,92 @@
   "deviceMusicChooseDialog": "Select an MP3 file to sync to the device",
   "deviceMusicReadFailed": "Unable to read the selected MP3 file",
   "deviceMusicSizeInvalid": "MP3 files must be larger than 0 bytes and no larger than {maxMb} MB",
-  "@deviceMusicSizeInvalid": {"placeholders": {"maxMb": {"type": "int"}}},
+  "@deviceMusicSizeInvalid": {
+    "placeholders": {
+      "maxMb": {
+        "type": "int"
+      }
+    }
+  },
   "deviceMusicUnknownArtist": "Unknown artist",
   "deviceMusicTransferred": "Music transfer complete",
   "deviceMusicLibrary": "Device music",
   "deviceMusicLibraryDescription": "Manage songs and playlists on the device",
   "deviceMusicSongs": "Songs",
   "deviceMusicSongsTotal": "{count} total",
-  "@deviceMusicSongsTotal": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceMusicSongsTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceMusicNoPlaylist": "Not in a playlist",
   "deviceMusicPlaylists": "Playlists",
   "deviceMusicEmpty": "No songs on the device",
   "deviceMusicNoPlaylists": "No playlists yet",
   "deviceMusicLoadFailed": "Failed to load device music: {error}",
-  "@deviceMusicLoadFailed": {"placeholders": {"error": {"type": "String"}}},
+  "@deviceMusicLoadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "deviceMusicPlaylistCreate": "New playlist",
   "deviceMusicPlaylistRename": "Rename playlist",
   "deviceMusicPlaylistName": "Playlist name",
   "deviceMusicPlaylistLimit": "Up to {count} playlists",
-  "@deviceMusicPlaylistLimit": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceMusicPlaylistLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceMusicSongCount": "{count} songs",
-  "@deviceMusicSongCount": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceMusicSongCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceMusicDeleteSong": "Delete this song from the device?",
   "deviceMusicDeletePlaylist": "Delete this playlist?",
   "deviceMusicDeletePlaylistDescription": "Songs in the playlist will remain on the device.",
   "deviceMusicManagePlaylists": "Manage playlists",
   "deviceMusicPlaylistMembership": "Playlists",
   "deviceMusicTransferSpeed": "{speed}/s",
-  "@deviceMusicTransferSpeed": {"placeholders": {"speed": {"type": "String"}}},
+  "@deviceMusicTransferSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
   "deviceMusicSelectedFiles": "{count} files selected",
-  "@deviceMusicSelectedFiles": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceMusicSelectedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceMusicQueueProgress": "Transferring {current}/{total}: {name}",
-  "@deviceMusicQueueProgress": {"placeholders": {"current": {"type": "int"}, "total": {"type": "int"}, "name": {"type": "String"}}},
+  "@deviceMusicQueueProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "deviceRecordingsTitle": "Recording sync",
   "deviceRecordingsDescription": "Sync and export recordings from the watch",
   "deviceRecordingsHint": "Recordings are received and verified one by one. Export each original file after synchronization.",
@@ -482,16 +708,49 @@
   "deviceRecordingsSyncing": "Receiving",
   "deviceRecordingsReading": "Reading recording list",
   "deviceRecordingsProgress": "Received {completed}/{total}: {name}",
-  "@deviceRecordingsProgress": {"placeholders": {"completed": {"type": "int"}, "total": {"type": "int"}, "name": {"type": "String"}}},
+  "@deviceRecordingsProgress": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "deviceRecordingsProgressCount": "Received {completed}/{total}",
-  "@deviceRecordingsProgressCount": {"placeholders": {"completed": {"type": "int"}, "total": {"type": "int"}}},
+  "@deviceRecordingsProgressCount": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "deviceRecordingsEmpty": "Connect the watch and select Sync recordings",
   "deviceRecordingsSave": "Export recording",
   "deviceRecordingsNoneOnWatch": "No new recordings were found on the watch",
   "deviceRecordingsSynced": "Synced {count} recordings",
-  "@deviceRecordingsSynced": {"placeholders": {"count": {"type": "int"}}},
+  "@deviceRecordingsSynced": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deviceRecordingsSaveFailed": "Could not export recording: {error}",
-  "@deviceRecordingsSaveFailed": {"placeholders": {"error": {"type": "String"}}},
+  "@deviceRecordingsSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "deviceMusicTransferTitle": "Transfer MP3 file",
   "deviceMusicVelaDescription": "Sync MP3 files to the device. Each file must not exceed 100 MB.",
   "deviceMusicZeppDescription": "MP3 files up to 50 MB are supported. Bluetooth Classic is recommended for faster transfers; BLE is also supported but takes longer.",
@@ -499,9 +758,17 @@
   "deviceMusicSongTitle": "Track title",
   "deviceMusicArtist": "Artist",
   "deviceMusicFileSize": "File size: {size}",
-  "@deviceMusicFileSize": {"placeholders": {"size": {}}},
+  "@deviceMusicFileSize": {
+    "placeholders": {
+      "size": {}
+    }
+  },
   "deviceMusicProgress": "Transfer progress: {progress}%",
-  "@deviceMusicProgress": {"placeholders": {"progress": {}}},
+  "@deviceMusicProgress": {
+    "placeholders": {
+      "progress": {}
+    }
+  },
   "deviceMusicTransferring": "Transferring",
   "deviceMusicSend": "Start transfer",
   "zeppOsFindDevice": "Find device",
@@ -543,7 +810,9 @@
   "deviceEndpointUnavailable": "No {transport} endpoint is available. Pair the device in system Bluetooth settings, then scan again.",
   "@deviceEndpointUnavailable": {
     "placeholders": {
-      "transport": {"type": "String"}
+      "transport": {
+        "type": "String"
+      }
     }
   },
   "deviceTransportSpp": "SPP",
@@ -588,7 +857,9 @@
   "externalLinkDescription": "You are about to visit {url}\n\nThis website is operated by a third party, is not affiliated with OronBox, and its security is unknown. Please proceed with caution. Do you want to continue?",
   "@externalLinkDescription": {
     "placeholders": {
-      "url": {"type": "String"}
+      "url": {
+        "type": "String"
+      }
     }
   },
   "externalLinkAstroBoxResourceHint": "This appears to be an AstroBox resource. You can also view and install it within OronBox",
@@ -627,6 +898,7 @@
   "forcePaid": "Force Paid",
   "version": "Version",
   "noDescription": "No description",
+  "noContent": "No content",
   "preview": "Preview",
   "productAbout": "About",
   "productDeviceRequirements": "Device requirements",
@@ -670,7 +942,11 @@
   "bandBbsLogout": "Sign out",
   "bandBbsLoggedOut": "Signed out",
   "accountSignOutTitle": "Sign out of {accountName}?",
-  "@accountSignOutTitle": {"placeholders": {"accountName": {}}},
+  "@accountSignOutTitle": {
+    "placeholders": {
+      "accountName": {}
+    }
+  },
   "accountSignOutMessage": "You will need to sign in again to use related features.",
   "bandBbsLoadPreviews": "Load post previews",
   "bandBbsLoadPreviewsDesc": "Automatically load attachment previews in the resource list",
@@ -812,7 +1088,15 @@
   "acknowledgementsAstroBoxNgProvider": "Reference for community resource indexes, CDN handling, and manifest parsing flows.",
   "acknowledgementsAstroBoxNgAppWasm": "Reference for Web Serial and browser-side connection flows.",
   "acknowledgementsGadgetbridge": "Reference for ZeppOS and wearable protocol research.",
-  "resourceHomeEmptyTitle": "Home page is under construction",
+  "resourceHomeRecommended": "Recommended",
+  "resourceHomeFeatured": "Featured",
+  "resourceHomeUpdates": "Updates",
+  "blogTypeAnnouncement": "Announcement",
+  "blogTypeRecommendation": "Recommendation",
+  "blogTypeDocs": "Docs",
+  "blogPostUnavailable": "Post unavailable",
+  "resourceHomeEmptyTitle": "Nothing to recommend yet",
+  "resourceLibraryEndOfList": "You've reached the end — check out resources from other sources?",
   "resourceHomeEmptySubtitle": "You can get resources from the library",
   "resourceCreatorEmptyTitle": "Creator center is under construction",
   "resourceCreatorEmptySubtitle": "You can manage acquired resources in the library",
@@ -878,10 +1162,18 @@
   "settingsAboutLogs": "Runtime logs",
   "settingsAboutLogsDescription": "View, export, and manage runtime logs from the app and connected devices",
   "settingsAboutLogsSize": "Currently using {size}",
-  "@settingsAboutLogsSize": {"placeholders": {"size": {}}},
+  "@settingsAboutLogsSize": {
+    "placeholders": {
+      "size": {}
+    }
+  },
   "settingsAboutLogsExport": "Export",
   "settingsAboutLogsExported": "Exported to {path}",
-  "@settingsAboutLogsExported": {"placeholders": {"path": {}}},
+  "@settingsAboutLogsExported": {
+    "placeholders": {
+      "path": {}
+    }
+  },
   "settingsAboutLogsEmpty": "No logs to export yet",
   "settingsAboutLogsClear": "Clear",
   "settingsDeviceLogsPull": "Pull device logs",
@@ -889,11 +1181,23 @@
   "settingsDeviceLogsStart": "Start",
   "settingsDeviceLogsPulling": "Pulling device logs",
   "settingsDeviceLogsProgress": "Received {progress}%",
-  "@settingsDeviceLogsProgress": {"placeholders": {"progress": {}}},
+  "@settingsDeviceLogsProgress": {
+    "placeholders": {
+      "progress": {}
+    }
+  },
   "settingsDeviceLogsSaved": "Device logs saved as {name}",
-  "@settingsDeviceLogsSaved": {"placeholders": {"name": {}}},
+  "@settingsDeviceLogsSaved": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "settingsDeviceLogsFailed": "Unable to pull device logs: {error}",
-  "@settingsDeviceLogsFailed": {"placeholders": {"error": {}}},
+  "@settingsDeviceLogsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "settingsAboutLogsClearConfirm": "All log files except the current session will be deleted.",
   "settingsAboutLogsOpen": "Open logs folder",
   "settingsAboutLogsOpenFailed": "Unable to open the logs folder",
@@ -972,7 +1276,9 @@
   "resourceInstallForceCountdown": "Force install ({seconds}s)",
   "@resourceInstallForceCountdown": {
     "placeholders": {
-      "seconds": {"type": "int"}
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "resourceInstallAsSelected": "Continue as {type}",
@@ -985,7 +1291,9 @@
   "@resourceInstallAsSelectedCountdown": {
     "placeholders": {
       "type": {},
-      "seconds": {"type": "int"}
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "resourceInstallAsDetected": "Install as {type}",
@@ -1019,26 +1327,52 @@
   "submit": "Submit",
   "currentAccount": "current account",
   "submitForReview": "Submit for review",
-  "creatorConfirmTitle": "Confirm publishing plan",
-  "creatorConfirmOronBox": "The resource will be reviewed by OronBox and published in OronBox Resources after approval",
-  "creatorConfirmBandBbs": "After approval, the resource will be published directly to BandBBS category {category}",
-  "@creatorConfirmBandBbs": {"placeholders": {"category": {}}},
-  "creatorConfirmAstroBox": "After approval, GitHub user {owner} will create or update repository {repository} and open an ABRepo pull request",
-  "@creatorConfirmAstroBox": {"placeholders": {"owner": {}, "repository": {}}},
-  "creatorBandBbsDirectPublish": "Published directly to the BandBBS community after OronBox review",
+  "creatorConfirmTitle": "Confirm commit",
+  "creatorConfirmOronBox": "Commit to OronBox",
+  "creatorConfirmBandBbs": "Sync to BandBBS: {category}",
+  "@creatorConfirmBandBbs": {
+    "placeholders": {
+      "category": {}
+    }
+  },
+  "creatorConfirmAstroBox": "Sync to AstroBox: {owner}/{repository}",
+  "@creatorConfirmAstroBox": {
+    "placeholders": {
+      "owner": {},
+      "repository": {}
+    }
+  },
+  "creatorBandBbsDirectPublish": "Sync to BandBBS",
+  "creatorBandBbsBoundUpdate": "Linked · Sync to BandBBS",
+  "creatorLinkedSections": "{count} linked sections",
+  "@creatorLinkedSections": {"placeholders": {"count": {"type": "int"}}},
+  "creatorBandBbsBindingIds": "Section {categoryId} · Resource {resourceId}",
+  "@creatorBandBbsBindingIds": {"placeholders": {"categoryId": {}, "resourceId": {}}},
+  "creatorAstroBoxBinding": "Item {itemId} · {repository}",
+  "@creatorAstroBoxBinding": {"placeholders": {"itemId": {}, "repository": {}}},
+  "creatorAstroBoxBoundSync": "Linked · Sync to AstroBox",
+  "creatorThisCommit": "This commit",
   "bandBbsCategoryId": "BandBBS resource category ID",
   "bandBbsCategory": "BandBBS resource category",
-  "creatorAstroBoxPrPublish": "After OronBox review, create resource repository {repository} and submit a PR to the official AstroBox repo",
-  "@creatorAstroBoxPrPublish": {"placeholders": {"repository": {}}},
+  "creatorAstroBoxPrPublish": "Sync to AstroBox · {repository}",
+  "@creatorAstroBoxPrPublish": {
+    "placeholders": {
+      "repository": {}
+    }
+  },
   "creatorOronBoxRequired": "Required. Resources are reviewed by OronBox",
   "creatorOpenInOronBox": "View in OronBox",
   "creatorAstroTags": "AstroBox tags",
-  "creatorAstroTagsHint": "Separate multiple tags with commas or semicolons",
+  "creatorAstroTagsHint": "Separate tags with English semicolons ;",
   "retry": "Retry",
   "reviewNote": "Review note",
   "creatorReviewRejected": "Resource changes requested",
   "creatorReviewState": "Review status: {state}",
-  "@creatorReviewState": {"placeholders": {"state": {}}},
+  "@creatorReviewState": {
+    "placeholders": {
+      "state": {}
+    }
+  },
   "creatorOperationWorking": "Working",
   "creatorProcessingImage": "Processing image",
   "creatorOperationRefreshing": "Refreshing creator data",
@@ -1061,18 +1395,25 @@
   "creatorLoginRequiredTitle": "Sign in to use Creator Center",
   "creatorLoginRequiredDescription": "Sign in to BandBBS and connect your OronBox account before creating, editing, or submitting resources",
   "creatorLoginAction": "Sign in to BandBBS",
-  "creatorSelectHint": "Select a resource on the left, or create a new one",
   "creatorOronBoxReady": "OronBox and BandBBS read access are available",
   "creatorBandBbsWriteReady": "BandBBS publishing access is authorized",
   "creatorBandBbsWriteMissing": "BandBBS write access is missing, so BandBBS publishing is unavailable",
-  "creatorGitHubOwnPublishReady": "GitHub is connected; publish as {login}",
-  "@creatorGitHubOwnPublishReady": {"placeholders": {"login": {}}},
+  "creatorGitHubOwnPublishReady": "GitHub connected · {login}",
+  "@creatorGitHubOwnPublishReady": {
+    "placeholders": {
+      "login": {}
+    }
+  },
   "creatorGitHubOwnPublishMissing": "GitHub is not connected, so AstroBox resources cannot be published under your account",
   "creatorAuthorize": "Authorize",
   "openCreatorCenter": "Open creator center",
   "creatorGitHubNotConnected": "GitHub account is not connected",
   "creatorGitHubConnected": "Connected as GitHub user {login}",
-  "@creatorGitHubConnected": {"placeholders": {"login": {}}},
+  "@creatorGitHubConnected": {
+    "placeholders": {
+      "login": {}
+    }
+  },
   "githubAuthorizationFailed": "Unable to open the GitHub authorization page",
   "githubAuthorizationTimedOut": "GitHub authorization timed out",
   "authorize": "Authorize",
@@ -1094,7 +1435,6 @@
   "feedbackSubject": "Subject",
   "feedbackMessage": "Feedback or issue",
   "reportReason": "Reason for report",
-  "submit": "Submit",
   "submitted": "Submitted",
   "myFeedback": "My feedback",
   "noFeedback": "No feedback yet",
@@ -1115,7 +1455,11 @@
   "updateCheckFailed": "Unable to check for updates",
   "latestVersionInstalled": "You are using the latest version",
   "newVersionAvailable": "Version {version} is available",
-  "@newVersionAvailable": {"placeholders": {"version": {}}},
+  "@newVersionAvailable": {
+    "placeholders": {
+      "version": {}
+    }
+  },
   "viewUpdate": "View update",
   "oobeWelcomeSlogan": "A beautiful and fast VelaOS / ZeppOS wearable device manager, built with Flutter",
   "oobeNext": "Next",
@@ -1156,7 +1500,12 @@
   "back": "Back",
   "creatorConnect": "Connect",
   "creatorReviewItemsProgress": "Requested changes ({done}/{total} resolved)",
-  "@creatorReviewItemsProgress": {"placeholders": {"done": {}, "total": {}}},
+  "@creatorReviewItemsProgress": {
+    "placeholders": {
+      "done": {},
+      "total": {}
+    }
+  },
   "comments": "Comments",
   "commentEmpty": "No comments yet",
   "commentHint": "Write a comment",
@@ -1168,6 +1517,7 @@
   "commentRateLimited": "You are commenting too quickly",
   "commentReplying": "Replying to this comment",
   "loadMore": "Load more",
+  "more": "More",
   "reply": "Reply",
   "inbox": "Inbox",
   "inboxLoading": "Loading messages",
@@ -1193,6 +1543,9 @@
   "cleanExploreEntry": "Explore entry",
   "cleanNavigationGroup": "Main navigation",
   "cleanExploreContentGroup": "Explore content",
+  "cleanHomeSectionsGroup": "Home sections",
+  "cleanHomeBanner": "Banner carousel",
+  "cleanHomeEditorSections": "Editor sections",
   "cleanResourceSourcesGroup": "Resource sources",
   "cleanCommunityGroup": "Community features",
   "settingsCategoryAccounts": "Accounts and authorization",
@@ -1207,36 +1560,78 @@
   "settingsCategoryAdvancedDescription": "Window behavior, onboarding, and developer tools",
   "oronBoxCoinsTitle": "Resource coins",
   "oronBoxCoinsBalance": "Coin balance: {balance}",
-  "@oronBoxCoinsBalance": {"placeholders": {"balance": {"type": "String"}}},
+  "@oronBoxCoinsBalance": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
   "oronBoxCoinsCheckin": "Check in",
   "oronBoxCoinsCheckedIn": "Checked in",
   "oronBoxCoinsCheckingIn": "Checking in",
   "oronBoxCoinsCheckinReward": "Received {count} coins",
-  "@oronBoxCoinsCheckinReward": {"placeholders": {"count": {"type": "int"}}},
+  "@oronBoxCoinsCheckinReward": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "oronBoxCoinsDescription": "Check in daily for 1–5 coins and use them to support creators",
   "resourceFromCollection": "From collection {name}",
-  "@resourceFromCollection": {"placeholders": {"name": {"type": "String"}}},
+  "@resourceFromCollection": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resourceCoin": "Coin",
   "resourceCoinDialogTitle": "Coin this resource",
   "resourceCoinDialogMessage": "Coin this resource?\n\nThis action cannot be undone\n\nCoins help the resource receive more exposure\n\nThe creator receives 10% of the contributed amount",
   "resourceCoinOne": "Give 1 coin",
   "resourceCoinTwo": "Give 2 coins",
   "resourceCoinCount": "{count} coins",
-  "@resourceCoinCount": {"placeholders": {"count": {"type": "int"}}},
+  "@resourceCoinCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "resourceCoinSuccess": "Coin sent",
   "resourceFeatured": "Featured",
   "resourceCollection": "Collection",
   "resourceCollectionItems": "{count} resources",
-  "@resourceCollectionItems": {"placeholders": {"count": {"type": "int"}}},
+  "@resourceCollectionItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "resourceCollectionCoins": "{count} coins in total",
-  "@resourceCollectionCoins": {"placeholders": {"count": {"type": "int"}}},
+  "@resourceCollectionCoins": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "creatorCollections": "Resource collections",
   "creatorCollectionTag": "Collection",
   "creatorCollectionsDescription": "Group resources of the same type into one collection card",
   "creatorNewCollection": "New collection",
   "creatorMoveToCollection": "Move to collection",
   "creatorMoveToCollectionConfirm": "Move the {count} selected resources into this collection?",
-  "@creatorMoveToCollectionConfirm": {"placeholders": {"count": {"type": "int"}}},
+  "@creatorMoveToCollectionConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "creatorDissolveCollection": "Dissolve collection",
   "creatorResourceList": "Resources",
   "creatorAdditionalLinks": "Additional links",
@@ -1276,13 +1671,97 @@
   "creatorAccept": "Accept",
   "creatorCollaborationInvitations": "Co-creation invitations",
   "creatorInvitedBy": "Invited by {name}",
-  "@creatorInvitedBy": {"placeholders": {"name": {"type": "String"}}},
+  "@creatorInvitedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "creatorCoinsLifetime": "Lifetime coins received",
   "creatorCoinsRecent": "Coins received in 14 days",
   "creatorCoinRewards": "Creator rewards",
   "creatorCollectionOrderHint": "Drag to reorder resources in the collection",
   "creatorCollectionAddResource": "Add to collection",
   "creatorCollectionResourceCount": "{count} resources",
-  "@creatorCollectionResourceCount": {"placeholders": {"count": {"type": "int"}}},
-  "creatorDecline": "Decline"
+  "@creatorCollectionResourceCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "creatorDecline": "Decline",
+  "communityImportSelected": "{count} selected",
+  "@communityImportSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "communityImportForce": "Also re-import items that already exist",
+  "communityImportStart": "Start import",
+  "communityImportResultCreated": "Draft created",
+  "communityImportResultFailed": "Failed",
+  "communityImportUnsupported": "This type cannot be imported yet",
+  "communityImportDuplicate": "Already exists in the creator center",
+  "communityImportNoArtifacts": "No importable resource files",
+  "creatorImportExternal": "Import existing resources from other platforms",
+  "creatorNewResourceDescription": "Create and maintain a resource from OronBox",
+  "creatorNewCollectionDescription": "Create a collection for related resources",
+  "creatorImportExternalDescription": "Experimental, Import your existing resources from BandBBS or AstroBox-Repo",
+  "creatorImportAlreadyImported": "Imported and linked",
+  "creatorImportReviewNotice": "Imported content may be incomplete or misidentified. Review and adjust every field before submitting.",
+  "creatorImportLogTitle": "Processing log",
+  "communityImportMyResources": "My resources",
+  "communityImportPickerEmpty": "No resources",
+  "creatorWizardChooseAction": "Create",
+  "creatorImportSelectTitle": "Select resources",
+  "creatorImportPreviewTitle": "Import preview",
+  "creatorImportProgressTitle": "Importing",
+  "creatorImportResultTitle": "Import result",
+  "creatorImportBindingsTitle": "Linked resources",
+  "creatorImportBandbbsSections": "{count} sections",
+  "@creatorImportBandbbsSections": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "creatorImportGitHubHint": "Connect GitHub to list your AstroBox resources",
+  "creatorImportGitHubConnect": "Connect GitHub",
+  "creatorImportStageDetails": "Fetching details",
+  "creatorImportStageDownloading": "Downloading files",
+  "creatorImportStageMedia": "Processing images",
+  "creatorImportStageUploading": "Creating draft",
+  "creatorImportContinue": "Import another",
+  "creatorImportWarnings": "{count} warnings",
+  "@creatorImportWarnings": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "creatorDeleteExternalBandbbs": "Also delete the BandBBS resources",
+  "creatorDeleteExternalAstrobox": "Also submit a deletion PR to AstroBox-Repo",
+  "creatorDeleteExternalWarning": "External deletions cannot be undone",
+  "creatorDeletePrSubmitted": "Deletion PR submitted",
+  "githubCdnFallback": "GitHub request failed, retrying via {cdn}",
+  "@githubCdnFallback": {
+    "placeholders": {
+      "cdn": {}
+    }
+  },
+  "creatorImportSourceVersion": "{source} · {version}",
+  "@creatorImportSourceVersion": {
+    "placeholders": {
+      "source": {},
+      "version": {}
+    }
+  },
+  "creatorImportPaid": "Paid",
+  "creatorImportBandbbsPaidEncrypted": "Paid BandBBS files are license-encrypted and cannot be imported"
 }

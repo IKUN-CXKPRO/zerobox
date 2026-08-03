@@ -1,7 +1,7 @@
 abstract final class BuildInfoService {
   static const appVersion = String.fromEnvironment(
     'APP_VERSION',
-    defaultValue: '1.0.0+1',
+    defaultValue: '1.0.0-rc.1',
   );
 
   static const buildUser = String.fromEnvironment(

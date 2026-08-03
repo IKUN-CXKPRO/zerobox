@@ -254,6 +254,84 @@ abstract class AppLocalizations {
   /// **'The plugin\'s data will also be removed'**
   String get pluginUninstallMessage;
 
+  /// No description provided for @pluginUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload plugin'**
+  String get pluginUpload;
+
+  /// No description provided for @pluginPublishTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish plugin'**
+  String get pluginPublishTitle;
+
+  /// No description provided for @pluginPublishNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Will be published as a new plugin'**
+  String get pluginPublishNew;
+
+  /// No description provided for @pluginPublishUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Will update the published plugin with the same ID'**
+  String get pluginPublishUpdate;
+
+  /// No description provided for @pluginTakedown.
+  ///
+  /// In en, this message translates to:
+  /// **'Take down'**
+  String get pluginTakedown;
+
+  /// No description provided for @pluginTakedownConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'The plugin will be permanently removed from the market'**
+  String get pluginTakedownConfirm;
+
+  /// No description provided for @pluginLoginRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to upload plugins'**
+  String get pluginLoginRequired;
+
+  /// No description provided for @pluginSubmittedForReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted for review. It will be listed once approved'**
+  String get pluginSubmittedForReview;
+
+  /// No description provided for @pluginStatePending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending review'**
+  String get pluginStatePending;
+
+  /// No description provided for @pluginStateRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get pluginStateRejected;
+
+  /// No description provided for @pluginStateDelisted.
+  ///
+  /// In en, this message translates to:
+  /// **'Delisted'**
+  String get pluginStateDelisted;
+
+  /// No description provided for @pluginLegacyWarningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Legacy plugin'**
+  String get pluginLegacyWarningTitle;
+
+  /// No description provided for @pluginLegacyWarningMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This is an AstroBox v1 plugin. OronBox will try to run it in compatibility mode, but issues may occur.\nCheck for an updated native OronBox plugin, or ask the author to adapt it'**
+  String get pluginLegacyWarningMessage;
+
   /// No description provided for @settingsTab.
   ///
   /// In en, this message translates to:
@@ -1543,6 +1621,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Downloading {progress}%'**
   String firmwareDownloadingProgress(int progress);
+
+  /// No description provided for @download.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get download;
 
   /// No description provided for @downloadFailed.
   ///
@@ -3392,6 +3476,12 @@ abstract class AppLocalizations {
   /// **'No description'**
   String get noDescription;
 
+  /// No description provided for @noContent.
+  ///
+  /// In en, this message translates to:
+  /// **'No content'**
+  String get noContent;
+
   /// No description provided for @preview.
   ///
   /// In en, this message translates to:
@@ -4394,11 +4484,59 @@ abstract class AppLocalizations {
   /// **'Reference for ZeppOS and wearable protocol research.'**
   String get acknowledgementsGadgetbridge;
 
+  /// No description provided for @resourceHomeRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get resourceHomeRecommended;
+
+  /// No description provided for @resourceHomeFeatured.
+  ///
+  /// In en, this message translates to:
+  /// **'Featured'**
+  String get resourceHomeFeatured;
+
+  /// No description provided for @resourceHomeUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates'**
+  String get resourceHomeUpdates;
+
+  /// No description provided for @blogTypeAnnouncement.
+  ///
+  /// In en, this message translates to:
+  /// **'Announcement'**
+  String get blogTypeAnnouncement;
+
+  /// No description provided for @blogTypeRecommendation.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommendation'**
+  String get blogTypeRecommendation;
+
+  /// No description provided for @blogTypeDocs.
+  ///
+  /// In en, this message translates to:
+  /// **'Docs'**
+  String get blogTypeDocs;
+
+  /// No description provided for @blogPostUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Post unavailable'**
+  String get blogPostUnavailable;
+
   /// No description provided for @resourceHomeEmptyTitle.
   ///
   /// In en, this message translates to:
-  /// **'Home page is under construction'**
+  /// **'Nothing to recommend yet'**
   String get resourceHomeEmptyTitle;
+
+  /// No description provided for @resourceLibraryEndOfList.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve reached the end — check out resources from other sources?'**
+  String get resourceLibraryEndOfList;
 
   /// No description provided for @resourceHomeEmptySubtitle.
   ///
@@ -5050,32 +5188,68 @@ abstract class AppLocalizations {
   /// No description provided for @creatorConfirmTitle.
   ///
   /// In en, this message translates to:
-  /// **'Confirm publishing plan'**
+  /// **'Confirm commit'**
   String get creatorConfirmTitle;
 
   /// No description provided for @creatorConfirmOronBox.
   ///
   /// In en, this message translates to:
-  /// **'The resource will be reviewed by OronBox and published in OronBox Resources after approval'**
+  /// **'Commit to OronBox'**
   String get creatorConfirmOronBox;
 
   /// No description provided for @creatorConfirmBandBbs.
   ///
   /// In en, this message translates to:
-  /// **'After approval, the resource will be published directly to BandBBS category {category}'**
+  /// **'Sync to BandBBS: {category}'**
   String creatorConfirmBandBbs(Object category);
 
   /// No description provided for @creatorConfirmAstroBox.
   ///
   /// In en, this message translates to:
-  /// **'After approval, GitHub user {owner} will create or update repository {repository} and open an ABRepo pull request'**
+  /// **'Sync to AstroBox: {owner}/{repository}'**
   String creatorConfirmAstroBox(Object owner, Object repository);
 
   /// No description provided for @creatorBandBbsDirectPublish.
   ///
   /// In en, this message translates to:
-  /// **'Published directly to the BandBBS community after OronBox review'**
+  /// **'Sync to BandBBS'**
   String get creatorBandBbsDirectPublish;
+
+  /// No description provided for @creatorBandBbsBoundUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked · Sync to BandBBS'**
+  String get creatorBandBbsBoundUpdate;
+
+  /// No description provided for @creatorLinkedSections.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} linked sections'**
+  String creatorLinkedSections(int count);
+
+  /// No description provided for @creatorBandBbsBindingIds.
+  ///
+  /// In en, this message translates to:
+  /// **'Section {categoryId} · Resource {resourceId}'**
+  String creatorBandBbsBindingIds(Object categoryId, Object resourceId);
+
+  /// No description provided for @creatorAstroBoxBinding.
+  ///
+  /// In en, this message translates to:
+  /// **'Item {itemId} · {repository}'**
+  String creatorAstroBoxBinding(Object itemId, Object repository);
+
+  /// No description provided for @creatorAstroBoxBoundSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked · Sync to AstroBox'**
+  String get creatorAstroBoxBoundSync;
+
+  /// No description provided for @creatorThisCommit.
+  ///
+  /// In en, this message translates to:
+  /// **'This commit'**
+  String get creatorThisCommit;
 
   /// No description provided for @bandBbsCategoryId.
   ///
@@ -5092,7 +5266,7 @@ abstract class AppLocalizations {
   /// No description provided for @creatorAstroBoxPrPublish.
   ///
   /// In en, this message translates to:
-  /// **'After OronBox review, create resource repository {repository} and submit a PR to the official AstroBox repo'**
+  /// **'Sync to AstroBox · {repository}'**
   String creatorAstroBoxPrPublish(Object repository);
 
   /// No description provided for @creatorOronBoxRequired.
@@ -5116,7 +5290,7 @@ abstract class AppLocalizations {
   /// No description provided for @creatorAstroTagsHint.
   ///
   /// In en, this message translates to:
-  /// **'Separate multiple tags with commas or semicolons'**
+  /// **'Separate tags with English semicolons ;'**
   String get creatorAstroTagsHint;
 
   /// No description provided for @retry.
@@ -5275,12 +5449,6 @@ abstract class AppLocalizations {
   /// **'Sign in to BandBBS'**
   String get creatorLoginAction;
 
-  /// No description provided for @creatorSelectHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Select a resource on the left, or create a new one'**
-  String get creatorSelectHint;
-
   /// No description provided for @creatorOronBoxReady.
   ///
   /// In en, this message translates to:
@@ -5302,7 +5470,7 @@ abstract class AppLocalizations {
   /// No description provided for @creatorGitHubOwnPublishReady.
   ///
   /// In en, this message translates to:
-  /// **'GitHub is connected; publish as {login}'**
+  /// **'GitHub connected · {login}'**
   String creatorGitHubOwnPublishReady(Object login);
 
   /// No description provided for @creatorGitHubOwnPublishMissing.
@@ -5887,6 +6055,12 @@ abstract class AppLocalizations {
   /// **'Load more'**
   String get loadMore;
 
+  /// No description provided for @more.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get more;
+
   /// No description provided for @reply.
   ///
   /// In en, this message translates to:
@@ -6036,6 +6210,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Explore content'**
   String get cleanExploreContentGroup;
+
+  /// No description provided for @cleanHomeSectionsGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Home sections'**
+  String get cleanHomeSectionsGroup;
+
+  /// No description provided for @cleanHomeBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Banner carousel'**
+  String get cleanHomeBanner;
+
+  /// No description provided for @cleanHomeEditorSections.
+  ///
+  /// In en, this message translates to:
+  /// **'Editor sections'**
+  String get cleanHomeEditorSections;
 
   /// No description provided for @cleanResourceSourcesGroup.
   ///
@@ -6534,6 +6726,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Decline'**
   String get creatorDecline;
+
+  /// No description provided for @communityImportSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String communityImportSelected(int count);
+
+  /// No description provided for @communityImportForce.
+  ///
+  /// In en, this message translates to:
+  /// **'Also re-import items that already exist'**
+  String get communityImportForce;
+
+  /// No description provided for @communityImportStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start import'**
+  String get communityImportStart;
+
+  /// No description provided for @communityImportResultCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft created'**
+  String get communityImportResultCreated;
+
+  /// No description provided for @communityImportResultFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get communityImportResultFailed;
+
+  /// No description provided for @communityImportUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This type cannot be imported yet'**
+  String get communityImportUnsupported;
+
+  /// No description provided for @communityImportDuplicate.
+  ///
+  /// In en, this message translates to:
+  /// **'Already exists in the creator center'**
+  String get communityImportDuplicate;
+
+  /// No description provided for @communityImportNoArtifacts.
+  ///
+  /// In en, this message translates to:
+  /// **'No importable resource files'**
+  String get communityImportNoArtifacts;
+
+  /// No description provided for @creatorImportExternal.
+  ///
+  /// In en, this message translates to:
+  /// **'Import existing resources from other platforms'**
+  String get creatorImportExternal;
+
+  /// No description provided for @creatorNewResourceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Create and maintain a resource from OronBox'**
+  String get creatorNewResourceDescription;
+
+  /// No description provided for @creatorNewCollectionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a collection for related resources'**
+  String get creatorNewCollectionDescription;
+
+  /// No description provided for @creatorImportExternalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Experimental, Import your existing resources from BandBBS or AstroBox-Repo'**
+  String get creatorImportExternalDescription;
+
+  /// No description provided for @creatorImportAlreadyImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported and linked'**
+  String get creatorImportAlreadyImported;
+
+  /// No description provided for @creatorImportReviewNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported content may be incomplete or misidentified. Review and adjust every field before submitting.'**
+  String get creatorImportReviewNotice;
+
+  /// No description provided for @creatorImportLogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing log'**
+  String get creatorImportLogTitle;
+
+  /// No description provided for @communityImportMyResources.
+  ///
+  /// In en, this message translates to:
+  /// **'My resources'**
+  String get communityImportMyResources;
+
+  /// No description provided for @communityImportPickerEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No resources'**
+  String get communityImportPickerEmpty;
+
+  /// No description provided for @creatorWizardChooseAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get creatorWizardChooseAction;
+
+  /// No description provided for @creatorImportSelectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select resources'**
+  String get creatorImportSelectTitle;
+
+  /// No description provided for @creatorImportPreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import preview'**
+  String get creatorImportPreviewTitle;
+
+  /// No description provided for @creatorImportProgressTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing'**
+  String get creatorImportProgressTitle;
+
+  /// No description provided for @creatorImportResultTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import result'**
+  String get creatorImportResultTitle;
+
+  /// No description provided for @creatorImportBindingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked resources'**
+  String get creatorImportBindingsTitle;
+
+  /// No description provided for @creatorImportBandbbsSections.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} sections'**
+  String creatorImportBandbbsSections(int count);
+
+  /// No description provided for @creatorImportGitHubHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect GitHub to list your AstroBox resources'**
+  String get creatorImportGitHubHint;
+
+  /// No description provided for @creatorImportGitHubConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect GitHub'**
+  String get creatorImportGitHubConnect;
+
+  /// No description provided for @creatorImportStageDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetching details'**
+  String get creatorImportStageDetails;
+
+  /// No description provided for @creatorImportStageDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading files'**
+  String get creatorImportStageDownloading;
+
+  /// No description provided for @creatorImportStageMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing images'**
+  String get creatorImportStageMedia;
+
+  /// No description provided for @creatorImportStageUploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating draft'**
+  String get creatorImportStageUploading;
+
+  /// No description provided for @creatorImportContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Import another'**
+  String get creatorImportContinue;
+
+  /// No description provided for @creatorImportWarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} warnings'**
+  String creatorImportWarnings(int count);
+
+  /// No description provided for @creatorDeleteExternalBandbbs.
+  ///
+  /// In en, this message translates to:
+  /// **'Also delete the BandBBS resources'**
+  String get creatorDeleteExternalBandbbs;
+
+  /// No description provided for @creatorDeleteExternalAstrobox.
+  ///
+  /// In en, this message translates to:
+  /// **'Also submit a deletion PR to AstroBox-Repo'**
+  String get creatorDeleteExternalAstrobox;
+
+  /// No description provided for @creatorDeleteExternalWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'External deletions cannot be undone'**
+  String get creatorDeleteExternalWarning;
+
+  /// No description provided for @creatorDeletePrSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletion PR submitted'**
+  String get creatorDeletePrSubmitted;
+
+  /// No description provided for @githubCdnFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub request failed, retrying via {cdn}'**
+  String githubCdnFallback(Object cdn);
+
+  /// No description provided for @creatorImportSourceVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'{source} · {version}'**
+  String creatorImportSourceVersion(Object source, Object version);
+
+  /// No description provided for @creatorImportPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get creatorImportPaid;
+
+  /// No description provided for @creatorImportBandbbsPaidEncrypted.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid BandBBS files are license-encrypted and cannot be imported'**
+  String get creatorImportBandbbsPaidEncrypted;
 }
 
 class _AppLocalizationsDelegate
