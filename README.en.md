@@ -46,7 +46,7 @@ OronBox provides a powerful, scriptable command-line interface for managing devi
 - Flutter stable (we recommend managing it with [fvm](https://fvm.app); the repo root `.fvmrc` pins the version), then `flutter pub get`
 - The `oronbox_network` network plugin downloads prebuilt binaries from GitHub Releases at build time, so no Rust toolchain is required
 - Platform-specific dependencies:
-  - **Linux**: `gtk3` `webkit2gtk-4.1` `bluez` `libblkid` `xz`; packaging tools as needed: `dpkg-deb` (deb), `rpmbuild` (rpm), `makepkg` (arch), `linuxdeploy` or `appimagetool` (AppImage), `flatpak-builder` with the GNOME SDK (Flatpak)
+  - **Linux**: `gtk3` `webkit2gtk-4.1` `bluez` `libblkid` `libasound2` (`libasound2-dev` when building) `xz`; packaging tools as needed: `dpkg-deb` (deb), `rpmbuild` (rpm), `makepkg` (arch), `linuxdeploy` or `appimagetool` (AppImage), `flatpak-builder` with the GNOME SDK (Flatpak)
   - **Android**: the Android SDK/NDK bundled with a standard Flutter setup
   - **Windows**: Visual Studio 2022 (Desktop development with C++); the WebView2 SDK can be installed via `windows/scripts/install_webview2_sdk.ps1`
   - **macOS**: Xcode; can only be built on a macOS host
@@ -82,7 +82,7 @@ tool/build_web.sh
 
 - Without `--format` / `--abi`, every format / ABI is built; on Linux `--abi` defaults to the host architecture
 - Android release signing is configured through environment variables: `ORONBOX_KEYSTORE_PATH`, `ORONBOX_KEYSTORE_PASSWORD`, `ORONBOX_KEY_ALIAS`, `ORONBOX_KEY_PASSWORD`; without them the debug signing config is used
-- Cross-building Linux aarch64 from an x86_64 host requires `ORONBOX_LINUX_ARM64_SYSROOT` pointing to an arm64 sysroot with the gtk3/webkit2gtk development packages; cross mode only produces tar.gz / deb / rpm / arch packages
+- Cross-building Linux aarch64 from an x86_64 host requires `ORONBOX_LINUX_ARM64_SYSROOT` pointing to an arm64 sysroot with the gtk3/webkit2gtk/alsa development packages; cross mode only produces tar.gz / deb / rpm / arch packages
 
 ### Versioning and artifact conventions
 

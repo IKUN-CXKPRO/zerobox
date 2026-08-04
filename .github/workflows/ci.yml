@@ -32,6 +32,17 @@ jobs:
       - name: Install dependencies
         run: flutter pub get --enforce-lockfile
 
+      - name: Check release scripts
+        run: |
+          set -euo pipefail
+          for script in tool/*.sh; do
+            bash -n "${script}"
+          done
+          if rg -n '\\b(mapfile|readarray)\\b' tool/*.sh; then
+            echo 'release scripts must remain compatible with macOS system Bash 3.2' >&2
+            exit 1
+          fi
+
       - name: Analyze
         run: flutter analyze --fatal-warnings --no-fatal-infos
 

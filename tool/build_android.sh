@@ -78,7 +78,10 @@ require_flutter
 setup_android_signing
 ensure_release_dir
 
-mapfile -t DART_DEFINES < <(flutter_release_defines)
+DART_DEFINES=()
+while IFS= read -r define; do
+  DART_DEFINES+=("${define}")
+done < <(flutter_release_defines)
 BUILD_NUMBER="$(build_number_or_default)"
 
 if [[ "${FORMAT}" == "apk" || "${FORMAT}" == "all" ]]; then

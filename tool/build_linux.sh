@@ -124,7 +124,10 @@ if [[ "${SKIP_BUILD}" == "true" ]]; then
   log_info "Skipping Flutter build, reusing the existing release bundle"
 else
   require_flutter
-  mapfile -t DART_DEFINES < <(flutter_release_defines)
+  DART_DEFINES=()
+  while IFS= read -r define; do
+    DART_DEFINES+=("${define}")
+  done < <(flutter_release_defines)
 
   run_cmd flutter build linux \
     --release \
@@ -205,7 +208,7 @@ Version: ${deb_version}
 Section: utils
 Priority: optional
 Architecture: ${DEB_ARCH}
-Depends: libgtk-3-0, libblkid1, liblzma5, libwebkit2gtk-4.1-0, bluez
+Depends: libgtk-3-0, libblkid1, liblzma5, libasound2 | libasound2t64, libwebkit2gtk-4.1-0, bluez
 Maintainer: ${MAINTAINER}
 Description: ${DESCRIPTION}
 EOF
@@ -238,6 +241,7 @@ Summary:        ${DESCRIPTION}
 License:        ${LICENSE}
 URL:            ${HOMEPAGE}
 BuildArch:      ${RPM_ARCH}
+Requires:       alsa-lib
 
 %description
 ${DESCRIPTION}
@@ -294,7 +298,7 @@ pkgdesc="${DESCRIPTION}"
 arch=('${RPM_ARCH}')
 url="${HOMEPAGE}"
 license=('${LICENSE}')
-depends=('gtk3' 'libblockdev' 'xz' 'webkit2gtk-4.1' 'bluez')
+depends=('gtk3' 'libblockdev' 'xz' 'alsa-lib' 'webkit2gtk-4.1' 'bluez')
 options=('!debug')
 source=()
 

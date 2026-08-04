@@ -11,7 +11,10 @@ require_flutter
 require_command zip
 ensure_release_dir
 
-mapfile -t DART_DEFINES < <(flutter_release_defines)
+DART_DEFINES=()
+while IFS= read -r define; do
+  DART_DEFINES+=("${define}")
+done < <(flutter_release_defines)
 
 run_cmd flutter build web \
   --release \
