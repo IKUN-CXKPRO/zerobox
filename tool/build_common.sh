@@ -183,19 +183,24 @@ flutter_release_defines() {
 }
 
 build_number_or_default() {
-  # Monotonic across commits so Android versionCode always increases; pubspec
-  # +N is only a fallback for sources exported without git history.
+  local build_number
+  build_number="$(get_build_number)"
+  if [[ -n "${build_number}" ]]; then
+    if [[ ! "${build_number}" =~ ^[1-9][0-9]*$ ]]; then
+      log_error "pubspec.yaml contains an invalid Android build number: ${build_number}"
+      exit 1
+    fi
+    echo "${build_number}"
+    return
+  fi
+
+  # Keep source builds without +N usable while releases validate +N before
+  # invoking the platform build jobs.
   if git -C "${PROJECT_ROOT}" rev-parse --git-dir >/dev/null 2>&1; then
     git -C "${PROJECT_ROOT}" rev-list --count HEAD
     return
   fi
-  local build_number
-  build_number="$(get_build_number)"
-  if [[ -z "${build_number}" || "${build_number}" == "$(get_version)" ]]; then
-    echo "1"
-  else
-    echo "${build_number}"
-  fi
+  echo "1"
 }
 
 run_cmd() {

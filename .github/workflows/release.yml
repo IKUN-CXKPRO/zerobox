@@ -2,62 +2,103 @@ name: Release
 
 on:
   push:
-    tags: ["v*"]
+    tags: ['v*']
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: 3.44.8
 
 jobs:
-  build-android-web:
+  validate:
+    name: Validate release
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          # Build scripts derive the build number from git history
-          fetch-depth: 0
 
-      - name: Check tag matches pubspec version
+      - name: Validate tag, version, and SDK
+        id: metadata
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
-          PUBSPEC=$(grep -m1 '^version:' pubspec.yaml | cut -d' ' -f2 | cut -d+ -f1)
-          TAG="${GITHUB_REF_NAME#v}"
-          if [ "$PUBSPEC" != "$TAG" ]; then
-            echo "tag $TAG does not match pubspec version $PUBSPEC"
+          set -euo pipefail
+          source tool/build_common.sh
+          base_version="$(get_version)"
+          build_number="$(get_build_number)"
+          sdk_version="$(awk -F'"' '/"flutter"/ { print $4; exit }' .fvmrc)"
+
+          [[ -n "${build_number}" ]] || {
+            echo 'pubspec.yaml version must include an Android build number (+N)' >&2
             exit 1
-          fi
+          }
+          [[ "${base_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || {
+            echo "invalid release version: ${base_version}" >&2
+            exit 1
+          }
+          [[ "${build_number}" =~ ^[1-9][0-9]*$ ]] || {
+            echo "invalid Android build number: ${build_number}" >&2
+            exit 1
+          }
+          [[ "${TAG}" == "v${base_version}" ]] || {
+            echo "tag ${TAG} does not match pubspec version ${base_version}" >&2
+            exit 1
+          }
+          [[ "${sdk_version}" == "${FLUTTER_VERSION}" ]] || {
+            echo ".fvmrc pins Flutter ${sdk_version}, workflow uses ${FLUTTER_VERSION}" >&2
+            exit 1
+          }
+
+          echo "version=${base_version}" >> "$GITHUB_OUTPUT"
+
+  build-android-web:
+    name: Build Android and Web
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      ORONBOX_KEYSTORE_BASE64: ${{ secrets.ORONBOX_KEYSTORE_BASE64 }}
+      ORONBOX_KEYSTORE_PASSWORD: ${{ secrets.ORONBOX_KEYSTORE_PASSWORD }}
+      ORONBOX_KEY_ALIAS: ${{ secrets.ORONBOX_KEY_ALIAS }}
+      ORONBOX_KEY_PASSWORD: ${{ secrets.ORONBOX_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: '17'
+
+      - name: Prepare release signing
+        run: |
+          set -euo pipefail
+          for name in ORONBOX_KEYSTORE_BASE64 ORONBOX_KEYSTORE_PASSWORD ORONBOX_KEY_ALIAS ORONBOX_KEY_PASSWORD; do
+            [[ -n "${!name:-}" ]] || {
+              echo "missing required Android signing secret: ${name}" >&2
+              exit 1
+            }
+          done
+          keystore="$RUNNER_TEMP/oronbox-release.jks"
+          printf '%s' "$ORONBOX_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          chmod 600 "$keystore"
+          keytool -list -keystore "$keystore" -storepass "$ORONBOX_KEYSTORE_PASSWORD" -alias "$ORONBOX_KEY_ALIAS" >/dev/null
+          echo "ORONBOX_KEYSTORE_PATH=$keystore" >> "$GITHUB_ENV"
 
       - uses: subosito/flutter-action@v2
         with:
-          # Keep in sync with .fvmrc
-          flutter-version: "3.44.8"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
-      - run: flutter pub get
-
-      # tool/build_common.sh picks these up and writes android/key.properties;
-      # without them the Android build falls back to the debug signature
-      - name: Decode release keystore
-        env:
-          ORONBOX_KEYSTORE_BASE64: ${{ secrets.ORONBOX_KEYSTORE_BASE64 }}
-        run: |
-          if [ -n "$ORONBOX_KEYSTORE_BASE64" ]; then
-            echo "$ORONBOX_KEYSTORE_BASE64" | base64 -d > android/keystore.jks
-            echo "ORONBOX_KEYSTORE_PATH=$PWD/android/keystore.jks" >> "$GITHUB_ENV"
-          else
-            echo "::warning::ORONBOX_KEYSTORE_BASE64 is not set, Android packages will use the debug signature"
-          fi
-
-      - name: Configure signing credentials
-        if: env.ORONBOX_KEYSTORE_PATH != ''
-        run: |
-          echo "ORONBOX_KEYSTORE_PASSWORD=${{ secrets.ORONBOX_KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
-          echo "ORONBOX_KEY_ALIAS=${{ secrets.ORONBOX_KEY_ALIAS }}" >> "$GITHUB_ENV"
-          echo "ORONBOX_KEY_PASSWORD=${{ secrets.ORONBOX_KEY_PASSWORD }}" >> "$GITHUB_ENV"
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
 
       - name: Build Android packages
         run: tool/build_android.sh
@@ -69,9 +110,12 @@ jobs:
         with:
           name: packages-android-web
           path: build/release/*
+          if-no-files-found: error
           retention-days: 1
 
   build-linux:
+    name: Build Linux (${{ matrix.arch }})
+    needs: validate
     strategy:
       fail-fast: false
       matrix:
@@ -79,139 +123,214 @@ jobs:
           - runner: ubuntu-24.04
             arch: x64
             abi: x86_64
-            arch_image: archlinux:base-devel
+            arch-image: archlinux:base-devel
           - runner: ubuntu-24.04-arm
             arch: arm64
             abi: aarch64
-            # Official archlinux images are x86_64 only
-            arch_image: menci/archlinuxarm:base-devel
+            arch-image: menci/archlinuxarm:base-devel
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install Flutter (x64)
         if: matrix.arch == 'x64'
         uses: subosito/flutter-action@v2
         with:
-          # Keep in sync with .fvmrc
-          flutter-version: "3.44.8"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
-      # Release tarballs ship x64 binaries only; on arm64 hosts the SDK
-      # must come from git so the tool bootstraps an arm64 Dart SDK
       - name: Install Flutter (arm64)
         if: matrix.arch == 'arm64'
         run: |
-          git clone --depth 1 --branch 3.44.8 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          git clone --depth 1 --branch "$FLUTTER_VERSION" https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          export PATH="$RUNNER_TEMP/flutter/bin:$PATH"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
           flutter config --no-analytics
           flutter --version
 
-      - name: Install build dependencies
+      - name: Install Linux build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config zip \
+          sudo apt-get install -y \
+            clang cmake ninja-build pkg-config zip curl \
             libgtk-3-dev libblkid-dev liblzma-dev libwebkit2gtk-4.1-dev \
-            libbluetooth-dev dpkg-dev rpm flatpak flatpak-builder
+            libbluetooth-dev libayatana-appindicator3-dev \
+            dpkg-dev rpm flatpak flatpak-builder
 
-      - run: flutter pub get
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
 
-      # linuxdeploy and its auto-downloaded appimage plugin are AppImages;
-      # extract-and-run avoids the FUSE requirement on runners
-      - name: Install linuxdeploy
+      - name: Install linuxdeploy (latest)
         run: |
-          case "$(uname -m)" in aarch64) LD_ARCH=aarch64 ;; *) LD_ARCH=x86_64 ;; esac
+          set -euo pipefail
+          case "$(uname -m)" in
+            aarch64) tool_arch=aarch64 ;;
+            x86_64) tool_arch=x86_64 ;;
+            *) echo "unsupported runner architecture: $(uname -m)" >&2; exit 1 ;;
+          esac
           mkdir -p "$RUNNER_TEMP/bin"
-          curl -fsSL -o "$RUNNER_TEMP/bin/linuxdeploy" \
-            "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${LD_ARCH}.AppImage"
-          curl -fsSL -o "$RUNNER_TEMP/bin/linuxdeploy-plugin-appimage" \
-            "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-${LD_ARCH}.AppImage"
-          chmod +x "$RUNNER_TEMP/bin/"*
+          curl -fsSL --retry 3 --retry-delay 2 --retry-all-errors \
+            -o "$RUNNER_TEMP/bin/linuxdeploy" \
+            "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${tool_arch}.AppImage"
+          curl -fsSL --retry 3 --retry-delay 2 --retry-all-errors \
+            -o "$RUNNER_TEMP/bin/linuxdeploy-plugin-appimage" \
+            "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-${tool_arch}.AppImage"
+          chmod +x "$RUNNER_TEMP/bin/linuxdeploy" "$RUNNER_TEMP/bin/linuxdeploy-plugin-appimage"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-          echo "APPIMAGE_EXTRACT_AND_RUN=1" >> "$GITHUB_ENV"
+          echo 'APPIMAGE_EXTRACT_AND_RUN=1' >> "$GITHUB_ENV"
 
-      - name: Install the Flatpak runtime and SDK
+      - name: Install Flatpak runtime and SDK
         run: |
-          RUNTIME_VERSION=$(awk -F'"' '/^runtime-version:/ { print $2; exit }' tool/flatpak/org.zxor.oronbox.yml)
+          set -euo pipefail
+          runtime_version="$(awk -F'"' '/^runtime-version:/ { print $2; exit }' tool/flatpak/org.zxor.oronbox.yml)"
           sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-          sudo flatpak install -y --noninteractive flathub "org.gnome.Platform//${RUNTIME_VERSION}" "org.gnome.Sdk//${RUNTIME_VERSION}"
+          sudo flatpak install -y --noninteractive flathub \
+            "org.gnome.Platform//${runtime_version}" "org.gnome.Sdk//${runtime_version}"
 
-      # makepkg is the only missing piece here, so --format all skips it
-      # gracefully and the Arch package is filled in by the container step
       - name: Build Linux packages
         run: tool/build_linux.sh --format all --abi "${{ matrix.abi }}"
 
-      - name: Build Arch package in container
+      - name: Build Arch package
         run: |
           chmod -R a+rwX build
-          docker run --rm -v "$PWD:/ws" -w /ws "${{ matrix.arch_image }}" \
-            bash -c "useradd -m builder && su builder -c 'tool/build_linux.sh --format arch --abi ${{ matrix.abi }} --skip-build'"
+          docker run --rm -v "$PWD:/ws" -w /ws "${{ matrix.arch-image }}" \
+            bash -euc '
+              command -v git >/dev/null || pacman -Sy --noconfirm git
+              id builder >/dev/null 2>&1 || useradd -m builder
+              su builder -c "git config --global --add safe.directory /ws && tool/build_linux.sh --format arch --abi ${{ matrix.abi }} --skip-build"
+            '
 
       - uses: actions/upload-artifact@v4
         with:
           name: packages-linux-${{ matrix.arch }}
           path: build/release/*
+          if-no-files-found: error
           retention-days: 1
 
   build-macos:
-    runs-on: macos-latest
+    name: Build macOS
+    needs: validate
+    runs-on: macos-14
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.44.8"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - run: flutter pub get
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
       - name: Build macOS packages
         run: tool/build_macos.sh
+
       - uses: actions/upload-artifact@v4
         with:
           name: packages-macos
           path: build/release/*
+          if-no-files-found: error
           retention-days: 1
 
   build-windows:
-    runs-on: windows-latest
+    name: Build Windows
+    needs: validate
+    runs-on: windows-2022
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.44.8"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - run: flutter pub get
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
       - name: Build Windows package
-        run: tool\build_windows.bat
+        shell: pwsh
+        run: ./tool/build_windows.ps1
+
       - uses: actions/upload-artifact@v4
         with:
           name: packages-windows
           path: build/release/*
+          if-no-files-found: error
           retention-days: 1
 
   publish:
-    needs: [build-android-web, build-linux, build-macos, build-windows]
+    name: Publish release
+    needs: [validate, build-android-web, build-linux, build-macos, build-windows]
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
-      - name: Generate checksums
+
+      - name: Verify release packages
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
         run: |
+          set -euo pipefail
+          source tool/build_common.sh
+          require_file() {
+            local pattern="$1"
+            compgen -G "dist/${pattern}" >/dev/null || {
+              echo "missing release artifact: ${pattern}" >&2
+              exit 1
+            }
+          }
+
+          require_file "${APP_NAME}-${RELEASE_VERSION}-android-arm64-v8a.apk"
+          require_file "${APP_NAME}-${RELEASE_VERSION}-android-armeabi-v7a.apk"
+          require_file "${APP_NAME}-${RELEASE_VERSION}-android-x86_64.apk"
+          require_file "${APP_NAME}-${RELEASE_VERSION}-android-appbundle.aab"
+          require_file "${APP_NAME}-${RELEASE_VERSION}-web.zip"
+
+          for linux_arch in amd64 arm64; do
+            require_file "${APP_NAME}-${RELEASE_VERSION}-linux-${linux_arch}.tar.gz"
+            require_file "${APP_NAME}-${RELEASE_VERSION}-linux-${linux_arch}.AppImage"
+            require_file "${APP_NAME}-${RELEASE_VERSION}-linux-${linux_arch}.flatpak"
+          done
+
+          deb_version="$(deb_upstream_version "${RELEASE_VERSION}")-1"
+          arch_version="$(arch_pkgver "${RELEASE_VERSION}")"
+          read -r rpm_version rpm_release <<< "$(rpm_version_release "${RELEASE_VERSION}")"
+          require_file "${APP_NAME}_${deb_version}_amd64.deb"
+          require_file "${APP_NAME}_${deb_version}_arm64.deb"
+          require_file "${APP_NAME}-${rpm_version}-${rpm_release}.x86_64.rpm"
+          require_file "${APP_NAME}-${rpm_version}-${rpm_release}.aarch64.rpm"
+          require_file "${APP_NAME}-${arch_version}-1-x86_64.pkg.tar.zst"
+          require_file "${APP_NAME}-${arch_version}-1-aarch64.pkg.tar.zst"
+
+          require_file "${APP_NAME}-${RELEASE_VERSION}-macos-universal.zip"
+          require_file "${APP_NAME}-${RELEASE_VERSION}-macos-universal.dmg"
+          require_file "${APP_NAME}-${RELEASE_VERSION}-windows-amd64.zip"
+
+      - name: Generate and verify checksums
+        run: |
+          set -euo pipefail
           source tool/build_common.sh
           generate_checksums "$PWD/dist"
+          (cd dist && sha256sum -c sha256sums.txt)
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
           files: dist/*
+          fail_on_unmatched_files: true
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-') }}

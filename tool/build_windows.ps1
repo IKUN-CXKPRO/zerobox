@@ -63,13 +63,42 @@ if ($Dev) {
 
 if (!$SkipWebView2Sdk) {
   $InstallWebView2 = Join-Path $ProjectRoot "windows/scripts/install_webview2_sdk.ps1"
-  if (Test-Path $InstallWebView2) {
-    if ([string]::IsNullOrWhiteSpace($WebView2SdkVersion)) {
-      & $InstallWebView2
-    } else {
-      & $InstallWebView2 -Version $WebView2SdkVersion
-    }
+  if (!(Test-Path $InstallWebView2)) {
+    throw "WebView2 SDK installer not found: $InstallWebView2"
   }
+  if ([string]::IsNullOrWhiteSpace($WebView2SdkVersion)) {
+    & $InstallWebView2
+  } else {
+    & $InstallWebView2 -Version $WebView2SdkVersion
+  }
+
+  $WebView2PackagesDir = Join-Path $ProjectRoot "windows/packages"
+  $WebView2Packages = @(
+    Get-ChildItem -Path $WebView2PackagesDir -Directory -Filter "Microsoft.Web.WebView2.*" -ErrorAction SilentlyContinue |
+      Sort-Object {
+        $VersionText = $_.Name.Substring("Microsoft.Web.WebView2.".Length)
+        try { [version]$VersionText } catch { [version]"0.0.0.0" }
+      } -Descending
+  )
+  if ([string]::IsNullOrWhiteSpace($WebView2SdkVersion)) {
+    $WebView2Sdk = $WebView2Packages | Select-Object -First 1
+  } else {
+    $WebView2Sdk = $WebView2Packages |
+      Where-Object { $_.Name -eq "Microsoft.Web.WebView2.$WebView2SdkVersion" } |
+      Select-Object -First 1
+  }
+  if (!$WebView2Sdk) {
+    throw "WebView2 SDK package was not found under $WebView2PackagesDir."
+  }
+
+  $WebView2Header = Join-Path $WebView2Sdk.FullName "build/native/include/WebView2.h"
+  $WebView2StaticLoader = Join-Path $WebView2Sdk.FullName "build/native/x64/WebView2LoaderStatic.lib"
+  $WebView2ImportLoader = Join-Path $WebView2Sdk.FullName "build/native/x64/WebView2Loader.dll.lib"
+  if (!(Test-Path $WebView2Header) -or (!(Test-Path $WebView2StaticLoader) -and !(Test-Path $WebView2ImportLoader))) {
+    throw "WebView2 SDK is incomplete at $($WebView2Sdk.FullName). The Windows build requires WebView2.h and an x64 loader library."
+  }
+  $env:WEBVIEW2_SDK_DIR = $WebView2Sdk.FullName
+  Write-Host "[INFO] Using WebView2 SDK: $($WebView2Sdk.FullName)"
 }
 
 New-Item -ItemType Directory -Force -Path $ReleaseDir | Out-Null
