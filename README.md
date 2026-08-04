@@ -47,6 +47,7 @@ OronBox 提供功能完整且可脚本化的命令行界面，可在无 GUI 模�
 - 网络插件 `oronbox_network` 在构建时自动从 GitHub Release 下载预编译库，无需 Rust 工具链
 - 各平台额外依赖：
   - **Linux**：`gtk3` `webkit2gtk-4.1` `bluez` `libblkid` `libasound2`（构建时为 `libasound2-dev`）`xz`；打包工具按需：`dpkg-deb`（deb）、`rpmbuild`（rpm）、`makepkg`（arch）、`linuxdeploy` 或 `appimagetool`（AppImage）、`flatpak-builder` 与 GNOME SDK（Flatpak）
+  - **Linux ARM64**：还需 `libflac-dev` `libogg-dev` `libopus-dev` `libvorbis-dev`；`flutter_soloud` 的配套 Xiph `.so` 仅适用于 amd64，ARM64 会自动切换到系统库，ARM64 产物也会声明对应运行时依赖
   - **Android**：Flutter 标配的 Android SDK/NDK
   - **Windows**：Visual Studio 2022（C++ 桌面工作负载）；WebView2 SDK 可用脚本安装：`windows/scripts/install_webview2_sdk.ps1`
   - **macOS**：Xcode，仅可在 macOS 主机构建
@@ -82,7 +83,7 @@ tool/build_web.sh
 
 - `--format` / `--abi` 缺省时构建全部格式 / 全部 ABI；Linux `--abi` 缺省取宿主架构
 - Android 发布签名通过环境变量配置：`ORONBOX_KEYSTORE_PATH`、`ORONBOX_KEYSTORE_PASSWORD`、`ORONBOX_KEY_ALIAS`、`ORONBOX_KEY_PASSWORD`；未设置时使用 debug 签名
-- Linux 交叉编译 aarch64（x86_64 宿主）需将 `ORONBOX_LINUX_ARM64_SYSROOT` 指向包含 gtk3/webkit2gtk/alsa 等开发包的 arm64 sysroot；交叉模式只产出 tar.gz / deb / rpm / arch
+- Linux 交叉编译 aarch64（x86_64 宿主）需将 `ORONBOX_LINUX_ARM64_SYSROOT` 指向包含 gtk3/webkit2gtk/alsa/flac/ogg/opus/vorbis 等开发包的 arm64 sysroot；交叉模式只产出 tar.gz / deb / rpm / arch
 
 ### 版本与产物约定
 
@@ -97,7 +98,8 @@ tool/build_web.sh
 使用情况：
 | 模型 | 协助的部分 |
 |------|------|
-| ChatGPT 5.5/5.6-Sol | Dart 蓝牙连接行为/协议、后端逻辑重写、部分前端 |
+| GPT 5.5/5.6-Sol | Dart 蓝牙连接行为/协议、后端逻辑重写、部分前端 |
+| GPT 5.6-Luna | GitHub CI / Release 脚本重写与修复 |
 | Kimi K3 | OOBE、创作者相关逻辑 |
 | Kimi K2.6 | 部分前端、UI/UX、初版后端 |
 

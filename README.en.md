@@ -47,6 +47,7 @@ OronBox provides a powerful, scriptable command-line interface for managing devi
 - The `oronbox_network` network plugin downloads prebuilt binaries from GitHub Releases at build time, so no Rust toolchain is required
 - Platform-specific dependencies:
   - **Linux**: `gtk3` `webkit2gtk-4.1` `bluez` `libblkid` `libasound2` (`libasound2-dev` when building) `xz`; packaging tools as needed: `dpkg-deb` (deb), `rpmbuild` (rpm), `makepkg` (arch), `linuxdeploy` or `appimagetool` (AppImage), `flatpak-builder` with the GNOME SDK (Flatpak)
+  - **Linux ARM64**: also require `libflac-dev`, `libogg-dev`, `libopus-dev`, and `libvorbis-dev`; the `flutter_soloud` bundled Xiph `.so` files are amd64-only, so ARM64 builds use system libraries and ARM64 packages declare the matching runtime dependencies
   - **Android**: the Android SDK/NDK bundled with a standard Flutter setup
   - **Windows**: Visual Studio 2022 (Desktop development with C++); the WebView2 SDK can be installed via `windows/scripts/install_webview2_sdk.ps1`
   - **macOS**: Xcode; can only be built on a macOS host
@@ -82,13 +83,7 @@ tool/build_web.sh
 
 - Without `--format` / `--abi`, every format / ABI is built; on Linux `--abi` defaults to the host architecture
 - Android release signing is configured through environment variables: `ORONBOX_KEYSTORE_PATH`, `ORONBOX_KEYSTORE_PASSWORD`, `ORONBOX_KEY_ALIAS`, `ORONBOX_KEY_PASSWORD`; without them the debug signing config is used
-- Cross-building Linux aarch64 from an x86_64 host requires `ORONBOX_LINUX_ARM64_SYSROOT` pointing to an arm64 sysroot with the gtk3/webkit2gtk/alsa development packages; cross mode only produces tar.gz / deb / rpm / arch packages
-
-### Versioning and artifact conventions
-
-- The version comes from the `version` field in `pubspec.yaml`
-- A clean git worktree is required by default; `--dev` allows a dirty worktree and appends git metadata to the version (e.g. `1.0.0.dirty.abc1234`)
-- Artifacts are named `oronbox-<version>-<platform>[-<arch>].<ext>`; symbol archives (when present) accompany the packages
+- Cross-building Linux aarch64 from an x86_64 host requires `ORONBOX_LINUX_ARM64_SYSROOT` pointing to an arm64 sysroot with the gtk3/webkit2gtk/alsa/flac/ogg/opus/vorbis development packages; cross mode only produces tar.gz / deb / rpm / arch packages
 
 ## AI development disclosure
 
@@ -98,7 +93,8 @@ Usage:
 
 | Model | Areas assisted |
 |-------|----------------|
-| ChatGPT 5.5/5.6-Sol | Dart Bluetooth connection behavior/protocol, backend rewrite, parts of the frontend |
+| GPT 5.5/5.6-Sol | Dart Bluetooth connection behavior/protocol, backend rewrite, parts of the frontend |
+| GPT 5.6-Luna | GitHub CI / Release script rewrites and fixes |
 | Kimi K3 | OOBE, creator-related logic |
 | Kimi K2.6 | Parts of the frontend, UI/UX, initial backend |
 
