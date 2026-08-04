@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 RELEASE_DIR="${PROJECT_ROOT}/build/release"
 DEV_MODE="false"
+SKIP_CLEAN_CHECK="false"
 VERSION=""
 GIT_HASH=""
 BUILD_USER=""
@@ -39,6 +40,8 @@ Usage: $1 [options]
 
 Options:
   --dev       Allow a dirty worktree and append git metadata to the package version
+  --skip-clean-check
+              Skip the clean-worktree check when repackaging an existing build
   -h, --help  Show this help
 EOF
 }
@@ -48,6 +51,10 @@ parse_common_args() {
     case "$1" in
       --dev)
         DEV_MODE="true"
+        shift
+        ;;
+      --skip-clean-check)
+        SKIP_CLEAN_CHECK="true"
         shift
         ;;
       -h|--help)
@@ -118,7 +125,9 @@ compute_version() {
     fi
     version="${version}-${suffix}"
   else
-    check_clean_tree
+    if [[ "${SKIP_CLEAN_CHECK}" != "true" ]]; then
+      check_clean_tree
+    fi
   fi
 
   echo "${version}"

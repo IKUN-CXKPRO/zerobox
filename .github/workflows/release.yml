@@ -203,9 +203,13 @@ jobs:
           chmod -R a+rwX build
           docker run --rm -v "$PWD:/ws" -w /ws "${{ matrix.arch-image }}" \
             bash -euc '
-              command -v git >/dev/null || pacman -Sy --noconfirm git
+              # Arch Linux ARM enables pacman Landlock, which is unavailable in
+              # the default GitHub Actions Docker sandbox.
+              command -v git >/dev/null || pacman --disable-sandbox -Sy --noconfirm git
               id builder >/dev/null 2>&1 || useradd -m builder
-              su builder -c "git config --global --add safe.directory /ws && tool/build_linux.sh --format arch --abi ${{ matrix.abi }} --skip-build"
+              # The bind-mounted host .git index is not writable by builder;
+              # this step only repackages the bundle built above.
+              su builder -c "git config --global --add safe.directory /ws && tool/build_linux.sh --format arch --abi ${{ matrix.abi }} --skip-build --skip-clean-check"
             '
 
       - uses: actions/upload-artifact@v4

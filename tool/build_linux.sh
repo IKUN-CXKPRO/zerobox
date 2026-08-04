@@ -26,6 +26,8 @@ Options:
   --skip-build    Reuse the existing release bundle instead of running
                   "flutter build linux" (useful when repackaging)
   --dev           Allow a dirty worktree and append git metadata to the package version
+  --skip-clean-check
+                  Skip the clean-worktree check when repackaging an existing build
   -h, --help      Show this help
 EOF
 }
@@ -300,6 +302,7 @@ build_arch() {
   fi
 
   local arch_root="${STAGING_ROOT}/arch"
+  local arch_pkgext=".pkg.tar.zst"
   local arch_audio_deps="'alsa-lib'"
   if [[ "${ABI}" == "aarch64" ]]; then
     arch_audio_deps="${arch_audio_deps} 'flac' 'libogg' 'opus' 'libvorbis'"
@@ -323,26 +326,52 @@ source=()
 
 package() {
   mkdir -p "\${pkgdir}${INSTALL_PREFIX}"
-  cp -a "${BUNDLE_DIR}"/* "\${pkgdir}${INSTALL_PREFIX}/"
+  cp -a --no-preserve=ownership "${BUNDLE_DIR}"/* "\${pkgdir}${INSTALL_PREFIX}/"
   mkdir -p "\${pkgdir}/usr/share/applications"
   cp "${STAGING_ROOT}/arch-desktop/${DESKTOP_FILE}" "\${pkgdir}/usr/share/applications/"
   mkdir -p "\${pkgdir}/usr/share/icons"
-  cp -a "${PROJECT_ROOT}/linux/icons/hicolor" "\${pkgdir}/usr/share/icons/"
+  cp -a --no-preserve=ownership "${PROJECT_ROOT}/linux/icons/hicolor" "\${pkgdir}/usr/share/icons/"
 }
 EOF
 
-  (
+  local arch_package_list
+  arch_package_list="$(
     cd "${arch_root}"
-    run_cmd makepkg -f --skipchecksums
-  )
-
-  local arch_src
-  arch_src="$(find "${arch_root}" -maxdepth 1 -name '*.pkg.tar.zst' ! -name '*-debug-*' | head -n 1)"
-  if [[ -z "${arch_src}" ]]; then
-    log_error "Arch package build failed: no .pkg.tar.zst file produced"
+    makepkg --packagelist --nodeps "PKGDEST=${arch_root}" "PKGEXT=${arch_pkgext}"
+  )"
+  if [[ -z "${arch_package_list}" ]]; then
+    log_error "Arch package build failed: makepkg did not report an output path"
     exit 1
   fi
-  copy_artifact "${arch_src}" "${RELEASE_DIR}/${APP_NAME}-$(arch_pkgver "${VERSION}")-1-${RPM_ARCH}.pkg.tar.zst"
+  log_info "Expected Arch package path(s): ${arch_package_list//$'\n'/ }"
+
+  (
+    cd "${arch_root}"
+    # Arch Linux ARM may override PKGDEST in makepkg.conf; keep the artifact
+    # in our staging directory so the caller can collect it deterministically.
+    # The bundle is already built; runtime dependencies belong in package
+    # metadata and do not need to be installed in the packaging container.
+    run_cmd makepkg -f --skipchecksums --nodeps "PKGDEST=${arch_root}" "PKGEXT=${arch_pkgext}"
+  )
+
+  local arch_src=""
+  while IFS= read -r candidate; do
+    if [[ -f "${candidate}" ]]; then
+      arch_src="${candidate}"
+      break
+    fi
+  done <<< "${arch_package_list}"
+  if [[ -z "${arch_src}" ]]; then
+    log_error "Arch package build completed but the expected package was not found"
+    log_error "Files under staging:"
+    find "${arch_root}" -maxdepth 2 -type f -name '*.pkg.tar*' -print >&2 || true
+    exit 1
+  fi
+  local arch_suffix="${arch_src##*.pkg.tar}"
+  if [[ "${arch_suffix}" == "${arch_src}" ]]; then
+    arch_suffix=".zst"
+  fi
+  copy_artifact "${arch_src}" "${RELEASE_DIR}/${APP_NAME}-$(arch_pkgver "${VERSION}")-1-${RPM_ARCH}.pkg.tar${arch_suffix}"
 }
 
 build_appimage() {
