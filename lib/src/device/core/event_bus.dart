@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:oronbox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/core/models/xiaomi_health_models.dart';
 import 'package:oronbox/src/device/core/transport.dart';
 
 sealed class DeviceEvent {
@@ -38,6 +39,15 @@ final class BatteryUpdated extends DeviceEvent {
   const BatteryUpdated({required super.deviceId, required this.battery});
 
   final BatteryStatus battery;
+}
+
+final class XiaomiHealthStateUpdated extends DeviceEvent {
+  const XiaomiHealthStateUpdated({
+    required super.deviceId,
+    required this.health,
+  });
+
+  final XiaomiHealthState health;
 }
 
 final class DeviceInfoUpdated extends DeviceEvent {

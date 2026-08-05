@@ -68,6 +68,7 @@ class MainActivity : FlutterActivity() {
     private var zeppSettingsWebView: WebView? = null
     private var zeppSettingsAppId: Long? = null
     private var zeppSettingsChannel: MethodChannel? = null
+    private var xmsWearableChannel: MethodChannel? = null
 
     private fun startBackgroundService(label: String, mode: String) {
         val intent = Intent(this, BackgroundTaskService::class.java).apply {
@@ -89,6 +90,10 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        xmsWearableChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "oronbox/xms_wearable",
+        ).also(XmsWearableBridge::attach)
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             "oronbox/background_tasks",
@@ -966,6 +971,8 @@ class MainActivity : FlutterActivity() {
     )
 
     override fun onDestroy() {
+        XmsWearableBridge.detach(xmsWearableChannel)
+        xmsWearableChannel = null
         closeZeppSettings(notify = false)
         stopSppScan()
         sendExecutor.shutdownNow()

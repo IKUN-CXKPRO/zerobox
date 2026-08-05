@@ -22,13 +22,28 @@ class XiaomiThirdpartyAppSystem extends XiaomiPbSystem {
   final _connectedApps = <String, ThirdpartyAppInfo>{};
   final _sessionWaiters = <String, Completer<ThirdpartyAppInfo>>{};
 
-  Future<void> sendPhoneMessage(String packageName, Uint8List payload) async {
-    final app = await _waitForSession(packageName);
+  Future<void> sendPhoneMessage(
+    String packageName,
+    Uint8List payload, {
+    ThirdpartyAppInfo? app,
+  }) async {
+    // The XMS service receives the caller package from Binder and can send
+    // immediately.  Waiting for a watch-originated BasicInfo packet here
+    // creates a race after launchApp: the app may already be listening while
+    // the watch has not echoed its session metadata yet.  Installed-app
+    // metadata is the same BasicInfo payload required by the wire protocol.
+    final resolvedApp =
+        app ??
+        _connectedApps[packageName] ??
+        await _waitForSession(packageName);
     _log.info(
       '[${entity.id}] sending interconnect message to $packageName '
-      '(${payload.length} bytes, fingerprint=${app.fingerprint.length} bytes)',
+      '(${payload.length} bytes, fingerprint=${resolvedApp.fingerprint.length} '
+      'bytes, source=${app != null ? 'installed-app' : 'session'})',
     );
-    await component.sendPbPacket(_buildThirdpartyAppMsgContent(app, payload));
+    await component.sendPbPacket(
+      _buildThirdpartyAppMsgContent(resolvedApp, payload),
+    );
     _log.info('[${entity.id}] interconnect message queued for $packageName');
   }
 
@@ -77,7 +92,13 @@ class XiaomiThirdpartyAppSystem extends XiaomiPbSystem {
   }
 
   void _handleBasicInfo(pb_thirdparty.BasicInfo basicInfo) {
-    final packageName = basicInfo.packageName;
+    final packageName = basicInfo.packageName.trim();
+    if (packageName.isEmpty) {
+      _log.warning(
+        '[${entity.id}] ignoring interconnect session without package name',
+      );
+      return;
+    }
     final info = ThirdpartyAppInfo(
       packageName: packageName,
       fingerprint: Uint8List.fromList(basicInfo.fingerprint),
@@ -112,10 +133,27 @@ class XiaomiThirdpartyAppSystem extends XiaomiPbSystem {
   }
 
   void _handleMessageContent(pb_thirdparty.MessageContent message) {
-    final pkgName = message.basicInfo.packageName;
+    final declaredPackage = message.hasBasicInfo()
+        ? message.basicInfo.packageName.trim()
+        : '';
+    final pkgName = declaredPackage.isNotEmpty
+        ? declaredPackage
+        : (_connectedApps.length == 1 ? _connectedApps.keys.single : '');
+    if (declaredPackage.isEmpty && pkgName.isNotEmpty) {
+      _log.warning(
+        '[${entity.id}] interconnect reply omitted package name; '
+        'using sole active session $pkgName',
+      );
+    }
+    if (pkgName.isEmpty) {
+      _log.warning(
+        '[${entity.id}] interconnect reply cannot be routed: '
+        'package missing, activeSessions=${_connectedApps.keys}',
+      );
+    }
     _log.info(
       '[${entity.id}] received interconnect message from $pkgName '
-      '(${message.content.length} bytes)',
+      '(${message.content.length} bytes, basicInfo=${message.hasBasicInfo()})',
     );
     entity.emit(
       InterconnectMessage(

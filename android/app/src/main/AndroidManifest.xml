@@ -80,6 +80,13 @@
             android:name=".BackgroundTaskService"
             android:exported="false"
             android:foregroundServiceType="dataSync|connectedDevice" />
+        <service
+            android:name=".OronBoxWearableService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.xiaomi.wearable.XMS_WEARABLE_SERVICE" />
+            </intent-filter>
+        </service>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

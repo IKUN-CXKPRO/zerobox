@@ -80,3 +80,7 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    implementation(project(":xms-wearable-lib"))
+}

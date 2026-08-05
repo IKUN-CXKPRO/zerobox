@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/core/models/sync_models.dart';
+import 'package:oronbox/src/core/models/xiaomi_health_models.dart';
 import 'package:oronbox/src/core/providers/bluetooth_platform_provider.dart';
 import 'package:oronbox/src/core/services/connection_keep_alive.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
@@ -25,6 +26,7 @@ import 'package:oronbox/src/device/core/transport.dart';
 import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
 import 'package:oronbox/src/device/xiaomi/components/auth_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/info_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/health_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/install_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/network_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/mass_system.dart';
@@ -226,6 +228,7 @@ class DeviceManagerState {
     this.connectStatus = 0,
     this.protocolState = ProtocolState.disconnected,
     this.battery,
+    this.health,
     this.systemInfo,
     this.apps = const [],
     this.watchfaces = const [],
@@ -248,6 +251,7 @@ class DeviceManagerState {
   final int connectStatus;
   final ProtocolState protocolState;
   final BatteryStatus? battery;
+  final XiaomiHealthState? health;
   final SystemInfo? systemInfo;
   final List<AppInfo> apps;
   final List<WatchfaceInfo> watchfaces;
@@ -270,6 +274,7 @@ class DeviceManagerState {
     int? connectStatus,
     ProtocolState? protocolState,
     BatteryStatus? battery,
+    XiaomiHealthState? health,
     SystemInfo? systemInfo,
     List<AppInfo>? apps,
     List<WatchfaceInfo>? watchfaces,
@@ -281,6 +286,7 @@ class DeviceManagerState {
     String? error,
     bool clearCurrentDevice = false,
     bool clearBattery = false,
+    bool clearHealth = false,
     bool clearSystemInfo = false,
     bool clearError = false,
     bool clearConnectionTarget = false,
@@ -306,6 +312,7 @@ class DeviceManagerState {
       connectStatus: connectStatus ?? this.connectStatus,
       protocolState: protocolState ?? this.protocolState,
       battery: clearBattery ? null : (battery ?? this.battery),
+      health: clearHealth ? null : (health ?? this.health),
       systemInfo: clearSystemInfo ? null : (systemInfo ?? this.systemInfo),
       apps: apps ?? this.apps,
       watchfaces: watchfaces ?? this.watchfaces,
@@ -352,6 +359,13 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
       codename: device.codename,
     ).kind;
   }
+
+  /// The health protocol surface for the currently connected Xiaomi device.
+  ///
+  /// This is available in the daemon-side manager where the protocol systems
+  /// live.  The GUI host consumes the same data through [DeviceManagerState]
+  /// and the command bus.
+  XiaomiHealthSystem? get xiaomiHealthSystem => null;
 
   @protected
   void emitXiaoAiOpusFrame(Uint8List frame) {
@@ -475,6 +489,10 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
 class LocalDeviceManager extends DeviceManager {
   static const errorBluetoothUnavailable =
       DeviceManager.errorBluetoothUnavailable;
+
+  @override
+  XiaomiHealthSystem? get xiaomiHealthSystem =>
+      _currentEntity?.system<XiaomiHealthSystem>();
 
   @override
   DeviceManagerState build() {
@@ -956,6 +974,7 @@ class LocalDeviceManager extends DeviceManager {
       connectStatus: 1,
       protocolState: ProtocolState.connecting,
       clearBattery: true,
+      clearHealth: true,
       clearSystemInfo: true,
       apps: const [],
       watchfaces: const [],
@@ -1027,6 +1046,7 @@ class LocalDeviceManager extends DeviceManager {
           connecting: false,
           connectStatus: 2,
           clearBattery: true,
+          clearHealth: true,
           clearSystemInfo: true,
           apps: const [],
           watchfaces: const [],
@@ -1169,6 +1189,7 @@ class LocalDeviceManager extends DeviceManager {
         connecting: false,
         connectStatus: 2,
         clearBattery: true,
+        clearHealth: true,
         clearSystemInfo: true,
         apps: const [],
         watchfaces: const [],
@@ -1342,11 +1363,30 @@ class LocalDeviceManager extends DeviceManager {
         );
       case BatteryUpdated(:final battery):
         final previousChargeInfo = state.battery?.chargeInfo;
+        final isCharging = switch (battery.chargeStatus) {
+          ChargeStatus.charging => true,
+          ChargeStatus.notCharging || ChargeStatus.full => false,
+          ChargeStatus.unknown => null,
+        };
+        final chargingStatus = switch (battery.chargeStatus) {
+          ChargeStatus.charging => 1,
+          ChargeStatus.notCharging => 2,
+          ChargeStatus.full => 3,
+          ChargeStatus.unknown => null,
+        };
         state = state.copyWith(
           battery: battery.chargeInfo == null && previousChargeInfo != null
               ? battery.copyWith(chargeInfo: previousChargeInfo)
               : battery,
+          health: isCharging == null
+              ? null
+              : state.health?.copyWith(
+                  isCharging: isCharging,
+                  chargingStatus: chargingStatus,
+                ),
         );
+      case XiaomiHealthStateUpdated(:final health):
+        state = state.copyWith(health: health);
       case DeviceInfoUpdated(:final info):
         _log.info(
           'device info ${event.deviceId}: model=${info.model}, '
@@ -1438,6 +1478,7 @@ class LocalDeviceManager extends DeviceManager {
         connectStatus: 0,
         protocolState: ProtocolState.disconnected,
         clearBattery: true,
+        clearHealth: true,
         clearSystemInfo: true,
         clearError: true,
       );
@@ -1460,6 +1501,7 @@ class LocalDeviceManager extends DeviceManager {
       connectStatus: 0,
       protocolState: ProtocolState.disconnected,
       clearBattery: true,
+      clearHealth: true,
       clearSystemInfo: true,
       clearError: true,
     );
@@ -1510,6 +1552,7 @@ class LocalDeviceManager extends DeviceManager {
         connectStatus: 0,
         protocolState: ProtocolState.disconnected,
         clearBattery: true,
+        clearHealth: true,
         clearSystemInfo: true,
         clearError: true,
         clearConnectionTarget: true,
@@ -1528,6 +1571,7 @@ class LocalDeviceManager extends DeviceManager {
       connectStatus: 0,
       protocolState: ProtocolState.disconnected,
       clearBattery: true,
+      clearHealth: true,
       clearSystemInfo: true,
       clearError: true,
       clearConnectionTarget: true,
@@ -1575,6 +1619,7 @@ class LocalDeviceManager extends DeviceManager {
       connectStatus: 0,
       protocolState: ProtocolState.disconnected,
       clearBattery: true,
+      clearHealth: true,
       clearSystemInfo: true,
       clearConnectionTarget: true,
       clearConnectionPhase: true,
@@ -1724,6 +1769,7 @@ class LocalDeviceManager extends DeviceManager {
           ? ProtocolState.disconnected
           : state.protocolState,
       clearBattery: removedCurrent,
+      clearHealth: removedCurrent,
       clearSystemInfo: removedCurrent,
       clearError: true,
     );
@@ -2594,7 +2640,11 @@ class LocalDeviceManager extends DeviceManager {
     _log.info(
       'sending interconnect message to $packageName (${payload.length} bytes)',
     );
-    await system.sendPhoneMessage(packageName, payload);
+    await system.sendPhoneMessage(
+      packageName,
+      payload,
+      app: _thirdpartyAppInfo(app),
+    );
     _log.info('interconnect message queued for $packageName');
   }
 

@@ -3482,6 +3482,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Window behavior, onboarding, and developer tools';
 
   @override
+  String get xmsDeveloperMode => 'XMS developer mode';
+
+  @override
+  String get xmsDeveloperModeDescription =>
+      'Allow Android app signatures to differ';
+
+  @override
   String get oronBoxCoinsTitle => 'Resource coins';
 
   @override

@@ -1558,6 +1558,8 @@
   "settingsCategorySupportDescription": "Feedback, about, licenses, acknowledgements, and website",
   "settingsCategoryAdvanced": "Advanced settings",
   "settingsCategoryAdvancedDescription": "Window behavior, onboarding, and developer tools",
+  "xmsDeveloperMode": "XMS developer mode",
+  "xmsDeveloperModeDescription": "Allow Android app signatures to differ",
   "oronBoxCoinsTitle": "Resource coins",
   "oronBoxCoinsBalance": "Coin balance: {balance}",
   "@oronBoxCoinsBalance": {

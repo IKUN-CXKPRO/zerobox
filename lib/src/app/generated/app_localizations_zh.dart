@@ -3325,6 +3325,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsCategoryAdvancedDescription => '窗口行为、重新引导与开发工具';
 
   @override
+  String get xmsDeveloperMode => 'XMS 开发模式';
+
+  @override
+  String get xmsDeveloperModeDescription => '允许不一致的安卓应用签名';
+
+  @override
   String get oronBoxCoinsTitle => '资源投币';
 
   @override

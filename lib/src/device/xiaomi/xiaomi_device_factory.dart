@@ -4,6 +4,7 @@ import 'package:oronbox/src/device/core/runtime.dart';
 import 'package:oronbox/src/device/core/transport.dart';
 import 'package:oronbox/src/device/xiaomi/components/auth_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/info_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/health_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/install_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/mass_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/media_system.dart';
@@ -55,6 +56,7 @@ class XiaomiDeviceFactory implements DeviceEntityFactory {
 
     entity.registerSystem(XiaomiInstallSystem());
     entity.registerSystem(XiaomiInfoSystem());
+    entity.registerSystem(XiaomiHealthSystem());
     entity.registerSystem(XiaomiSyncSystem());
     entity.registerSystem(XiaomiResourceSystem());
     entity.registerSystem(XiaomiWatchfaceSystem());

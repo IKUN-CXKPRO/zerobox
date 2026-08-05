@@ -281,7 +281,7 @@ class _PublishingAccessCard extends StatelessWidget {
     final githubLogin = grants['github_login']?.toString() ?? '';
     return Card(
       margin: EdgeInsets.zero,
-      elevation: 6,
+      elevation: 0,
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
@@ -518,12 +518,14 @@ class _CreatorTermsGateState extends ConsumerState<_CreatorTermsGate> {
           widget.child,
           Positioned(
             left: 16,
+            right: 196,
             bottom: 16,
-            child: SizedBox(
-              width: (MediaQuery.sizeOf(context).width - 32)
-                  .clamp(0, 360)
-                  .toDouble(),
-              child: widget.floatingAccess,
+            child: Align(
+              alignment: AlignmentDirectional.bottomStart,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: widget.floatingAccess,
+              ),
             ),
           ),
           Positioned(
@@ -535,6 +537,10 @@ class _CreatorTermsGateState extends ConsumerState<_CreatorTermsGate> {
                 if (widget.selectionActive)
                   FloatingActionButton.extended(
                     heroTag: 'creator-move-selection',
+                    elevation: 0,
+                    focusElevation: 0,
+                    hoverElevation: 0,
+                    highlightElevation: 0,
                     onPressed: widget.loading ? null : widget.onMoveSelection,
                     icon: const Icon(Icons.drive_file_move_outline),
                     label: Text(l10n.creatorMoveToCollection),
@@ -542,6 +548,10 @@ class _CreatorTermsGateState extends ConsumerState<_CreatorTermsGate> {
                 else
                   FloatingActionButton.extended(
                     heroTag: 'creator-new-resource',
+                    elevation: 0,
+                    focusElevation: 0,
+                    hoverElevation: 0,
+                    highlightElevation: 0,
                     onPressed: widget.loading ? null : widget.onCreate,
                     icon: const Icon(Icons.add),
                     label: Text(l10n.creatorNewResource),

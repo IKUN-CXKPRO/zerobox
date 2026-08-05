@@ -6301,6 +6301,18 @@ abstract class AppLocalizations {
   /// **'Window behavior, onboarding, and developer tools'**
   String get settingsCategoryAdvancedDescription;
 
+  /// No description provided for @xmsDeveloperMode.
+  ///
+  /// In en, this message translates to:
+  /// **'XMS developer mode'**
+  String get xmsDeveloperMode;
+
+  /// No description provided for @xmsDeveloperModeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Android app signatures to differ'**
+  String get xmsDeveloperModeDescription;
+
   /// No description provided for @oronBoxCoinsTitle.
   ///
   /// In en, this message translates to:

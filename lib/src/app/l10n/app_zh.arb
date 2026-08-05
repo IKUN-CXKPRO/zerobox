@@ -1558,6 +1558,8 @@
   "settingsCategorySupportDescription": "反馈、关于、许可、致谢与官方网站",
   "settingsCategoryAdvanced": "高级设置",
   "settingsCategoryAdvancedDescription": "窗口行为、重新引导与开发工具",
+  "xmsDeveloperMode": "XMS 开发模式",
+  "xmsDeveloperModeDescription": "允许不一致的安卓应用签名",
   "oronBoxCoinsTitle": "资源投币",
   "oronBoxCoinsBalance": "硬币余额：{balance}",
   "@oronBoxCoinsBalance": {

@@ -6,12 +6,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/core/models/xiaomi_health_models.dart';
 import 'package:oronbox/src/device/core/connect_type.dart';
 import 'package:oronbox/src/device/core/device_kind.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_app_side_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_voice_memos_system.dart';
 import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/devices/controllers/interconnect_event_codec.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart';
 
@@ -37,6 +39,11 @@ class HostDeviceManager extends DeviceManager {
   }
 
   void _handleEvent(CommandEvent event) {
+    final interconnect = decodeInterconnectEvent(event);
+    if (interconnect != null) {
+      emitInterconnectMessage(interconnect);
+      return;
+    }
     if (event.event == 'device.zeppos.xiaoai.opus') {
       final raw = event.data['frame'];
       if (raw is List) {
@@ -57,6 +64,7 @@ class HostDeviceManager extends DeviceManager {
         state = state.copyWith(
           connecting: false,
           protocolState: ProtocolState.disconnected,
+          clearHealth: true,
           error: 'daemon_disconnected',
         );
       }
@@ -139,6 +147,7 @@ class HostDeviceManager extends DeviceManager {
     }
     final current = raw['currentDevice'];
     final battery = raw['battery'];
+    final health = raw['health'];
     final systemInfo = raw['systemInfo'];
     state = DeviceManagerState(
       currentDevice: current is Map
@@ -160,6 +169,9 @@ class HostDeviceManager extends DeviceManager {
       ),
       battery: battery is Map
           ? BatteryStatus.fromJson(battery.cast<String, dynamic>())
+          : null,
+      health: health is Map
+          ? XiaomiHealthState.fromJson(health.cast<String, dynamic>())
           : null,
       systemInfo: systemInfo is Map
           ? SystemInfo.fromJson(systemInfo.cast<String, dynamic>())
@@ -276,6 +288,7 @@ class HostDeviceManager extends DeviceManager {
       connectStatus: 1,
       protocolState: ProtocolState.connecting,
       clearBattery: true,
+      clearHealth: true,
       clearSystemInfo: true,
       apps: const [],
       watchfaces: const [],

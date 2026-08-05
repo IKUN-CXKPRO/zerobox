@@ -309,6 +309,28 @@ abstract class AppSettingsNotifier extends Notifier<AppSettings> {
   Future<void> setClean(CleanSettings value);
 }
 
+const xmsDeveloperSkipSignatureKey = 'xmsDeveloperSkipSignature';
+
+class XmsDeveloperModeNotifier extends Notifier<bool> {
+  @override
+  bool build() =>
+      SharedPrefsService.instance.getBool(xmsDeveloperSkipSignatureKey) ??
+      false;
+
+  Future<void> setEnabled(bool value) async {
+    state = value;
+    await SharedPrefsService.instance.setBool(
+      xmsDeveloperSkipSignatureKey,
+      value,
+    );
+  }
+}
+
+final xmsDeveloperModeProvider =
+    NotifierProvider<XmsDeveloperModeNotifier, bool>(
+      XmsDeveloperModeNotifier.new,
+    );
+
 class LocalAppSettingsNotifier extends AppSettingsNotifier {
   @override
   AppSettings build() => AppSettings.load();

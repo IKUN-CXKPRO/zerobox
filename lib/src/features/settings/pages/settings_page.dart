@@ -81,9 +81,7 @@ class SettingsPage extends ConsumerWidget {
       ),
       body: SegmentedList(
         maxWidth: StyleConstants.pageMaxWidth,
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: StyleConstants.pagePadding,
-        ),
+        contentPadding: const EdgeInsets.only(top: StyleConstants.pagePadding),
         sections: [
           if (category == null || category == SettingsCategory.accounts)
             _buildSection(
@@ -437,6 +435,16 @@ class SettingsPage extends ConsumerWidget {
                           ? l10n.devToolsDescriptionDesktop
                           : l10n.devToolsDescriptionEntry,
                     ),
+                  ),
+                if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
+                  SegmentedTile.switchTile(
+                    onToggle: (value) => ref
+                        .read(xmsDeveloperModeProvider.notifier)
+                        .setEnabled(value ?? false),
+                    initialValue: ref.watch(xmsDeveloperModeProvider),
+                    leading: const Icon(Icons.phonelink_setup_outlined),
+                    title: Text(l10n.xmsDeveloperMode),
+                    description: Text(l10n.xmsDeveloperModeDescription),
                   ),
               ],
             ),

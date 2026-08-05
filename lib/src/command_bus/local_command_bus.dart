@@ -13,10 +13,12 @@ import 'package:oronbox/src/core/logging/diagnostic_event.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/device/core/connect_type.dart';
+import 'package:oronbox/src/device/core/event_bus.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/data/bandbbs/bandbbs_resource_provider.dart';
 import 'package:oronbox/src/data/huami/huami_app_store_resource_provider.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/devices/controllers/interconnect_event_codec.dart';
 import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 import 'package:oronbox/src/features/accounts/services/huami_auth_service.dart';
 import 'package:oronbox/src/features/accounts/services/mi_account_service.dart';
@@ -84,6 +86,14 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
         ),
       ),
     );
+    _interconnectSubscription = _manager.interconnectMessages.listen(
+      (message) => _events.add(
+        CommandEvent(
+          deviceInterconnectEvent,
+          data: encodeInterconnectEvent(message),
+        ),
+      ),
+    );
     _pluginManager = PluginManager(
       deviceManager: _manager,
       readDeviceState: () => _state,
@@ -106,6 +116,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
   late final ProviderSubscription<BandBbsAuthState> _bandBbsAuthSubscription;
   late final StreamSubscription<DiagnosticEvent> _logSubscription;
   late final StreamSubscription<Uint8List> _xiaoAiSubscription;
+  late final StreamSubscription<InterconnectMessage> _interconnectSubscription;
   bool _activeCommandCancelled = false;
   Future<void> _commandTail = Future<void>.value();
   late final PluginManager _pluginManager;
@@ -963,6 +974,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'connectStatus': state.connectStatus,
     'protocolState': state.protocolState.name,
     if (state.battery != null) 'battery': state.battery!.toJson(),
+    if (state.health != null) 'health': state.health!.toJson(),
     if (state.systemInfo != null) 'systemInfo': state.systemInfo!.toJson(),
     'apps': state.apps.map((item) => item.toJson()).toList(),
     'watchfaces': state.watchfaces.map((item) => item.toJson()).toList(),
@@ -2219,6 +2231,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     _bandBbsAuthSubscription.close();
     await _logSubscription.cancel();
     await _xiaoAiSubscription.cancel();
+    await _interconnectSubscription.cancel();
     await _events.close();
   }
 }
