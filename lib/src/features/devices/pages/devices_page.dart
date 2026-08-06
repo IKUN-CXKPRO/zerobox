@@ -575,10 +575,9 @@ class _BatteryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final charging = battery?.chargeStatus == ChargeStatus.charging;
-    final lastCharged = _lastChargedText(
-      context,
-      battery?.chargeInfo?.timestamp,
-    );
+    final supportingText = charging
+        ? AppLocalizations.of(context)!.deviceCharging
+        : _lastChargedText(context, battery?.chargeInfo?.timestamp);
     return _DeviceMetricCard(
       title: AppLocalizations.of(context)!.fieldBattery,
       value: battery == null ? '--' : '${battery!.capacity}%',
@@ -590,16 +589,15 @@ class _BatteryCard extends StatelessWidget {
       valueIcon: charging ? Icons.bolt : null,
       valueColor: charging ? scheme.primary : scheme.onSurface,
       progressColor: charging ? scheme.primary : scheme.onSurfaceVariant,
-      supportingText: lastCharged,
+      supportingText: supportingText,
       borderRadius: borderRadius,
     );
   }
 
   String? _lastChargedText(BuildContext context, int? timestamp) {
-    if (timestamp == null || timestamp <= 0) return null;
+    if (timestamp == null) return null;
     final chargedAt = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
     final now = DateTime.now();
-    if (chargedAt.year < 2020 || chargedAt.isAfter(now)) return null;
     final elapsed = now.difference(chargedAt);
     final l10n = AppLocalizations.of(context)!;
     if (elapsed.inMinutes < 1) return l10n.deviceLastChargedNow;
