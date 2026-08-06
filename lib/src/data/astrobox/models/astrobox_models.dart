@@ -10,10 +10,6 @@ enum AstroBoxResourceType {
   watchface,
   @JsonValue('firmware')
   firmware,
-  @JsonValue('fontpack')
-  fontpack,
-  @JsonValue('iconpack')
-  iconpack,
 }
 
 enum AstroBoxPaidType {

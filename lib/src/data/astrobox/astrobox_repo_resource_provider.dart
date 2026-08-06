@@ -351,8 +351,6 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
     AstroBoxResourceType.quickApp => CommunityResourceType.quickApp,
     AstroBoxResourceType.watchface => CommunityResourceType.watchface,
     AstroBoxResourceType.firmware => CommunityResourceType.firmware,
-    AstroBoxResourceType.fontpack => CommunityResourceType.fontpack,
-    AstroBoxResourceType.iconpack => CommunityResourceType.iconpack,
   };
 
   CommunityPaidType _mapPaid(AstroBoxPaidType value) => switch (value) {
@@ -364,8 +362,6 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
   AstroBoxResourceType _parseDtoType(String? value) => switch (value) {
     'watchface' => AstroBoxResourceType.watchface,
     'firmware' => AstroBoxResourceType.firmware,
-    'fontpack' => AstroBoxResourceType.fontpack,
-    'iconpack' => AstroBoxResourceType.iconpack,
     _ => AstroBoxResourceType.quickApp,
   };
 

@@ -344,12 +344,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get firmwareTools => 'Firmware / Tools';
 
   @override
-  String get resourceTypeFontpack => 'Font pack';
-
-  @override
-  String get resourceTypeIconpack => 'Icon pack';
-
-  @override
   String get localResources => 'Local resources';
 
   @override
@@ -1881,12 +1875,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get firmwareTool => 'Firmware / Tool';
-
-  @override
-  String get fontPack => 'Font Pack';
-
-  @override
-  String get iconPack => 'Icon Pack';
 
   @override
   String get free => 'Free';

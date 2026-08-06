@@ -557,12 +557,6 @@ class BandBbsCatalog implements CommunityResourceCatalog {
     if (prefix.contains('固件') || prefix.contains('firmware')) {
       return CommunityResourceType.firmware;
     }
-    if (prefix.contains('字体') || prefix.contains('font')) {
-      return CommunityResourceType.fontpack;
-    }
-    if (prefix.contains('图标') || prefix.contains('icon')) {
-      return CommunityResourceType.iconpack;
-    }
     return null;
   }
 

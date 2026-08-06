@@ -37,7 +37,7 @@ OronBox 是一款跨平台可穿戴设备管理工具，无需官方客户端，
 
 ## CLI 使用
 
-OronBox 提供功能完整且可脚本化的命令行界面，可在无 GUI 模式下管理设备、安装资源、访问社区源以及控制后台任务，详细用法参见 [OronBox CLI 与守护进程文档](docs/zh/CLI.md)
+OronBox 提供功能完整且可脚本化的命令行界面，可在无 GUI 模式下管理设备、安装资源、访问社区源以及控制后台任务，详细用法参见 [OronBox 文档站](https://github.com/zxor-org/OronBox-Docs)
 
 ## 从源码构建
 

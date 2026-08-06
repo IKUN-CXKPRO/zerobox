@@ -7,8 +7,6 @@ enum CommunityResourceType {
   miniprogram,
   watchface,
   firmware,
-  fontpack,
-  iconpack,
 }
 
 enum CommunityPaidType { free, paid, forcePaid }

@@ -1884,10 +1884,6 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
           CommunityResourceType.miniprogram => LocalDeviceInstallType.app,
           CommunityResourceType.watchface => LocalDeviceInstallType.watchface,
           CommunityResourceType.firmware => LocalDeviceInstallType.firmware,
-          _ => throw CommandFailure(
-            'validation',
-            'Resource type cannot be installed: ${detail.type.name}',
-          ),
         },
         fileName: downloaded.fileName,
         bytes: downloaded.bytes ?? await File(downloaded.path).readAsBytes(),
@@ -1904,8 +1900,6 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
         CommunityResourceType.miniprogram => 'miniprogram',
         CommunityResourceType.watchface => 'watchface',
         CommunityResourceType.firmware => 'firmware',
-        CommunityResourceType.fontpack => 'fontpack',
-        CommunityResourceType.iconpack => 'iconpack',
       },
       'installed': install,
     };
@@ -1963,8 +1957,6 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       'miniprogram' => CommunityResourceType.miniprogram,
       'watchface' => CommunityResourceType.watchface,
       'firmware' => CommunityResourceType.firmware,
-      'fontpack' => CommunityResourceType.fontpack,
-      'iconpack' => CommunityResourceType.iconpack,
       _ => throw CommandFailure('usage', 'Unknown resource type: $value'),
     };
   }

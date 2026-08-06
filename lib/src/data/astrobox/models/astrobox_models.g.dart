@@ -52,8 +52,6 @@ const _$AstroBoxResourceTypeEnumMap = {
   AstroBoxResourceType.quickApp: 'quick_app',
   AstroBoxResourceType.watchface: 'watchface',
   AstroBoxResourceType.firmware: 'firmware',
-  AstroBoxResourceType.fontpack: 'fontpack',
-  AstroBoxResourceType.iconpack: 'iconpack',
 };
 
 const _$AstroBoxPaidTypeEnumMap = {

@@ -360,8 +360,6 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
     CommunityResourceType.miniprogram => 'zepp_app',
     CommunityResourceType.watchface => 'watchface',
     CommunityResourceType.firmware => 'firmware',
-    CommunityResourceType.fontpack => 'fontpack',
-    CommunityResourceType.iconpack => 'iconpack',
   };
 
   Map<String, Object?> _map(Object? value) => value is Map

@@ -332,12 +332,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get firmwareTools => '固件 / 工具';
 
   @override
-  String get resourceTypeFontpack => '字体包';
-
-  @override
-  String get resourceTypeIconpack => '图标包';
-
-  @override
   String get localResources => '本地资源';
 
   @override
@@ -1804,12 +1798,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get firmwareTool => '固件 / 工具';
-
-  @override
-  String get fontPack => '字体包';
-
-  @override
-  String get iconPack => '图标包';
 
   @override
   String get free => '免费';

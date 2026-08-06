@@ -37,7 +37,7 @@ OronBox is a cross-platform wearable device management tool that lets you connec
 
 ## CLI usage
 
-OronBox provides a powerful, scriptable command-line interface for managing devices, installing resources, accessing community sources and controlling background tasks without the GUI. See the [OronBox CLI and daemon documentation](docs/en/CLI.md) for usage details.
+OronBox provides a powerful, scriptable command-line interface for managing devices, installing resources, accessing community sources and controlling background tasks without the GUI. See the [OronBox documentation site](https://github.com/zxor-org/OronBox-Docs) for usage details.
 
 ## Build from source
 

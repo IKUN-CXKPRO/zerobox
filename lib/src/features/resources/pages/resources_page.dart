@@ -1599,32 +1599,30 @@ class _NoStretchScrollBehavior extends MaterialScrollBehavior {
   ) => child;
 }
 
-bool _hasPairedZeppDevice(DeviceManagerState state) => [
-  ...state.pairedDevices,
-  if (state.currentDevice != null) state.currentDevice!,
-].any(
-  (device) =>
-      DeviceRegistry.resolveIdentity(
+bool _isCurrentDeviceZepp(DeviceManagerState state) {
+  final device = state.currentDevice;
+  if (device == null) return false;
+  return DeviceRegistry.resolveIdentity(
         name: device.name,
         codename: device.codename,
       ).kind ==
-      DeviceKind.zepp,
-);
+      DeviceKind.zepp;
+}
 
-List<CommunitySourceId> _enabledCommunitySources(
+List<CommunitySourceId> enabledCommunitySources(
   List<CommunitySourceId>? loadedSources,
   CleanSettings clean, {
-  required bool hasZeppDevice,
+  required bool isZepposDevice,
 }) => [
   for (final candidate in loadedSources ?? CommunitySourceId.values)
     if ((candidate != CommunitySourceId.oronBox ||
-            clean.oronBoxSourceEnabled) &&
+            (clean.oronBoxSourceEnabled && !isZepposDevice)) &&
         (candidate != CommunitySourceId.bandbbs ||
             clean.bandBbsSourceEnabled) &&
         (candidate != CommunitySourceId.astroboxRepo ||
-            clean.astroBoxSourceEnabled) &&
+            (clean.astroBoxSourceEnabled && !isZepposDevice)) &&
         (candidate != CommunitySourceId.huamiAppStore ||
-            (clean.huamiAppStoreSourceEnabled && hasZeppDevice)))
+            (clean.huamiAppStoreSourceEnabled && isZepposDevice)))
       candidate,
 ];
 
@@ -1666,10 +1664,10 @@ class _CommunitySourceMenu extends ConsumerWidget {
     final loadedSources = ref.watch(communitySourcesProvider).value;
     final clean = ref.watch(appSettingsProvider).clean;
     final sourceById = <String, CommunitySourceId>{
-      for (final candidate in _enabledCommunitySources(
+      for (final candidate in enabledCommunitySources(
         loadedSources,
         clean,
-        hasZeppDevice: _hasPairedZeppDevice(ref.watch(deviceManagerProvider)),
+        isZepposDevice: _isCurrentDeviceZepp(ref.watch(deviceManagerProvider)),
       ))
         candidate.storageKey: candidate,
     };
@@ -1719,10 +1717,10 @@ class _OtherSourcesFooter extends ConsumerWidget {
     final clean = ref.watch(appSettingsProvider).clean;
     final loadedSources = ref.watch(communitySourcesProvider).value;
     final others =
-        _enabledCommunitySources(
+        enabledCommunitySources(
               loadedSources,
               clean,
-              hasZeppDevice: _hasPairedZeppDevice(
+              isZepposDevice: _isCurrentDeviceZepp(
                 ref.watch(deviceManagerProvider),
               ),
             )
@@ -2261,8 +2259,6 @@ String _typeLabel(
   CommunityResourceType.miniprogram => l10n.miniprograms,
   CommunityResourceType.watchface => l10n.watchfaces,
   CommunityResourceType.firmware => l10n.firmwareTools,
-  CommunityResourceType.fontpack => l10n.fontPack,
-  CommunityResourceType.iconpack => l10n.iconPack,
 };
 
 String _communitySourceLabel(AppLocalizations l10n, CommunitySourceId source) =>

@@ -716,18 +716,6 @@ abstract class AppLocalizations {
   /// **'Firmware / Tools'**
   String get firmwareTools;
 
-  /// No description provided for @resourceTypeFontpack.
-  ///
-  /// In en, this message translates to:
-  /// **'Font pack'**
-  String get resourceTypeFontpack;
-
-  /// No description provided for @resourceTypeIconpack.
-  ///
-  /// In en, this message translates to:
-  /// **'Icon pack'**
-  String get resourceTypeIconpack;
-
   /// No description provided for @localResources.
   ///
   /// In en, this message translates to:
@@ -3433,18 +3421,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Firmware / Tool'**
   String get firmwareTool;
-
-  /// No description provided for @fontPack.
-  ///
-  /// In en, this message translates to:
-  /// **'Font Pack'**
-  String get fontPack;
-
-  /// No description provided for @iconPack.
-  ///
-  /// In en, this message translates to:
-  /// **'Icon Pack'**
-  String get iconPack;
 
   /// No description provided for @free.
   ///

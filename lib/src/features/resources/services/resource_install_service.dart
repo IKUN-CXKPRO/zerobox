@@ -326,8 +326,6 @@ class ResourceInstallService {
         CommunityResourceType.miniprogram => LocalDeviceInstallType.app,
         CommunityResourceType.watchface => LocalDeviceInstallType.watchface,
         CommunityResourceType.firmware => LocalDeviceInstallType.firmware,
-        CommunityResourceType.fontpack ||
-        CommunityResourceType.iconpack => null,
       };
 
   String _guessPackageName(String fileName) {
@@ -353,8 +351,6 @@ extension ResourceTypeLabel on CommunityResourceType {
       CommunityResourceType.miniprogram => 'zpk/zab/zip',
       CommunityResourceType.watchface => 'bin/face/mwz/zip',
       CommunityResourceType.firmware => 'zip/bin',
-      CommunityResourceType.fontpack => 'zip',
-      CommunityResourceType.iconpack => 'zip',
     };
   }
 }

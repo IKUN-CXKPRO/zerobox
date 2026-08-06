@@ -1505,8 +1505,6 @@ String _typeLabel(
   CommunityResourceType.miniprogram => l10n.miniprogram,
   CommunityResourceType.watchface => l10n.watchface,
   CommunityResourceType.firmware => l10n.firmwareTool,
-  CommunityResourceType.fontpack => l10n.fontPack,
-  CommunityResourceType.iconpack => l10n.iconPack,
 };
 String _paidLabel(AppLocalizations l10n, CommunityPaidType type) =>
     switch (type) {
