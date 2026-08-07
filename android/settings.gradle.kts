@@ -27,4 +27,4 @@ plugins {
 include(":app")
 include(":xms-wearable-lib")
 project(":xms-wearable-lib").projectDir =
-    file("../xms-wearable-lib-cleanroom/xms-wearable-lib")
+    file("xms-wearable-lib-cleanroom/xms-wearable-lib")

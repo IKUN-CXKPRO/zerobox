@@ -70,6 +70,8 @@ jobs:
       ORONBOX_KEY_PASSWORD: ${{ secrets.ORONBOX_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/setup-java@v4
         with:
