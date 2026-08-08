@@ -15,7 +15,6 @@ class ApplicationHost implements OronBoxCommandBus {
           ? (core as ActiveOperationController).cancelActiveOperation
           : null,
       beginExecution: beginTaskExecution,
-      onCompleted: _onTaskCompleted,
       shouldRemoveCompleted: _shouldRemoveCompleted,
     );
     _coreSubscription = core.events.listen(_events.add);
@@ -82,39 +81,6 @@ class ApplicationHost implements OronBoxCommandBus {
     if (controller is ActiveOperationController) {
       await (controller as ActiveOperationController).cancelActiveOperation();
     }
-  }
-
-  Future<void> _onTaskCompleted(DaemonTask task, CommandResult result) async {
-    if (task.command.params['queueInstall'] != true) {
-      return;
-    }
-    final download = (result.value as Map).cast<String, Object?>();
-    final autoInstall = await core.execute(
-      const OronBoxCommand(
-        method: 'settings.get',
-        params: {'key': 'auto_install'},
-      ),
-    );
-    if (!autoInstall.ok) throw StateError(autoInstall.error!.message);
-    final setting = (autoInstall.value as Map)['value'] != false;
-    tasks.enqueue(
-      OronBoxCommand(
-        method: 'install.local',
-        params: {
-          'type': download['type'] ?? task.command.params['installType'],
-          'path': download['path'],
-          'title': task.command.params['title'] ?? download['fileName'],
-          'description': task.command.params['targetDevice'] ?? '',
-          'deleteAfter': true,
-          'autoClean': true,
-          if (task.command.params['resource'] != null)
-            'resource': task.command.params['resource'],
-          if (task.command.params['file'] != null)
-            'file': task.command.params['file'],
-        },
-      ),
-      held: !setting,
-    );
   }
 
   Future<bool> _shouldRemoveCompleted(

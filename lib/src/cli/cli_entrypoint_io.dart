@@ -407,9 +407,7 @@ Future<OronBoxCommand> buildCliCommand(CliInvocation invocation) async {
     'install.firmware' => OronBoxCommand(
       method: 'install.local',
       params: {
-        'type': invocation.command.last == 'miniprogram'
-            ? 'quickapp'
-            : invocation.command.last,
+        'type': invocation.command.last,
         'path': invocation.requiredArgument('resource path'),
         if (device != null) 'device': device,
       },

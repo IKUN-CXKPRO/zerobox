@@ -287,7 +287,12 @@ class _ZeppOsAppSideDebugPageState
       body: PageContainer(
         padding: EdgeInsets.zero,
         child: ListView(
-          padding: const EdgeInsets.all(StyleConstants.pagePadding),
+          padding: const EdgeInsets.fromLTRB(
+            StyleConstants.pagePadding,
+            0,
+            StyleConstants.pagePadding,
+            StyleConstants.pagePadding,
+          ),
           children: [
             if (_refreshError != null) ...[
               Card(

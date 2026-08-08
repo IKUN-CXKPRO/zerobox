@@ -52,12 +52,12 @@ void main() {
       transport.dataWrites.expand((value) => value),
       List.generate(10, (index) => index),
     );
-    expect(transport.dataWriteModes, everyElement(isFalse));
+    expect(transport.dataWriteModes, everyElement(isTrue));
     expect(progress.last, 1);
   });
 
   test(
-    'keeps firmware data writes unacknowledged through BleTransport',
+    'keeps firmware data writes acknowledged through BleTransport',
     () async {
       final connection = _FakeConnection(totalBytes: 10);
       final transport = BleTransport.zeppBluetooth(connection);
@@ -78,7 +78,7 @@ void main() {
         ),
       );
 
-      expect(connection.dataWriteModes, everyElement(isFalse));
+      expect(connection.dataWriteModes, everyElement(isTrue));
     },
   );
 }

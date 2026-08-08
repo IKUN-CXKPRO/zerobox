@@ -112,6 +112,9 @@ final communityResourceDetailProvider = FutureProvider.autoDispose
 
 final bandbbsCategoryTreeProvider =
     FutureProvider.autoDispose<List<BandBbsCategoryNode>>((ref) async {
+      if (!ref.watch(bandBbsAuthProvider).isSignedIn) {
+        return const [];
+      }
       final result = await ref
           .read(applicationHostProvider)
           .execute(const OronBoxCommand(method: 'resource.bandbbs.categories'));

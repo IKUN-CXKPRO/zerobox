@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_voice_memos_system.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
@@ -123,6 +124,9 @@ class _ZeppOsVoiceMemosPageState extends ConsumerState<ZeppOsVoiceMemosPage> {
         label: Text(_syncing ? l10n.cancel : l10n.deviceRecordingsSync),
       ),
       body: PageContainer(
+        padding: const EdgeInsets.symmetric(
+          horizontal: StyleConstants.pagePadding,
+        ),
         child: ListView(
           padding: const EdgeInsets.only(bottom: 88),
           children: [

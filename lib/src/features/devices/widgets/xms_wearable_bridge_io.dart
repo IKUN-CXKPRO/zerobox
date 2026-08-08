@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,7 @@ import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/device/core/device_kind.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/devices/widgets/xms_fingerprint.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart'
@@ -28,9 +30,12 @@ class _XmsWearableBridgeState extends ConsumerState<XmsWearableBridge> {
   @override
   void initState() {
     super.initState();
+    // XMS wearable is an Android-only SDK for VelaOS (Xiaomi) devices.
+    if (!Platform.isAndroid) return;
     _channel.setMethodCallHandler(_handleCall);
     final manager = ref.read(deviceManagerProvider.notifier);
     _messages = manager.interconnectMessages.listen((message) {
+      if (!_isVelaOsDevice) return;
       _log.info(
         'forwarding interconnect reply package=${message.pkgName} '
         'bytes=${message.payload.length}',
@@ -60,7 +65,12 @@ class _XmsWearableBridgeState extends ConsumerState<XmsWearableBridge> {
     });
   }
 
+  bool get _isVelaOsDevice =>
+      ref.read(deviceManagerProvider.notifier).currentDeviceKind ==
+      DeviceKind.xiaomi;
+
   void _emitDataChanged(int type, Object value) {
+    if (!_isVelaOsDevice) return;
     unawaited(
       _channel.invokeMethod<void>('dataChanged', {
         'nodeId': ref.read(deviceManagerProvider).currentDevice?.addr ?? '',

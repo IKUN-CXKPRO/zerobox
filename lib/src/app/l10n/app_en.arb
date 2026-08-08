@@ -163,6 +163,7 @@
     }
   },
   "changelog": "Changelog",
+  "changelogUnavailable": "No changelog yet",
   "notFound": "Not found",
   "downloadStarted": "Download started",
   "compatible": "Compatible with",
@@ -1072,8 +1073,6 @@
   "settingsAboutSoftwareTagline": "A pretty fast wearable management tool for VelaOS and ZeppOS, built with Flutter",
   "settingsAboutSoftwareRepository": "Open GitHub repository",
   "settingsAboutSoftwareTeam": "Development team",
-  "settingsAboutSoftwareReleaseName": "Current release: development preview",
-  "settingsAboutSoftwareReleaseBody": "This update includes:\n• System accent color support and theme refinements\n• Redesigned resource detail and list pages with grouped device filters\n• Replaced team page with about software page; localized settings\n• Improved Xiaomi SAR controller send error handling\n• Stabilized Linux classic SPP connect cancellation and timeouts\n• Updated ARB localizations and generated l10n files",
   "settingsAboutSoftwareBuildInfo": "Build info",
   "settingsAboutSoftwareCopyright": "Copyright © OronBox contributors",
   "acknowledgementsKazumi": "Reference for Material Design components and UI patterns.",

@@ -1,14 +1,12 @@
 import 'dart:async';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
-import 'package:oronbox/src/daemon/daemon_task_models.dart';
+import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource_codec.dart';
-import 'package:oronbox/src/features/resources/services/daemon_task_feed.dart';
 import 'package:oronbox/src/features/resources/services/install_queue_notifier.dart';
 import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
@@ -25,6 +23,9 @@ class ResourceTask {
     this.status = ResourceTaskStatus.pending,
     this.progress = 0,
     this.error,
+    this.filePath = '',
+    this.bytes,
+    this.installType,
   });
 
   final String id;
@@ -35,30 +36,27 @@ class ResourceTask {
   final double progress;
   final String? error;
 
+  /// Staged payload handed from download to the install queue.
+  final String filePath;
+  final Uint8List? bytes;
+  final String? installType;
+
   String get title => resource.name;
   String get subtitle => '${resource.authorName} · $codename';
 }
 
+/// Runs downloads concurrently (up to [maxConcurrent]) on both platforms and
+/// hands each finished payload to the install queue, which stays serial. The
+/// install type is resolved by the payload analyzer before a resource enters
+/// the install queue, so the queue always shows the detected type.
 class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
-  DaemonTaskFeed<ResourceTask>? _feed;
-  CancelToken? _cancelToken;
+  static const maxConcurrent = 3;
+
+  int _active = 0;
   final Set<String> _enqueuing = {};
 
   @override
-  List<ResourceTask> build() {
-    if (kIsWeb) return const [];
-    final host = ref.watch(applicationHostProvider);
-    _feed = DaemonTaskFeed(
-      host: host,
-      method: 'resource.download',
-      decode: _fromView,
-      taskId: (task) => task.id,
-      onChanged: (tasks) => state = tasks,
-    );
-    ref.onDispose(() => unawaited(_feed?.dispose()));
-    scheduleMicrotask(() => _feed?.start());
-    return const [];
-  }
+  List<ResourceTask> build() => const [];
 
   ResourceTask? get runningTask => state
       .where(
@@ -100,84 +98,161 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
     CommunityResourceFile file,
     String codename,
   ) async {
+    final task = ResourceTask(
+      id: '${resource.ref.key}:${file.id}:$codename',
+      resource: resource,
+      file: file,
+      codename: codename,
+    );
+    state = [...state, task];
+    _startNext();
+  }
+
+  void _startNext() {
+    while (_active < maxConcurrent) {
+      final next = state
+          .where((task) => task.status == ResourceTaskStatus.pending)
+          .firstOrNull;
+      if (next == null) break;
+      _active += 1;
+      unawaited(_run(next));
+    }
+  }
+
+  Future<void> _run(ResourceTask task) async {
+    _update(task.id, ResourceTaskStatus.downloading, 0, null);
+    try {
+      final ResourceTask completed = await _download(task);
+      if (!state.any((entry) => entry.id == task.id)) {
+        return;
+      }
+      await _handToInstallQueue(completed);
+      state = state.where((entry) => entry.id != task.id).toList();
+    } catch (error) {
+      if (state.any((entry) => entry.id == task.id)) {
+        _update(task.id, ResourceTaskStatus.failed, 0, error.toString());
+      }
+    } finally {
+      _active -= 1;
+      _startNext();
+    }
+  }
+
+  Future<ResourceTask> _download(ResourceTask task) async {
+    final resource = task.resource;
     if (kIsWeb) {
-      final task = ResourceTask(
-        id: '${resource.ref.key}:${file.id}:$codename',
+      final downloaded = await ResourceInstallService().downloadResource(
         resource: resource,
-        file: file,
-        codename: codename,
+        file: task.file,
+        catalog: ref.read(
+          localCommunityCatalogProviderForSource(resource.ref.source),
+        ),
+        targetDevice: task.codename,
+        onUpdate: (status, progress, error) =>
+            _update(task.id, status, progress, error),
       );
-      state = [...state, task];
-      _startNextWeb();
-      return;
+      if (downloaded == null) {
+        throw StateError('Resource download failed');
+      }
+      return ResourceTask(
+        id: task.id,
+        resource: resource,
+        file: task.file,
+        codename: task.codename,
+        status: ResourceTaskStatus.completed,
+        progress: 1,
+        filePath: downloaded.path,
+        bytes: downloaded.bytes,
+      );
     }
     final result = await ref
         .read(applicationHostProvider)
         .execute(
           OronBoxCommand(
-            method: 'task.enqueue',
+            method: 'resource.download',
             params: {
-              'command': OronBoxCommand(
-                method: 'resource.download',
-                params: {
-                  'ref': resource.ref.key,
-                  'file': file.id,
-                  'targetDevice': codename,
-                  'title': resource.name,
-                  'resource': communityResourceDetailToJson(resource),
-                  'queueInstall': true,
-                  'autoClean': true,
-                },
-              ).toJson(),
+              'ref': resource.ref.key,
+              'file': task.file.id,
+              'targetDevice': task.codename,
+              'title': resource.name,
+              'resource': communityResourceDetailToJson(resource),
             },
           ),
         );
     if (!result.ok) throw StateError(result.error!.message);
-    await _feed?.refresh();
+    final download = (result.value as Map).cast<String, Object?>();
+    return ResourceTask(
+      id: task.id,
+      resource: resource,
+      file: task.file,
+      codename: task.codename,
+      status: ResourceTaskStatus.completed,
+      progress: 1,
+      filePath: download['path']?.toString() ?? '',
+      installType: download['type']?.toString(),
+    );
   }
 
-  void _startNextWeb() {
-    if (runningTask != null) return;
-    final next = state
-        .where((task) => task.status == ResourceTaskStatus.pending)
-        .firstOrNull;
-    if (next != null) unawaited(_runWeb(next));
-  }
-
-  Future<void> _runWeb(ResourceTask task) async {
-    _cancelToken = CancelToken();
-    _updateWeb(task.id, ResourceTaskStatus.downloading, 0, null);
-    try {
-      final downloaded = await ResourceInstallService().downloadResource(
-        resource: task.resource,
-        file: task.file,
-        catalog: ref.read(
-          localCommunityCatalogProviderForSource(task.resource.ref.source),
-        ),
-        targetDevice: task.codename,
-        onUpdate: (status, progress, error) =>
-            _updateWeb(task.id, status, progress, error),
-      );
-      if (downloaded == null || !state.any((entry) => entry.id == task.id)) {
-        return;
+  Future<void> _handToInstallQueue(ResourceTask task) async {
+    if (kIsWeb) {
+      final service = ResourceInstallService();
+      final bytes = task.bytes;
+      if (bytes == null) {
+        throw StateError('Downloaded payload is empty');
       }
+      // Resolve the real type once, before the payload enters the install
+      // queue; the catalog label is only a hint.
+      final analysis = service.analyzePayload(
+        fileName: task.file.fileName,
+        bytes: bytes,
+        hint: switch (task.resource.type) {
+          CommunityResourceType.quickApp ||
+          CommunityResourceType.miniprogram => LocalDeviceInstallType.app,
+          CommunityResourceType.watchface => LocalDeviceInstallType.watchface,
+          CommunityResourceType.firmware => LocalDeviceInstallType.firmware,
+        },
+        source: 'download-queue',
+      );
       ref
           .read(installQueueProvider.notifier)
           .enqueueResource(
             resource: task.resource,
             file: task.file,
             codename: task.codename,
-            filePath: downloaded.path,
-            bytes: downloaded.bytes,
+            filePath: task.filePath,
+            bytes: bytes,
+            analysis: analysis,
           );
-      state = state.where((entry) => entry.id != task.id).toList();
-    } finally {
-      _cancelToken = null;
-      _startNextWeb();
+      return;
     }
+    final autoInstall = ref.read(appSettingsProvider).autoInstall;
+    final result = await ref
+        .read(applicationHostProvider)
+        .execute(
+          OronBoxCommand(
+            method: 'task.enqueue',
+            params: {
+              'held': !autoInstall,
+              'command': OronBoxCommand(
+                method: 'install.local',
+                params: {
+                  'type': task.installType,
+                  'path': task.filePath,
+                  'title': task.resource.name,
+                  'description': task.codename,
+                  'deleteAfter': true,
+                  'autoClean': true,
+                  'resource': communityResourceDetailToJson(task.resource),
+                  'file': task.file.id,
+                },
+              ).toJson(),
+            },
+          ),
+        );
+    if (!result.ok) throw StateError(result.error!.message);
   }
 
-  void _updateWeb(
+  void _update(
     String id,
     ResourceTaskStatus status,
     double progress,
@@ -200,86 +275,36 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
     ];
   }
 
-  void remove(String id) => unawaited(_remove(id));
-
-  Future<void> _remove(String id) async {
-    final task = state.where((task) => task.id == id).firstOrNull;
-    if (task == null) return;
-    if (kIsWeb) {
-      if (task == runningTask) _cancelToken?.cancel('Removed from queue');
-      state = state.where((entry) => entry.id != id).toList();
-      _startNextWeb();
-      return;
-    }
-    await _feed?.remove(
-      id,
-      terminal:
-          task.status == ResourceTaskStatus.completed ||
-          task.status == ResourceTaskStatus.failed,
-    );
+  void remove(String id) {
+    state = state.where((entry) => entry.id != id).toList();
+    _startNext();
   }
 
   void clearTerminal() {
-    if (kIsWeb) {
-      state = state
-          .where(
-            (task) =>
-                task.status != ResourceTaskStatus.completed &&
-                task.status != ResourceTaskStatus.failed,
-          )
-          .toList();
-      return;
-    }
-    for (final task in state.where(
-      (task) =>
-          task.status == ResourceTaskStatus.completed ||
-          task.status == ResourceTaskStatus.failed,
-    )) {
-      unawaited(_remove(task.id));
-    }
+    state = state
+        .where(
+          (task) =>
+              task.status != ResourceTaskStatus.completed &&
+              task.status != ResourceTaskStatus.failed,
+        )
+        .toList();
+    _startNext();
   }
 
   void retry(String id) {
-    if (kIsWeb) {
-      state = [
-        for (final task in state)
-          if (task.id == id)
-            ResourceTask(
-              id: task.id,
-              resource: task.resource,
-              file: task.file,
-              codename: task.codename,
-            )
-          else
-            task,
-      ];
-      _startNextWeb();
-      return;
-    }
-    unawaited(_feed?.retry(id));
-  }
-
-  ResourceTask? _fromView(DaemonTaskView view) {
-    final resourceJson = view.params['resource'];
-    if (resourceJson is! Map) return null;
-    final resource = communityResourceDetailFromJson(
-      resourceJson.cast<String, Object?>(),
-    );
-    final fileId = view.params['file']?.toString();
-    final file = resource.files.where((file) => file.id == fileId).firstOrNull;
-    if (file == null) return null;
-    return ResourceTask(
-      id: view.id,
-      resource: resource,
-      file: file,
-      codename: view.params['targetDevice']?.toString() ?? '',
-      status: resourceTaskStatusFromDaemon(
-        view.status,
-        activity: ResourceTaskActivity.download,
-      ),
-      progress: view.progress,
-      error: view.error,
-    );
+    state = [
+      for (final task in state)
+        if (task.id == id)
+          ResourceTask(
+            id: task.id,
+            resource: task.resource,
+            file: task.file,
+            codename: task.codename,
+          )
+        else
+          task,
+    ];
+    _startNext();
   }
 }
 

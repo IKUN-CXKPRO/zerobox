@@ -806,6 +806,12 @@ abstract class AppLocalizations {
   /// **'Changelog'**
   String get changelog;
 
+  /// No description provided for @changelogUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No changelog yet'**
+  String get changelogUnavailable;
+
   /// No description provided for @notFound.
   ///
   /// In en, this message translates to:
@@ -4387,18 +4393,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Development team'**
   String get settingsAboutSoftwareTeam;
-
-  /// No description provided for @settingsAboutSoftwareReleaseName.
-  ///
-  /// In en, this message translates to:
-  /// **'Current release: development preview'**
-  String get settingsAboutSoftwareReleaseName;
-
-  /// No description provided for @settingsAboutSoftwareReleaseBody.
-  ///
-  /// In en, this message translates to:
-  /// **'This update includes:\n• System accent color support and theme refinements\n• Redesigned resource detail and list pages with grouped device filters\n• Replaced team page with about software page; localized settings\n• Improved Xiaomi SAR controller send error handling\n• Stabilized Linux classic SPP connect cancellation and timeouts\n• Updated ARB localizations and generated l10n files'**
-  String get settingsAboutSoftwareReleaseBody;
 
   /// No description provided for @settingsAboutSoftwareBuildInfo.
   ///

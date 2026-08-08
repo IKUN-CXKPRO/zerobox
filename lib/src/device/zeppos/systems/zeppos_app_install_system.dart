@@ -30,6 +30,11 @@ class ZeppOsAppInstallSystem extends System {
   static const _completeTransfer = 0xd5;
   static const _finalize = 0xd6;
 
+  // Extra delay between firmware-data packets. Acknowledged writes alone
+  // still arrive faster than low-RAM devices (Mi Band 7, Amazfit Band 7)
+  // can drain them, so they run out of memory and reboot mid-transfer.
+  static const _packetInterval = Duration(milliseconds: 1);
+
   final _notifications = StreamController<Uint8List>.broadcast();
   StreamSubscription<Uint8List>? _controlSubscription;
   bool _installing = false;
@@ -51,7 +56,6 @@ class ZeppOsAppInstallSystem extends System {
       if (bleTransport != null) {
         // Gadgetbridge requests 247 after authentication when high MTU is
         // enabled, but does not require it for application installation.
-        // Some devices (including some Mi Band 7 stacks) remain at MTU 23.
         await bleTransport.requestMtu(247);
       }
       bleTransport?.beginExclusiveCharacteristicWrites([
@@ -118,12 +122,15 @@ class ZeppOsAppInstallSystem extends System {
           await transport.sendToCharacteristic(
             Uint8List.sublistView(package.bytes, packetOffset, packetEnd),
             _data,
-            // Gadgetbridge preserves the firmware-data characteristic's
-            // native write type. Forcing acknowledged writes here makes
-            // dual-mode 0x1532 characteristics use ATT write requests,
-            // which can stall long transfers until the watch watchdog resets.
-            withResponse: false,
+            // Acknowledged writes pace the transfer with one ATT round trip
+            // per packet, like Gadgetbridge. Unacknowledged back-to-back
+            // writes flood low-RAM devices (Mi Band 7, Amazfit Band 7)
+            // until they run out of memory and reboot.
+            withResponse: true,
           );
+          if (packetEnd < package.bytes.length) {
+            await Future<void>.delayed(_packetInterval);
+          }
         }
         final progress = await progressFuture;
         if (progress.length < 6) {

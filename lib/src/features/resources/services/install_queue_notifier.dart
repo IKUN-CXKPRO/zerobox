@@ -12,6 +12,7 @@ import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource_codec.dart';
 import 'package:oronbox/src/features/resources/services/daemon_task_feed.dart';
 import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
+import 'package:oronbox/src/features/resources/services/resource_payload_analyzer.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
@@ -30,6 +31,7 @@ class InstallTask {
     this.installMode = ResourceInstallMode.automatic,
     required this.filePath,
     this.bytes,
+    this.analysis,
     this.resource,
     this.file,
     this.status = ResourceTaskStatus.pending,
@@ -44,6 +46,11 @@ class InstallTask {
   final ResourceInstallMode installMode;
   final String filePath;
   final Uint8List? bytes;
+
+  /// Analysis result resolved before this task entered the queue; reused for
+  /// installation so the payload is only parsed once.
+  final ResourcePayloadAnalysis? analysis;
+
   final CommunityResourceDetail? resource;
   final CommunityResourceFile? file;
   final ResourceTaskStatus status;
@@ -279,9 +286,10 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     required String codename,
     required String filePath,
     Uint8List? bytes,
+    ResourcePayloadAnalysis? analysis,
   }) {
     assert(kIsWeb);
-    final installType = switch (resource.type) {
+    final catalogType = switch (resource.type) {
       CommunityResourceType.quickApp => LocalDeviceInstallType.app,
       CommunityResourceType.miniprogram => LocalDeviceInstallType.app,
       CommunityResourceType.watchface => LocalDeviceInstallType.watchface,
@@ -292,9 +300,10 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
         id: '${resource.ref.key}:${file.id}:$codename',
         name: resource.name,
         description: codename,
-        type: installType,
+        type: analysis?.type ?? catalogType,
         filePath: filePath,
         bytes: bytes,
+        analysis: analysis,
         resource: resource,
         file: file,
         status: ResourceTaskStatus.pending,
@@ -381,6 +390,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
                 installMode: task.installMode,
                 filePath: task.filePath,
                 bytes: task.bytes,
+                analysis: task.analysis,
                 resource: task.resource,
                 file: task.file,
               )
@@ -459,6 +469,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
                 installMode: item.installMode,
                 filePath: item.filePath,
                 bytes: item.bytes,
+                analysis: item.analysis,
                 resource: item.resource,
                 file: item.file,
                 status: status,
@@ -473,14 +484,26 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     }
 
     if (task.resource != null && task.file != null) {
-      await ResourceInstallService().installDownloadedResource(
-        resource: task.resource!,
-        file: task.file!,
-        filePath: task.filePath,
-        bytes: task.bytes,
-        deviceManager: manager,
-        onUpdate: update,
-      );
+      final analysis = task.analysis;
+      if (analysis != null) {
+        await ResourceInstallService().installAnalyzedPayload(
+          analysis: analysis,
+          fileName: task.file!.fileName,
+          deviceManager: manager,
+          onProgress: (progress) =>
+              update(ResourceTaskStatus.installing, progress, null),
+        );
+        update(ResourceTaskStatus.completed, 1, null);
+      } else {
+        await ResourceInstallService().installDownloadedResource(
+          resource: task.resource!,
+          file: task.file!,
+          filePath: task.filePath,
+          bytes: task.bytes,
+          deviceManager: manager,
+          onUpdate: update,
+        );
+      }
     } else {
       final service = ResourceInstallService();
       final bytes = task.bytes;

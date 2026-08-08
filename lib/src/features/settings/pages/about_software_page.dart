@@ -18,6 +18,14 @@ import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 import 'package:oronbox/src/features/settings/services/oronbox_support_api.dart';
 
+final _aboutLatestReleaseProvider = FutureProvider.autoDispose
+    .family<AppReleaseInfo, String>((ref, language) {
+  return ref.read(oronBoxSupportApiProvider).latestRelease(
+        language: language,
+        currentVersion: BuildInfoService.appVersion,
+      );
+});
+
 class AboutSoftwarePage extends ConsumerWidget {
   const AboutSoftwarePage({super.key});
 
@@ -79,25 +87,7 @@ class AboutSoftwarePage extends ConsumerWidget {
               _Section(
                 icon: Icons.article_outlined,
                 title: l10n.changelog,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.settingsAboutSoftwareReleaseName,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.settingsAboutSoftwareReleaseBody,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        height: 1.45,
-                      ),
-                    ),
-                  ],
-                ),
+                child: const _ChangelogSection(),
               ),
               _Section(
                 icon: Icons.terminal_outlined,
@@ -133,6 +123,56 @@ class AboutSoftwarePage extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+class _ChangelogSection extends ConsumerWidget {
+  const _ChangelogSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final language = Localizations.localeOf(context).languageCode == 'en'
+        ? 'en'
+        : 'zh';
+    final release = ref.watch(_aboutLatestReleaseProvider(language));
+    return switch (release) {
+      AsyncData(:final value) when value.releaseNotes.isNotEmpty => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'v${value.latestVersion}',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value.releaseNotes,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              height: 1.45,
+            ),
+          ),
+        ],
+      ),
+      AsyncData() || AsyncError() => Text(
+        l10n.changelogUnavailable,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+      _ => const SizedBox(
+        height: 40,
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ),
+    };
   }
 }
 

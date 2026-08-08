@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/device/core/transport.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_music_upload_system.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
@@ -273,6 +274,9 @@ class _DeviceMusicUploadPageState extends ConsumerState<DeviceMusicUploadPage> {
           ),
         ),
         body: PageContainer(
+          padding: const EdgeInsets.symmetric(
+            horizontal: StyleConstants.pagePadding,
+          ),
           child: ListView(
             children: [
               if (widget.xiaomi) ...[

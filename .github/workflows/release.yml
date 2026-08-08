@@ -265,6 +265,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get --enforce-lockfile
 
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
       - name: Build Windows package
         shell: pwsh
         run: ./tool/build_windows.ps1
@@ -330,6 +333,7 @@ jobs:
           require_file "${APP_NAME}-${RELEASE_VERSION}-macos-universal.zip"
           require_file "${APP_NAME}-${RELEASE_VERSION}-macos-universal.dmg"
           require_file "${APP_NAME}-${RELEASE_VERSION}-windows-amd64.zip"
+          require_file "${APP_NAME}-${RELEASE_VERSION}-windows-amd64-setup.exe"
 
       - name: Generate and verify checksums
         run: |

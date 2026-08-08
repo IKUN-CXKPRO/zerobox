@@ -1613,13 +1613,17 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
         return {'installed': true, 'path': path, 'type': 'music'};
       }
       final service = container.read(resourceInstallServiceProvider);
-      final type = switch (typeName) {
-        'auto' => service.detectLocalInstallType(fileName, bytes),
-        'quickapp' || 'app' => LocalDeviceInstallType.app,
-        'watchface' => LocalDeviceInstallType.watchface,
-        'firmware' => LocalDeviceInstallType.firmware,
-        _ => null,
-      };
+      // The payload analyzer is the source of truth; the command's declared
+      // type (e.g. quickapp) is only a fallback hint for undetectable files.
+      final type =
+          service.detectLocalInstallType(fileName, bytes) ??
+          switch (typeName) {
+            'auto' => null,
+            'quickapp' || 'app' || 'miniprogram' => LocalDeviceInstallType.app,
+            'watchface' => LocalDeviceInstallType.watchface,
+            'firmware' => LocalDeviceInstallType.firmware,
+            _ => null,
+          };
       if (type == null) {
         throw CommandFailure(
           'usage',
@@ -1875,6 +1879,21 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     if (downloaded == null) {
       throw const CommandFailure('download', 'Resource download failed');
     }
+    final payloadBytes =
+        downloaded.bytes ?? await File(downloaded.path).readAsBytes();
+    _throwIfCancelled();
+    // The payload analyzer is the source of truth for the real install type;
+    // the community listing labels (BandBBS prefixes) can be wrong.
+    final detected =
+        service
+            .detectLocalInstallType(downloaded.fileName, payloadBytes)
+            ?.name ??
+        switch (detail.type) {
+          CommunityResourceType.quickApp => 'app',
+          CommunityResourceType.miniprogram => 'miniprogram',
+          CommunityResourceType.watchface => 'watchface',
+          CommunityResourceType.firmware => 'firmware',
+        };
     if (install) {
       await _ensureConnected(params['device']?.toString());
       _throwIfCancelled();
@@ -1886,7 +1905,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
           CommunityResourceType.firmware => LocalDeviceInstallType.firmware,
         },
         fileName: downloaded.fileName,
-        bytes: downloaded.bytes ?? await File(downloaded.path).readAsBytes(),
+        bytes: payloadBytes,
         deviceManager: _manager,
         onProgress: (progress) =>
             _events.add(CommandEvent('progress', data: {'progress': progress})),
@@ -1895,12 +1914,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     return {
       'path': downloaded.path,
       'fileName': downloaded.fileName,
-      'type': switch (detail.type) {
-        CommunityResourceType.quickApp => 'quickapp',
-        CommunityResourceType.miniprogram => 'miniprogram',
-        CommunityResourceType.watchface => 'watchface',
-        CommunityResourceType.firmware => 'firmware',
-      },
+      'type': detected,
       'installed': install,
     };
   }

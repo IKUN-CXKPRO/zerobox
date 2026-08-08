@@ -8,10 +8,9 @@ class AppIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset(
-      'assets/images/app_icon.svg',
-      width: size,
-      height: size,
-    );
+    final asset = Theme.of(context).brightness == Brightness.dark
+        ? 'assets/images/app_icon_dark.svg'
+        : 'assets/images/app_icon.svg';
+    return SvgPicture.asset(asset, width: size, height: size);
   }
 }

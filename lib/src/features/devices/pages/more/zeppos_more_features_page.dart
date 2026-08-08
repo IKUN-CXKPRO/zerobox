@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
-import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
@@ -122,160 +121,155 @@ class _ZeppOsMoreFeaturesPageState
 
     return Scaffold(
       appBar: SysAppBar(secondary: true, title: Text(l10n.zeppOsMoreFeatures)),
-      body: PageContainer(
-        padding: const EdgeInsets.symmetric(
-          horizontal: StyleConstants.pagePadding,
+      body: SegmentedList(
+        maxWidth: StyleConstants.pageMaxWidth,
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: StyleConstants.pagePadding,
         ),
-        child: ListView(
-          children: [
-            SegmentedSection(
-              title: Text(l10n.zeppOsDeviceFeaturesSection),
-              tiles: [
-                SegmentedTile.navigation(
-                  leading: const Icon(Icons.record_voice_over),
-                  title: Text(l10n.zeppOsAssistant),
-                  description: Text(l10n.zeppOsAssistantDescription),
-                  enabled: ready,
-                  onPressed: (_) =>
-                      context.push('/devices/zeppos-more/xiao-ai'),
-                ),
-                SegmentedTile.navigation(
-                  leading: const Icon(Icons.watch_outlined),
-                  title: Text(l10n.zeppOsScreenMirror),
-                  description: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(l10n.zeppOsScreenMirrorDescription),
-                      AnimatedSize(
-                        duration: const Duration(milliseconds: 180),
-                        alignment: Alignment.topCenter,
-                        child: !_mirrorSettingsExpanded
-                            ? const SizedBox.shrink()
-                            : Padding(
-                                padding: const EdgeInsets.only(top: 10),
-                                child: Row(
-                                  children: [
-                                    Text(l10n.zeppOsMirrorInterval),
-                                    const Spacer(),
-                                    SizedBox(
-                                      width: 112,
-                                      child: TextField(
-                                        controller: _mirrorIntervalController,
-                                        focusNode: _mirrorIntervalFocusNode,
-                                        enabled: ready,
-                                        keyboardType: TextInputType.number,
-                                        textInputAction: TextInputAction.done,
-                                        textAlign: TextAlign.end,
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter
-                                              .digitsOnly,
-                                          TextInputFormatter.withFunction((
-                                            oldValue,
-                                            newValue,
-                                          ) {
-                                            if (newValue.text.isEmpty) {
-                                              return newValue;
-                                            }
-                                            final value = int.tryParse(
-                                              newValue.text,
-                                            );
-                                            return value != null && value <= 250
-                                                ? newValue
-                                                : oldValue;
-                                          }),
-                                        ],
-                                        decoration: InputDecoration(
-                                          isDense: true,
-                                          suffixText: 'ms',
-                                          helperText:
-                                              l10n.zeppOsMirrorIntervalRange,
-                                        ),
-                                        onChanged: (text) {
-                                          final value = int.tryParse(text);
-                                          if (value != null &&
-                                              value >= 10 &&
-                                              value <= 250) {
-                                            _setMirrorInterval(value);
-                                          }
-                                        },
-                                        onEditingComplete: () {
-                                          _commitMirrorInterval();
-                                          _mirrorIntervalFocusNode.unfocus();
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                      ),
-                    ],
-                  ),
-                  trailing: IconButton(
-                    tooltip: _mirrorSettingsExpanded
-                        ? l10n.collapse
-                        : l10n.expand,
-                    onPressed: () => setState(
-                      () => _mirrorSettingsExpanded = !_mirrorSettingsExpanded,
-                    ),
-                    icon: AnimatedRotation(
-                      turns: _mirrorSettingsExpanded ? .5 : 0,
+        sections: [
+          SegmentedSection(
+            title: Text(l10n.zeppOsDeviceFeaturesSection),
+            tiles: [
+              SegmentedTile.navigation(
+                leading: const Icon(Icons.record_voice_over),
+                title: Text(l10n.zeppOsAssistant),
+                description: Text(l10n.zeppOsAssistantDescription),
+                enabled: ready,
+                onPressed: (_) => context.push('/devices/zeppos-more/xiao-ai'),
+              ),
+              SegmentedTile.navigation(
+                leading: const Icon(Icons.watch_outlined),
+                title: Text(l10n.zeppOsScreenMirror),
+                description: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.zeppOsScreenMirrorDescription),
+                    AnimatedSize(
                       duration: const Duration(milliseconds: 180),
-                      child: const Icon(Icons.keyboard_arrow_down),
+                      alignment: Alignment.topCenter,
+                      child: !_mirrorSettingsExpanded
+                          ? const SizedBox.shrink()
+                          : Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: Row(
+                                children: [
+                                  Text(l10n.zeppOsMirrorInterval),
+                                  const Spacer(),
+                                  SizedBox(
+                                    width: 112,
+                                    child: TextField(
+                                      controller: _mirrorIntervalController,
+                                      focusNode: _mirrorIntervalFocusNode,
+                                      enabled: ready,
+                                      keyboardType: TextInputType.number,
+                                      textInputAction: TextInputAction.done,
+                                      textAlign: TextAlign.end,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        TextInputFormatter.withFunction((
+                                          oldValue,
+                                          newValue,
+                                        ) {
+                                          if (newValue.text.isEmpty) {
+                                            return newValue;
+                                          }
+                                          final value = int.tryParse(
+                                            newValue.text,
+                                          );
+                                          return value != null && value <= 250
+                                              ? newValue
+                                              : oldValue;
+                                        }),
+                                      ],
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        suffixText: 'ms',
+                                        helperText:
+                                            l10n.zeppOsMirrorIntervalRange,
+                                      ),
+                                      onChanged: (text) {
+                                        final value = int.tryParse(text);
+                                        if (value != null &&
+                                            value >= 10 &&
+                                            value <= 250) {
+                                          _setMirrorInterval(value);
+                                        }
+                                      },
+                                      onEditingComplete: () {
+                                        _commitMirrorInterval();
+                                        _mirrorIntervalFocusNode.unfocus();
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                     ),
+                  ],
+                ),
+                trailing: IconButton(
+                  tooltip: _mirrorSettingsExpanded
+                      ? l10n.collapse
+                      : l10n.expand,
+                  onPressed: () => setState(
+                    () => _mirrorSettingsExpanded = !_mirrorSettingsExpanded,
                   ),
-                  enabled: ready,
-                  onPressed: (_) => _showMirror(),
+                  icon: AnimatedRotation(
+                    turns: _mirrorSettingsExpanded ? .5 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: const Icon(Icons.keyboard_arrow_down),
+                  ),
                 ),
-                SegmentedTile.navigation(
-                  leading: const Icon(Icons.map_outlined),
-                  title: Text(l10n.zeppOsOfflineMaps),
-                  description: Text(l10n.zeppOsOfflineMapsDescription),
-                  enabled: ready,
-                  onPressed: (_) => showZeppOsMapTransfer(context),
-                ),
-              ],
-            ),
-            SegmentedSection(
-              title: Text(l10n.zeppOsAppsAndDevelopmentSection),
-              tiles: [
-                SegmentedTile.navigation(
-                  leading: const Icon(Icons.tune),
-                  title: Text(l10n.zeppOsAppSettings),
-                  description: Text(l10n.zeppOsAppSettingsDescription),
-                  enabled: !kIsWeb,
-                  onPressed: (_) =>
-                      context.push('/devices/zeppos-more/settings'),
-                ),
-                SegmentedTile.navigation(
-                  leading: const Icon(Icons.code),
-                  title: Text(l10n.zeppOsAppDebug),
-                  description: Text(l10n.zeppOsAppDebugDescription),
-                  enabled: ready,
-                  onPressed: (_) =>
-                      context.push('/devices/zeppos-more/app-side'),
-                ),
-              ],
-            ),
-            SegmentedSection(
-              title: Text(l10n.deviceInfoGroupDevice),
-              tiles: [
-                SegmentedTile.switchTile(
-                  leading: _busy
-                      ? const SizedBox.square(
-                          dimension: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.vibration),
-                  title: Text(l10n.zeppOsFindDevice),
-                  description: Text(l10n.zeppOsFindDeviceDescription),
-                  initialValue: _finding,
-                  enabled: ready && !_busy,
-                  onToggle: (value) => _setFinding(value ?? false),
-                ),
-              ],
-            ),
-          ],
-        ),
+                enabled: ready,
+                onPressed: (_) => _showMirror(),
+              ),
+              SegmentedTile.navigation(
+                leading: const Icon(Icons.map_outlined),
+                title: Text(l10n.zeppOsOfflineMaps),
+                description: Text(l10n.zeppOsOfflineMapsDescription),
+                enabled: ready,
+                onPressed: (_) => showZeppOsMapTransfer(context),
+              ),
+            ],
+          ),
+          SegmentedSection(
+            title: Text(l10n.zeppOsAppsAndDevelopmentSection),
+            tiles: [
+              SegmentedTile.navigation(
+                leading: const Icon(Icons.tune),
+                title: Text(l10n.zeppOsAppSettings),
+                description: Text(l10n.zeppOsAppSettingsDescription),
+                enabled: !kIsWeb,
+                onPressed: (_) => context.push('/devices/zeppos-more/settings'),
+              ),
+              SegmentedTile.navigation(
+                leading: const Icon(Icons.code),
+                title: Text(l10n.zeppOsAppDebug),
+                description: Text(l10n.zeppOsAppDebugDescription),
+                enabled: ready,
+                onPressed: (_) => context.push('/devices/zeppos-more/app-side'),
+              ),
+            ],
+          ),
+          SegmentedSection(
+            title: Text(l10n.deviceInfoGroupDevice),
+            tiles: [
+              SegmentedTile.switchTile(
+                leading: _busy
+                    ? const SizedBox.square(
+                        dimension: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.vibration),
+                title: Text(l10n.zeppOsFindDevice),
+                description: Text(l10n.zeppOsFindDeviceDescription),
+                initialValue: _finding,
+                enabled: ready && !_busy,
+                onToggle: (value) => _setFinding(value ?? false),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -381,6 +381,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get changelog => '更新日志';
 
   @override
+  String get changelogUnavailable => '暂无更新日志';
+
+  @override
   String get notFound => '未找到';
 
   @override
@@ -2292,13 +2295,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsAboutSoftwareTeam => '开发团队';
-
-  @override
-  String get settingsAboutSoftwareReleaseName => '当前版本：开发预览';
-
-  @override
-  String get settingsAboutSoftwareReleaseBody =>
-      '本次更新内容包括：\n• 新增系统强调色支持与主题细节优化\n• 重构资源详情页与列表页，支持按设备分组筛选\n• 用“关于软件”页替换原“团队页”；设置页全面国际化\n• 优化小米 SAR 控制器发送失败错误处理\n• 稳定 Linux 经典 SPP 连接的取消与超时行为\n• 更新 ARB 本地化文案与生成的 l10n 文件';
 
   @override
   String get settingsAboutSoftwareBuildInfo => '构建信息';

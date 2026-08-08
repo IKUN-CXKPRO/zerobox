@@ -1,5 +1,6 @@
 param(
   [switch]$Dev,
+  [switch]$SkipInstaller,
   [switch]$SkipWebView2Sdk,
   [string]$WebView2SdkVersion = ""
 )
@@ -129,6 +130,28 @@ if (Test-Path $SymbolsDir) {
   Write-Host "[INFO] Produced $SymbolsOutput"
 } else {
   Write-Host "[WARN] Symbols directory not found; skipped symbols package: $SymbolsDir"
+}
+
+if (!$SkipInstaller) {
+  $Iscc = $null
+  foreach ($candidate in @(
+    "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+    "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+  )) {
+    if (Test-Path $candidate) {
+      $Iscc = $candidate
+      break
+    }
+  }
+  if (!$Iscc) {
+    throw "Inno Setup 6 (ISCC.exe) not found. Install it (choco install innosetup) or pass -SkipInstaller."
+  }
+  $IssFile = Join-Path $ScriptDir "windows/oronbox.iss"
+  & $Iscc $IssFile "/DMyAppVersion=$Version"
+  if ($LASTEXITCODE -ne 0) {
+    throw "Inno Setup compilation failed with exit code $LASTEXITCODE"
+  }
+  Write-Host "[INFO] Produced Windows installer in $ReleaseDir"
 }
 
 Write-Host "[INFO] Windows build complete"

@@ -20,6 +20,7 @@ import 'package:oronbox/src/device/core/device_profile.dart';
 import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
+import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 import 'package:oronbox/src/features/messages/application/message_center.dart';
 import 'package:oronbox/src/features/resources/application/home_providers.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
@@ -348,22 +349,23 @@ class _HomeSection extends ConsumerWidget {
               return SizedBox(
                 height: coverHeight + _cardBodyHeight,
                 child: switch (feed) {
-                  AsyncData(:final value) => value.isEmpty
-                      ? _HomeSlotEmpty(height: coverHeight + _cardBodyHeight)
-                      : ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: value.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(width: _cardSpacing),
-                    itemBuilder: (context, index) => SizedBox(
-                      width: cardWidth,
-                      child: _ResourceCard(
-                        item: value[index],
-                        coverHeight: coverHeight,
-                        heroEnabled: false,
-                      ),
-                    ),
-                  ),
+                  AsyncData(:final value) =>
+                    value.isEmpty
+                        ? _HomeSlotEmpty(height: coverHeight + _cardBodyHeight)
+                        : ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: value.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: _cardSpacing),
+                            itemBuilder: (context, index) => SizedBox(
+                              width: cardWidth,
+                              child: _ResourceCard(
+                                item: value[index],
+                                coverHeight: coverHeight,
+                                heroEnabled: false,
+                              ),
+                            ),
+                          ),
                   AsyncError(:final error) => Center(
                     child: Text(
                       localizedErrorMessage(l10n, error),
@@ -679,79 +681,81 @@ class _HomeBannerCarouselState extends ConsumerState<_HomeBannerCarousel> {
             builder: (context, constraints) => SizedBox(
               height: math.min(constraints.maxWidth * 9 / 21, 340),
               child: PageView.builder(
-              controller: _controller,
-              itemCount: widget.banners.length,
-              onPageChanged: (index) => setState(() => _index = index),
-              itemBuilder: (context, index) {
-                final banner = widget.banners[index];
-                return Card(
-                  margin: EdgeInsets.zero,
-                  clipBehavior: Clip.antiAlias,
-                  color: colors.surfaceContainerHighest.withValues(alpha: .5),
-                  child: InkWell(
-                    onTap: () => _open(banner),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        if (banner.coverUrl != null)
-                          NetworkImgLayer(
-                            src: banner.coverUrl!.toString(),
-                            fit: BoxFit.cover,
-                            borderRadius: BorderRadius.zero,
-                          ),
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black.withValues(alpha: .72),
-                              ],
-                              stops: const [.38, 1],
+                controller: _controller,
+                itemCount: widget.banners.length,
+                onPageChanged: (index) => setState(() => _index = index),
+                itemBuilder: (context, index) {
+                  final banner = widget.banners[index];
+                  return Card(
+                    margin: EdgeInsets.zero,
+                    clipBehavior: Clip.antiAlias,
+                    color: colors.surfaceContainerHighest.withValues(alpha: .5),
+                    child: InkWell(
+                      onTap: () => _open(banner),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (banner.coverUrl != null)
+                            NetworkImgLayer(
+                              src: banner.coverUrl!.toString(),
+                              fit: BoxFit.cover,
+                              borderRadius: BorderRadius.zero,
+                            ),
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withValues(alpha: .72),
+                                ],
+                                stops: const [.38, 1],
+                              ),
                             ),
                           ),
-                        ),
-                        Positioned(
-                          left: 18,
-                          right: 18,
-                          bottom: 14,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                banner.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                              ),
-                              if (banner.subtitle.isNotEmpty) ...[
-                                const SizedBox(height: 4),
+                          Positioned(
+                            left: 18,
+                            right: 18,
+                            bottom: 14,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
                                 Text(
-                                  banner.subtitle,
+                                  banner.title,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.bodyMedium
+                                  style: Theme.of(context).textTheme.titleLarge
                                       ?.copyWith(
-                                        color: Colors.white.withValues(
-                                          alpha: .85,
-                                        ),
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                 ),
+                                if (banner.subtitle.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    banner.subtitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: Colors.white.withValues(
+                                            alpha: .85,
+                                          ),
+                                        ),
+                                  ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
               ),
             ),
           ),
@@ -1031,9 +1035,7 @@ class _HomeBlogCard extends StatelessWidget {
                           width: double.infinity,
                           height: height,
                           style: const ResourceMediaHeroStyle(
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(12),
-                            ),
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
                           ),
                           fit: BoxFit.cover,
                         ),
@@ -1088,6 +1090,12 @@ class _ResourceLibraryView extends ConsumerStatefulWidget {
   @override
   ConsumerState<_ResourceLibraryView> createState() =>
       _ResourceLibraryViewState();
+}
+
+/// Marker for the signed-out BandBBS state, so the error view can offer a
+/// sign-in action instead of a bare message.
+class _BandBbsSignInRequired implements Exception {
+  const _BandBbsSignInRequired();
 }
 
 class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
@@ -1205,6 +1213,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
   }
 
   void _onScroll() {
+    if (_error != null) return;
     if (_scrollController.hasClients &&
         _scrollController.position.extentAfter < 600) {
       _load(_generation);
@@ -1218,6 +1227,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
       _fillCheckScheduled = false;
       if (!mounted ||
           generation != _generation ||
+          _error != null ||
           !_scrollController.hasClients) {
         return;
       }
@@ -1242,6 +1252,20 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
 
   Future<void> _load(int generation) async {
     if (!_hasMore || _loadingMore) return;
+    if (ref.read(selectedCommunitySourceProvider) ==
+            CommunitySourceId.bandbbs &&
+        !ref.read(bandBbsAuthProvider).isSignedIn) {
+      // The daemon rejects every BandBBS request when signed out; short
+      // circuit here instead of hammering it from the viewport-fill loop.
+      setState(() {
+        _items.clear();
+        _hasMore = false;
+        _loading = false;
+        _loadingMore = false;
+        _error = const _BandBbsSignInRequired();
+      });
+      return;
+    }
     _ensureBandBbsSidebarLoaded();
     setState(() => _loadingMore = true);
     try {
@@ -1279,6 +1303,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
       if (!mounted || generation != _generation) return;
       setState(() {
         _error = error;
+        _hasMore = false;
         _loading = false;
         _loadingMore = false;
       });
@@ -1330,6 +1355,9 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
     final source = ref.watch(selectedCommunitySourceProvider);
     ref.listen(resourceFiltersProvider, (_, _) => _reset());
     ref.listen(resourceRefreshProvider, (_, _) => _reset());
+    ref.listen(bandBbsAuthProvider, (previous, next) {
+      if (!(previous?.isSignedIn ?? false) && next.isSignedIn) _reset();
+    });
     ref.listen(
       appSettingsProvider.select(
         (settings) => settings.bandbbsShowAllCategories,
@@ -1520,7 +1548,20 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
             else if (_error != null)
               SliverFillRemaining(
                 child: Center(
-                  child: Text(localizedErrorMessage(l10n, _error!)),
+                  child: switch (_error) {
+                    _BandBbsSignInRequired() => Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(l10n.settingsBandBbsAccountRequired),
+                        const SizedBox(height: 12),
+                        FilledButton(
+                          onPressed: () => context.push('/settings/bandbbs'),
+                          child: Text(l10n.settingsTapToSignIn),
+                        ),
+                      ],
+                    ),
+                    _ => Text(localizedErrorMessage(l10n, _error!)),
+                  },
                 ),
               )
             else ...[
@@ -1645,14 +1686,12 @@ Future<void> _switchCommunitySource(
   }
   if (candidate == CommunitySourceId.huamiAppStore &&
       !ref.read(hostAccountsProvider).amazfit.isSignedIn) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.settingsHuamiAccountRequired)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.settingsHuamiAccountRequired)));
     return;
   }
-  await ref
-      .read(appSettingsProvider.notifier)
-      .setCommunitySource(candidate);
+  await ref.read(appSettingsProvider.notifier).setCommunitySource(candidate);
   ref.read(resourceFiltersProvider.notifier).reset();
 }
 
@@ -1716,16 +1755,11 @@ class _OtherSourcesFooter extends ConsumerWidget {
     final colors = Theme.of(context).colorScheme;
     final clean = ref.watch(appSettingsProvider).clean;
     final loadedSources = ref.watch(communitySourcesProvider).value;
-    final others =
-        enabledCommunitySources(
-              loadedSources,
-              clean,
-              isZepposDevice: _isCurrentDeviceZepp(
-                ref.watch(deviceManagerProvider),
-              ),
-            )
-            .where((candidate) => candidate != currentSource)
-            .toList();
+    final others = enabledCommunitySources(
+      loadedSources,
+      clean,
+      isZepposDevice: _isCurrentDeviceZepp(ref.watch(deviceManagerProvider)),
+    ).where((candidate) => candidate != currentSource).toList();
     if (others.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24),
@@ -1733,9 +1767,9 @@ class _OtherSourcesFooter extends ConsumerWidget {
         children: [
           Text(
             l10n.resourceLibraryEndOfList,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           Wrap(

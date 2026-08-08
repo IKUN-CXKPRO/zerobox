@@ -393,6 +393,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get changelog => 'Changelog';
 
   @override
+  String get changelogUnavailable => 'No changelog yet';
+
+  @override
   String get notFound => 'Not found';
 
   @override
@@ -2400,14 +2403,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAboutSoftwareTeam => 'Development team';
-
-  @override
-  String get settingsAboutSoftwareReleaseName =>
-      'Current release: development preview';
-
-  @override
-  String get settingsAboutSoftwareReleaseBody =>
-      'This update includes:\n• System accent color support and theme refinements\n• Redesigned resource detail and list pages with grouped device filters\n• Replaced team page with about software page; localized settings\n• Improved Xiaomi SAR controller send error handling\n• Stabilized Linux classic SPP connect cancellation and timeouts\n• Updated ARB localizations and generated l10n files';
 
   @override
   String get settingsAboutSoftwareBuildInfo => 'Build info';
