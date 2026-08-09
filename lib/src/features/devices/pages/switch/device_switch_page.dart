@@ -1093,11 +1093,11 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
                             enabled:
                                 !state.connecting &&
                                 (widget.device.authkey?.isNotEmpty ?? false),
-                            child: const Row(
+                            child: Row(
                               children: [
                                 Icon(Icons.bluetooth_outlined),
                                 SizedBox(width: 8),
-                                Text('使用 BLE 连接'),
+                                Text(l10n.deviceConnectBle),
                               ],
                             ),
                           ),
@@ -1106,11 +1106,11 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
                             enabled:
                                 !state.connecting &&
                                 (widget.device.authkey?.isNotEmpty ?? false),
-                            child: const Row(
+                            child: Row(
                               children: [
                                 Icon(Icons.cable_outlined),
                                 SizedBox(width: 8),
-                                Text('使用 BT Classic 连接'),
+                                Text(l10n.deviceConnectBtClassic),
                               ],
                             ),
                           ),

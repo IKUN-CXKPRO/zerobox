@@ -9,9 +9,6 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'OronBox';
-
-  @override
   String get homeTab => 'Home';
 
   @override
@@ -154,31 +151,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifications => 'Notifications';
 
   @override
-  String get pendingTasks => 'Pending tasks';
-
-  @override
-  String get manageDevice => 'Manage device';
-
-  @override
-  String get installLocalResource => 'Install local resource';
-
-  @override
-  String get recentUpdates => 'Recent updates';
-
-  @override
   String get newlyPublished => 'Newly published';
-
-  @override
-  String get news => 'News';
-
-  @override
-  String get oronBoxNews => 'OronBox news';
-
-  @override
-  String get bandbbsNews => 'BandBBS news';
-
-  @override
-  String get astroBoxNews => 'AstroBox news';
 
   @override
   String get resourceLibrary => 'Resource library';
@@ -188,9 +161,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creatorNewResource => 'New resource';
-
-  @override
-  String get creatorSlug => 'Resource identifier';
 
   @override
   String get creatorResourceName => 'Resource name';
@@ -203,9 +173,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creatorAddArtifact => 'Add resource file';
-
-  @override
-  String get creatorReplaceAsset => 'Upload replacement';
 
   @override
   String get creatorBindDevices => 'Bind devices';
@@ -263,12 +230,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorSubmitReview => 'Submit';
 
   @override
-  String get creatorCorrection => 'Correct and resubmit';
-
-  @override
-  String get creatorUpdateResource => 'Update resource';
-
-  @override
   String get creatorArchiveAction => 'Delist';
 
   @override
@@ -292,15 +253,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get creatorKindMismatchTitle => 'File type mismatch';
-
-  @override
   String creatorKindMismatchMessage(Object detected, Object expected) {
     return 'This file looks like a $detected, but this resource is a $expected. You can keep it, but please confirm before submitting for review.';
   }
-
-  @override
-  String get creatorKeepFile => 'Keep anyway';
 
   @override
   String creatorDeviceMoveBlocked(Object name) {
@@ -308,25 +263,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get creatorAssetsReusedHint =>
-      'Existing packages and previews are reused — no need to re-upload';
-
-  @override
-  String get creatorRevisionHistory => 'Revision history';
-
-  @override
-  String creatorUploadProgress(Object progress) {
-    return 'Uploading $progress%';
-  }
-
-  @override
   String get filter => 'Filter';
-
-  @override
-  String get importLocalResource => 'Import local resource';
-
-  @override
-  String get allDevices => 'All devices';
 
   @override
   String get currentDevice => 'Current device';
@@ -342,9 +279,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get firmwareTools => 'Firmware / Tools';
-
-  @override
-  String get localResources => 'Local resources';
 
   @override
   String get oronBox => 'OronBox';
@@ -365,21 +299,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get update => 'Update';
 
   @override
-  String get manage => 'Manage';
-
-  @override
   String get description => 'Description';
 
   @override
   String get supportedDevices => 'Supported devices';
-
-  @override
-  String get resourceProfile => 'Resource platform and type';
-
-  @override
-  String creatorArtifactProfileMismatch(Object fileName, Object profile) {
-    return '$fileName does not match the selected $profile profile and was not added';
-  }
 
   @override
   String get downloads => 'Downloads';
@@ -409,9 +332,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get incompatibleSuffix => '';
-
-  @override
-  String get openSourcePage => 'Open source page';
 
   @override
   String get myResources => 'My resources';
@@ -530,28 +450,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failed => 'Failed / Needs action';
 
   @override
-  String get newResource => 'New resource';
-
-  @override
   String get basicInfo => 'Basic info';
 
   @override
   String get packageFiles => 'Resource files';
 
   @override
-  String get deviceSelection => 'Device selection';
-
-  @override
-  String get deviceFileMapping => 'Device-file mapping';
-
-  @override
   String get publishTargets => 'Publish targets';
-
-  @override
-  String get publishPreview => 'Publish preview';
-
-  @override
-  String get reviewStatus => 'Review status';
 
   @override
   String get scan => 'Scan';
@@ -560,16 +465,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get logs => 'Logs';
 
   @override
-  String get connectedDevices => 'Connected devices';
-
-  @override
   String get pairedDevices => 'Paired devices';
-
-  @override
-  String get discoveredDevices => 'Discovered devices';
-
-  @override
-  String get overview => 'Overview';
 
   @override
   String get apps => 'Apps';
@@ -595,7 +491,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorBluetoothConnectFailed =>
-      'Connection failed. Check Bluetooth permission, keep the device nearby and unoccupied, enable Connect new phone on the device, then try again';
+      'Connection failed. Check Bluetooth permission, keep the device nearby and not in use, enable Connect new phone on the device, then try again';
 
   @override
   String get errorBluetoothDisconnected =>
@@ -669,27 +565,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorCertificateVerificationFailed =>
-      'Certificate verification failed. If you are using a proxy, disable HTTPS interception for this app or make sure its certificate is trusted by Flutter/Dart';
+      'Certificate verification failed. If you are using a proxy, disable HTTPS interception for this app or make sure its certificate is trusted';
 
   @override
   String errorUnknownWithDetail(Object detail) {
     return 'Operation failed: $detail';
   }
-
-  @override
-  String get copyLogs => 'Copy logs';
-
-  @override
-  String get exportLogs => 'Export logs';
-
-  @override
-  String get clearLogs => 'Clear logs';
-
-  @override
-  String get personalCenter => 'Personal center';
-
-  @override
-  String get accountAndPublishing => 'Account & Publishing';
 
   @override
   String get appearance => 'Appearance';
@@ -721,20 +602,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get advanced => 'Advanced';
 
   @override
-  String get aboutOronBox => 'About OronBox';
-
-  @override
   String get openSourceLicenses => 'Open source licenses';
 
   @override
   String get acknowledgements => 'Special Acknowledgements';
-
-  @override
-  String get acknowledgementsDesc =>
-      'Open source projects referenced by OronBox';
-
-  @override
-  String get developmentTeam => 'Development team';
 
   @override
   String get deviceNotConnected => 'Not connected';
@@ -782,15 +653,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceFeaturesInstallApp => 'Install app';
 
   @override
-  String get deviceFeaturesInstallAppDesc =>
-      'Install third-party app from local file';
-
-  @override
   String get deviceFeaturesInstallWatchface => 'Install watchface';
-
-  @override
-  String get deviceFeaturesInstallWatchfaceDesc =>
-      'Install watchface from local file';
 
   @override
   String get deviceFeaturesInstallFirmware => 'Firmware update';
@@ -800,14 +663,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Check for device updates or install local firmware';
 
   @override
-  String get firmwareAvailableUpdates => 'Available updates';
-
-  @override
   String get firmwareCheckingUpdates => 'Checking for firmware updates';
-
-  @override
-  String get firmwareCheckUpdatesDescription =>
-      'Find firmware versions compatible with this device';
 
   @override
   String get firmwareNoUpdatesFound =>
@@ -819,10 +675,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get firmwareVersionUnknown => 'Current firmware version unavailable';
-
-  @override
-  String get localFirmwareInstallDescription =>
-      'Select and install a local firmware file';
 
   @override
   String get firmwareCurrentVersion => 'Current version';
@@ -849,32 +701,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get firmwareReleaseNotesUnavailable => 'No release notes available';
 
   @override
-  String firmwareDownloadingProgress(int progress) {
-    return 'Downloading $progress%';
-  }
-
-  @override
   String get download => 'Download';
 
   @override
-  String get downloadFailed => 'Download failed. Try again later.';
-
-  @override
   String get downloadTaskAdded => 'Added to the download queue';
-
-  @override
-  String get deviceFeaturesManageApps => 'Manage apps';
-
-  @override
-  String get deviceFeaturesManageAppsDesc =>
-      'View and uninstall installed apps';
-
-  @override
-  String get deviceFeaturesManageWatchfaces => 'Manage watchfaces';
-
-  @override
-  String get deviceFeaturesManageWatchfacesDesc =>
-      'View, delete and set current watchface';
 
   @override
   String get zeppOsMoreFeatures => 'Special features';
@@ -1051,10 +881,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get zeppOsMapWatchConfirmationHint =>
-      'You must also confirm the installation on the watch. Keep it close to this device during transfer.';
-
-  @override
   String get zeppOsMapStartTransfer => 'Start transfer';
 
   @override
@@ -1065,16 +891,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get zeppOsMapConversionFailed => 'Map could not be converted safely';
-
-  @override
-  String get zeppOsMapSection => 'Maps';
-
-  @override
-  String get zeppOsMapTransferAction => 'Transfer map';
-
-  @override
-  String get zeppOsMapTransferDescription =>
-      'Select a ZIP or Garmin IMG map and send it to the watch';
 
   @override
   String get zeppOsMapBtClassicHint =>
@@ -1391,9 +1207,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Debug app-side scripts and device communication';
 
   @override
-  String get deviceFeaturesSection => 'Features';
-
-  @override
   String get deviceMusicSync => 'Music sync';
 
   @override
@@ -1517,9 +1330,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceRecordingsSync => 'Sync recordings';
 
   @override
-  String get deviceRecordingsSyncing => 'Receiving';
-
-  @override
   String get deviceRecordingsReading => 'Reading recording list';
 
   @override
@@ -1597,12 +1407,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Make the device vibrate or ring so you can locate it nearby.';
 
   @override
-  String get zeppOsFindDeviceStart => 'Start finding';
-
-  @override
-  String get zeppOsFindDeviceStop => 'Stop finding';
-
-  @override
   String get deviceFeaturesDeviceInfo => 'Device info';
 
   @override
@@ -1616,12 +1420,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scanAndAdd => 'Scan and add';
-
-  @override
-  String get scanNotFound => 'No devices found';
-
-  @override
-  String get noSavedDevices => 'No saved devices';
 
   @override
   String get authkey => 'Auth key';
@@ -1708,12 +1506,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get installTapToSelectFile => 'Tap to select file';
 
   @override
-  String get installPackageName => 'Package name';
-
-  @override
-  String get installWatchfaceId => 'Watchface ID';
-
-  @override
   String get deviceInfoTitle => 'Device info';
 
   @override
@@ -1759,9 +1551,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fieldChargeStatus => 'Charge status';
 
   @override
-  String get fieldLastCharge => 'Last charge';
-
-  @override
   String get fieldStorage => 'Storage';
 
   @override
@@ -1805,9 +1594,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get enable => 'Enable';
-
-  @override
-  String get fail => 'Failed';
 
   @override
   String get show => 'Show';
@@ -1862,9 +1648,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get desktopCloseBehaviorTray => 'Minimize to tray';
 
   @override
-  String get multiDevice => 'Multi-device';
-
-  @override
   String get quickApp => 'Quickapp';
 
   @override
@@ -1892,16 +1675,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get version => 'Version';
 
   @override
-  String get noDescription => 'No description';
-
-  @override
   String get noContent => 'No content';
 
   @override
   String get preview => 'Preview';
-
-  @override
-  String get productAbout => 'About';
 
   @override
   String get productDeviceRequirements => 'Device requirements';
@@ -1913,54 +1690,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get productInQueue => 'In queue';
 
   @override
-  String get productShare => 'Share';
-
-  @override
-  String get productViewOnBandBBS => 'View on BandBBS';
-
-  @override
-  String get changeCdn => 'Change CDN';
-
-  @override
-  String get cdnErrorTitle => 'AstroBox data failed to load';
-
-  @override
-  String cdnErrorMessage(Object cdn, Object path) {
-    return 'Current CDN ($cdn) could not fetch $path. Would you like to switch CDN?';
-  }
-
-  @override
-  String get cdnErrorContinue => 'Switch CDN';
-
-  @override
-  String get cdnErrorCancel => 'Cancel';
-
-  @override
   String get settingsAccount => 'Account';
 
   @override
   String get settingsGeneral => 'General';
 
   @override
-  String get settingsSource => 'Downloads';
-
-  @override
-  String get settingsSourceRestart => 'Restart required';
-
-  @override
   String get settingsQueue => 'Queue';
 
   @override
-  String get settingsInstall => 'Installation';
-
-  @override
-  String get settingsTools => 'Mysterious Tools';
-
-  @override
   String get settingsAbout => 'About';
-
-  @override
-  String get settingsAccountLoginBBS => 'Login to BandBBS';
 
   @override
   String get settingsAccountLoginBBSDesc =>
@@ -1984,18 +1723,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sign in to your BandBBS account in Settings first';
 
   @override
-  String settingsAccountBandBbsUser(Object userId) {
-    return 'User ID: $userId';
-  }
-
-  @override
   String get settingsAccountBBSAccount => 'BandBBS account';
 
   @override
   String get bandBbsAccountTitle => 'BandBBS account';
-
-  @override
-  String get bandBbsPurchasedResources => 'Purchased resources';
 
   @override
   String get bandBbsResourceId => 'Resource ID';
@@ -2005,9 +1736,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bandBbsQueryResource => 'Query';
-
-  @override
-  String get bandBbsOpenResource => 'View on BandBBS';
 
   @override
   String get bandBbsLogout => 'Sign out';
@@ -2039,21 +1767,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Include categories for unsupported devices hidden by default';
 
   @override
-  String get settingsAccountSyncDevices => 'Sync devices';
-
-  @override
-  String get settingsAccountSyncDevicesDesc =>
-      'Log in to Mi Account to sync paired devices';
-
-  @override
-  String get settingsMiAccount => 'Mi Account';
+  String get settingsMiAccount => 'Xiaomi account';
 
   @override
   String get settingsMiAccountDesc =>
       'Sign in and sync authkeys from bound devices';
 
   @override
-  String get settingsMiAccountLoginTitle => 'Mi Account login';
+  String get settingsMiAccountLoginTitle => 'Xiaomi account login';
 
   @override
   String get settingsMiAccountUsername => 'Account';
@@ -2070,11 +1791,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsMiAccountMissingCredentials =>
-      'Enter your Mi Account and password';
+      'Enter your Xiaomi account and password';
 
   @override
   String get settingsMiAccountTwoFactorPrompt =>
-      'Complete Mi Account two-factor verification in the verification page';
+      'Complete Xiaomi account two-factor verification in the verification page';
 
   @override
   String get settingsMiAccountLoginWindowClosed =>
@@ -2097,11 +1818,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsHuamiAccountSignedIn => 'Amazfit account signed in';
-
-  @override
-  String settingsHuamiAccountUser(Object username) {
-    return 'Account: $username';
-  }
 
   @override
   String get settingsHuamiAccountLoginTitle => 'Amazfit account login';
@@ -2152,20 +1868,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsWideNavigationPositionSplit => 'Split';
 
   @override
-  String get settingsGeneralTranslateTeam => 'Translation contributors';
-
-  @override
   String get settingsAutoReconnectTitle => 'Auto reconnect';
 
   @override
   String get settingsAutoReconnectDesc =>
       'Automatically reconnect to the last paired device on startup';
-
-  @override
-  String get settingsGeneralDebugWindow => 'Debug window';
-
-  @override
-  String get settingsGeneralDebugWindowDesc => 'Show a floating debug panel';
 
   @override
   String get settingsSourceOfficialCdn => 'GitHub source CDN';
@@ -2189,110 +1896,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Keep completed items in the install queue';
 
   @override
-  String get settingsInstallSendInterval => 'Packet interval';
-
-  @override
-  String get settingsInstallSendIntervalDesc =>
-      'Delay between Bluetooth fragments during install';
-
-  @override
-  String get settingsToolsUnlockCode => 'Calculate unlock code';
-
-  @override
-  String get settingsToolsUnlockCodeDesc =>
-      'Generate a Mi Wear unlock code from MAC and SN';
-
-  @override
-  String get settingsToolsDialogTitle => 'Unlock code';
-
-  @override
-  String get settingsToolsMac => 'MAC address';
-
-  @override
-  String get settingsToolsSn => 'Serial number';
-
-  @override
-  String get settingsToolsNoticeTitle => 'Warning';
-
-  @override
-  String get settingsToolsNoticeBody =>
-      'Unlocking may void your warranty or cause data loss. Use at your own risk.';
-
-  @override
-  String get settingsToolsAgree => 'I understand the risks';
-
-  @override
-  String get settingsToolsCalculate => 'Calculate';
-
-  @override
-  String get settingsToolsResult => 'Result';
-
-  @override
-  String get settingsToolsDialogUsage => 'Usage';
-
-  @override
-  String get settingsToolsDialogUsageInfo =>
-      'Enter the MAC address and serial number shown on the device.';
-
-  @override
-  String get settingsAboutAboutAstrobox => 'About OronBox';
-
-  @override
-  String get settingsAboutAboutAstroboxDesc => 'Version, changelog and team';
-
-  @override
-  String get settingsAboutDisclaimer => 'Disclaimer';
-
-  @override
-  String get settingsAboutDisclaimerDesc =>
-      'User agreement and liability statement';
-
-  @override
-  String get settingsAboutOpenlog => 'Log folder';
-
-  @override
-  String get settingsAboutOpenlogDesc =>
-      'Open the log directory in file manager';
-
-  @override
   String get settingsAboutWebsite => 'Official website';
-
-  @override
-  String get settingsAboutWebsiteDesc => 'Visit oronbox.zxor.org';
-
-  @override
-  String get settingsAboutQQ => 'QQ group';
-
-  @override
-  String get settingsAboutQQDesc => 'Join the community chat';
-
-  @override
-  String get settingsAboutLicences => 'Open source licenses';
-
-  @override
-  String get settingsAboutLicencesDesc =>
-      'Licenses for Flutter, dependencies and open source components';
-
-  @override
-  String get settingsGuest => 'Guest';
 
   @override
   String get settingsTapToSignIn => 'Tap to sign in';
 
   @override
   String get settingsConnected => 'Connected';
-
-  @override
-  String get settingsNotConnected => 'Not connected';
-
-  @override
-  String get settingsNotSet => 'Not set';
-
-  @override
-  String get settingsOn => 'On';
-
-  @override
-  String get settingsOff => 'Off';
 
   @override
   String get settingsSystem => 'System';
@@ -2361,25 +1971,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsCancel => 'Cancel';
-
-  @override
-  String get settingsConfirm => 'Confirm';
-
-  @override
-  String get settingsOpen => 'Open';
-
-  @override
-  String get settingsVisit => 'Visit';
-
-  @override
-  String get settingsTeamSlogan =>
-      'A pretty fast wearable management tool for VelaOS and ZeppOS.';
-
-  @override
-  String get settingsTeamGitHub => 'GitHub Repository';
-
-  @override
-  String get settingsTeamMembers => 'Team Members';
 
   @override
   String get settingsTeamRoleMain => 'Main Developer / Designer';
@@ -2462,9 +2053,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get blogTypeDocs => 'Docs';
 
   @override
-  String get blogPostUnavailable => 'Post unavailable';
-
-  @override
   String get resourceHomeEmptyTitle => 'Nothing to recommend yet';
 
   @override
@@ -2474,14 +2062,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get resourceHomeEmptySubtitle =>
       'You can get resources from the library';
-
-  @override
-  String get resourceCreatorEmptyTitle =>
-      'Creator center is under construction';
-
-  @override
-  String get resourceCreatorEmptySubtitle =>
-      'You can manage acquired resources in the library';
 
   @override
   String get openResourceLibrary => 'Open resource library';
@@ -2560,7 +2140,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get settingsAccountBandBbsAccount => 'BandBBS Account';
+  String get settingsAccountBandBbsAccount => 'BandBBS account';
 
   @override
   String get settingsAccountGitHub => 'GitHub account';
@@ -2599,7 +2179,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get settingsAboutLogsEmpty => 'No logs to export yet';
+  String get settingsAboutLogsEmpty => 'No log files';
 
   @override
   String get settingsAboutLogsClear => 'Clear';
@@ -2831,12 +2411,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resourceInstallConfirm => 'Install';
 
   @override
-  String get resourceName => 'Resource name';
-
-  @override
-  String get resourceSummary => 'Short summary';
-
-  @override
   String get previewImages => 'Preview images';
 
   @override
@@ -2844,12 +2418,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get submit => 'Submit';
-
-  @override
-  String get currentAccount => 'current account';
-
-  @override
-  String get submitForReview => 'Submit for review';
 
   @override
   String get creatorConfirmTitle => 'Confirm commit';
@@ -2884,21 +2452,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String creatorAstroBoxBinding(Object itemId, Object repository) {
-    return 'Item $itemId · $repository';
-  }
-
-  @override
   String get creatorAstroBoxBoundSync => 'Linked · Sync to AstroBox';
 
   @override
   String get creatorThisCommit => 'This commit';
-
-  @override
-  String get bandBbsCategoryId => 'BandBBS resource category ID';
-
-  @override
-  String get bandBbsCategory => 'BandBBS resource category';
 
   @override
   String creatorAstroBoxPrPublish(Object repository) {
@@ -2911,9 +2468,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creatorOpenInOronBox => 'View in OronBox';
-
-  @override
-  String get creatorAstroTags => 'AstroBox tags';
 
   @override
   String get creatorAstroTagsHint => 'Separate tags with English semicolons ;';
@@ -2951,12 +2505,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorOperationSaving => 'Saving changes';
 
   @override
-  String get creatorOperationUploading => 'Uploading and processing file';
-
-  @override
-  String get creatorOperationBinding => 'Updating supported devices';
-
-  @override
   String get creatorOperationDeleting => 'Deleting';
 
   @override
@@ -2968,10 +2516,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get creatorResolvingPublicationTarget =>
       'Resolving publication category';
-
-  @override
-  String get creatorSessionExpired =>
-      'Your OronBox session has expired. Sign in again before authorizing publishing';
 
   @override
   String get creatorStateApproved => 'Approved';
@@ -3002,10 +2546,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorLoginAction => 'Sign in to BandBBS';
 
   @override
-  String get creatorOronBoxReady =>
-      'OronBox and BandBBS read access are available';
-
-  @override
   String get creatorBandBbsWriteReady =>
       'BandBBS publishing access is authorized';
 
@@ -3026,24 +2566,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorAuthorize => 'Authorize';
 
   @override
-  String get openCreatorCenter => 'Open creator center';
-
-  @override
-  String get creatorGitHubNotConnected => 'GitHub account is not connected';
-
-  @override
-  String creatorGitHubConnected(Object login) {
-    return 'Connected as GitHub user $login';
-  }
-
-  @override
-  String get githubAuthorizationFailed =>
-      'Unable to open the GitHub authorization page';
-
-  @override
-  String get githubAuthorizationTimedOut => 'GitHub authorization timed out';
-
-  @override
   String get authorize => 'Authorize';
 
   @override
@@ -3058,14 +2580,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connect => 'Connect';
 
   @override
-  String get editResource => 'Edit resource';
-
-  @override
   String get legalAndPrivacy => 'Legal and privacy';
-
-  @override
-  String get legalAndPrivacyDesc =>
-      'View the terms, privacy notice, and resource rules';
 
   @override
   String get termsTitle => 'Terms and disclaimer';
@@ -3078,6 +2593,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reviewRulesTitle => 'Resource review rules';
+
+  @override
+  String get joinQqGroup => 'Join QQ Group';
+
+  @override
+  String get joinQqGroupDesc => 'Chat with developers and other users for help';
 
   @override
   String get feedbackTitle => 'Feedback';
@@ -3102,12 +2623,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportReason => 'Reason for report';
-
-  @override
-  String get submitted => 'Submitted';
-
-  @override
-  String get myFeedback => 'My feedback';
 
   @override
   String get noFeedback => 'No feedback yet';
@@ -3167,9 +2682,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get viewUpdate => 'View update';
-
-  @override
   String get oobeWelcomeSlogan =>
       'A beautiful and fast VelaOS / ZeppOS wearable device manager, built with Flutter';
 
@@ -3227,12 +2739,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get oobeAgreeCheckbox => 'I have read and agree';
 
   @override
-  String get oobeAgreeContinue => 'Agree and continue';
-
-  @override
-  String get oobeAgreedContinue => 'Agreed, continue';
-
-  @override
   String get oobeDeclineExit => 'Exit';
 
   @override
@@ -3259,7 +2765,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sign in with your Amazfit account to access Amazfit app store resources';
 
   @override
-  String get oobeCdnTesting => 'Testing...';
+  String get oobeCdnTesting => 'Testing…';
 
   @override
   String get oobeCdnSelected => 'Best CDN selected';
@@ -3274,9 +2780,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get oobeDoneBody => 'Start exploring OronBox';
 
   @override
-  String get oobeStart => 'Get started';
-
-  @override
   String get oobeFinish => 'Finish';
 
   @override
@@ -3287,18 +2790,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'View the welcome guide and initial setup again';
 
   @override
-  String get creatorAuthorized => 'Authorized';
-
-  @override
-  String get back => 'Back';
-
-  @override
   String get creatorConnect => 'Connect';
-
-  @override
-  String creatorReviewItemsProgress(Object done, Object total) {
-    return 'Requested changes ($done/$total resolved)';
-  }
 
   @override
   String get comments => 'Comments';
@@ -3314,9 +2806,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commentPending => 'Pending review';
-
-  @override
-  String get commentDeleted => 'Deleted';
 
   @override
   String get commentBlocked =>
@@ -3433,36 +2922,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsCategoryAccounts => 'Accounts and authorization';
 
   @override
-  String get settingsCategoryAccountsDescription =>
-      'Manage Xiaomi, Amazfit, BandBBS, and GitHub accounts';
-
-  @override
   String get settingsCategoryAppearance => 'Appearance and navigation';
-
-  @override
-  String get settingsCategoryAppearanceDescription =>
-      'Language, theme, navigation layout, and clean mode';
 
   @override
   String get settingsCategoryConnection => 'Connections and downloads';
 
   @override
-  String get settingsCategoryConnectionDescription =>
-      'Device connections, download behavior, and network endpoints';
-
-  @override
   String get settingsCategorySupport => 'Support and information';
 
   @override
-  String get settingsCategorySupportDescription =>
-      'Feedback, about, licenses, acknowledgements, and website';
-
-  @override
   String get settingsCategoryAdvanced => 'Advanced settings';
-
-  @override
-  String get settingsCategoryAdvancedDescription =>
-      'Window behavior, onboarding, and developer tools';
 
   @override
   String get xmsDeveloperMode => 'XMS developer mode';
@@ -3484,9 +2953,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get oronBoxCoinsCheckedIn => 'Checked in';
-
-  @override
-  String get oronBoxCoinsCheckingIn => 'Checking in';
 
   @override
   String oronBoxCoinsCheckinReward(int count) {
@@ -3549,10 +3015,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorCollectionTag => 'Collection';
 
   @override
-  String get creatorCollectionsDescription =>
-      'Group resources of the same type into one collection card';
-
-  @override
   String get creatorNewCollection => 'New collection';
 
   @override
@@ -3588,15 +3050,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorCollectionSummary => 'Collection summary';
 
   @override
-  String get creatorCollectionPending => 'Collection metadata is under review';
-
-  @override
-  String get creatorCollectionPublished => 'Published';
-
-  @override
-  String get creatorCollectionManage => 'Manage resources';
-
-  @override
   String get creatorCollectionRepresentative => 'Representative resource';
 
   @override
@@ -3604,97 +3057,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Delete this collection? Its resources will only be unlinked.';
 
   @override
-  String get creatorCollectionEdit => 'Edit collection metadata';
-
-  @override
   String get creatorContentAttributes => 'Content attributes';
 
   @override
-  String get creatorAttributeOriginal => 'Original';
-
-  @override
-  String get creatorAttributeDerivative => 'Derivative';
-
-  @override
-  String get creatorAttributePort => 'Port';
-
-  @override
-  String get creatorAttributeTemplateSkin => 'Template skin';
-
-  @override
-  String get creatorAttributeAiAssisted => 'AI-assisted';
-
-  @override
-  String get creatorAttributeAiGenerated => 'AI-generated';
-
-  @override
-  String get creatorAttribution => 'Creators and source';
-
-  @override
-  String get creatorCollaborators => 'Co-creators';
-
-  @override
-  String get creatorInvite => 'Invite';
-
-  @override
-  String get creatorInviteCollaborator => 'Invite a co-creator';
-
-  @override
-  String get creatorBandBbsUserId => 'BandBBS user ID';
-
-  @override
-  String get creatorNoCollaborators => 'No co-creators linked';
-
-  @override
-  String get creatorInvitationPending => 'Waiting for acceptance';
-
-  @override
-  String get creatorCollaboratorAccepted => 'Invitation accepted';
-
-  @override
-  String get creatorResourceSource => 'Source and authorization';
-
-  @override
-  String get creatorOriginalAuthor => 'Original author';
-
-  @override
-  String get creatorSourceUrl => 'Source URL';
-
-  @override
-  String get creatorLicense => 'License';
-
-  @override
-  String get creatorAuthorizationNote => 'Authorization note';
-
-  @override
   String get creatorConfirm => 'Confirm';
-
-  @override
-  String get creatorRemove => 'Remove';
-
-  @override
-  String get creatorAccept => 'Accept';
-
-  @override
-  String get creatorCollaborationInvitations => 'Co-creation invitations';
-
-  @override
-  String creatorInvitedBy(String name) {
-    return 'Invited by $name';
-  }
-
-  @override
-  String get creatorCoinsLifetime => 'Lifetime coins received';
-
-  @override
-  String get creatorCoinsRecent => 'Coins received in 14 days';
-
-  @override
-  String get creatorCoinRewards => 'Creator rewards';
-
-  @override
-  String get creatorCollectionOrderHint =>
-      'Drag to reorder resources in the collection';
 
   @override
   String get creatorCollectionAddResource => 'Add to collection';
@@ -3705,18 +3071,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get creatorDecline => 'Decline';
-
-  @override
   String communityImportSelected(int count) {
     return '$count selected';
   }
-
-  @override
-  String get communityImportForce => 'Also re-import items that already exist';
-
-  @override
-  String get communityImportStart => 'Start import';
 
   @override
   String get communityImportResultCreated => 'Draft created';
@@ -3747,7 +3104,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creatorImportExternalDescription =>
-      'Experimental, Import your existing resources from BandBBS or AstroBox-Repo';
+      'Experimental: import your existing resources from BandBBS or AstroBox-Repo';
 
   @override
   String get creatorImportAlreadyImported => 'Imported and linked';
@@ -3760,9 +3117,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorImportLogTitle => 'Processing log';
 
   @override
-  String get communityImportMyResources => 'My resources';
-
-  @override
   String get communityImportPickerEmpty => 'No resources';
 
   @override
@@ -3772,21 +3126,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorImportSelectTitle => 'Select resources';
 
   @override
-  String get creatorImportPreviewTitle => 'Import preview';
-
-  @override
   String get creatorImportProgressTitle => 'Importing';
 
   @override
   String get creatorImportResultTitle => 'Import result';
-
-  @override
-  String get creatorImportBindingsTitle => 'Linked resources';
-
-  @override
-  String creatorImportBandbbsSections(int count) {
-    return '$count sections';
-  }
 
   @override
   String get creatorImportGitHubHint =>
@@ -3836,14 +3179,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String creatorImportSourceVersion(Object source, Object version) {
-    return '$source · $version';
+  String get deviceConnectBle => 'Connect via BLE';
+
+  @override
+  String get deviceConnectBtClassic => 'Connect via BT Classic';
+
+  @override
+  String bandBbsIdLabel(Object id) {
+    return 'BandBBS ID $id';
   }
 
   @override
-  String get creatorImportPaid => 'Paid';
-
-  @override
-  String get creatorImportBandbbsPaidEncrypted =>
-      'Paid BandBBS files are license-encrypted and cannot be imported';
+  String get oobeCdnTestFailed => 'Failed';
 }

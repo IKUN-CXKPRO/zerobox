@@ -261,6 +261,7 @@ const oronBoxPluginBootstrap = r'''
         Button: (label, p) => n('Button', { text: label, ...p }, []),
         Image: (src, p) => n('Image', { src, ...p }, []),
         Divider: (p) => n('Divider', p || {}, []),
+        HtmlDocument: (p) => n('HtmlDocument', p || {}, []),
         Badge: (p, child) => n('Badge', p || {}, [child]),
         TextField: (p) => n('TextField', p || {}, []),
         Switch: (checked, p) => n('Switch', { checked, ...p }, []),

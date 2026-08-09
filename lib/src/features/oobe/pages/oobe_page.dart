@@ -658,7 +658,7 @@ class _LoginStepState extends ConsumerState<_LoginStep> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : Text(
-                  ms == null ? '失败' : '${ms}ms',
+                  ms == null ? l10n.oobeCdnTestFailed : '${ms}ms',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: isFastest ? cs.primary : cs.onSurfaceVariant,
                   ),

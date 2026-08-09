@@ -51,7 +51,7 @@ class ZeppOsMapUploadSystem extends System {
     required String fileName,
     void Function(double progress)? onProgress,
   }) async {
-    if (_uploading) throw StateError('地图传输正在进行中');
+    if (_uploading) throw StateError('A map transfer is already in progress');
     _uploading = true;
     try {
       final package = ZeppOsMapPackage.validate(bytes, fileName: fileName);
@@ -86,17 +86,17 @@ class ZeppOsMapUploadSystem extends System {
         ]).timeout(
           const Duration(seconds: 60),
           onTimeout: () => throw TimeoutException(
-            '等待手表确认地图安装超时',
+            'Timed out waiting for the watch to confirm map installation',
             const Duration(seconds: 60),
           ),
         );
         final request = await rawRequest.future.timeout(
           const Duration(seconds: 20),
           onTimeout: () =>
-              throw TimeoutException('手表未请求地图文件', const Duration(seconds: 20)),
+              throw TimeoutException('The watch did not request the map file', const Duration(seconds: 20)),
         );
         if (request.url != fakeUrl) {
-          throw StateError('手表请求了未知地图地址：${request.url}');
+          throw StateError('The watch requested an unknown map address: ${request.url}');
         }
 
         await _sendFile(request.requestId, bytes, onProgress: onProgress);
@@ -112,11 +112,11 @@ class ZeppOsMapUploadSystem extends System {
   Future<void> _initialize() async {
     final transport = entity.transport;
     if (transport is! CharacteristicTransport) {
-      throw UnsupportedError('地图传输需要 Zepp OS 特征通道');
+      throw UnsupportedError('Map transfer requires a Zepp OS characteristic channel');
     }
     final servicesSystem = entity.system<ZeppOsServicesSystem>();
     if (servicesSystem == null) {
-      throw StateError('Zepp OS 服务列表系统未初始化');
+      throw StateError('Zepp OS services system has not been initialized');
     }
     final services = await servicesSystem.fetchSupportedServices();
     for (final endpoint in const [
@@ -126,7 +126,7 @@ class ZeppOsMapUploadSystem extends System {
     ]) {
       if (!services.containsKey(endpoint)) {
         throw UnsupportedError(
-          '手表未提供地图传输服务 0x${endpoint.toRadixString(16).padLeft(4, '0')}',
+          'The watch does not provide map transfer service 0x${endpoint.toRadixString(16).padLeft(4, '0')}',
         );
       }
     }
@@ -151,8 +151,8 @@ class ZeppOsMapUploadSystem extends System {
     }
     if (_fileTransferVersion != 3) {
       throw UnsupportedError(
-        '地图上传当前需要 Zepp OS V3 文件传输，手表返回 '
-        'V${_fileTransferVersion ?? '未知'}',
+        'Map upload currently requires Zepp OS V3 file transfer, but the watch '
+        'reported V${_fileTransferVersion ?? 'unknown'}',
       );
     }
     _transfer ??= ZeppOsV3FileTransfer(
@@ -190,7 +190,7 @@ class ZeppOsMapUploadSystem extends System {
         const Duration(seconds: 15),
       );
       if (existingProgress < 0 || existingProgress > bytes.length) {
-        throw StateError('手表返回了无效的地图传输进度：$existingProgress');
+        throw StateError('The watch reported an invalid map transfer progress: $existingProgress');
       }
 
       await _transfer!.send(
@@ -221,7 +221,7 @@ class ZeppOsMapUploadSystem extends System {
         if (payload[1] == 1) {
           pending.complete();
         } else {
-          pending.completeError(StateError('手表拒绝了地图安装：${payload[1]}'));
+          pending.completeError(StateError('The watch rejected the map installation: ${payload[1]}'));
         }
       }
       return;
@@ -248,7 +248,7 @@ class ZeppOsMapUploadSystem extends System {
       _chunkSize = ByteData.sublistView(payload).getUint16(2, Endian.little);
       final pending = _capabilities;
       if (_chunkSize <= 0) {
-        pending?.completeError(StateError('手表返回了无效的文件分块大小：$_chunkSize'));
+        pending?.completeError(StateError('The watch reported an invalid file chunk size: $_chunkSize'));
       } else if (pending != null && !pending.isCompleted) {
         pending.complete();
       }
@@ -258,7 +258,7 @@ class ZeppOsMapUploadSystem extends System {
       final pending = _fileRequest;
       if (pending == null || pending.isCompleted) return;
       if (payload[2] != 0) {
-        pending.completeError(StateError('手表拒绝接收地图文件：${payload[2]}'));
+        pending.completeError(StateError('The watch refused the map file: ${payload[2]}'));
       } else {
         pending.complete(
           ByteData.sublistView(payload).getUint32(3, Endian.little),
@@ -355,18 +355,18 @@ class ZeppOsMapPackage {
       );
     }
     if (!lowerName.endsWith('.zip')) {
-      throw FormatException('$fileName 不是支持的 ZIP 或 Garmin IMG 地图');
+      throw FormatException('$fileName is not a supported ZIP or Garmin IMG map');
     }
     final Archive archive;
     try {
       archive = ZipDecoder().decodeBytes(bytes, verify: true);
     } catch (error) {
-      throw FormatException('$fileName 不是有效的 ZIP 地图包：$error');
+      throw FormatException('$fileName is not a valid ZIP map archive: $error');
     }
     final files = archive.files.where((entry) => entry.isFile).toList();
     if (files.length != 1 ||
         !files.single.name.toLowerCase().endsWith('.img')) {
-      throw FormatException('$fileName 不是仅包含一个 IMG 的佳明地图包');
+      throw FormatException('$fileName is not a Garmin map archive containing exactly one IMG');
     }
     final entry = files.single;
     final imgBytes = Uint8List.fromList(entry.content as List<int>);
@@ -402,11 +402,11 @@ class ZeppOsMapPackage {
       );
     }
     if (!lowerName.endsWith('.img')) {
-      throw FormatException('$fileName 不是支持的 ZIP 或 Garmin IMG 地图');
+      throw FormatException('$fileName is not a supported ZIP or Garmin IMG map');
     }
     _validateImg(bytes, fileName);
     if (bytes.length > 100 * 1024 * 1024) {
-      throw FormatException('地图文件大小无效：${bytes.length} 字节');
+      throw FormatException('Invalid map file size: ${bytes.length} bytes');
     }
     return _prepareGarminImg(bytes, fileName: fileName);
   }
@@ -443,13 +443,13 @@ class ZeppOsMapPackage {
     required String fileName,
   }) {
     if (bytes.isEmpty || bytes.length > 100 * 1024 * 1024) {
-      throw FormatException('地图包大小无效：${bytes.length} 字节');
+      throw FormatException('Invalid map archive size: ${bytes.length} bytes');
     }
     final Archive archive;
     try {
       archive = ZipDecoder().decodeBytes(bytes, verify: true);
     } catch (error) {
-      throw FormatException('$fileName 不是有效的 ZIP 地图包：$error');
+      throw FormatException('$fileName is not a valid ZIP map archive: $error');
     }
     final pathPattern = RegExp(r'^11/([0-9]+)/([0-9]+)\.img$');
     final files = archive.files.where((entry) => entry.isFile).toList();
@@ -460,7 +460,7 @@ class ZeppOsMapPackage {
       final content = Uint8List.fromList(entry.content as List<int>);
       _validateImg(content, entry.name);
       if (entry.size <= 0 || entry.size > 0xffffffff) {
-        throw FormatException('Garmin IMG 大小无效：${entry.size} 字节');
+        throw FormatException('Invalid Garmin IMG size: ${entry.size} bytes');
       }
       return ZeppOsMapPackage(
         uncompressedSize: entry.size,
@@ -481,7 +481,7 @@ class ZeppOsMapPackage {
       if (match == null ||
           int.parse(match.group(1)!) > 2048 ||
           int.parse(match.group(2)!) > 2048) {
-        throw FormatException('地图包包含无效文件：${entry.name}');
+        throw FormatException('The map archive contains an invalid file: ${entry.name}');
       }
       final content = Uint8List.fromList(entry.content as List<int>);
       _validateImg(content, entry.name);
@@ -495,7 +495,7 @@ class ZeppOsMapPackage {
       );
     }
     if (count == 0 || total <= 0 || total > 0xffffffff) {
-      throw const FormatException('地图包中没有有效的地图切片');
+      throw const FormatException('The map archive contains no valid map tiles');
     }
     tiles.sort((a, b) {
       final row = a.y.compareTo(b.y);
@@ -512,7 +512,7 @@ class ZeppOsMapPackage {
     if (bytes.length < 512 ||
         utf8.decode(bytes.sublist(0x10, 0x17), allowMalformed: true) !=
             'DSKIMG\u0000') {
-      throw FormatException('$fileName 不是有效的 Garmin IMG 地图');
+      throw FormatException('$fileName is not a valid Garmin IMG map');
     }
   }
 }
@@ -549,28 +549,35 @@ class GarminImgAnalysis {
     final features = <String>[
       if (hasTyp) 'TYP',
       if (hasDem) 'DEM',
-      if (hasRouting) '路由',
+      if (hasRouting) 'routing',
       if (isNt) 'NT/GMP',
-      if (isLocked) '锁定',
-    ].join('、');
+      if (isLocked) 'locked',
+    ].join(', ');
     final prefix =
-        '已分析 Garmin IMG：${maps.length} 张内部地图'
-        '${features.isEmpty ? '' : '，包含 $features'}。';
-    if (isLocked) return '$prefix 地图已锁定，不能转换或发送。';
-    if (isNt) return '$prefix 当前不支持 NT/GMP 地图，不能转换或发送。';
+        'Analyzed Garmin IMG: ${maps.length} internal map(s)'
+        '${features.isEmpty ? '' : ', containing $features'}';
+    if (isLocked) {
+      return '$prefix. The map is locked and cannot be converted or sent.';
+    }
+    if (isNt) {
+      return '$prefix. NT/GMP maps are currently not supported for '
+          'conversion or transfer.';
+    }
     final unsafe = maps.where((map) => map.zoom11Tile == null).toList();
     if (unsafe.isNotEmpty) {
       final details = unsafe
           .map(
             (map) =>
-                '${map.mapId} 覆盖约 '
-                '${map.zoom11Width}×${map.zoom11Height} 个 zoom 11 格子',
+                '${map.mapId} covers about '
+                '${map.zoom11Width}×${map.zoom11Height} zoom 11 tiles',
           )
-          .join('；');
-      return '$prefix $details，边界不符合 11/x/y 网格，'
-          '必须从原始地图数据重新切图，不能只拆包改名。';
+          .join('; ');
+      return '$prefix. $details, with boundaries outside the 11/x/y grid; '
+          'the map must be re-tiled from original data, not just repacked '
+          'and renamed.';
     }
-    return '$prefix 所有内部地图边界均符合 zoom 11 网格，可以转换。';
+    return '$prefix. All internal map boundaries match the zoom 11 grid '
+        'and can be converted.';
   }
 
   static GarminImgAnalysis analyze(
@@ -580,11 +587,11 @@ class GarminImgAnalysis {
     if (bytes.length < 0x400 ||
         utf8.decode(bytes.sublist(0x10, 0x17), allowMalformed: true) !=
             'DSKIMG\u0000') {
-      throw FormatException('$fileName 不是有效的 Garmin IMG 地图');
+      throw FormatException('$fileName is not a valid Garmin IMG map');
     }
     final blockShift = bytes[0x61] + bytes[0x62];
     if (blockShift < 9 || blockShift > 24) {
-      throw FormatException('$fileName 的 Garmin IMG 块大小无效');
+      throw FormatException('Invalid Garmin IMG block size for $fileName');
     }
     final blockSize = 1 << blockShift;
     var directorySize = math.min(bytes.length, 1024 * 1024);
@@ -621,7 +628,7 @@ class GarminImgAnalysis {
       file.parts.add((part: part, blocks: blocks));
     }
     if (entries.isEmpty) {
-      throw FormatException('$fileName 没有可读取的 Garmin FAT 目录');
+      throw FormatException('$fileName has no readable Garmin FAT directory');
     }
 
     final extensions = entries.values.map((entry) => entry.extension).toSet();
@@ -632,7 +639,7 @@ class GarminImgAnalysis {
     )) {
       final tre = entry.read(bytes, blockSize);
       if (tre.length < 0x21) {
-        throw FormatException('${entry.name}.TRE 内容不完整');
+        throw FormatException('${entry.name}.TRE content is incomplete');
       }
       locked = locked || (tre[0x0d] & 0x80) != 0;
       maps.add(
@@ -768,14 +775,14 @@ class _GarminFatFile {
       for (final block in part.blocks) {
         final start = block * blockSize;
         if (start < 0 || start + blockSize > image.length) {
-          throw FormatException('$name.$extension 引用了无效数据块 $block');
+          throw FormatException('$name.$extension references an invalid data block $block');
         }
         output.add(Uint8List.sublistView(image, start, start + blockSize));
       }
     }
     final bytes = output.takeBytes();
     if (size > bytes.length) {
-      throw FormatException('$name.$extension 的 FAT 长度无效');
+      throw FormatException('Invalid FAT length for $name.$extension');
     }
     return Uint8List.sublistView(bytes, 0, size);
   }

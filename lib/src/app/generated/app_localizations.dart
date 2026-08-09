@@ -98,12 +98,6 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
-  /// No description provided for @appTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'OronBox'**
-  String get appTitle;
-
   /// No description provided for @homeTab.
   ///
   /// In en, this message translates to:
@@ -374,59 +368,11 @@ abstract class AppLocalizations {
   /// **'Notifications'**
   String get notifications;
 
-  /// No description provided for @pendingTasks.
-  ///
-  /// In en, this message translates to:
-  /// **'Pending tasks'**
-  String get pendingTasks;
-
-  /// No description provided for @manageDevice.
-  ///
-  /// In en, this message translates to:
-  /// **'Manage device'**
-  String get manageDevice;
-
-  /// No description provided for @installLocalResource.
-  ///
-  /// In en, this message translates to:
-  /// **'Install local resource'**
-  String get installLocalResource;
-
-  /// No description provided for @recentUpdates.
-  ///
-  /// In en, this message translates to:
-  /// **'Recent updates'**
-  String get recentUpdates;
-
   /// No description provided for @newlyPublished.
   ///
   /// In en, this message translates to:
   /// **'Newly published'**
   String get newlyPublished;
-
-  /// No description provided for @news.
-  ///
-  /// In en, this message translates to:
-  /// **'News'**
-  String get news;
-
-  /// No description provided for @oronBoxNews.
-  ///
-  /// In en, this message translates to:
-  /// **'OronBox news'**
-  String get oronBoxNews;
-
-  /// No description provided for @bandbbsNews.
-  ///
-  /// In en, this message translates to:
-  /// **'BandBBS news'**
-  String get bandbbsNews;
-
-  /// No description provided for @astroBoxNews.
-  ///
-  /// In en, this message translates to:
-  /// **'AstroBox news'**
-  String get astroBoxNews;
 
   /// No description provided for @resourceLibrary.
   ///
@@ -445,12 +391,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New resource'**
   String get creatorNewResource;
-
-  /// No description provided for @creatorSlug.
-  ///
-  /// In en, this message translates to:
-  /// **'Resource identifier'**
-  String get creatorSlug;
 
   /// No description provided for @creatorResourceName.
   ///
@@ -475,12 +415,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add resource file'**
   String get creatorAddArtifact;
-
-  /// No description provided for @creatorReplaceAsset.
-  ///
-  /// In en, this message translates to:
-  /// **'Upload replacement'**
-  String get creatorReplaceAsset;
 
   /// No description provided for @creatorBindDevices.
   ///
@@ -578,18 +512,6 @@ abstract class AppLocalizations {
   /// **'Submit'**
   String get creatorSubmitReview;
 
-  /// No description provided for @creatorCorrection.
-  ///
-  /// In en, this message translates to:
-  /// **'Correct and resubmit'**
-  String get creatorCorrection;
-
-  /// No description provided for @creatorUpdateResource.
-  ///
-  /// In en, this message translates to:
-  /// **'Update resource'**
-  String get creatorUpdateResource;
-
   /// No description provided for @creatorArchiveAction.
   ///
   /// In en, this message translates to:
@@ -626,23 +548,11 @@ abstract class AppLocalizations {
   /// **'{count} packages'**
   String creatorArtifactCount(Object count);
 
-  /// No description provided for @creatorKindMismatchTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'File type mismatch'**
-  String get creatorKindMismatchTitle;
-
   /// No description provided for @creatorKindMismatchMessage.
   ///
   /// In en, this message translates to:
   /// **'This file looks like a {detected}, but this resource is a {expected}. You can keep it, but please confirm before submitting for review.'**
   String creatorKindMismatchMessage(Object detected, Object expected);
-
-  /// No description provided for @creatorKeepFile.
-  ///
-  /// In en, this message translates to:
-  /// **'Keep anyway'**
-  String get creatorKeepFile;
 
   /// No description provided for @creatorDeviceMoveBlocked.
   ///
@@ -650,41 +560,11 @@ abstract class AppLocalizations {
   /// **'\"{name}\" has only this device bound and cannot be moved'**
   String creatorDeviceMoveBlocked(Object name);
 
-  /// No description provided for @creatorAssetsReusedHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Existing packages and previews are reused — no need to re-upload'**
-  String get creatorAssetsReusedHint;
-
-  /// No description provided for @creatorRevisionHistory.
-  ///
-  /// In en, this message translates to:
-  /// **'Revision history'**
-  String get creatorRevisionHistory;
-
-  /// No description provided for @creatorUploadProgress.
-  ///
-  /// In en, this message translates to:
-  /// **'Uploading {progress}%'**
-  String creatorUploadProgress(Object progress);
-
   /// No description provided for @filter.
   ///
   /// In en, this message translates to:
   /// **'Filter'**
   String get filter;
-
-  /// No description provided for @importLocalResource.
-  ///
-  /// In en, this message translates to:
-  /// **'Import local resource'**
-  String get importLocalResource;
-
-  /// No description provided for @allDevices.
-  ///
-  /// In en, this message translates to:
-  /// **'All devices'**
-  String get allDevices;
 
   /// No description provided for @currentDevice.
   ///
@@ -715,12 +595,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Firmware / Tools'**
   String get firmwareTools;
-
-  /// No description provided for @localResources.
-  ///
-  /// In en, this message translates to:
-  /// **'Local resources'**
-  String get localResources;
 
   /// No description provided for @oronBox.
   ///
@@ -758,12 +632,6 @@ abstract class AppLocalizations {
   /// **'Update'**
   String get update;
 
-  /// No description provided for @manage.
-  ///
-  /// In en, this message translates to:
-  /// **'Manage'**
-  String get manage;
-
   /// No description provided for @description.
   ///
   /// In en, this message translates to:
@@ -775,18 +643,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Supported devices'**
   String get supportedDevices;
-
-  /// No description provided for @resourceProfile.
-  ///
-  /// In en, this message translates to:
-  /// **'Resource platform and type'**
-  String get resourceProfile;
-
-  /// No description provided for @creatorArtifactProfileMismatch.
-  ///
-  /// In en, this message translates to:
-  /// **'{fileName} does not match the selected {profile} profile and was not added'**
-  String creatorArtifactProfileMismatch(Object fileName, Object profile);
 
   /// No description provided for @downloads.
   ///
@@ -841,12 +697,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **''**
   String get incompatibleSuffix;
-
-  /// No description provided for @openSourcePage.
-  ///
-  /// In en, this message translates to:
-  /// **'Open source page'**
-  String get openSourcePage;
 
   /// No description provided for @myResources.
   ///
@@ -1046,12 +896,6 @@ abstract class AppLocalizations {
   /// **'Failed / Needs action'**
   String get failed;
 
-  /// No description provided for @newResource.
-  ///
-  /// In en, this message translates to:
-  /// **'New resource'**
-  String get newResource;
-
   /// No description provided for @basicInfo.
   ///
   /// In en, this message translates to:
@@ -1064,35 +908,11 @@ abstract class AppLocalizations {
   /// **'Resource files'**
   String get packageFiles;
 
-  /// No description provided for @deviceSelection.
-  ///
-  /// In en, this message translates to:
-  /// **'Device selection'**
-  String get deviceSelection;
-
-  /// No description provided for @deviceFileMapping.
-  ///
-  /// In en, this message translates to:
-  /// **'Device-file mapping'**
-  String get deviceFileMapping;
-
   /// No description provided for @publishTargets.
   ///
   /// In en, this message translates to:
   /// **'Publish targets'**
   String get publishTargets;
-
-  /// No description provided for @publishPreview.
-  ///
-  /// In en, this message translates to:
-  /// **'Publish preview'**
-  String get publishPreview;
-
-  /// No description provided for @reviewStatus.
-  ///
-  /// In en, this message translates to:
-  /// **'Review status'**
-  String get reviewStatus;
 
   /// No description provided for @scan.
   ///
@@ -1106,29 +926,11 @@ abstract class AppLocalizations {
   /// **'Logs'**
   String get logs;
 
-  /// No description provided for @connectedDevices.
-  ///
-  /// In en, this message translates to:
-  /// **'Connected devices'**
-  String get connectedDevices;
-
   /// No description provided for @pairedDevices.
   ///
   /// In en, this message translates to:
   /// **'Paired devices'**
   String get pairedDevices;
-
-  /// No description provided for @discoveredDevices.
-  ///
-  /// In en, this message translates to:
-  /// **'Discovered devices'**
-  String get discoveredDevices;
-
-  /// No description provided for @overview.
-  ///
-  /// In en, this message translates to:
-  /// **'Overview'**
-  String get overview;
 
   /// No description provided for @apps.
   ///
@@ -1175,7 +977,7 @@ abstract class AppLocalizations {
   /// No description provided for @errorBluetoothConnectFailed.
   ///
   /// In en, this message translates to:
-  /// **'Connection failed. Check Bluetooth permission, keep the device nearby and unoccupied, enable Connect new phone on the device, then try again'**
+  /// **'Connection failed. Check Bluetooth permission, keep the device nearby and not in use, enable Connect new phone on the device, then try again'**
   String get errorBluetoothConnectFailed;
 
   /// No description provided for @errorBluetoothDisconnected.
@@ -1289,7 +1091,7 @@ abstract class AppLocalizations {
   /// No description provided for @errorCertificateVerificationFailed.
   ///
   /// In en, this message translates to:
-  /// **'Certificate verification failed. If you are using a proxy, disable HTTPS interception for this app or make sure its certificate is trusted by Flutter/Dart'**
+  /// **'Certificate verification failed. If you are using a proxy, disable HTTPS interception for this app or make sure its certificate is trusted'**
   String get errorCertificateVerificationFailed;
 
   /// No description provided for @errorUnknownWithDetail.
@@ -1297,36 +1099,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Operation failed: {detail}'**
   String errorUnknownWithDetail(Object detail);
-
-  /// No description provided for @copyLogs.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy logs'**
-  String get copyLogs;
-
-  /// No description provided for @exportLogs.
-  ///
-  /// In en, this message translates to:
-  /// **'Export logs'**
-  String get exportLogs;
-
-  /// No description provided for @clearLogs.
-  ///
-  /// In en, this message translates to:
-  /// **'Clear logs'**
-  String get clearLogs;
-
-  /// No description provided for @personalCenter.
-  ///
-  /// In en, this message translates to:
-  /// **'Personal center'**
-  String get personalCenter;
-
-  /// No description provided for @accountAndPublishing.
-  ///
-  /// In en, this message translates to:
-  /// **'Account & Publishing'**
-  String get accountAndPublishing;
 
   /// No description provided for @appearance.
   ///
@@ -1382,12 +1154,6 @@ abstract class AppLocalizations {
   /// **'Advanced'**
   String get advanced;
 
-  /// No description provided for @aboutOronBox.
-  ///
-  /// In en, this message translates to:
-  /// **'About OronBox'**
-  String get aboutOronBox;
-
   /// No description provided for @openSourceLicenses.
   ///
   /// In en, this message translates to:
@@ -1399,18 +1165,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Special Acknowledgements'**
   String get acknowledgements;
-
-  /// No description provided for @acknowledgementsDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Open source projects referenced by OronBox'**
-  String get acknowledgementsDesc;
-
-  /// No description provided for @developmentTeam.
-  ///
-  /// In en, this message translates to:
-  /// **'Development team'**
-  String get developmentTeam;
 
   /// No description provided for @deviceNotConnected.
   ///
@@ -1490,23 +1244,11 @@ abstract class AppLocalizations {
   /// **'Install app'**
   String get deviceFeaturesInstallApp;
 
-  /// No description provided for @deviceFeaturesInstallAppDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Install third-party app from local file'**
-  String get deviceFeaturesInstallAppDesc;
-
   /// No description provided for @deviceFeaturesInstallWatchface.
   ///
   /// In en, this message translates to:
   /// **'Install watchface'**
   String get deviceFeaturesInstallWatchface;
-
-  /// No description provided for @deviceFeaturesInstallWatchfaceDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Install watchface from local file'**
-  String get deviceFeaturesInstallWatchfaceDesc;
 
   /// No description provided for @deviceFeaturesInstallFirmware.
   ///
@@ -1520,23 +1262,11 @@ abstract class AppLocalizations {
   /// **'Check for device updates or install local firmware'**
   String get deviceFeaturesInstallFirmwareDesc;
 
-  /// No description provided for @firmwareAvailableUpdates.
-  ///
-  /// In en, this message translates to:
-  /// **'Available updates'**
-  String get firmwareAvailableUpdates;
-
   /// No description provided for @firmwareCheckingUpdates.
   ///
   /// In en, this message translates to:
   /// **'Checking for firmware updates'**
   String get firmwareCheckingUpdates;
-
-  /// No description provided for @firmwareCheckUpdatesDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Find firmware versions compatible with this device'**
-  String get firmwareCheckUpdatesDescription;
 
   /// No description provided for @firmwareNoUpdatesFound.
   ///
@@ -1555,12 +1285,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Current firmware version unavailable'**
   String get firmwareVersionUnknown;
-
-  /// No description provided for @localFirmwareInstallDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Select and install a local firmware file'**
-  String get localFirmwareInstallDescription;
 
   /// No description provided for @firmwareCurrentVersion.
   ///
@@ -1610,53 +1334,17 @@ abstract class AppLocalizations {
   /// **'No release notes available'**
   String get firmwareReleaseNotesUnavailable;
 
-  /// No description provided for @firmwareDownloadingProgress.
-  ///
-  /// In en, this message translates to:
-  /// **'Downloading {progress}%'**
-  String firmwareDownloadingProgress(int progress);
-
   /// No description provided for @download.
   ///
   /// In en, this message translates to:
   /// **'Download'**
   String get download;
 
-  /// No description provided for @downloadFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Download failed. Try again later.'**
-  String get downloadFailed;
-
   /// No description provided for @downloadTaskAdded.
   ///
   /// In en, this message translates to:
   /// **'Added to the download queue'**
   String get downloadTaskAdded;
-
-  /// No description provided for @deviceFeaturesManageApps.
-  ///
-  /// In en, this message translates to:
-  /// **'Manage apps'**
-  String get deviceFeaturesManageApps;
-
-  /// No description provided for @deviceFeaturesManageAppsDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'View and uninstall installed apps'**
-  String get deviceFeaturesManageAppsDesc;
-
-  /// No description provided for @deviceFeaturesManageWatchfaces.
-  ///
-  /// In en, this message translates to:
-  /// **'Manage watchfaces'**
-  String get deviceFeaturesManageWatchfaces;
-
-  /// No description provided for @deviceFeaturesManageWatchfacesDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'View, delete and set current watchface'**
-  String get deviceFeaturesManageWatchfacesDesc;
 
   /// No description provided for @zeppOsMoreFeatures.
   ///
@@ -1958,12 +1646,6 @@ abstract class AppLocalizations {
   /// **'{fileName} · {count} tiles\nThe preview shows package coverage, not the Garmin IMG rendering on the watch.'**
   String zeppOsMapTileSummary(Object fileName, Object count);
 
-  /// No description provided for @zeppOsMapWatchConfirmationHint.
-  ///
-  /// In en, this message translates to:
-  /// **'You must also confirm the installation on the watch. Keep it close to this device during transfer.'**
-  String get zeppOsMapWatchConfirmationHint;
-
   /// No description provided for @zeppOsMapStartTransfer.
   ///
   /// In en, this message translates to:
@@ -1987,24 +1669,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Map could not be converted safely'**
   String get zeppOsMapConversionFailed;
-
-  /// No description provided for @zeppOsMapSection.
-  ///
-  /// In en, this message translates to:
-  /// **'Maps'**
-  String get zeppOsMapSection;
-
-  /// No description provided for @zeppOsMapTransferAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Transfer map'**
-  String get zeppOsMapTransferAction;
-
-  /// No description provided for @zeppOsMapTransferDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Select a ZIP or Garmin IMG map and send it to the watch'**
-  String get zeppOsMapTransferDescription;
 
   /// No description provided for @zeppOsMapBtClassicHint.
   ///
@@ -2552,12 +2216,6 @@ abstract class AppLocalizations {
   /// **'Debug app-side scripts and device communication'**
   String get zeppOsAppDebugDescription;
 
-  /// No description provided for @deviceFeaturesSection.
-  ///
-  /// In en, this message translates to:
-  /// **'Features'**
-  String get deviceFeaturesSection;
-
   /// No description provided for @deviceMusicSync.
   ///
   /// In en, this message translates to:
@@ -2762,12 +2420,6 @@ abstract class AppLocalizations {
   /// **'Sync recordings'**
   String get deviceRecordingsSync;
 
-  /// No description provided for @deviceRecordingsSyncing.
-  ///
-  /// In en, this message translates to:
-  /// **'Receiving'**
-  String get deviceRecordingsSyncing;
-
   /// No description provided for @deviceRecordingsReading.
   ///
   /// In en, this message translates to:
@@ -2888,18 +2540,6 @@ abstract class AppLocalizations {
   /// **'Make the device vibrate or ring so you can locate it nearby.'**
   String get zeppOsFindDeviceDescription;
 
-  /// No description provided for @zeppOsFindDeviceStart.
-  ///
-  /// In en, this message translates to:
-  /// **'Start finding'**
-  String get zeppOsFindDeviceStart;
-
-  /// No description provided for @zeppOsFindDeviceStop.
-  ///
-  /// In en, this message translates to:
-  /// **'Stop finding'**
-  String get zeppOsFindDeviceStop;
-
   /// No description provided for @deviceFeaturesDeviceInfo.
   ///
   /// In en, this message translates to:
@@ -2929,18 +2569,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Scan and add'**
   String get scanAndAdd;
-
-  /// No description provided for @scanNotFound.
-  ///
-  /// In en, this message translates to:
-  /// **'No devices found'**
-  String get scanNotFound;
-
-  /// No description provided for @noSavedDevices.
-  ///
-  /// In en, this message translates to:
-  /// **'No saved devices'**
-  String get noSavedDevices;
 
   /// No description provided for @authkey.
   ///
@@ -3092,18 +2720,6 @@ abstract class AppLocalizations {
   /// **'Tap to select file'**
   String get installTapToSelectFile;
 
-  /// No description provided for @installPackageName.
-  ///
-  /// In en, this message translates to:
-  /// **'Package name'**
-  String get installPackageName;
-
-  /// No description provided for @installWatchfaceId.
-  ///
-  /// In en, this message translates to:
-  /// **'Watchface ID'**
-  String get installWatchfaceId;
-
   /// No description provided for @deviceInfoTitle.
   ///
   /// In en, this message translates to:
@@ -3194,12 +2810,6 @@ abstract class AppLocalizations {
   /// **'Charge status'**
   String get fieldChargeStatus;
 
-  /// No description provided for @fieldLastCharge.
-  ///
-  /// In en, this message translates to:
-  /// **'Last charge'**
-  String get fieldLastCharge;
-
   /// No description provided for @fieldStorage.
   ///
   /// In en, this message translates to:
@@ -3283,12 +2893,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enable'**
   String get enable;
-
-  /// No description provided for @fail.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed'**
-  String get fail;
 
   /// No description provided for @show.
   ///
@@ -3392,12 +2996,6 @@ abstract class AppLocalizations {
   /// **'Minimize to tray'**
   String get desktopCloseBehaviorTray;
 
-  /// No description provided for @multiDevice.
-  ///
-  /// In en, this message translates to:
-  /// **'Multi-device'**
-  String get multiDevice;
-
   /// No description provided for @quickApp.
   ///
   /// In en, this message translates to:
@@ -3452,12 +3050,6 @@ abstract class AppLocalizations {
   /// **'Version'**
   String get version;
 
-  /// No description provided for @noDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'No description'**
-  String get noDescription;
-
   /// No description provided for @noContent.
   ///
   /// In en, this message translates to:
@@ -3469,12 +3061,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preview'**
   String get preview;
-
-  /// No description provided for @productAbout.
-  ///
-  /// In en, this message translates to:
-  /// **'About'**
-  String get productAbout;
 
   /// No description provided for @productDeviceRequirements.
   ///
@@ -3494,48 +3080,6 @@ abstract class AppLocalizations {
   /// **'In queue'**
   String get productInQueue;
 
-  /// No description provided for @productShare.
-  ///
-  /// In en, this message translates to:
-  /// **'Share'**
-  String get productShare;
-
-  /// No description provided for @productViewOnBandBBS.
-  ///
-  /// In en, this message translates to:
-  /// **'View on BandBBS'**
-  String get productViewOnBandBBS;
-
-  /// No description provided for @changeCdn.
-  ///
-  /// In en, this message translates to:
-  /// **'Change CDN'**
-  String get changeCdn;
-
-  /// No description provided for @cdnErrorTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'AstroBox data failed to load'**
-  String get cdnErrorTitle;
-
-  /// No description provided for @cdnErrorMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Current CDN ({cdn}) could not fetch {path}. Would you like to switch CDN?'**
-  String cdnErrorMessage(Object cdn, Object path);
-
-  /// No description provided for @cdnErrorContinue.
-  ///
-  /// In en, this message translates to:
-  /// **'Switch CDN'**
-  String get cdnErrorContinue;
-
-  /// No description provided for @cdnErrorCancel.
-  ///
-  /// In en, this message translates to:
-  /// **'Cancel'**
-  String get cdnErrorCancel;
-
   /// No description provided for @settingsAccount.
   ///
   /// In en, this message translates to:
@@ -3548,47 +3092,17 @@ abstract class AppLocalizations {
   /// **'General'**
   String get settingsGeneral;
 
-  /// No description provided for @settingsSource.
-  ///
-  /// In en, this message translates to:
-  /// **'Downloads'**
-  String get settingsSource;
-
-  /// No description provided for @settingsSourceRestart.
-  ///
-  /// In en, this message translates to:
-  /// **'Restart required'**
-  String get settingsSourceRestart;
-
   /// No description provided for @settingsQueue.
   ///
   /// In en, this message translates to:
   /// **'Queue'**
   String get settingsQueue;
 
-  /// No description provided for @settingsInstall.
-  ///
-  /// In en, this message translates to:
-  /// **'Installation'**
-  String get settingsInstall;
-
-  /// No description provided for @settingsTools.
-  ///
-  /// In en, this message translates to:
-  /// **'Mysterious Tools'**
-  String get settingsTools;
-
   /// No description provided for @settingsAbout.
   ///
   /// In en, this message translates to:
   /// **'About'**
   String get settingsAbout;
-
-  /// No description provided for @settingsAccountLoginBBS.
-  ///
-  /// In en, this message translates to:
-  /// **'Login to BandBBS'**
-  String get settingsAccountLoginBBS;
 
   /// No description provided for @settingsAccountLoginBBSDesc.
   ///
@@ -3626,12 +3140,6 @@ abstract class AppLocalizations {
   /// **'Sign in to your BandBBS account in Settings first'**
   String get settingsBandBbsAccountRequired;
 
-  /// No description provided for @settingsAccountBandBbsUser.
-  ///
-  /// In en, this message translates to:
-  /// **'User ID: {userId}'**
-  String settingsAccountBandBbsUser(Object userId);
-
   /// No description provided for @settingsAccountBBSAccount.
   ///
   /// In en, this message translates to:
@@ -3643,12 +3151,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'BandBBS account'**
   String get bandBbsAccountTitle;
-
-  /// No description provided for @bandBbsPurchasedResources.
-  ///
-  /// In en, this message translates to:
-  /// **'Purchased resources'**
-  String get bandBbsPurchasedResources;
 
   /// No description provided for @bandBbsResourceId.
   ///
@@ -3667,12 +3169,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Query'**
   String get bandBbsQueryResource;
-
-  /// No description provided for @bandBbsOpenResource.
-  ///
-  /// In en, this message translates to:
-  /// **'View on BandBBS'**
-  String get bandBbsOpenResource;
 
   /// No description provided for @bandBbsLogout.
   ///
@@ -3722,22 +3218,10 @@ abstract class AppLocalizations {
   /// **'Include categories for unsupported devices hidden by default'**
   String get bandBbsShowAllCategoriesDesc;
 
-  /// No description provided for @settingsAccountSyncDevices.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync devices'**
-  String get settingsAccountSyncDevices;
-
-  /// No description provided for @settingsAccountSyncDevicesDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Log in to Mi Account to sync paired devices'**
-  String get settingsAccountSyncDevicesDesc;
-
   /// No description provided for @settingsMiAccount.
   ///
   /// In en, this message translates to:
-  /// **'Mi Account'**
+  /// **'Xiaomi account'**
   String get settingsMiAccount;
 
   /// No description provided for @settingsMiAccountDesc.
@@ -3749,7 +3233,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsMiAccountLoginTitle.
   ///
   /// In en, this message translates to:
-  /// **'Mi Account login'**
+  /// **'Xiaomi account login'**
   String get settingsMiAccountLoginTitle;
 
   /// No description provided for @settingsMiAccountUsername.
@@ -3779,13 +3263,13 @@ abstract class AppLocalizations {
   /// No description provided for @settingsMiAccountMissingCredentials.
   ///
   /// In en, this message translates to:
-  /// **'Enter your Mi Account and password'**
+  /// **'Enter your Xiaomi account and password'**
   String get settingsMiAccountMissingCredentials;
 
   /// No description provided for @settingsMiAccountTwoFactorPrompt.
   ///
   /// In en, this message translates to:
-  /// **'Complete Mi Account two-factor verification in the verification page'**
+  /// **'Complete Xiaomi account two-factor verification in the verification page'**
   String get settingsMiAccountTwoFactorPrompt;
 
   /// No description provided for @settingsMiAccountLoginWindowClosed.
@@ -3823,12 +3307,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Amazfit account signed in'**
   String get settingsHuamiAccountSignedIn;
-
-  /// No description provided for @settingsHuamiAccountUser.
-  ///
-  /// In en, this message translates to:
-  /// **'Account: {username}'**
-  String settingsHuamiAccountUser(Object username);
 
   /// No description provided for @settingsHuamiAccountLoginTitle.
   ///
@@ -3920,12 +3398,6 @@ abstract class AppLocalizations {
   /// **'Split'**
   String get settingsWideNavigationPositionSplit;
 
-  /// No description provided for @settingsGeneralTranslateTeam.
-  ///
-  /// In en, this message translates to:
-  /// **'Translation contributors'**
-  String get settingsGeneralTranslateTeam;
-
   /// No description provided for @settingsAutoReconnectTitle.
   ///
   /// In en, this message translates to:
@@ -3937,18 +3409,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Automatically reconnect to the last paired device on startup'**
   String get settingsAutoReconnectDesc;
-
-  /// No description provided for @settingsGeneralDebugWindow.
-  ///
-  /// In en, this message translates to:
-  /// **'Debug window'**
-  String get settingsGeneralDebugWindow;
-
-  /// No description provided for @settingsGeneralDebugWindowDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Show a floating debug panel'**
-  String get settingsGeneralDebugWindowDesc;
 
   /// No description provided for @settingsSourceOfficialCdn.
   ///
@@ -3986,167 +3446,11 @@ abstract class AppLocalizations {
   /// **'Keep completed items in the install queue'**
   String get settingsQueueDontClearDesc;
 
-  /// No description provided for @settingsInstallSendInterval.
-  ///
-  /// In en, this message translates to:
-  /// **'Packet interval'**
-  String get settingsInstallSendInterval;
-
-  /// No description provided for @settingsInstallSendIntervalDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Delay between Bluetooth fragments during install'**
-  String get settingsInstallSendIntervalDesc;
-
-  /// No description provided for @settingsToolsUnlockCode.
-  ///
-  /// In en, this message translates to:
-  /// **'Calculate unlock code'**
-  String get settingsToolsUnlockCode;
-
-  /// No description provided for @settingsToolsUnlockCodeDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Generate a Mi Wear unlock code from MAC and SN'**
-  String get settingsToolsUnlockCodeDesc;
-
-  /// No description provided for @settingsToolsDialogTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Unlock code'**
-  String get settingsToolsDialogTitle;
-
-  /// No description provided for @settingsToolsMac.
-  ///
-  /// In en, this message translates to:
-  /// **'MAC address'**
-  String get settingsToolsMac;
-
-  /// No description provided for @settingsToolsSn.
-  ///
-  /// In en, this message translates to:
-  /// **'Serial number'**
-  String get settingsToolsSn;
-
-  /// No description provided for @settingsToolsNoticeTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Warning'**
-  String get settingsToolsNoticeTitle;
-
-  /// No description provided for @settingsToolsNoticeBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Unlocking may void your warranty or cause data loss. Use at your own risk.'**
-  String get settingsToolsNoticeBody;
-
-  /// No description provided for @settingsToolsAgree.
-  ///
-  /// In en, this message translates to:
-  /// **'I understand the risks'**
-  String get settingsToolsAgree;
-
-  /// No description provided for @settingsToolsCalculate.
-  ///
-  /// In en, this message translates to:
-  /// **'Calculate'**
-  String get settingsToolsCalculate;
-
-  /// No description provided for @settingsToolsResult.
-  ///
-  /// In en, this message translates to:
-  /// **'Result'**
-  String get settingsToolsResult;
-
-  /// No description provided for @settingsToolsDialogUsage.
-  ///
-  /// In en, this message translates to:
-  /// **'Usage'**
-  String get settingsToolsDialogUsage;
-
-  /// No description provided for @settingsToolsDialogUsageInfo.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter the MAC address and serial number shown on the device.'**
-  String get settingsToolsDialogUsageInfo;
-
-  /// No description provided for @settingsAboutAboutAstrobox.
-  ///
-  /// In en, this message translates to:
-  /// **'About OronBox'**
-  String get settingsAboutAboutAstrobox;
-
-  /// No description provided for @settingsAboutAboutAstroboxDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Version, changelog and team'**
-  String get settingsAboutAboutAstroboxDesc;
-
-  /// No description provided for @settingsAboutDisclaimer.
-  ///
-  /// In en, this message translates to:
-  /// **'Disclaimer'**
-  String get settingsAboutDisclaimer;
-
-  /// No description provided for @settingsAboutDisclaimerDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'User agreement and liability statement'**
-  String get settingsAboutDisclaimerDesc;
-
-  /// No description provided for @settingsAboutOpenlog.
-  ///
-  /// In en, this message translates to:
-  /// **'Log folder'**
-  String get settingsAboutOpenlog;
-
-  /// No description provided for @settingsAboutOpenlogDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Open the log directory in file manager'**
-  String get settingsAboutOpenlogDesc;
-
   /// No description provided for @settingsAboutWebsite.
   ///
   /// In en, this message translates to:
   /// **'Official website'**
   String get settingsAboutWebsite;
-
-  /// No description provided for @settingsAboutWebsiteDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Visit oronbox.zxor.org'**
-  String get settingsAboutWebsiteDesc;
-
-  /// No description provided for @settingsAboutQQ.
-  ///
-  /// In en, this message translates to:
-  /// **'QQ group'**
-  String get settingsAboutQQ;
-
-  /// No description provided for @settingsAboutQQDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Join the community chat'**
-  String get settingsAboutQQDesc;
-
-  /// No description provided for @settingsAboutLicences.
-  ///
-  /// In en, this message translates to:
-  /// **'Open source licenses'**
-  String get settingsAboutLicences;
-
-  /// No description provided for @settingsAboutLicencesDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Licenses for Flutter, dependencies and open source components'**
-  String get settingsAboutLicencesDesc;
-
-  /// No description provided for @settingsGuest.
-  ///
-  /// In en, this message translates to:
-  /// **'Guest'**
-  String get settingsGuest;
 
   /// No description provided for @settingsTapToSignIn.
   ///
@@ -4159,30 +3463,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Connected'**
   String get settingsConnected;
-
-  /// No description provided for @settingsNotConnected.
-  ///
-  /// In en, this message translates to:
-  /// **'Not connected'**
-  String get settingsNotConnected;
-
-  /// No description provided for @settingsNotSet.
-  ///
-  /// In en, this message translates to:
-  /// **'Not set'**
-  String get settingsNotSet;
-
-  /// No description provided for @settingsOn.
-  ///
-  /// In en, this message translates to:
-  /// **'On'**
-  String get settingsOn;
-
-  /// No description provided for @settingsOff.
-  ///
-  /// In en, this message translates to:
-  /// **'Off'**
-  String get settingsOff;
 
   /// No description provided for @settingsSystem.
   ///
@@ -4315,42 +3595,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get settingsCancel;
-
-  /// No description provided for @settingsConfirm.
-  ///
-  /// In en, this message translates to:
-  /// **'Confirm'**
-  String get settingsConfirm;
-
-  /// No description provided for @settingsOpen.
-  ///
-  /// In en, this message translates to:
-  /// **'Open'**
-  String get settingsOpen;
-
-  /// No description provided for @settingsVisit.
-  ///
-  /// In en, this message translates to:
-  /// **'Visit'**
-  String get settingsVisit;
-
-  /// No description provided for @settingsTeamSlogan.
-  ///
-  /// In en, this message translates to:
-  /// **'A pretty fast wearable management tool for VelaOS and ZeppOS.'**
-  String get settingsTeamSlogan;
-
-  /// No description provided for @settingsTeamGitHub.
-  ///
-  /// In en, this message translates to:
-  /// **'GitHub Repository'**
-  String get settingsTeamGitHub;
-
-  /// No description provided for @settingsTeamMembers.
-  ///
-  /// In en, this message translates to:
-  /// **'Team Members'**
-  String get settingsTeamMembers;
 
   /// No description provided for @settingsTeamRoleMain.
   ///
@@ -4490,12 +3734,6 @@ abstract class AppLocalizations {
   /// **'Docs'**
   String get blogTypeDocs;
 
-  /// No description provided for @blogPostUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'Post unavailable'**
-  String get blogPostUnavailable;
-
   /// No description provided for @resourceHomeEmptyTitle.
   ///
   /// In en, this message translates to:
@@ -4513,18 +3751,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You can get resources from the library'**
   String get resourceHomeEmptySubtitle;
-
-  /// No description provided for @resourceCreatorEmptyTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Creator center is under construction'**
-  String get resourceCreatorEmptyTitle;
-
-  /// No description provided for @resourceCreatorEmptySubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'You can manage acquired resources in the library'**
-  String get resourceCreatorEmptySubtitle;
 
   /// No description provided for @openResourceLibrary.
   ///
@@ -4661,7 +3887,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAccountBandBbsAccount.
   ///
   /// In en, this message translates to:
-  /// **'BandBBS Account'**
+  /// **'BandBBS account'**
   String get settingsAccountBandBbsAccount;
 
   /// No description provided for @settingsAccountGitHub.
@@ -4727,7 +3953,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAboutLogsEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No logs to export yet'**
+  /// **'No log files'**
   String get settingsAboutLogsEmpty;
 
   /// No description provided for @settingsAboutLogsClear.
@@ -5113,18 +4339,6 @@ abstract class AppLocalizations {
   /// **'Install'**
   String get resourceInstallConfirm;
 
-  /// No description provided for @resourceName.
-  ///
-  /// In en, this message translates to:
-  /// **'Resource name'**
-  String get resourceName;
-
-  /// No description provided for @resourceSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Short summary'**
-  String get resourceSummary;
-
   /// No description provided for @previewImages.
   ///
   /// In en, this message translates to:
@@ -5142,18 +4356,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Submit'**
   String get submit;
-
-  /// No description provided for @currentAccount.
-  ///
-  /// In en, this message translates to:
-  /// **'current account'**
-  String get currentAccount;
-
-  /// No description provided for @submitForReview.
-  ///
-  /// In en, this message translates to:
-  /// **'Submit for review'**
-  String get submitForReview;
 
   /// No description provided for @creatorConfirmTitle.
   ///
@@ -5203,12 +4405,6 @@ abstract class AppLocalizations {
   /// **'Section {categoryId} · Resource {resourceId}'**
   String creatorBandBbsBindingIds(Object categoryId, Object resourceId);
 
-  /// No description provided for @creatorAstroBoxBinding.
-  ///
-  /// In en, this message translates to:
-  /// **'Item {itemId} · {repository}'**
-  String creatorAstroBoxBinding(Object itemId, Object repository);
-
   /// No description provided for @creatorAstroBoxBoundSync.
   ///
   /// In en, this message translates to:
@@ -5220,18 +4416,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This commit'**
   String get creatorThisCommit;
-
-  /// No description provided for @bandBbsCategoryId.
-  ///
-  /// In en, this message translates to:
-  /// **'BandBBS resource category ID'**
-  String get bandBbsCategoryId;
-
-  /// No description provided for @bandBbsCategory.
-  ///
-  /// In en, this message translates to:
-  /// **'BandBBS resource category'**
-  String get bandBbsCategory;
 
   /// No description provided for @creatorAstroBoxPrPublish.
   ///
@@ -5250,12 +4434,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View in OronBox'**
   String get creatorOpenInOronBox;
-
-  /// No description provided for @creatorAstroTags.
-  ///
-  /// In en, this message translates to:
-  /// **'AstroBox tags'**
-  String get creatorAstroTags;
 
   /// No description provided for @creatorAstroTagsHint.
   ///
@@ -5323,18 +4501,6 @@ abstract class AppLocalizations {
   /// **'Saving changes'**
   String get creatorOperationSaving;
 
-  /// No description provided for @creatorOperationUploading.
-  ///
-  /// In en, this message translates to:
-  /// **'Uploading and processing file'**
-  String get creatorOperationUploading;
-
-  /// No description provided for @creatorOperationBinding.
-  ///
-  /// In en, this message translates to:
-  /// **'Updating supported devices'**
-  String get creatorOperationBinding;
-
   /// No description provided for @creatorOperationDeleting.
   ///
   /// In en, this message translates to:
@@ -5358,12 +4524,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Resolving publication category'**
   String get creatorResolvingPublicationTarget;
-
-  /// No description provided for @creatorSessionExpired.
-  ///
-  /// In en, this message translates to:
-  /// **'Your OronBox session has expired. Sign in again before authorizing publishing'**
-  String get creatorSessionExpired;
 
   /// No description provided for @creatorStateApproved.
   ///
@@ -5419,12 +4579,6 @@ abstract class AppLocalizations {
   /// **'Sign in to BandBBS'**
   String get creatorLoginAction;
 
-  /// No description provided for @creatorOronBoxReady.
-  ///
-  /// In en, this message translates to:
-  /// **'OronBox and BandBBS read access are available'**
-  String get creatorOronBoxReady;
-
   /// No description provided for @creatorBandBbsWriteReady.
   ///
   /// In en, this message translates to:
@@ -5455,36 +4609,6 @@ abstract class AppLocalizations {
   /// **'Authorize'**
   String get creatorAuthorize;
 
-  /// No description provided for @openCreatorCenter.
-  ///
-  /// In en, this message translates to:
-  /// **'Open creator center'**
-  String get openCreatorCenter;
-
-  /// No description provided for @creatorGitHubNotConnected.
-  ///
-  /// In en, this message translates to:
-  /// **'GitHub account is not connected'**
-  String get creatorGitHubNotConnected;
-
-  /// No description provided for @creatorGitHubConnected.
-  ///
-  /// In en, this message translates to:
-  /// **'Connected as GitHub user {login}'**
-  String creatorGitHubConnected(Object login);
-
-  /// No description provided for @githubAuthorizationFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Unable to open the GitHub authorization page'**
-  String get githubAuthorizationFailed;
-
-  /// No description provided for @githubAuthorizationTimedOut.
-  ///
-  /// In en, this message translates to:
-  /// **'GitHub authorization timed out'**
-  String get githubAuthorizationTimedOut;
-
   /// No description provided for @authorize.
   ///
   /// In en, this message translates to:
@@ -5509,23 +4633,11 @@ abstract class AppLocalizations {
   /// **'Connect'**
   String get connect;
 
-  /// No description provided for @editResource.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit resource'**
-  String get editResource;
-
   /// No description provided for @legalAndPrivacy.
   ///
   /// In en, this message translates to:
   /// **'Legal and privacy'**
   String get legalAndPrivacy;
-
-  /// No description provided for @legalAndPrivacyDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'View the terms, privacy notice, and resource rules'**
-  String get legalAndPrivacyDesc;
 
   /// No description provided for @termsTitle.
   ///
@@ -5550,6 +4662,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Resource review rules'**
   String get reviewRulesTitle;
+
+  /// No description provided for @joinQqGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Join QQ Group'**
+  String get joinQqGroup;
+
+  /// No description provided for @joinQqGroupDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat with developers and other users for help'**
+  String get joinQqGroupDesc;
 
   /// No description provided for @feedbackTitle.
   ///
@@ -5598,18 +4722,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reason for report'**
   String get reportReason;
-
-  /// No description provided for @submitted.
-  ///
-  /// In en, this message translates to:
-  /// **'Submitted'**
-  String get submitted;
-
-  /// No description provided for @myFeedback.
-  ///
-  /// In en, this message translates to:
-  /// **'My feedback'**
-  String get myFeedback;
 
   /// No description provided for @noFeedback.
   ///
@@ -5719,12 +4831,6 @@ abstract class AppLocalizations {
   /// **'Version {version} is available'**
   String newVersionAvailable(Object version);
 
-  /// No description provided for @viewUpdate.
-  ///
-  /// In en, this message translates to:
-  /// **'View update'**
-  String get viewUpdate;
-
   /// No description provided for @oobeWelcomeSlogan.
   ///
   /// In en, this message translates to:
@@ -5827,18 +4933,6 @@ abstract class AppLocalizations {
   /// **'I have read and agree'**
   String get oobeAgreeCheckbox;
 
-  /// No description provided for @oobeAgreeContinue.
-  ///
-  /// In en, this message translates to:
-  /// **'Agree and continue'**
-  String get oobeAgreeContinue;
-
-  /// No description provided for @oobeAgreedContinue.
-  ///
-  /// In en, this message translates to:
-  /// **'Agreed, continue'**
-  String get oobeAgreedContinue;
-
   /// No description provided for @oobeDeclineExit.
   ///
   /// In en, this message translates to:
@@ -5884,7 +4978,7 @@ abstract class AppLocalizations {
   /// No description provided for @oobeCdnTesting.
   ///
   /// In en, this message translates to:
-  /// **'Testing...'**
+  /// **'Testing…'**
   String get oobeCdnTesting;
 
   /// No description provided for @oobeCdnSelected.
@@ -5911,12 +5005,6 @@ abstract class AppLocalizations {
   /// **'Start exploring OronBox'**
   String get oobeDoneBody;
 
-  /// No description provided for @oobeStart.
-  ///
-  /// In en, this message translates to:
-  /// **'Get started'**
-  String get oobeStart;
-
   /// No description provided for @oobeFinish.
   ///
   /// In en, this message translates to:
@@ -5935,29 +5023,11 @@ abstract class AppLocalizations {
   /// **'View the welcome guide and initial setup again'**
   String get settingsReplayOobeDesc;
 
-  /// No description provided for @creatorAuthorized.
-  ///
-  /// In en, this message translates to:
-  /// **'Authorized'**
-  String get creatorAuthorized;
-
-  /// No description provided for @back.
-  ///
-  /// In en, this message translates to:
-  /// **'Back'**
-  String get back;
-
   /// No description provided for @creatorConnect.
   ///
   /// In en, this message translates to:
   /// **'Connect'**
   String get creatorConnect;
-
-  /// No description provided for @creatorReviewItemsProgress.
-  ///
-  /// In en, this message translates to:
-  /// **'Requested changes ({done}/{total} resolved)'**
-  String creatorReviewItemsProgress(Object done, Object total);
 
   /// No description provided for @comments.
   ///
@@ -5988,12 +5058,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pending review'**
   String get commentPending;
-
-  /// No description provided for @commentDeleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Deleted'**
-  String get commentDeleted;
 
   /// No description provided for @commentBlocked.
   ///
@@ -6217,23 +5281,11 @@ abstract class AppLocalizations {
   /// **'Accounts and authorization'**
   String get settingsCategoryAccounts;
 
-  /// No description provided for @settingsCategoryAccountsDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Manage Xiaomi, Amazfit, BandBBS, and GitHub accounts'**
-  String get settingsCategoryAccountsDescription;
-
   /// No description provided for @settingsCategoryAppearance.
   ///
   /// In en, this message translates to:
   /// **'Appearance and navigation'**
   String get settingsCategoryAppearance;
-
-  /// No description provided for @settingsCategoryAppearanceDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Language, theme, navigation layout, and clean mode'**
-  String get settingsCategoryAppearanceDescription;
 
   /// No description provided for @settingsCategoryConnection.
   ///
@@ -6241,35 +5293,17 @@ abstract class AppLocalizations {
   /// **'Connections and downloads'**
   String get settingsCategoryConnection;
 
-  /// No description provided for @settingsCategoryConnectionDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Device connections, download behavior, and network endpoints'**
-  String get settingsCategoryConnectionDescription;
-
   /// No description provided for @settingsCategorySupport.
   ///
   /// In en, this message translates to:
   /// **'Support and information'**
   String get settingsCategorySupport;
 
-  /// No description provided for @settingsCategorySupportDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Feedback, about, licenses, acknowledgements, and website'**
-  String get settingsCategorySupportDescription;
-
   /// No description provided for @settingsCategoryAdvanced.
   ///
   /// In en, this message translates to:
   /// **'Advanced settings'**
   String get settingsCategoryAdvanced;
-
-  /// No description provided for @settingsCategoryAdvancedDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Window behavior, onboarding, and developer tools'**
-  String get settingsCategoryAdvancedDescription;
 
   /// No description provided for @xmsDeveloperMode.
   ///
@@ -6306,12 +5340,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Checked in'**
   String get oronBoxCoinsCheckedIn;
-
-  /// No description provided for @oronBoxCoinsCheckingIn.
-  ///
-  /// In en, this message translates to:
-  /// **'Checking in'**
-  String get oronBoxCoinsCheckingIn;
 
   /// No description provided for @oronBoxCoinsCheckinReward.
   ///
@@ -6409,12 +5437,6 @@ abstract class AppLocalizations {
   /// **'Collection'**
   String get creatorCollectionTag;
 
-  /// No description provided for @creatorCollectionsDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Group resources of the same type into one collection card'**
-  String get creatorCollectionsDescription;
-
   /// No description provided for @creatorNewCollection.
   ///
   /// In en, this message translates to:
@@ -6481,24 +5503,6 @@ abstract class AppLocalizations {
   /// **'Collection summary'**
   String get creatorCollectionSummary;
 
-  /// No description provided for @creatorCollectionPending.
-  ///
-  /// In en, this message translates to:
-  /// **'Collection metadata is under review'**
-  String get creatorCollectionPending;
-
-  /// No description provided for @creatorCollectionPublished.
-  ///
-  /// In en, this message translates to:
-  /// **'Published'**
-  String get creatorCollectionPublished;
-
-  /// No description provided for @creatorCollectionManage.
-  ///
-  /// In en, this message translates to:
-  /// **'Manage resources'**
-  String get creatorCollectionManage;
-
   /// No description provided for @creatorCollectionRepresentative.
   ///
   /// In en, this message translates to:
@@ -6511,185 +5515,17 @@ abstract class AppLocalizations {
   /// **'Delete this collection? Its resources will only be unlinked.'**
   String get creatorCollectionDeleteConfirm;
 
-  /// No description provided for @creatorCollectionEdit.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit collection metadata'**
-  String get creatorCollectionEdit;
-
   /// No description provided for @creatorContentAttributes.
   ///
   /// In en, this message translates to:
   /// **'Content attributes'**
   String get creatorContentAttributes;
 
-  /// No description provided for @creatorAttributeOriginal.
-  ///
-  /// In en, this message translates to:
-  /// **'Original'**
-  String get creatorAttributeOriginal;
-
-  /// No description provided for @creatorAttributeDerivative.
-  ///
-  /// In en, this message translates to:
-  /// **'Derivative'**
-  String get creatorAttributeDerivative;
-
-  /// No description provided for @creatorAttributePort.
-  ///
-  /// In en, this message translates to:
-  /// **'Port'**
-  String get creatorAttributePort;
-
-  /// No description provided for @creatorAttributeTemplateSkin.
-  ///
-  /// In en, this message translates to:
-  /// **'Template skin'**
-  String get creatorAttributeTemplateSkin;
-
-  /// No description provided for @creatorAttributeAiAssisted.
-  ///
-  /// In en, this message translates to:
-  /// **'AI-assisted'**
-  String get creatorAttributeAiAssisted;
-
-  /// No description provided for @creatorAttributeAiGenerated.
-  ///
-  /// In en, this message translates to:
-  /// **'AI-generated'**
-  String get creatorAttributeAiGenerated;
-
-  /// No description provided for @creatorAttribution.
-  ///
-  /// In en, this message translates to:
-  /// **'Creators and source'**
-  String get creatorAttribution;
-
-  /// No description provided for @creatorCollaborators.
-  ///
-  /// In en, this message translates to:
-  /// **'Co-creators'**
-  String get creatorCollaborators;
-
-  /// No description provided for @creatorInvite.
-  ///
-  /// In en, this message translates to:
-  /// **'Invite'**
-  String get creatorInvite;
-
-  /// No description provided for @creatorInviteCollaborator.
-  ///
-  /// In en, this message translates to:
-  /// **'Invite a co-creator'**
-  String get creatorInviteCollaborator;
-
-  /// No description provided for @creatorBandBbsUserId.
-  ///
-  /// In en, this message translates to:
-  /// **'BandBBS user ID'**
-  String get creatorBandBbsUserId;
-
-  /// No description provided for @creatorNoCollaborators.
-  ///
-  /// In en, this message translates to:
-  /// **'No co-creators linked'**
-  String get creatorNoCollaborators;
-
-  /// No description provided for @creatorInvitationPending.
-  ///
-  /// In en, this message translates to:
-  /// **'Waiting for acceptance'**
-  String get creatorInvitationPending;
-
-  /// No description provided for @creatorCollaboratorAccepted.
-  ///
-  /// In en, this message translates to:
-  /// **'Invitation accepted'**
-  String get creatorCollaboratorAccepted;
-
-  /// No description provided for @creatorResourceSource.
-  ///
-  /// In en, this message translates to:
-  /// **'Source and authorization'**
-  String get creatorResourceSource;
-
-  /// No description provided for @creatorOriginalAuthor.
-  ///
-  /// In en, this message translates to:
-  /// **'Original author'**
-  String get creatorOriginalAuthor;
-
-  /// No description provided for @creatorSourceUrl.
-  ///
-  /// In en, this message translates to:
-  /// **'Source URL'**
-  String get creatorSourceUrl;
-
-  /// No description provided for @creatorLicense.
-  ///
-  /// In en, this message translates to:
-  /// **'License'**
-  String get creatorLicense;
-
-  /// No description provided for @creatorAuthorizationNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Authorization note'**
-  String get creatorAuthorizationNote;
-
   /// No description provided for @creatorConfirm.
   ///
   /// In en, this message translates to:
   /// **'Confirm'**
   String get creatorConfirm;
-
-  /// No description provided for @creatorRemove.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove'**
-  String get creatorRemove;
-
-  /// No description provided for @creatorAccept.
-  ///
-  /// In en, this message translates to:
-  /// **'Accept'**
-  String get creatorAccept;
-
-  /// No description provided for @creatorCollaborationInvitations.
-  ///
-  /// In en, this message translates to:
-  /// **'Co-creation invitations'**
-  String get creatorCollaborationInvitations;
-
-  /// No description provided for @creatorInvitedBy.
-  ///
-  /// In en, this message translates to:
-  /// **'Invited by {name}'**
-  String creatorInvitedBy(String name);
-
-  /// No description provided for @creatorCoinsLifetime.
-  ///
-  /// In en, this message translates to:
-  /// **'Lifetime coins received'**
-  String get creatorCoinsLifetime;
-
-  /// No description provided for @creatorCoinsRecent.
-  ///
-  /// In en, this message translates to:
-  /// **'Coins received in 14 days'**
-  String get creatorCoinsRecent;
-
-  /// No description provided for @creatorCoinRewards.
-  ///
-  /// In en, this message translates to:
-  /// **'Creator rewards'**
-  String get creatorCoinRewards;
-
-  /// No description provided for @creatorCollectionOrderHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Drag to reorder resources in the collection'**
-  String get creatorCollectionOrderHint;
 
   /// No description provided for @creatorCollectionAddResource.
   ///
@@ -6703,29 +5539,11 @@ abstract class AppLocalizations {
   /// **'{count} resources'**
   String creatorCollectionResourceCount(int count);
 
-  /// No description provided for @creatorDecline.
-  ///
-  /// In en, this message translates to:
-  /// **'Decline'**
-  String get creatorDecline;
-
   /// No description provided for @communityImportSelected.
   ///
   /// In en, this message translates to:
   /// **'{count} selected'**
   String communityImportSelected(int count);
-
-  /// No description provided for @communityImportForce.
-  ///
-  /// In en, this message translates to:
-  /// **'Also re-import items that already exist'**
-  String get communityImportForce;
-
-  /// No description provided for @communityImportStart.
-  ///
-  /// In en, this message translates to:
-  /// **'Start import'**
-  String get communityImportStart;
 
   /// No description provided for @communityImportResultCreated.
   ///
@@ -6778,7 +5596,7 @@ abstract class AppLocalizations {
   /// No description provided for @creatorImportExternalDescription.
   ///
   /// In en, this message translates to:
-  /// **'Experimental, Import your existing resources from BandBBS or AstroBox-Repo'**
+  /// **'Experimental: import your existing resources from BandBBS or AstroBox-Repo'**
   String get creatorImportExternalDescription;
 
   /// No description provided for @creatorImportAlreadyImported.
@@ -6799,12 +5617,6 @@ abstract class AppLocalizations {
   /// **'Processing log'**
   String get creatorImportLogTitle;
 
-  /// No description provided for @communityImportMyResources.
-  ///
-  /// In en, this message translates to:
-  /// **'My resources'**
-  String get communityImportMyResources;
-
   /// No description provided for @communityImportPickerEmpty.
   ///
   /// In en, this message translates to:
@@ -6823,12 +5635,6 @@ abstract class AppLocalizations {
   /// **'Select resources'**
   String get creatorImportSelectTitle;
 
-  /// No description provided for @creatorImportPreviewTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Import preview'**
-  String get creatorImportPreviewTitle;
-
   /// No description provided for @creatorImportProgressTitle.
   ///
   /// In en, this message translates to:
@@ -6840,18 +5646,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Import result'**
   String get creatorImportResultTitle;
-
-  /// No description provided for @creatorImportBindingsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Linked resources'**
-  String get creatorImportBindingsTitle;
-
-  /// No description provided for @creatorImportBandbbsSections.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} sections'**
-  String creatorImportBandbbsSections(int count);
 
   /// No description provided for @creatorImportGitHubHint.
   ///
@@ -6931,23 +5725,29 @@ abstract class AppLocalizations {
   /// **'GitHub request failed, retrying via {cdn}'**
   String githubCdnFallback(Object cdn);
 
-  /// No description provided for @creatorImportSourceVersion.
+  /// No description provided for @deviceConnectBle.
   ///
   /// In en, this message translates to:
-  /// **'{source} · {version}'**
-  String creatorImportSourceVersion(Object source, Object version);
+  /// **'Connect via BLE'**
+  String get deviceConnectBle;
 
-  /// No description provided for @creatorImportPaid.
+  /// No description provided for @deviceConnectBtClassic.
   ///
   /// In en, this message translates to:
-  /// **'Paid'**
-  String get creatorImportPaid;
+  /// **'Connect via BT Classic'**
+  String get deviceConnectBtClassic;
 
-  /// No description provided for @creatorImportBandbbsPaidEncrypted.
+  /// No description provided for @bandBbsIdLabel.
   ///
   /// In en, this message translates to:
-  /// **'Paid BandBBS files are license-encrypted and cannot be imported'**
-  String get creatorImportBandbbsPaidEncrypted;
+  /// **'BandBBS ID {id}'**
+  String bandBbsIdLabel(Object id);
+
+  /// No description provided for @oobeCdnTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get oobeCdnTestFailed;
 }
 
 class _AppLocalizationsDelegate

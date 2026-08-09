@@ -159,13 +159,13 @@ class _AppActions extends StatelessWidget {
             },
             itemBuilder: (context) => [
               if (snapshot.data == true)
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'settings',
                   child: Row(
                     children: [
                       Icon(Icons.tune),
                       SizedBox(width: 8),
-                      Text('设置'),
+                      Text(l10n.settingsTab),
                     ],
                   ),
                 ),

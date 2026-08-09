@@ -830,7 +830,7 @@ class _CommentTile extends StatelessWidget {
                   ],
                 ),
                 Text(
-                  '米坛 ID ${comment.bandBbsUserId}',
+                  l10n.bandBbsIdLabel(comment.bandBbsUserId),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

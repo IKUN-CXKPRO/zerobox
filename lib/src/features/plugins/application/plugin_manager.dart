@@ -599,6 +599,7 @@ class PluginManager {
   ) {
     final policy = switch (method) {
       'ui.render' ||
+      'ui.update' ||
       'ui.openPage' ||
       'ui.getRenderSize' => ('ui', PluginPermissionRisk.low),
       'ui.dialog' || 'ui.openExternal' => ('ui', PluginPermissionRisk.medium),

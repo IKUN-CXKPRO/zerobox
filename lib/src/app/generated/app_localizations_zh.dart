@@ -9,9 +9,6 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => 'OronBox';
-
-  @override
   String get homeTab => '首页';
 
   @override
@@ -148,31 +145,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notifications => '通知';
 
   @override
-  String get pendingTasks => '待处理任务';
-
-  @override
-  String get manageDevice => '管理设备';
-
-  @override
-  String get installLocalResource => '安装本地资源';
-
-  @override
-  String get recentUpdates => '最近更新';
-
-  @override
   String get newlyPublished => '最新发布';
-
-  @override
-  String get news => '资讯';
-
-  @override
-  String get oronBoxNews => 'OronBox 资讯';
-
-  @override
-  String get bandbbsNews => 'BandBBS 资讯';
-
-  @override
-  String get astroBoxNews => 'AstroBox 资讯';
 
   @override
   String get resourceLibrary => '资源库';
@@ -182,9 +155,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get creatorNewResource => '新建资源';
-
-  @override
-  String get creatorSlug => '资源标识';
 
   @override
   String get creatorResourceName => '资源名称';
@@ -197,9 +167,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get creatorAddArtifact => '添加资源文件';
-
-  @override
-  String get creatorReplaceAsset => '重新上传';
 
   @override
   String get creatorBindDevices => '绑定设备';
@@ -254,12 +221,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorSubmitReview => '提交';
 
   @override
-  String get creatorCorrection => '修正并重新提交';
-
-  @override
-  String get creatorUpdateResource => '更新资源';
-
-  @override
   String get creatorArchiveAction => '下架';
 
   @override
@@ -281,15 +242,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get creatorKindMismatchTitle => '文件类型不匹配';
-
-  @override
   String creatorKindMismatchMessage(Object detected, Object expected) {
     return '这似乎是一个$detected文件，而你正在创建$expected资源。可以继续保留，但提交审核前请确认。';
   }
-
-  @override
-  String get creatorKeepFile => '仍然保留';
 
   @override
   String creatorDeviceMoveBlocked(Object name) {
@@ -297,24 +252,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get creatorAssetsReusedHint => '现有安装包与预览图将沿用，无需重新上传';
-
-  @override
-  String get creatorRevisionHistory => '版本历史';
-
-  @override
-  String creatorUploadProgress(Object progress) {
-    return '正在上传 $progress%';
-  }
-
-  @override
   String get filter => '筛选';
-
-  @override
-  String get importLocalResource => '导入本地资源';
-
-  @override
-  String get allDevices => '全部设备';
 
   @override
   String get currentDevice => '当前设备';
@@ -330,9 +268,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get firmwareTools => '固件 / 工具';
-
-  @override
-  String get localResources => '本地资源';
 
   @override
   String get oronBox => 'OronBox';
@@ -353,21 +288,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get update => '更新';
 
   @override
-  String get manage => '管理';
-
-  @override
   String get description => '描述';
 
   @override
   String get supportedDevices => '支持的设备';
-
-  @override
-  String get resourceProfile => '资源平台与类型';
-
-  @override
-  String creatorArtifactProfileMismatch(Object fileName, Object profile) {
-    return '文件 $fileName 与所选的 $profile 不匹配，未添加该文件';
-  }
 
   @override
   String get downloads => '下载包';
@@ -397,9 +321,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get incompatibleSuffix => '，可能无法正常使用';
-
-  @override
-  String get openSourcePage => '开源页面';
 
   @override
   String get myResources => '我的资源';
@@ -509,28 +430,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get failed => '失败 / 需处理';
 
   @override
-  String get newResource => '新建资源';
-
-  @override
   String get basicInfo => '基本信息';
 
   @override
   String get packageFiles => '资源文件';
 
   @override
-  String get deviceSelection => '选择设备';
-
-  @override
-  String get deviceFileMapping => '设备-文件映射';
-
-  @override
   String get publishTargets => '发布目标';
-
-  @override
-  String get publishPreview => '发布预览';
-
-  @override
-  String get reviewStatus => '审核状态';
 
   @override
   String get scan => '扫描';
@@ -539,16 +445,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get logs => '日志';
 
   @override
-  String get connectedDevices => '已连接设备';
-
-  @override
   String get pairedDevices => '已配对设备';
-
-  @override
-  String get discoveredDevices => '发现设备';
-
-  @override
-  String get overview => '概览';
 
   @override
   String get apps => '应用';
@@ -634,27 +531,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get errorCertificateVerificationFailed =>
-      '证书校验失败，如果正在使用代理，请关闭对本应用的 HTTPS 接管，或确认 Flutter/Dart 能信任其证书';
+      '证书校验失败，如正在使用代理，请关闭代理对本应用的 HTTPS 拦截，或确保证书受信任';
 
   @override
   String errorUnknownWithDetail(Object detail) {
     return '操作失败：$detail';
   }
-
-  @override
-  String get copyLogs => '复制日志';
-
-  @override
-  String get exportLogs => '导出日志';
-
-  @override
-  String get clearLogs => '清空日志';
-
-  @override
-  String get personalCenter => '个人中心';
-
-  @override
-  String get accountAndPublishing => '账号与发布';
 
   @override
   String get appearance => '外观';
@@ -686,19 +568,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get advanced => '高级';
 
   @override
-  String get aboutOronBox => '关于 OronBox';
-
-  @override
   String get openSourceLicenses => '开放源代码许可';
 
   @override
   String get acknowledgements => '特别鸣谢';
-
-  @override
-  String get acknowledgementsDesc => '查看 OronBox 参考与致谢的开源项目';
-
-  @override
-  String get developmentTeam => '开发团队';
 
   @override
   String get deviceNotConnected => '未连接';
@@ -746,13 +619,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceFeaturesInstallApp => '安装应用';
 
   @override
-  String get deviceFeaturesInstallAppDesc => '从本地文件安装第三方应用';
-
-  @override
   String get deviceFeaturesInstallWatchface => '安装表盘';
-
-  @override
-  String get deviceFeaturesInstallWatchfaceDesc => '从本地文件安装表盘';
 
   @override
   String get deviceFeaturesInstallFirmware => '固件更新';
@@ -761,13 +628,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceFeaturesInstallFirmwareDesc => '检查设备更新或安装本地固件';
 
   @override
-  String get firmwareAvailableUpdates => '可用更新';
-
-  @override
   String get firmwareCheckingUpdates => '正在检查固件更新';
-
-  @override
-  String get firmwareCheckUpdatesDescription => '获取与当前设备兼容的固件版本';
 
   @override
   String get firmwareNoUpdatesFound => '未找到适用于当前设备的新版本';
@@ -777,9 +638,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get firmwareVersionUnknown => '未获取到当前固件版本';
-
-  @override
-  String get localFirmwareInstallDescription => '选择本地固件文件并安装';
 
   @override
   String get firmwareCurrentVersion => '当前版本';
@@ -806,30 +664,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get firmwareReleaseNotesUnavailable => '暂无更新日志';
 
   @override
-  String firmwareDownloadingProgress(int progress) {
-    return '正在下载 $progress%';
-  }
-
-  @override
   String get download => '下载';
 
   @override
-  String get downloadFailed => '下载失败，请稍后重试';
-
-  @override
   String get downloadTaskAdded => '已加入下载队列';
-
-  @override
-  String get deviceFeaturesManageApps => '管理应用';
-
-  @override
-  String get deviceFeaturesManageAppsDesc => '查看并卸载已安装的应用';
-
-  @override
-  String get deviceFeaturesManageWatchfaces => '管理表盘';
-
-  @override
-  String get deviceFeaturesManageWatchfacesDesc => '查看、删除并设置当前表盘';
 
   @override
   String get zeppOsMoreFeatures => '特色功能';
@@ -1001,9 +839,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get zeppOsMapWatchConfirmationHint => '开始后还需在手表上确认安装。传输期间请保持手表靠近当前设备。';
-
-  @override
   String get zeppOsMapStartTransfer => '开始传输';
 
   @override
@@ -1014,15 +849,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get zeppOsMapConversionFailed => '无法安全转换地图';
-
-  @override
-  String get zeppOsMapSection => '地图';
-
-  @override
-  String get zeppOsMapTransferAction => '传输地图';
-
-  @override
-  String get zeppOsMapTransferDescription => '选择 ZIP 或 Garmin IMG 地图并发送到手表';
 
   @override
   String get zeppOsMapBtClassicHint =>
@@ -1325,9 +1151,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get zeppOsAppDebugDescription => '调试应用侧脚本与设备通信';
 
   @override
-  String get deviceFeaturesSection => '功能';
-
-  @override
   String get deviceMusicSync => '音乐同步';
 
   @override
@@ -1446,9 +1269,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceRecordingsSync => '同步录音';
 
   @override
-  String get deviceRecordingsSyncing => '正在接收';
-
-  @override
   String get deviceRecordingsReading => '正在读取录音列表';
 
   @override
@@ -1522,12 +1342,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get zeppOsFindDeviceDescription => '让设备持续振动或响铃，方便在附近快速找到它。';
 
   @override
-  String get zeppOsFindDeviceStart => '开始查找';
-
-  @override
-  String get zeppOsFindDeviceStop => '停止查找';
-
-  @override
   String get deviceFeaturesDeviceInfo => '设备信息';
 
   @override
@@ -1541,12 +1355,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get scanAndAdd => '扫描并添加';
-
-  @override
-  String get scanNotFound => '未发现设备';
-
-  @override
-  String get noSavedDevices => '没有已配对设备';
 
   @override
   String get authkey => '认证密钥';
@@ -1587,7 +1395,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String deviceEndpointUnavailable(String transport) {
-    return '未发现可用的 $transport 端点，请先完成系统蓝牙配对，然后重新扫描。';
+    return '未发现可用的 $transport 连接通道，请先完成系统蓝牙配对，然后重新扫描。';
   }
 
   @override
@@ -1630,12 +1438,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get installTapToSelectFile => '点击选择文件';
-
-  @override
-  String get installPackageName => '包名';
-
-  @override
-  String get installWatchfaceId => '表盘 ID';
 
   @override
   String get deviceInfoTitle => '设备信息';
@@ -1683,9 +1485,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fieldChargeStatus => '充电状态';
 
   @override
-  String get fieldLastCharge => '上次充电';
-
-  @override
   String get fieldStorage => '存储空间';
 
   @override
@@ -1729,9 +1528,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get enable => '设为当前';
-
-  @override
-  String get fail => '失败';
 
   @override
   String get show => '显示';
@@ -1785,9 +1581,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get desktopCloseBehaviorTray => '最小化到托盘';
 
   @override
-  String get multiDevice => '多设备';
-
-  @override
   String get quickApp => '快应用';
 
   @override
@@ -1815,16 +1608,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get version => '版本';
 
   @override
-  String get noDescription => '暂无描述';
-
-  @override
   String get noContent => '暂无内容';
 
   @override
   String get preview => '预览';
-
-  @override
-  String get productAbout => '关于';
 
   @override
   String get productDeviceRequirements => '系统要求';
@@ -1836,54 +1623,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get productInQueue => '已在队列';
 
   @override
-  String get productShare => '分享';
-
-  @override
-  String get productViewOnBandBBS => '在米坛查看';
-
-  @override
-  String get changeCdn => '切换 CDN';
-
-  @override
-  String get cdnErrorTitle => 'AstroBox 数据加载失败';
-
-  @override
-  String cdnErrorMessage(Object cdn, Object path) {
-    return '当前 CDN（$cdn）无法获取 $path，是否切换 CDN？';
-  }
-
-  @override
-  String get cdnErrorContinue => '切换 CDN';
-
-  @override
-  String get cdnErrorCancel => '取消';
-
-  @override
   String get settingsAccount => '账号';
 
   @override
   String get settingsGeneral => '通用';
 
   @override
-  String get settingsSource => '下载';
-
-  @override
-  String get settingsSourceRestart => '重启后生效';
-
-  @override
   String get settingsQueue => '队列';
 
   @override
-  String get settingsInstall => '安装';
-
-  @override
-  String get settingsTools => '神秘工具';
-
-  @override
   String get settingsAbout => '关于';
-
-  @override
-  String get settingsAccountLoginBBS => '登录 BandBBS';
 
   @override
   String get settingsAccountLoginBBSDesc => '登录以访问米坛资源';
@@ -1904,18 +1653,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsBandBbsAccountRequired => '请先在设置中登录米坛账号';
 
   @override
-  String settingsAccountBandBbsUser(Object userId) {
-    return '用户 ID：$userId';
-  }
-
-  @override
   String get settingsAccountBBSAccount => '米坛账号';
 
   @override
   String get bandBbsAccountTitle => '米坛账号';
-
-  @override
-  String get bandBbsPurchasedResources => '已购资源';
 
   @override
   String get bandBbsResourceId => '资源 ID';
@@ -1925,9 +1666,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get bandBbsQueryResource => '查询';
-
-  @override
-  String get bandBbsOpenResource => '在米坛查看';
 
   @override
   String get bandBbsLogout => '退出登录';
@@ -1954,12 +1692,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get bandBbsShowAllCategoriesDesc => '包含默认隐藏的未适配设备分区';
-
-  @override
-  String get settingsAccountSyncDevices => '同步设备';
-
-  @override
-  String get settingsAccountSyncDevicesDesc => '登录小米账号同步配对设备';
 
   @override
   String get settingsMiAccount => '小米账号';
@@ -2009,11 +1741,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsHuamiAccountSignedIn => '华米账号登录成功';
 
   @override
-  String settingsHuamiAccountUser(Object username) {
-    return '账号：$username';
-  }
-
-  @override
   String get settingsHuamiAccountLoginTitle => '华米账号登录';
 
   @override
@@ -2059,19 +1786,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsWideNavigationPositionSplit => '分离';
 
   @override
-  String get settingsGeneralTranslateTeam => '翻译贡献者';
-
-  @override
   String get settingsAutoReconnectTitle => '自动回连';
 
   @override
   String get settingsAutoReconnectDesc => '启动时自动连接上次配对的设备';
-
-  @override
-  String get settingsGeneralDebugWindow => '调试窗口';
-
-  @override
-  String get settingsGeneralDebugWindowDesc => '显示悬浮调试面板';
 
   @override
   String get settingsSourceOfficialCdn => 'GitHub 源 CDN';
@@ -2092,103 +1810,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsQueueDontClearDesc => '保留已完成的安装队列项';
 
   @override
-  String get settingsInstallSendInterval => '分包间隔';
-
-  @override
-  String get settingsInstallSendIntervalDesc => '安装时蓝牙分包发送延迟';
-
-  @override
-  String get settingsToolsUnlockCode => '计算解锁码';
-
-  @override
-  String get settingsToolsUnlockCodeDesc => '通过 MAC 和 SN 生成小米穿戴解锁码';
-
-  @override
-  String get settingsToolsDialogTitle => '解锁码';
-
-  @override
-  String get settingsToolsMac => 'MAC 地址';
-
-  @override
-  String get settingsToolsSn => '序列号';
-
-  @override
-  String get settingsToolsNoticeTitle => '警告';
-
-  @override
-  String get settingsToolsNoticeBody => '解锁可能导致保修失效或数据丢失，请自行承担风险';
-
-  @override
-  String get settingsToolsAgree => '我已了解风险';
-
-  @override
-  String get settingsToolsCalculate => '计算';
-
-  @override
-  String get settingsToolsResult => '结果';
-
-  @override
-  String get settingsToolsDialogUsage => '用法';
-
-  @override
-  String get settingsToolsDialogUsageInfo => '输入设备上显示的 MAC 地址和序列号';
-
-  @override
-  String get settingsAboutAboutAstrobox => '关于 OronBox';
-
-  @override
-  String get settingsAboutAboutAstroboxDesc => '版本、更新日志和团队';
-
-  @override
-  String get settingsAboutDisclaimer => '免责声明';
-
-  @override
-  String get settingsAboutDisclaimerDesc => '用户协议与责任声明';
-
-  @override
-  String get settingsAboutOpenlog => '日志文件夹';
-
-  @override
-  String get settingsAboutOpenlogDesc => '在文件管理器中打开日志目录';
-
-  @override
   String get settingsAboutWebsite => '官方网站';
-
-  @override
-  String get settingsAboutWebsiteDesc => '访问 oronbox.zxor.org';
-
-  @override
-  String get settingsAboutQQ => 'QQ 群';
-
-  @override
-  String get settingsAboutQQDesc => '加入社区群聊';
-
-  @override
-  String get settingsAboutLicences => '开放源代码许可';
-
-  @override
-  String get settingsAboutLicencesDesc => '查看 Flutter、依赖库与开源组件许可证';
-
-  @override
-  String get settingsGuest => '访客';
 
   @override
   String get settingsTapToSignIn => '点击登录';
 
   @override
   String get settingsConnected => '已连接';
-
-  @override
-  String get settingsNotConnected => '未连接';
-
-  @override
-  String get settingsNotSet => '未设置';
-
-  @override
-  String get settingsOn => '开启';
-
-  @override
-  String get settingsOff => '关闭';
 
   @override
   String get settingsSystem => '跟随系统';
@@ -2255,24 +1883,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsCancel => '取消';
-
-  @override
-  String get settingsConfirm => '确认';
-
-  @override
-  String get settingsOpen => '打开';
-
-  @override
-  String get settingsVisit => '访问';
-
-  @override
-  String get settingsTeamSlogan => '一款面向 VelaOS 与 ZeppOS 的可穿戴设备管理工具';
-
-  @override
-  String get settingsTeamGitHub => 'GitHub 仓库';
-
-  @override
-  String get settingsTeamMembers => '团队成员';
 
   @override
   String get settingsTeamRoleMain => '主开发 / 设计';
@@ -2346,9 +1956,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get blogTypeDocs => '文档';
 
   @override
-  String get blogPostUnavailable => '文章不存在或已下线';
-
-  @override
   String get resourceHomeEmptyTitle => '暂无推荐内容';
 
   @override
@@ -2356,12 +1963,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get resourceHomeEmptySubtitle => '您可以在资源库获取资源';
-
-  @override
-  String get resourceCreatorEmptyTitle => '创作者中心未完成';
-
-  @override
-  String get resourceCreatorEmptySubtitle => '您可以在资源库管理已获取资源';
 
   @override
   String get openResourceLibrary => '打开资源库';
@@ -2477,7 +2078,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get settingsAboutLogsEmpty => '暂无可导出的日志';
+  String get settingsAboutLogsEmpty => '暂无日志文件';
 
   @override
   String get settingsAboutLogsClear => '清理';
@@ -2704,12 +2305,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get resourceInstallConfirm => '确认安装';
 
   @override
-  String get resourceName => '资源名称';
-
-  @override
-  String get resourceSummary => '简短说明';
-
-  @override
   String get previewImages => '预览图';
 
   @override
@@ -2717,12 +2312,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get submit => '提交';
-
-  @override
-  String get currentAccount => '当前账号';
-
-  @override
-  String get submitForReview => '提交审核';
 
   @override
   String get creatorConfirmTitle => '确认提交';
@@ -2757,21 +2346,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String creatorAstroBoxBinding(Object itemId, Object repository) {
-    return 'Item $itemId · $repository';
-  }
-
-  @override
   String get creatorAstroBoxBoundSync => '已关联 · 同步到 AstroBox';
 
   @override
   String get creatorThisCommit => '本次提交';
-
-  @override
-  String get bandBbsCategoryId => '米坛资源分区 ID';
-
-  @override
-  String get bandBbsCategory => '米坛资源分区';
 
   @override
   String creatorAstroBoxPrPublish(Object repository) {
@@ -2783,9 +2361,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get creatorOpenInOronBox => '在 OronBox 中查看';
-
-  @override
-  String get creatorAstroTags => 'AstroBox 标签';
 
   @override
   String get creatorAstroTagsHint => '多个标签使用英文分号 ; 分隔';
@@ -2823,12 +2398,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorOperationSaving => '正在保存更改';
 
   @override
-  String get creatorOperationUploading => '正在上传并处理文件';
-
-  @override
-  String get creatorOperationBinding => '正在更新支持设备';
-
-  @override
   String get creatorOperationDeleting => '正在删除';
 
   @override
@@ -2839,9 +2408,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get creatorResolvingPublicationTarget => '正在识别发布分区';
-
-  @override
-  String get creatorSessionExpired => 'OronBox 登录已过期，请重新登录后再授权';
 
   @override
   String get creatorStateApproved => '审核通过';
@@ -2872,9 +2438,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorLoginAction => '登录米坛';
 
   @override
-  String get creatorOronBoxReady => 'OronBox 与米坛读取权限可用';
-
-  @override
   String get creatorBandBbsWriteReady => '已获得米坛资源发布权限';
 
   @override
@@ -2893,23 +2456,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorAuthorize => '授权';
 
   @override
-  String get openCreatorCenter => '进入创作者中心';
-
-  @override
-  String get creatorGitHubNotConnected => '尚未连接 GitHub 账号';
-
-  @override
-  String creatorGitHubConnected(Object login) {
-    return '已连接 GitHub 账号 $login';
-  }
-
-  @override
-  String get githubAuthorizationFailed => '无法打开 GitHub 授权页面';
-
-  @override
-  String get githubAuthorizationTimedOut => 'GitHub 授权超时';
-
-  @override
   String get authorize => '授权';
 
   @override
@@ -2922,13 +2468,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get connect => '连接';
 
   @override
-  String get editResource => '编辑资源';
-
-  @override
   String get legalAndPrivacy => '协议与隐私';
-
-  @override
-  String get legalAndPrivacyDesc => '查看用户协议、隐私说明和资源规则';
 
   @override
   String get termsTitle => '用户协议与免责声明';
@@ -2941,6 +2481,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reviewRulesTitle => '资源审核规则';
+
+  @override
+  String get joinQqGroup => '加入 QQ 群';
+
+  @override
+  String get joinQqGroupDesc => '与开发者和其他用户交流，获取帮助';
 
   @override
   String get feedbackTitle => '意见反馈';
@@ -2965,12 +2511,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reportReason => '举报理由';
-
-  @override
-  String get submitted => '已提交';
-
-  @override
-  String get myFeedback => '我的反馈';
 
   @override
   String get noFeedback => '暂无记录';
@@ -3029,9 +2569,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get viewUpdate => '查看更新';
-
-  @override
   String get oobeWelcomeSlogan =>
       '一个又好看又快的 VelaOS / ZeppOS 可穿戴设备管理软件，使用 Flutter 构建';
 
@@ -3085,12 +2622,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get oobeAgreeCheckbox => '我已阅读并同意';
 
   @override
-  String get oobeAgreeContinue => '同意并继续';
-
-  @override
-  String get oobeAgreedContinue => '已同意，继续';
-
-  @override
   String get oobeDeclineExit => '退出';
 
   @override
@@ -3112,7 +2643,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get oobeLoginHuamiDesc => '登录华米账号以访问华米应用商店资源';
 
   @override
-  String get oobeCdnTesting => '测速中...';
+  String get oobeCdnTesting => '测速中…';
 
   @override
   String get oobeCdnSelected => '已选择最佳 CDN';
@@ -3127,9 +2658,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get oobeDoneBody => '开始探索 OronBox 吧';
 
   @override
-  String get oobeStart => '开始使用';
-
-  @override
   String get oobeFinish => '完成';
 
   @override
@@ -3139,18 +2667,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsReplayOobeDesc => '再次查看欢迎向导与初始设置';
 
   @override
-  String get creatorAuthorized => '已授权';
-
-  @override
-  String get back => '返回';
-
-  @override
   String get creatorConnect => '连接';
-
-  @override
-  String creatorReviewItemsProgress(Object done, Object total) {
-    return '需要修改（已解决 $done/$total）';
-  }
 
   @override
   String get comments => '评论';
@@ -3166,9 +2683,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commentPending => '待审核';
-
-  @override
-  String get commentDeleted => '已删除';
 
   @override
   String get commentBlocked => '评论未通过社区规范';
@@ -3282,31 +2796,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsCategoryAccounts => '账号与授权';
 
   @override
-  String get settingsCategoryAccountsDescription => '管理小米、华米、米坛和 GitHub 账号';
-
-  @override
   String get settingsCategoryAppearance => '外观与导航';
-
-  @override
-  String get settingsCategoryAppearanceDescription => '语言、主题、导航布局与纯净模式';
 
   @override
   String get settingsCategoryConnection => '连接与下载';
 
   @override
-  String get settingsCategoryConnectionDescription => '设备连接、下载行为与网络节点';
-
-  @override
   String get settingsCategorySupport => '支持与信息';
 
   @override
-  String get settingsCategorySupportDescription => '反馈、关于、许可、致谢与官方网站';
-
-  @override
   String get settingsCategoryAdvanced => '高级设置';
-
-  @override
-  String get settingsCategoryAdvancedDescription => '窗口行为、重新引导与开发工具';
 
   @override
   String get xmsDeveloperMode => 'XMS 开发模式';
@@ -3327,9 +2826,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get oronBoxCoinsCheckedIn => '已签到';
-
-  @override
-  String get oronBoxCoinsCheckingIn => '签到中';
 
   @override
   String oronBoxCoinsCheckinReward(int count) {
@@ -3391,9 +2887,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorCollectionTag => '合集';
 
   @override
-  String get creatorCollectionsDescription => '将同类型资源整理为一张合集卡片';
-
-  @override
   String get creatorNewCollection => '新建合集';
 
   @override
@@ -3429,111 +2922,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorCollectionSummary => '合集简介';
 
   @override
-  String get creatorCollectionPending => '合集信息待审核';
-
-  @override
-  String get creatorCollectionPublished => '已公开';
-
-  @override
-  String get creatorCollectionManage => '管理资源';
-
-  @override
   String get creatorCollectionRepresentative => '代表资源';
 
   @override
   String get creatorCollectionDeleteConfirm => '删除合集？资源不会被删除，只会解除归属。';
 
   @override
-  String get creatorCollectionEdit => '编辑合集信息';
-
-  @override
   String get creatorContentAttributes => '内容属性';
 
   @override
-  String get creatorAttributeOriginal => '原创';
-
-  @override
-  String get creatorAttributeDerivative => '二创';
-
-  @override
-  String get creatorAttributePort => '移植';
-
-  @override
-  String get creatorAttributeTemplateSkin => '模板换皮';
-
-  @override
-  String get creatorAttributeAiAssisted => 'AI 辅助';
-
-  @override
-  String get creatorAttributeAiGenerated => 'AI 生成';
-
-  @override
-  String get creatorAttribution => '创作者与来源';
-
-  @override
-  String get creatorCollaborators => '联合创作者';
-
-  @override
-  String get creatorInvite => '邀请';
-
-  @override
-  String get creatorInviteCollaborator => '邀请联合创作者';
-
-  @override
-  String get creatorBandBbsUserId => '米坛用户 ID';
-
-  @override
-  String get creatorNoCollaborators => '暂未关联联合创作者';
-
-  @override
-  String get creatorInvitationPending => '等待对方接受邀请';
-
-  @override
-  String get creatorCollaboratorAccepted => '已接受邀请';
-
-  @override
-  String get creatorResourceSource => '来源与授权';
-
-  @override
-  String get creatorOriginalAuthor => '原作者';
-
-  @override
-  String get creatorSourceUrl => '来源链接';
-
-  @override
-  String get creatorLicense => '许可协议';
-
-  @override
-  String get creatorAuthorizationNote => '授权说明';
-
-  @override
   String get creatorConfirm => '确定';
-
-  @override
-  String get creatorRemove => '移除';
-
-  @override
-  String get creatorAccept => '接受';
-
-  @override
-  String get creatorCollaborationInvitations => '联合创作邀请';
-
-  @override
-  String creatorInvitedBy(String name) {
-    return '由 $name 邀请';
-  }
-
-  @override
-  String get creatorCoinsLifetime => '累计获投硬币';
-
-  @override
-  String get creatorCoinsRecent => '近 14 天获投';
-
-  @override
-  String get creatorCoinRewards => '创作激励';
-
-  @override
-  String get creatorCollectionOrderHint => '拖动调整合集内资源顺序';
 
   @override
   String get creatorCollectionAddResource => '加入合集';
@@ -3544,18 +2942,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get creatorDecline => '拒绝';
-
-  @override
   String communityImportSelected(int count) {
     return '已选择 $count 项';
   }
-
-  @override
-  String get communityImportForce => '已存在的资源也重新导入';
-
-  @override
-  String get communityImportStart => '开始导入';
 
   @override
   String get communityImportResultCreated => '已创建草稿';
@@ -3596,9 +2985,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorImportLogTitle => '处理日志';
 
   @override
-  String get communityImportMyResources => '我的资源';
-
-  @override
   String get communityImportPickerEmpty => '暂无资源';
 
   @override
@@ -3608,21 +2994,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorImportSelectTitle => '选择资源';
 
   @override
-  String get creatorImportPreviewTitle => '导入预览';
-
-  @override
   String get creatorImportProgressTitle => '正在导入';
 
   @override
   String get creatorImportResultTitle => '导入结果';
-
-  @override
-  String get creatorImportBindingsTitle => '关联信息';
-
-  @override
-  String creatorImportBandbbsSections(int count) {
-    return '$count 个分区';
-  }
 
   @override
   String get creatorImportGitHubHint => '连接 GitHub 后列出你在 AstroBox 的资源';
@@ -3668,13 +3043,16 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String creatorImportSourceVersion(Object source, Object version) {
-    return '$source · $version';
+  String get deviceConnectBle => '使用 BLE 连接';
+
+  @override
+  String get deviceConnectBtClassic => '使用 BT Classic 连接';
+
+  @override
+  String bandBbsIdLabel(Object id) {
+    return '米坛 ID $id';
   }
 
   @override
-  String get creatorImportPaid => '付费';
-
-  @override
-  String get creatorImportBandbbsPaidEncrypted => '米坛付费资源文件已加密，无法导入';
+  String get oobeCdnTestFailed => '失败';
 }

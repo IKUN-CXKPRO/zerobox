@@ -385,6 +385,15 @@ class SettingsPage extends ConsumerWidget {
                   description: Text(l10n.settingsAboutSoftwareDesc),
                 ),
                 SegmentedTile.navigation(
+                  onPressed: (_) => launchUrl(
+                    Uri.parse('https://qm.qq.com/q/il3TbmJlKM'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  leading: const Icon(Icons.forum_outlined),
+                  title: Text(l10n.joinQqGroup),
+                  description: Text(l10n.joinQqGroupDesc),
+                ),
+                SegmentedTile.navigation(
                   onPressed: (_) => context.push('/settings/feedback'),
                   leading: const Icon(Icons.feedback_outlined),
                   title: Text(l10n.feedbackTitle),

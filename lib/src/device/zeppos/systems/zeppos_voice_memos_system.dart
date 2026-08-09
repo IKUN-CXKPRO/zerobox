@@ -66,7 +66,7 @@ class ZeppOsVoiceMemosSystem extends System {
     try {
       final servicesSystem = entity.system<ZeppOsServicesSystem>();
       if (servicesSystem == null) {
-        throw StateError('Zepp OS 服务发现尚未初始化，请重新连接手表');
+        throw StateError('Zepp OS service discovery has not been initialized; please reconnect the watch');
       }
       final services = await servicesSystem.fetchSupportedServices();
       if (!services.containsKey(endpoint)) {
@@ -75,7 +75,7 @@ class ZeppOsVoiceMemosSystem extends System {
       _encrypted = services[endpoint] ?? false;
       final transfer = entity.system<ZeppOsScreenshotSystem>();
       if (transfer == null) {
-        throw StateError('Zepp OS 文件接收系统尚未初始化，请重新连接手表');
+        throw StateError('Zepp OS file receive system has not been initialized; please reconnect the watch');
       }
       await transfer.initialize();
       final memos = await _requestList();

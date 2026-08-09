@@ -2071,16 +2071,16 @@ class LocalDeviceManager extends DeviceManager {
     }
     final connectType = _bluetoothConnection?.connectType;
     if (connectType != ConnectType.ble && connectType != ConnectType.spp) {
-      throw UnsupportedError('离线地图需要 BLE 或 BT Classic 连接');
+      throw UnsupportedError('Offline maps require a BLE or BT Classic connection');
     }
     if (connectType == ConnectType.ble && bytes.length > 2 * 1024 * 1024) {
       throw UnsupportedError(
-        'BLE LE 地图传输目前仅支持不超过 2 MB 的压缩包；'
-        '请切换到 BT Classic 后再传输',
+        'BLE LE map transfers currently only support archives up to 2 MB; '
+        'switch to BT Classic before transferring',
       );
     }
     final system = entity.system<ZeppOsMapUploadSystem>();
-    if (system == null) throw UnsupportedError('地图传输服务不可用');
+    if (system == null) throw UnsupportedError('Map transfer service is unavailable');
     _activeTransfers += 1;
     try {
       await system.upload(bytes, fileName: fileName, onProgress: onProgress);
@@ -2103,10 +2103,10 @@ class LocalDeviceManager extends DeviceManager {
     }
     final connectType = _bluetoothConnection?.connectType;
     if (connectType != ConnectType.ble && connectType != ConnectType.spp) {
-      throw UnsupportedError('音乐上传需要 BLE 或 BT Classic 连接');
+      throw UnsupportedError('Music upload requires a BLE or BT Classic connection');
     }
     final system = entity.system<ZeppOsMusicUploadSystem>();
-    if (system == null) throw UnsupportedError('音乐传输服务不可用');
+    if (system == null) throw UnsupportedError('Music transfer service is unavailable');
     _activeTransfers++;
     try {
       await system.upload(
@@ -2134,10 +2134,10 @@ class LocalDeviceManager extends DeviceManager {
     }
     final connectType = _bluetoothConnection?.connectType;
     if (connectType != ConnectType.ble && connectType != ConnectType.spp) {
-      throw UnsupportedError('音乐上传需要 BLE 或 SPP 连接');
+      throw UnsupportedError('Music upload requires a BLE or SPP connection');
     }
     final system = entity.system<XiaomiMediaSystem>();
-    if (system == null) throw UnsupportedError('音乐传输服务不可用');
+    if (system == null) throw UnsupportedError('Music transfer service is unavailable');
     final id = crypto.md5.convert(bytes).bytes;
     _activeTransfers += 1;
     try {
@@ -2167,7 +2167,7 @@ class LocalDeviceManager extends DeviceManager {
       throw ProtocolException('Device not ready');
     }
     return entity.system<XiaomiMediaSystem>() ??
-        (throw UnsupportedError('音乐管理服务不可用'));
+        (throw UnsupportedError('Music management service is unavailable'));
   }
 
   @override
@@ -2250,7 +2250,7 @@ class LocalDeviceManager extends DeviceManager {
       mediaId,
     );
     if (response.code != pb_media_enum.Songlist_Response_Code.NO_ERROR) {
-      throw ProtocolException('歌单操作失败：${response.code.name}');
+      throw ProtocolException('Playlist operation failed: ${response.code.name}');
     }
   }
 
@@ -2291,7 +2291,7 @@ class LocalDeviceManager extends DeviceManager {
     final response = await _requireXiaomiMediaSystem().requestRemoveSong(
       Uint8List.fromList(id),
     );
-    if (!response.success) throw ProtocolException('设备未能删除歌曲');
+    if (!response.success) throw ProtocolException('The device could not delete the song');
   }
 
   @override
@@ -2313,7 +2313,7 @@ class LocalDeviceManager extends DeviceManager {
           : pb_media_enum.Media_MediaID.REMOVE_SONG_FROM_SONGLIST,
     );
     if (response.code != pb_media_enum.Songlist_Response_Code.NO_ERROR) {
-      throw ProtocolException('更新歌单失败：${response.code.name}');
+      throw ProtocolException('Failed to update playlist: ${response.code.name}');
     }
   }
 
@@ -2357,7 +2357,7 @@ class LocalDeviceManager extends DeviceManager {
       final media = entity.system<XiaomiMediaSystem>();
       final mass = entity.system<XiaomiMassSystem>();
       if (media == null || mass == null) {
-        throw UnsupportedError('设备录音服务不可用');
+        throw UnsupportedError('Device recording service is unavailable');
       }
       List<MediaFileDescriptor> files;
       try {

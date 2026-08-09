@@ -48,17 +48,17 @@ class ZeppOsMusicUploadSystem extends System {
     required String artist,
     void Function(double progress)? onProgress,
   }) async {
-    if (_uploading) throw StateError('音乐传输正在进行中');
+    if (_uploading) throw StateError('A music transfer is already in progress');
     if (bytes.isEmpty || bytes.length > maxFileBytes) {
-      throw FormatException('MP3 大小必须在 1 字节至 50 MB 之间');
+      throw FormatException('MP3 size must be between 1 byte and 50 MB');
     }
     if (!filename.toLowerCase().endsWith('.mp3')) {
-      throw const FormatException('目前仅支持 MP3 音乐');
+      throw const FormatException('Only MP3 music is supported');
     }
     final cleanTitle = title.trim();
     final cleanArtist = artist.trim();
-    if (cleanTitle.isEmpty) throw const FormatException('歌名不能为空');
-    if (cleanArtist.isEmpty) throw const FormatException('歌手不能为空');
+    if (cleanTitle.isEmpty) throw const FormatException('Title cannot be empty');
+    if (cleanArtist.isEmpty) throw const FormatException('Artist cannot be empty');
 
     _uploading = true;
     try {
@@ -82,7 +82,7 @@ class ZeppOsMusicUploadSystem extends System {
           const Duration(seconds: 15),
         );
         if (existingProgress < 0 || existingProgress > bytes.length) {
-          throw StateError('手表返回了无效的音乐传输进度：$existingProgress');
+          throw StateError('The watch reported an invalid music transfer progress: $existingProgress');
         }
         await _transfer!.send(
           bytes: bytes,
@@ -102,15 +102,15 @@ class ZeppOsMusicUploadSystem extends System {
   Future<void> _initialize() async {
     final transport = entity.transport;
     if (transport is! CharacteristicTransport) {
-      throw UnsupportedError('音乐上传需要 Zepp OS 文件传输通道');
+      throw UnsupportedError('Music upload requires the Zepp OS file transfer channel');
     }
     final servicesSystem = entity.system<ZeppOsServicesSystem>();
     if (servicesSystem == null) {
-      throw StateError('Zepp OS 服务发现尚未初始化，请重新连接手表');
+      throw StateError('Zepp OS service discovery has not been initialized; please reconnect the watch');
     }
     final services = await servicesSystem.fetchSupportedServices();
     if (!services.containsKey(fileTransferEndpoint)) {
-      throw UnsupportedError('手表未提供文件传输服务');
+      throw UnsupportedError('The watch does not provide a file transfer service');
     }
     _encrypted = services[fileTransferEndpoint] ?? false;
     if (_version == null) {
@@ -130,11 +130,15 @@ class ZeppOsMusicUploadSystem extends System {
     }
     if (_version != 3) {
       throw UnsupportedError(
-        '音乐上传需要 Zepp OS V3 文件传输，手表返回 V${_version ?? '未知'}',
+        'Music upload requires Zepp OS V3 file transfer, but the watch reported '
+        'V${_version ?? 'unknown'}',
       );
     }
     if (!_supportedServices.contains('music')) {
-      throw UnsupportedError('手表的文件传输能力中没有 music，不能上传本地音乐');
+      throw UnsupportedError(
+        'The watch\'s file transfer capabilities do not include music, so local '
+        'music cannot be uploaded',
+      );
     }
     _transfer ??= ZeppOsV3FileTransfer(
       transport: transport,
@@ -168,7 +172,7 @@ class ZeppOsMusicUploadSystem extends System {
       final pending = _capabilities;
       if (_chunkSize <= 0) {
         if (pending != null && !pending.isCompleted) {
-          pending.completeError(StateError('手表返回了无效的音乐分块大小'));
+          pending.completeError(StateError('The watch reported an invalid music chunk size'));
         }
       } else if (pending != null && !pending.isCompleted) {
         pending.complete();
@@ -179,7 +183,7 @@ class ZeppOsMusicUploadSystem extends System {
       final pending = _requestAck;
       if (pending == null || pending.isCompleted) return;
       if (payload[2] != 0) {
-        pending.completeError(StateError('手表拒绝接收音乐：${payload[2]}'));
+        pending.completeError(StateError('The watch refused the music transfer: ${payload[2]}'));
       } else {
         pending.complete(
           ByteData.sublistView(payload).getUint32(3, Endian.little),
@@ -225,7 +229,7 @@ class ZeppOsMusicUploadSystem extends System {
   static Set<String> _parseSupportedServices(Uint8List payload) {
     if (payload[1] < 3) return const {};
     if (payload.length < 10) {
-      throw const FormatException('文件传输 V3 能力数据不完整');
+      throw const FormatException('File transfer V3 capabilities data is incomplete');
     }
     final count = ByteData.sublistView(payload).getUint16(8, Endian.little);
     var offset = 10;
@@ -233,7 +237,7 @@ class ZeppOsMusicUploadSystem extends System {
     for (var index = 0; index < count; index++) {
       final end = payload.indexOf(0, offset);
       if (end < 0) {
-        throw const FormatException('文件传输能力名称没有结束符');
+        throw const FormatException('File transfer capability name is missing its terminator');
       }
       result.add(utf8.decode(payload.sublist(offset, end)));
       offset = end + 1;
