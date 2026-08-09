@@ -3185,4 +3185,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get oobeCdnTestFailed => 'Failed';
+
+  @override
+  String get updateDownloading => 'Downloading update';
+
+  @override
+  String get updateInstalling => 'Installing update';
+
+  @override
+  String get updateFailed => 'Update failed';
+
+  @override
+  String get cleanUpdateGroup => 'Updates';
+
+  @override
+  String get cleanCheckUpdates => 'Check for updates on launch';
+
+  @override
+  String get updateLater => 'Later';
+
+  @override
+  String get updateNow => 'Update now';
+
+  @override
+  String get updateGoToPage => 'Go to download page';
 }

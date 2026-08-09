@@ -1514,5 +1514,13 @@
       "id": {}
     }
   },
-  "oobeCdnTestFailed": "失败"
+  "oobeCdnTestFailed": "失败",
+  "updateDownloading": "正在下载更新",
+  "updateInstalling": "正在安装更新",
+  "updateFailed": "更新失败",
+  "cleanUpdateGroup": "更新",
+  "cleanCheckUpdates": "启动时检查更新",
+  "updateLater": "稍后",
+  "updateNow": "立即更新",
+  "updateGoToPage": "前往下载"
 }

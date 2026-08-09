@@ -29,11 +29,13 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 import java.io.IOException
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
@@ -230,6 +232,45 @@ class MainActivity : FlutterActivity() {
                             if (uri != null) contentResolver.delete(uri, null, null)
                             result.error("LOG_EXPORT_FAILED", error.message, null)
                         }
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "oronbox/installer",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getSupportedAbi" -> {
+                    result.success(Build.SUPPORTED_ABIS.firstOrNull())
+                }
+                "installApk" -> {
+                    val path = call.argument<String>("path")
+                    if (path == null) {
+                        result.error("INVALID_ARGUMENT", "path is required", null)
+                        return@setMethodCallHandler
+                    }
+                    val file = File(path)
+                    if (!file.isFile) {
+                        result.error("APK_NOT_FOUND", path, null)
+                        return@setMethodCallHandler
+                    }
+                    val uri = FileProvider.getUriForFile(
+                        this,
+                        "${packageName}.apk",
+                        file,
+                    )
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, "application/vnd.android.package-archive")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    try {
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("INSTALL_FAILED", e.message, null)
                     }
                 }
                 else -> result.notImplemented()

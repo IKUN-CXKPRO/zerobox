@@ -144,6 +144,7 @@ class AppSettings {
     required this.wideNavigationRailPosition,
     required this.bandbbsLoadPreviews,
     required this.bandbbsShowAllCategories,
+    this.checkUpdateOnLaunch = true,
     this.clean = const CleanSettings(),
   });
 
@@ -155,6 +156,7 @@ class AppSettings {
   final WideNavigationRailPosition wideNavigationRailPosition;
   final bool bandbbsLoadPreviews;
   final bool bandbbsShowAllCategories;
+  final bool checkUpdateOnLaunch;
   final CleanSettings clean;
 
   AppSettings copyWith({
@@ -165,6 +167,7 @@ class AppSettings {
     bool? autoReconnect,
     WideNavigationRailPosition? wideNavigationRailPosition,
     bool? bandbbsLoadPreviews,
+    bool? checkUpdateOnLaunch,
     bool? bandbbsShowAllCategories,
     CleanSettings? clean,
   }) {
@@ -179,6 +182,7 @@ class AppSettings {
       bandbbsLoadPreviews: bandbbsLoadPreviews ?? this.bandbbsLoadPreviews,
       bandbbsShowAllCategories:
           bandbbsShowAllCategories ?? this.bandbbsShowAllCategories,
+      checkUpdateOnLaunch: checkUpdateOnLaunch ?? this.checkUpdateOnLaunch,
       clean: clean ?? this.clean,
     );
   }
@@ -191,6 +195,7 @@ class AppSettings {
   static const String _keyWideNavigationRailPosition =
       'wide_navigation_rail_position';
   static const String _keyBandBbsLoadPreviews = 'bandbbs_load_previews';
+  static const String _keyCheckUpdateOnLaunch = 'check_update_on_launch';
   static const String _keyBandBbsShowAllCategories =
       'bandbbs_show_all_categories';
 
@@ -215,6 +220,7 @@ class AppSettings {
       bandbbsLoadPreviews: prefs.getBool(_keyBandBbsLoadPreviews) ?? false,
       bandbbsShowAllCategories:
           prefs.getBool(_keyBandBbsShowAllCategories) ?? false,
+      checkUpdateOnLaunch: prefs.getBool(_keyCheckUpdateOnLaunch) ?? true,
       clean: CleanSettings(
         exploreEntry: prefs.getBool('clean_explore_entry') ?? true,
         pluginsEntry: prefs.getBool('clean_plugins_entry') ?? true,
@@ -263,6 +269,7 @@ class AppSettings {
     );
     await prefs.setBool(_keyBandBbsLoadPreviews, bandbbsLoadPreviews);
     await prefs.setBool(_keyBandBbsShowAllCategories, bandbbsShowAllCategories);
+    await prefs.setBool(_keyCheckUpdateOnLaunch, checkUpdateOnLaunch);
     await prefs.setBool('clean_explore_entry', clean.exploreEntry);
     await prefs.setBool('clean_plugins_entry', clean.pluginsEntry);
     await prefs.setBool('clean_home_feed', clean.homeFeed);
@@ -306,6 +313,7 @@ abstract class AppSettingsNotifier extends Notifier<AppSettings> {
   Future<void> setWideNavigationRailPosition(WideNavigationRailPosition value);
   Future<void> setBandBbsLoadPreviews(bool value);
   Future<void> setBandBbsShowAllCategories(bool value);
+  Future<void> setCheckUpdateOnLaunch(bool value);
   Future<void> setClean(CleanSettings value);
 }
 
@@ -382,6 +390,12 @@ class LocalAppSettingsNotifier extends AppSettingsNotifier {
   @override
   Future<void> setBandBbsShowAllCategories(bool value) async {
     state = state.copyWith(bandbbsShowAllCategories: value);
+    await state.save();
+  }
+
+  @override
+  Future<void> setCheckUpdateOnLaunch(bool value) async {
+    state = state.copyWith(checkUpdateOnLaunch: value);
     await state.save();
   }
 
@@ -489,6 +503,12 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
     'bandbbs_show_all_categories',
     value,
     state.copyWith(bandbbsShowAllCategories: value),
+  );
+  @override
+  Future<void> setCheckUpdateOnLaunch(bool value) => _set(
+    'check_update_on_launch',
+    value,
+    state.copyWith(checkUpdateOnLaunch: value),
   );
   @override
   Future<void> setClean(CleanSettings value) async {

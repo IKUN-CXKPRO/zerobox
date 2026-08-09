@@ -119,7 +119,7 @@ void main() {
     );
 
     test(
-      'unified guidance covers permission, nearby, occupied, mode, retry',
+      'unified guidance covers permission, nearby, not in use, mode, retry',
       () {
         for (final message in [
           zh.errorBluetoothConnectFailed,
@@ -134,7 +134,7 @@ void main() {
         expect(zh.errorBluetoothConnectFailed, contains('重试'));
         expect(en.errorBluetoothConnectFailed, contains('permission'));
         expect(en.errorBluetoothConnectFailed, contains('nearby'));
-        expect(en.errorBluetoothConnectFailed, contains('occupied'));
+        expect(en.errorBluetoothConnectFailed, contains('not in use'));
         expect(en.errorBluetoothConnectFailed, contains('Connect new phone'));
         expect(en.errorBluetoothConnectFailed, contains('try again'));
       },

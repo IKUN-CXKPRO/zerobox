@@ -201,6 +201,19 @@ class CleanModePage extends ConsumerWidget {
               ),
             ],
           ),
+          SegmentedSection(
+            title: Text(l10n.cleanUpdateGroup),
+            tiles: [
+              _switch(
+                l10n.cleanCheckUpdates,
+                ref.watch(appSettingsProvider).checkUpdateOnLaunch,
+                (enabled) => ref
+                    .read(appSettingsProvider.notifier)
+                    .setCheckUpdateOnLaunch(enabled),
+                icon: Icons.system_update_outlined,
+              ),
+            ],
+          ),
         ],
       ),
     );

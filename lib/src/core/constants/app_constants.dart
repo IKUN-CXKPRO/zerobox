@@ -16,6 +16,9 @@ enum TeamRole { mainDeveloperDesigner, zeppOSImplementation }
 
 abstract final class AppConstants {
   static const String githubRepoUrl = 'https://github.com/zxor-org/OronBox';
+  static const String githubRepoApiUrl =
+      'https://api.github.com/repos/zxor-org/OronBox';
+  static const String websiteUrl = 'https://oronbox.zxor.org';
 
   static const List<TeamMember> teamMembers = [
     TeamMember(

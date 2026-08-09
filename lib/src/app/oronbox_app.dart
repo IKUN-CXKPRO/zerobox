@@ -10,6 +10,7 @@ import 'package:oronbox/src/core/providers/theme_locale_providers.dart';
 import 'package:oronbox/src/features/devices/widgets/device_deep_link_handler.dart';
 import 'package:oronbox/src/features/devices/widgets/xms_wearable_bridge.dart';
 import 'package:oronbox/src/features/plugins/widgets/plugin_host_request_handler.dart';
+import 'package:oronbox/src/features/settings/services/update_check_service.dart';
 import 'package:oronbox/src/app/widgets/app_error_gate.dart';
 
 final _desktopAccentColorProvider = FutureProvider<Color?>((ref) {
@@ -62,8 +63,10 @@ class OronBoxApp extends ConsumerWidget {
             child: AppErrorGate(
               child: PluginHostRequestHandler(
                 child: XmsWearableBridge(
-                  child: DeviceDeepLinkHandler(
-                    child: child ?? const SizedBox.shrink(),
+                  child: UpdateCheckHandler(
+                    child: DeviceDeepLinkHandler(
+                      child: child ?? const SizedBox.shrink(),
+                    ),
                   ),
                 ),
               ),

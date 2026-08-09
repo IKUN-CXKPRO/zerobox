@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +19,7 @@ import 'package:oronbox/src/core/services/build_info_service.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 import 'package:oronbox/src/features/settings/services/oronbox_support_api.dart';
+import 'package:oronbox/src/features/settings/widgets/update_download_dialog.dart';
 
 final _aboutLatestReleaseProvider = FutureProvider.autoDispose
     .family<AppReleaseInfo, String>((ref, language) {
@@ -150,11 +153,19 @@ class _ChangelogSection extends ConsumerWidget {
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
-          Text(
-            value.releaseNotes,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              height: 1.45,
+          Markdown(
+            data: value.releaseNotes,
+            // Markdown renders a ListView internally; shrink-wrap it so the
+            // surrounding column gets stable intrinsic dimensions. The
+            // package pads its viewport by default; dialogs/cards already
+            // supply their own spacing, so drop it here.
+            shrinkWrap: true,
+            padding: EdgeInsets.zero,
+            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+              p: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                height: 1.45,
+              ),
             ),
           ),
         ],
@@ -244,7 +255,7 @@ class _AboutHeader extends ConsumerWidget {
               label: Text(l10n.acknowledgements),
             ),
             OutlinedButton.icon(
-              onPressed: () => _openUrl('https://oronbox.zxor.org'),
+              onPressed: () => _openUrl(AppConstants.websiteUrl),
               icon: const Icon(Icons.language_outlined),
               label: Text(l10n.settingsAboutWebsite),
             ),
@@ -271,10 +282,23 @@ class _UpdatePillState extends ConsumerState<_UpdatePill> {
   Future<void> _check() async {
     if (_checking) return;
     if (_found != null) {
-      final url = _found!.downloadUrl.isNotEmpty
-          ? _found!.downloadUrl
-          : _found!.sourceUrl;
-      if (url.isNotEmpty) _openUrl(url);
+      if (Platform.isAndroid) {
+        // In-app update on Android: download the APK for the device ABI,
+        // then hand it to the system installer.
+        showDialog<void>(
+          context: context,
+          builder: (_) => UpdateDownloadDialog(release: _found!),
+        );
+      } else {
+        // Jump to the website download page instead of the release link.
+        final isEn =
+            Localizations.localeOf(context).languageCode == 'en';
+        await _openUrl(
+          isEn
+              ? '${AppConstants.websiteUrl}/en/download'
+              : '${AppConstants.websiteUrl}/download',
+        );
+      }
       return;
     }
     setState(() {
@@ -860,3 +884,4 @@ class _TeamMemberTile extends StatelessWidget {
     );
   }
 }
+

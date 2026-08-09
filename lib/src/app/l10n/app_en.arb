@@ -1514,5 +1514,13 @@
       "id": {}
     }
   },
-  "oobeCdnTestFailed": "Failed"
+  "oobeCdnTestFailed": "Failed",
+  "updateDownloading": "Downloading update",
+  "updateInstalling": "Installing update",
+  "updateFailed": "Update failed",
+  "cleanUpdateGroup": "Updates",
+  "cleanCheckUpdates": "Check for updates on launch",
+  "updateLater": "Later",
+  "updateNow": "Update now",
+  "updateGoToPage": "Go to download page"
 }

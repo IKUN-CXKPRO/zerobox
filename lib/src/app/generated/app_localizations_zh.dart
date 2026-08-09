@@ -3049,4 +3049,28 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get oobeCdnTestFailed => '失败';
+
+  @override
+  String get updateDownloading => '正在下载更新';
+
+  @override
+  String get updateInstalling => '正在安装更新';
+
+  @override
+  String get updateFailed => '更新失败';
+
+  @override
+  String get cleanUpdateGroup => '更新';
+
+  @override
+  String get cleanCheckUpdates => '启动时检查更新';
+
+  @override
+  String get updateLater => '稍后';
+
+  @override
+  String get updateNow => '立即更新';
+
+  @override
+  String get updateGoToPage => '前往下载';
 }

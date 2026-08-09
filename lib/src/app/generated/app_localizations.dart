@@ -5736,6 +5736,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed'**
   String get oobeCdnTestFailed;
+
+  /// No description provided for @updateDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading update'**
+  String get updateDownloading;
+
+  /// No description provided for @updateInstalling.
+  ///
+  /// In en, this message translates to:
+  /// **'Installing update'**
+  String get updateInstalling;
+
+  /// No description provided for @updateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Update failed'**
+  String get updateFailed;
+
+  /// No description provided for @cleanUpdateGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates'**
+  String get cleanUpdateGroup;
+
+  /// No description provided for @cleanCheckUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates on launch'**
+  String get cleanCheckUpdates;
+
+  /// No description provided for @updateLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get updateLater;
+
+  /// No description provided for @updateNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Update now'**
+  String get updateNow;
+
+  /// No description provided for @updateGoToPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to download page'**
+  String get updateGoToPage;
 }
 
 class _AppLocalizationsDelegate
