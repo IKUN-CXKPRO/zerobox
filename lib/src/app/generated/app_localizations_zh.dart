@@ -2610,12 +2610,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get oobeOpenSourceBody => 'OronBox 客户端与服务端均遵循 AGPL-3.0 开放完整源代码';
 
   @override
-  String get oobeOpenSourceClientLink => '查看客户端源码';
-
-  @override
-  String get oobeOpenSourceServerLink => '查看服务端源码';
-
-  @override
   String get oobeAgreementHint => '请阅读并滚动到底部';
 
   @override

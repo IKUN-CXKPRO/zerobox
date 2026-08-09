@@ -178,17 +178,14 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
       body: PageContainer(
         padding: EdgeInsets.zero,
         child: ListView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: StyleConstants.pagePadding,
+          padding: const EdgeInsets.fromLTRB(
+            StyleConstants.pagePadding,
+            8,
+            StyleConstants.pagePadding,
+            0,
           ),
           children: [
-            Text(
-              l10n.firmwareCurrentVersion,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
+            SectionHeader(title: l10n.firmwareCurrentVersion),
             Text(
               currentVersion.isEmpty
                   ? l10n.firmwareVersionUnknown
@@ -234,11 +231,8 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
               ],
             ),
             const SizedBox(height: 28),
-            Text(
-              l10n.firmwareLatestRelease,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 10),
+            SectionHeader(title: l10n.firmwareLatestRelease),
+            const SizedBox(height: 8),
             SectionCard(
               margin: EdgeInsets.zero,
               child: latest == null

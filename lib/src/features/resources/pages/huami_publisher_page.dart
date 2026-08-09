@@ -45,7 +45,7 @@ class HuamiPublisherPage extends ConsumerWidget {
                 ),
                 child: BandBbsResourceCard(item: items[index]),
               ),
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemCount: items.length,
             ),
           );

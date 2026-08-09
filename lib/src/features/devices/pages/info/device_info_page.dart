@@ -113,12 +113,13 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
         child: ListView.separated(
           padding: const EdgeInsets.fromLTRB(
             StyleConstants.pagePadding,
-            0,
+            8,
             StyleConstants.pagePadding,
             StyleConstants.pagePadding,
           ),
           itemCount: items.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          separatorBuilder: (context, index) =>
+              const SizedBox(height: StyleConstants.sectionSpacing),
           itemBuilder: (context, index) => items[index],
         ),
       ),
@@ -139,13 +140,7 @@ class _InfoGroup extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
+          SectionHeader(title: title),
           ...children,
         ],
       ),

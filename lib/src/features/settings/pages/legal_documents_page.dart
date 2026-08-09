@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/features/resources/widgets/resource_external_link.dart';
 
 Future<String> loadLegalDocument(
@@ -29,14 +30,14 @@ class LegalDocumentPage extends ConsumerWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 840),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: colors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(StyleConstants.cardRadius),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(StyleConstants.cardRadius),
                 child: FutureBuilder<String>(
                   future: loadLegalDocument(
                     ref,

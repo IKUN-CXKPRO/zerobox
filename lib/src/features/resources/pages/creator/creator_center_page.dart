@@ -85,8 +85,11 @@ class _CreatorCenterPageState extends ConsumerState<CreatorCenterPage> {
               ),
               child: PageContainer(
                 maxWidth: 1000,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: StyleConstants.pagePadding,
+                padding: const EdgeInsets.fromLTRB(
+                  StyleConstants.pagePadding,
+                  8,
+                  StyleConstants.pagePadding,
+                  0,
                 ),
                 child: CreatorResourceList(
                   state: state,

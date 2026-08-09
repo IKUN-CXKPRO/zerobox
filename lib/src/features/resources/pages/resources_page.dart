@@ -1574,7 +1574,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
                     itemCount: _items.length,
                     itemBuilder: (context, index) => Padding(
                       padding: EdgeInsets.only(
-                        bottom: index == _items.length - 1 ? 0 : 10,
+                        bottom: index == _items.length - 1 ? 0 : 8,
                       ),
                       child: _animateResourceLayout(
                         _items[index],
@@ -1620,7 +1620,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
                   ),
                 ),
             ],
-            const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
+            const SliverPadding(padding: EdgeInsets.only(bottom: 16)),
           ],
         ),
       ),

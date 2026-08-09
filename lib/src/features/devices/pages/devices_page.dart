@@ -180,7 +180,7 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
                     child: Column(
                       children: [
                         infoPanel,
-                        const SizedBox(height: 12),
+                        const SizedBox(height: StyleConstants.sectionSpacing),
                         _DeviceStatusGrid(
                           compact: !isWide,
                           showStorage: !isZeppOs,
@@ -209,7 +209,7 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
                             LocalDeviceInstallType.watchface,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: StyleConstants.sectionSpacing),
                         featuresPanel,
                       ],
                     ),
@@ -549,7 +549,10 @@ class _DeviceInfoPanel extends StatelessWidget {
             ],
           );
     return Padding(
-      padding: EdgeInsets.only(top: 12, bottom: isNarrow ? 0 : 12),
+      padding: EdgeInsets.only(
+        top: 8,
+        bottom: isNarrow ? 0 : 12,
+      ),
       child: content,
     );
   }

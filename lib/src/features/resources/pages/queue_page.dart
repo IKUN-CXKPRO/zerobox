@@ -35,8 +35,11 @@ class QueuePage extends ConsumerWidget {
           return ProgressIndicatorTheme(
             data: const ProgressIndicatorThemeData(year2023: false),
             child: PageContainer(
-              padding: const EdgeInsets.symmetric(
-                horizontal: StyleConstants.pagePadding,
+              padding: const EdgeInsets.fromLTRB(
+                StyleConstants.pagePadding,
+                8,
+                StyleConstants.pagePadding,
+                8,
               ),
               child: isWide
                   ? Row(

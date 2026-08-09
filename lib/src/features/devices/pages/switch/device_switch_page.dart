@@ -179,8 +179,11 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
         final scanList = _ScanDeviceList(onComplete: () => setState(() {}));
 
         return PageContainer(
-          padding: const EdgeInsets.symmetric(
-            horizontal: StyleConstants.pagePadding,
+          padding: const EdgeInsets.fromLTRB(
+            StyleConstants.pagePadding,
+            8,
+            StyleConstants.pagePadding,
+            0,
           ),
           child: Column(
             children: [
@@ -264,8 +267,11 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
         );
 
         return PageContainer(
-          padding: const EdgeInsets.symmetric(
-            horizontal: StyleConstants.pagePadding,
+          padding: const EdgeInsets.fromLTRB(
+            StyleConstants.pagePadding,
+            8,
+            StyleConstants.pagePadding,
+            0,
           ),
           child: isWide
               ? Row(
@@ -922,7 +928,7 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
 
     return Card(
       elevation: 0,
-      margin: const EdgeInsets.only(bottom: 5),
+      margin: const EdgeInsets.only(bottom: StyleConstants.cardSpace),
       color: connected
           ? colorScheme.primaryContainer.withValues(alpha: 0.3)
           : colorScheme.surfaceContainerHigh,

@@ -85,7 +85,11 @@ class AcknowledgementsPage extends StatelessWidget {
           itemBuilder: (context, index) {
             final item = items[index];
             return Card(
-              margin: const EdgeInsets.only(bottom: 12),
+              margin: const EdgeInsets.only(bottom: StyleConstants.cardSpace),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(StyleConstants.cardRadius),
+              ),
+              clipBehavior: Clip.antiAlias,
               child: InkWell(
                 onTap: item.url == null
                     ? null

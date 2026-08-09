@@ -104,11 +104,16 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
       body: PageContainer(
         padding: EdgeInsets.zero,
         child: ListView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: StyleConstants.pagePadding,
+          padding: const EdgeInsets.fromLTRB(
+            StyleConstants.pagePadding,
+            8,
+            StyleConstants.pagePadding,
+            0,
           ),
           children: [
             SectionCard(
+              margin: EdgeInsets.zero,
+              padding: EdgeInsets.zero,
               child: InkWell(
                 onTap: _installing ? null : _pickFile,
                 borderRadius: BorderRadius.circular(StyleConstants.cardRadius),
@@ -167,23 +172,6 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class SectionCard extends StatelessWidget {
-  const SectionCard({super.key, required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(StyleConstants.cardRadius),
-      ),
-      child: child,
     );
   }
 }

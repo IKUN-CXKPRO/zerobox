@@ -79,8 +79,11 @@ class _DeviceAppsPageState extends ConsumerState<DeviceAppsPage> {
         ],
       ),
       body: PageContainer(
-        padding: const EdgeInsets.symmetric(
-          horizontal: StyleConstants.pagePadding,
+        padding: const EdgeInsets.fromLTRB(
+          StyleConstants.pagePadding,
+          8,
+          StyleConstants.pagePadding,
+          0,
         ),
         child: !ready
             ? Center(child: Text(l10n.deviceNotConnected))

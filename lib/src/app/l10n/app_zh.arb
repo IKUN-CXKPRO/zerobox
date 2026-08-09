@@ -1297,8 +1297,6 @@
   "oobeFeaturePlatformsBody": "支持 Android、Windows、macOS、Linux 与 Web",
   "oobeOpenSourceTitle": "完全开源",
   "oobeOpenSourceBody": "OronBox 客户端与服务端均遵循 AGPL-3.0 开放完整源代码",
-  "oobeOpenSourceClientLink": "查看客户端源码",
-  "oobeOpenSourceServerLink": "查看服务端源码",
   "oobeAgreementHint": "请阅读并滚动到底部",
   "oobeAgreeCheckbox": "我已阅读并同意",
   "oobeDeclineExit": "退出",

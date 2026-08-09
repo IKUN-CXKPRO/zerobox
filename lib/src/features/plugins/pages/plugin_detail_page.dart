@@ -356,7 +356,7 @@ class _PluginInformation extends StatelessWidget {
             .toList(growable: false) ??
         const <String>[];
     return ListView(
-      padding: const EdgeInsets.only(top: 16, bottom: 8),
+      padding: const EdgeInsets.only(top: 16, bottom: 16),
       children: [
         _InfoGroup(
           title: l10n.pluginDetails,
@@ -426,7 +426,11 @@ class _InfoGroup extends StatelessWidget {
     final theme = Theme.of(context);
     return Card(
       elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 24),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(StyleConstants.cardRadius),
+      ),
+      clipBehavior: Clip.antiAlias,
       color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .5),
       child: Padding(
         padding: const EdgeInsets.all(16),

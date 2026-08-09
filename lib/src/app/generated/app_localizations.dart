@@ -4909,18 +4909,6 @@ abstract class AppLocalizations {
   /// **'The OronBox client and server both follow GNU AGPL-3.0 with their complete source code available'**
   String get oobeOpenSourceBody;
 
-  /// No description provided for @oobeOpenSourceClientLink.
-  ///
-  /// In en, this message translates to:
-  /// **'View client source code'**
-  String get oobeOpenSourceClientLink;
-
-  /// No description provided for @oobeOpenSourceServerLink.
-  ///
-  /// In en, this message translates to:
-  /// **'View server source code'**
-  String get oobeOpenSourceServerLink;
-
   /// No description provided for @oobeAgreementHint.
   ///
   /// In en, this message translates to:

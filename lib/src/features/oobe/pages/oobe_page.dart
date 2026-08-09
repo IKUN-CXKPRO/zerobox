@@ -6,7 +6,6 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
@@ -22,8 +21,6 @@ import 'package:oronbox/src/features/accounts/services/mi_account_two_factor_res
 import 'package:oronbox/src/features/oobe/oobe_state.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
-const _clientRepoUrl = 'https://github.com/zxor-org/OronBox';
-const _serverRepoUrl = 'https://github.com/zxor-org/OronBox-Server';
 
 /// First-run experience: welcome → terms → privacy → optional account sign-in
 /// → done. Uses PageView for smooth animated transitions and Material 3
@@ -230,10 +227,6 @@ class _OobeBottomBar extends StatelessWidget {
 class _WelcomeStep extends StatelessWidget {
   const _WelcomeStep();
 
-  Future<void> _open(String url) {
-    return launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -273,7 +266,7 @@ class _WelcomeStep extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 600),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -302,23 +295,6 @@ class _WelcomeStep extends StatelessWidget {
                         icon: Icons.code,
                         title: l10n.oobeOpenSourceTitle,
                         body: l10n.oobeOpenSourceBody,
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 8,
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: () => _open(_clientRepoUrl),
-                            icon: const Icon(Icons.open_in_new, size: 18),
-                            label: Text(l10n.oobeOpenSourceClientLink),
-                          ),
-                          OutlinedButton.icon(
-                            onPressed: () => _open(_serverRepoUrl),
-                            icon: const Icon(Icons.open_in_new, size: 18),
-                            label: Text(l10n.oobeOpenSourceServerLink),
-                          ),
-                        ],
                       ),
                       const SizedBox(height: 16),
 

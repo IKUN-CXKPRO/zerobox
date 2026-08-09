@@ -289,7 +289,7 @@ class _ZeppOsAppSideDebugPageState
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
             StyleConstants.pagePadding,
-            0,
+            8,
             StyleConstants.pagePadding,
             StyleConstants.pagePadding,
           ),
@@ -304,11 +304,7 @@ class _ZeppOsAppSideDebugPageState
               ),
               const SizedBox(height: 8),
             ],
-            Text(
-              l10n.zeppOsDebugAppList,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
+            SectionHeader(title: l10n.zeppOsDebugAppList),
             if (_observed.isEmpty)
               Card(
                 child: Padding(
@@ -338,20 +334,16 @@ class _ZeppOsAppSideDebugPageState
                 ],
               ),
             if (selected != null) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: StyleConstants.sectionSpacing),
               _SessionCard(session: session, cached: cached, events: _events),
-              const SizedBox(height: 12),
+              const SizedBox(height: StyleConstants.sectionSpacing),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        l10n.zeppOsDebugLocalRuntime,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
+                      SectionHeader(title: l10n.zeppOsDebugLocalRuntime),
                       Text(
                         !cached
                             ? l10n.zeppOsDebugCannotStart
@@ -387,18 +379,14 @@ class _ZeppOsAppSideDebugPageState
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: StyleConstants.sectionSpacing),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        l10n.zeppOsDebugMessageEditor,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
+                      SectionHeader(title: l10n.zeppOsDebugMessageEditor),
                       SegmentedButton<_MessageMode>(
                         segments: [
                           ButtonSegment(
@@ -486,22 +474,14 @@ class _ZeppOsAppSideDebugPageState
                 ),
               ),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      l10n.zeppOsDebugEvents,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ),
-                  TextButton.icon(
-                    onPressed: _busy || _events.isEmpty ? null : _clearEvents,
-                    icon: const Icon(Icons.delete_sweep_outlined),
-                    label: Text(l10n.zeppOsDebugClearCurrentApp),
-                  ),
-                ],
+              SectionHeader(
+                title: l10n.zeppOsDebugEvents,
+                action: TextButton.icon(
+                  onPressed: _busy || _events.isEmpty ? null : _clearEvents,
+                  icon: const Icon(Icons.delete_sweep_outlined),
+                  label: Text(l10n.zeppOsDebugClearCurrentApp),
+                ),
               ),
-              const SizedBox(height: 8),
               TextField(
                 controller: _search,
                 decoration: InputDecoration(
@@ -629,11 +609,7 @@ class _SessionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              l10n.zeppOsDebugSessionStatus,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
+            SectionHeader(title: l10n.zeppOsDebugSessionStatus),
             Text(
               l10n.zeppOsDebugCachedScript(
                 cached ? l10n.exists : l10n.notExists,

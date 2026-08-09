@@ -87,10 +87,16 @@ class SectionCard extends StatelessWidget {
 }
 
 class SectionHeader extends StatelessWidget {
-  const SectionHeader({super.key, required this.title, this.action});
+  const SectionHeader({
+    super.key,
+    required this.title,
+    this.action,
+    this.leading,
+  });
 
   final String title;
   final Widget? action;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -98,6 +104,10 @@ class SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
+          if (leading != null) ...[
+            leading!,
+            const SizedBox(width: 8),
+          ],
           Expanded(
             child: Text(
               title,

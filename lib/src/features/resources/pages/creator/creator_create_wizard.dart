@@ -460,7 +460,7 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
 
   Widget _actionChoices(AppLocalizations l10n) {
     return ListView(
-      shrinkWrap: true,
+      shrinkWrap: false,
       children: [
         const SizedBox(height: 8),
         _ActionCard(
@@ -490,7 +490,7 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
   Widget _createForm(AppLocalizations l10n) {
     final isCollection = _action == _WizardAction.collection;
     return ListView(
-      shrinkWrap: true,
+      shrinkWrap: false,
       children: [
         const SizedBox(height: 8),
         Center(

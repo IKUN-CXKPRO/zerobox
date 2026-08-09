@@ -124,8 +124,11 @@ class _ZeppOsVoiceMemosPageState extends ConsumerState<ZeppOsVoiceMemosPage> {
         label: Text(_syncing ? l10n.cancel : l10n.deviceRecordingsSync),
       ),
       body: PageContainer(
-        padding: const EdgeInsets.symmetric(
-          horizontal: StyleConstants.pagePadding,
+        padding: const EdgeInsets.fromLTRB(
+          StyleConstants.pagePadding,
+          8,
+          StyleConstants.pagePadding,
+          0,
         ),
         child: ListView(
           padding: const EdgeInsets.only(bottom: 88),
@@ -134,11 +137,7 @@ class _ZeppOsVoiceMemosPageState extends ConsumerState<ZeppOsVoiceMemosPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    l10n.deviceRecordingsDescription,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
+                  SectionHeader(title: l10n.deviceRecordingsDescription),
                   Text(
                     l10n.deviceRecordingsHint,
                     style: TextStyle(color: colors.onSurfaceVariant),

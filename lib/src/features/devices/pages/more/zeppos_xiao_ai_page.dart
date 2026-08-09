@@ -284,8 +284,11 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
     return Scaffold(
       appBar: SysAppBar(secondary: true, title: Text(l10n.voiceLabTitle)),
       body: PageContainer(
-        padding: const EdgeInsets.symmetric(
-          horizontal: StyleConstants.pagePadding,
+        padding: const EdgeInsets.fromLTRB(
+          StyleConstants.pagePadding,
+          8,
+          StyleConstants.pagePadding,
+          0,
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -296,26 +299,23 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
             final side = _SectionCard(child: _buildCapturePanel(context));
             return Align(
               alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1120),
-                child: ListView(
-                  children: [
-                    if (wide)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(flex: 2, child: main),
-                          const SizedBox(width: 16),
-                          Expanded(child: side),
-                        ],
-                      )
-                    else ...[
-                      main,
-                      const SizedBox(height: 16),
-                      side,
-                    ],
+              child: ListView(
+                children: [
+                  if (wide)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 2, child: main),
+                        const SizedBox(width: 16),
+                        Expanded(child: side),
+                      ],
+                    )
+                  else ...[
+                    main,
+                    const SizedBox(height: 16),
+                    side,
                   ],
-                ),
+                ],
               ),
             );
           },
@@ -473,15 +473,9 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Icon(Icons.analytics_outlined),
-            const SizedBox(width: 12),
-            Text(
-              l10n.voiceLabCapturedData,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-          ],
+        SectionHeader(
+          title: l10n.voiceLabCapturedData,
+          leading: const Icon(Icons.analytics_outlined),
         ),
         const SizedBox(height: 16),
         _StatRow(
@@ -531,8 +525,14 @@ class _SectionCard extends StatelessWidget {
   Widget build(BuildContext context) => Card.filled(
     color: Theme.of(context).colorScheme.surfaceContainerLow,
     margin: EdgeInsets.zero,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(StyleConstants.cardRadius),
+    ),
     clipBehavior: Clip.antiAlias,
-    child: Padding(padding: const EdgeInsets.all(24), child: child),
+    child: Padding(
+      padding: const EdgeInsets.all(StyleConstants.pagePadding),
+      child: child,
+    ),
   );
 }
 

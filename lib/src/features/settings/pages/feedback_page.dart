@@ -256,7 +256,9 @@ class _TicketList extends StatelessWidget {
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: tickets.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        separatorBuilder: (_, _) => const SizedBox(
+          height: StyleConstants.cardSpace,
+        ),
         itemBuilder: (context, index) {
           final ticket = tickets[index];
           return Card(
@@ -264,6 +266,9 @@ class _TicketList extends StatelessWidget {
             color: Theme.of(
               context,
             ).colorScheme.surfaceContainerHighest.withValues(alpha: .5),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(StyleConstants.cardRadius),
+            ),
             clipBehavior: Clip.antiAlias,
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(

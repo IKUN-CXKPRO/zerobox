@@ -12,6 +12,7 @@ import 'package:image/image.dart' as img;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
 import 'package:oronbox/src/features/resources/application/oronbox_resource_attributes.dart';
@@ -326,9 +327,16 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
             bottom: false,
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 900),
+                constraints: const BoxConstraints(
+                  maxWidth: StyleConstants.pageMaxWidth,
+                ),
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(
+                    16,
+                    8,
+                    16,
+                    24,
+                  ),
                   children: [
                     if (widget.state.error != null) ...[
                       MaterialBanner(

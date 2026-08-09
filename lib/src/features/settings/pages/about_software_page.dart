@@ -41,8 +41,11 @@ class AboutSoftwarePage extends ConsumerWidget {
       body: SingleChildScrollView(
         child: PageContainer(
           maxWidth: 1000,
-          padding: const EdgeInsets.symmetric(
-            horizontal: StyleConstants.pagePadding,
+          padding: const EdgeInsets.fromLTRB(
+            16,
+            8,
+            16,
+            0,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -109,7 +112,7 @@ class AboutSoftwarePage extends ConsumerWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(bottom: 24),
+                padding: const EdgeInsets.only(bottom: 16),
                 child: Text(
                   l10n.settingsAboutSoftwareCopyright,
                   textAlign: TextAlign.center,

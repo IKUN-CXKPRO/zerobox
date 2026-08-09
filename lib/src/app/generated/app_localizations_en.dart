@@ -2727,12 +2727,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'The OronBox client and server both follow GNU AGPL-3.0 with their complete source code available';
 
   @override
-  String get oobeOpenSourceClientLink => 'View client source code';
-
-  @override
-  String get oobeOpenSourceServerLink => 'View server source code';
-
-  @override
   String get oobeAgreementHint => 'Please read and scroll to the bottom';
 
   @override

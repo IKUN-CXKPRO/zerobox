@@ -134,8 +134,11 @@ class _ZeppOsAppSettingsPageState extends State<ZeppOsAppSettingsPage> {
         ],
       ),
       body: PageContainer(
-        padding: const EdgeInsets.symmetric(
-          horizontal: StyleConstants.pagePadding,
+        padding: const EdgeInsets.fromLTRB(
+          StyleConstants.pagePadding,
+          8,
+          StyleConstants.pagePadding,
+          0,
         ),
         child: FutureBuilder<List<_Item>>(
           future: _items,
@@ -159,7 +162,11 @@ class _ZeppOsAppSettingsPageState extends State<ZeppOsAppSettingsPage> {
             return ListView(
               children: [
                 SegmentedSection(
-                  margin: EdgeInsetsDirectional.zero,
+                  margin: const EdgeInsetsDirectional.only(
+                    start: 0,
+                    end: 0,
+                    bottom: StyleConstants.pagePadding,
+                  ),
                   tiles: [
                     for (final item in items)
                       SegmentedTile.navigation(

@@ -113,7 +113,7 @@ class _CreatorResourceListState extends State<CreatorResourceList> {
           const SizedBox(height: 8),
           for (final entry in visible)
             Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(bottom: 8),
               child: CreatorResourceCard(
                 workspace: entry.workspace,
                 controller: widget.controller,

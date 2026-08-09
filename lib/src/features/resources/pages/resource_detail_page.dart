@@ -146,9 +146,9 @@ class _ResourceHeader extends ConsumerWidget {
       child: PageContainer(
         padding: const EdgeInsets.fromLTRB(
           StyleConstants.pagePadding,
-          20,
+          8,
           StyleConstants.pagePadding,
-          24,
+          StyleConstants.pagePadding,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,

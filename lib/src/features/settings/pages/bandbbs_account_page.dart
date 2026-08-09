@@ -169,8 +169,8 @@ class _BandBbsAccountPageState extends ConsumerState<BandBbsAccountPage> {
       appBar: SysAppBar(secondary: true, title: Text(l10n.bandBbsAccountTitle)),
       body: SegmentedList(
         maxWidth: StyleConstants.pageMaxWidth,
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: StyleConstants.pagePadding,
+        contentPadding: const EdgeInsets.only(
+          top: 8,
         ),
         sections: [
           SegmentedSection(

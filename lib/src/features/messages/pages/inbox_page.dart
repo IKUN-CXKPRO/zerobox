@@ -56,7 +56,7 @@ class InboxPage extends ConsumerWidget {
                     children: value.messages
                         .map(
                           (message) => Card(
-                            margin: const EdgeInsets.only(bottom: 10),
+                            margin: const EdgeInsets.only(bottom: 8),
                             color: Theme.of(context)
                                 .colorScheme
                                 .surfaceContainerHighest

@@ -1297,8 +1297,6 @@
   "oobeFeaturePlatformsBody": "Available on Android, Windows, macOS, Linux, and Web",
   "oobeOpenSourceTitle": "Fully open source",
   "oobeOpenSourceBody": "The OronBox client and server both follow GNU AGPL-3.0 with their complete source code available",
-  "oobeOpenSourceClientLink": "View client source code",
-  "oobeOpenSourceServerLink": "View server source code",
   "oobeAgreementHint": "Please read and scroll to the bottom",
   "oobeAgreeCheckbox": "I have read and agree",
   "oobeDeclineExit": "Exit",

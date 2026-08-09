@@ -116,11 +116,7 @@ class _XiaomiRecordingsPageState extends ConsumerState<XiaomiRecordingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      l10n.deviceRecordingsDescription,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 8),
+                    SectionHeader(title: l10n.deviceRecordingsDescription),
                     Text(
                       l10n.deviceRecordingsHint,
                       style: TextStyle(color: colors.onSurfaceVariant),

@@ -322,7 +322,7 @@ class _CreatorCollectionPageState extends ConsumerState<CreatorCollectionPage> {
                     const SizedBox(height: 8),
                     for (final workspace in children)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.only(bottom: 8),
                         child: CreatorResourceCard(
                           workspace: workspace,
                           controller: controller,

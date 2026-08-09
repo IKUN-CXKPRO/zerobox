@@ -63,7 +63,7 @@ class _ResourceCollectionPageState extends State<ResourceCollectionPage> {
                     const SizedBox(height: 12),
                     ...detail.resources.map(
                       (resource) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.only(bottom: 8),
                         child: BandBbsResourceCard(item: resource),
                       ),
                     ),

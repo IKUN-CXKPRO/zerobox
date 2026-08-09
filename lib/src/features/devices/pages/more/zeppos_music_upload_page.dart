@@ -274,24 +274,23 @@ class _DeviceMusicUploadPageState extends ConsumerState<DeviceMusicUploadPage> {
           ),
         ),
         body: PageContainer(
-          padding: const EdgeInsets.symmetric(
-            horizontal: StyleConstants.pagePadding,
+          padding: const EdgeInsets.fromLTRB(
+            StyleConstants.pagePadding,
+            8,
+            StyleConstants.pagePadding,
+            0,
           ),
           child: ListView(
             children: [
               if (widget.xiaomi) ...[
                 _buildLibraryCard(context, l10n),
-                const SizedBox(height: 16),
+                const SizedBox(height: StyleConstants.sectionSpacing),
               ],
               SectionCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      l10n.deviceMusicTransferTitle,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 8),
+                    SectionHeader(title: l10n.deviceMusicTransferTitle),
                     Text(
                       widget.xiaomi
                           ? l10n.deviceMusicVelaDescription
@@ -440,38 +439,28 @@ class _DeviceMusicUploadPageState extends ConsumerState<DeviceMusicUploadPage> {
   Widget _buildLibraryCard(BuildContext context, AppLocalizations l10n) {
     final library = _library;
     return SectionCard(
+      // spacing to the next card is handled by the SizedBox below
+      margin: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.deviceMusicLibrary,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    Text(
-                      l10n.deviceMusicLibraryDescription,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: _loadingLibrary ? null : _loadLibrary,
-                icon: _loadingLibrary
-                    ? const SizedBox.square(
-                        dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.refresh),
-              ),
-            ],
+          SectionHeader(
+            title: l10n.deviceMusicLibrary,
+            action: IconButton(
+              onPressed: _loadingLibrary ? null : _loadLibrary,
+              icon: _loadingLibrary
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+            ),
+          ),
+          Text(
+            l10n.deviceMusicLibraryDescription,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           if (library != null) ...[
             const SizedBox(height: 16),

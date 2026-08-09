@@ -30,6 +30,7 @@ class BlogPostPage extends ConsumerWidget {
     final post = ref.watch(blogPostProvider(slug));
     return Scaffold(
       appBar: SysAppBar(
+        secondary: true,
         title: Text(
           post.value?.title ?? preview?.title ?? blogTypeLabel(l10n, ''),
         ),
