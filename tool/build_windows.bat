@@ -83,7 +83,11 @@ if errorlevel 1 exit /b 1
 
 set "BUNDLE_DIR=%PROJECT_ROOT%\build\windows\x64\runner\Release"
 if not exist "%BUNDLE_DIR%\%APP_NAME%.exe" (
-  echo [ERROR] Windows build output not found: %BUNDLE_DIR% 1>&2
+  set "ORONBOX_BUILD_ROOT=%PROJECT_ROOT%\build\windows"
+  for /f "usebackq delims=" %%E in (`powershell -NoProfile -Command "$exe = Get-ChildItem -Path $env:ORONBOX_BUILD_ROOT -Filter '%APP_NAME%.exe' -File -Recurse -ErrorAction SilentlyContinue ^| Where-Object { $_.Directory.Name -ieq 'Release' } ^| Sort-Object LastWriteTime -Descending ^| Select-Object -First 1; if ($exe) { $exe.Directory.FullName }"`) do set "BUNDLE_DIR=%%E"
+)
+if not exist "%BUNDLE_DIR%\%APP_NAME%.exe" (
+  echo [ERROR] Windows build output not found under %PROJECT_ROOT%\build\windows 1>&2
   exit /b 1
 )
 

@@ -195,6 +195,13 @@ copy_system_icons_to() {
   cp -a "${PROJECT_ROOT}/linux/icons/hicolor" "${root}/usr/share/icons/"
 }
 
+copy_mime_definitions_to() {
+  local root="$1"
+  mkdir -p "${root}/usr/share/mime/packages"
+  cp "${PROJECT_ROOT}/linux/org.zxor.oronbox.xml" \
+    "${root}/usr/share/mime/packages/"
+}
+
 build_deb() {
   if ! command -v dpkg-deb >/dev/null 2>&1; then
     log_warn "dpkg-deb not found; skipped DEB package"
@@ -206,6 +213,7 @@ build_deb() {
   copy_bundle_to "${deb_root}"
   prepare_desktop_file "${deb_root}/usr/share/applications/${DESKTOP_FILE}"
   copy_system_icons_to "${deb_root}"
+  copy_mime_definitions_to "${deb_root}"
   mkdir -p "${deb_root}/DEBIAN"
 
   local deb_version
@@ -227,6 +235,15 @@ EOF
 
   local deb_out="${RELEASE_DIR}/${APP_NAME}_${deb_version}_${DEB_ARCH}.deb"
   rm -f "${deb_out}"
+  cat > "${deb_root}/DEBIAN/postinst" <<'EOF'
+#!/bin/sh
+set -e
+if command -v update-mime-database >/dev/null 2>&1; then
+  update-mime-database /usr/share/mime >/dev/null 2>&1 || true
+fi
+exit 0
+EOF
+  chmod 755 "${deb_root}/DEBIAN/postinst"
   run_cmd dpkg-deb --root-owner-group --build "${deb_root}" "${deb_out}"
   log_info "Produced ${deb_out}"
 }
@@ -271,11 +288,20 @@ mkdir -p %{buildroot}/usr/share/applications
 cp ${STAGING_ROOT}/rpm-desktop/${DESKTOP_FILE} %{buildroot}/usr/share/applications/
 mkdir -p %{buildroot}/usr/share/icons
 cp -a ${PROJECT_ROOT}/linux/icons/hicolor %{buildroot}/usr/share/icons/
+mkdir -p %{buildroot}/usr/share/mime/packages
+cp ${PROJECT_ROOT}/linux/org.zxor.oronbox.xml %{buildroot}/usr/share/mime/packages/
+
+%post
+if command -v update-mime-database >/dev/null 2>&1; then
+  update-mime-database /usr/share/mime >/dev/null 2>&1 || true
+fi
+exit 0
 
 %files
 ${INSTALL_PREFIX}
 /usr/share/applications/${DESKTOP_FILE}
 /usr/share/icons/hicolor
+/usr/share/mime/packages/org.zxor.oronbox.xml
 
 %changelog
 * $(LC_ALL=C date +"%a %b %d %Y") ${MAINTAINER} - ${rpm_version}-${rpm_release}
@@ -331,6 +357,14 @@ package() {
   cp "${STAGING_ROOT}/arch-desktop/${DESKTOP_FILE}" "\${pkgdir}/usr/share/applications/"
   mkdir -p "\${pkgdir}/usr/share/icons"
   cp -a --no-preserve=ownership "${PROJECT_ROOT}/linux/icons/hicolor" "\${pkgdir}/usr/share/icons/"
+  mkdir -p "\${pkgdir}/usr/share/mime/packages"
+  cp "${PROJECT_ROOT}/linux/org.zxor.oronbox.xml" "\${pkgdir}/usr/share/mime/packages/"
+}
+
+post_install() {
+  if command -v update-mime-database >/dev/null 2>&1; then
+    update-mime-database /usr/share/mime >/dev/null 2>&1 || true
+  fi
 }
 EOF
 

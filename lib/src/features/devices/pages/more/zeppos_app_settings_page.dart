@@ -4,6 +4,7 @@ import 'package:segmented_list/segmented_list.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
@@ -67,13 +68,14 @@ class _ZeppOsAppSettingsPageState extends State<ZeppOsAppSettingsPage> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(localizedErrorMessage(l10n, error))),
+      );
     }
   }
 
   Future<void> _open(_Item item) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await showZeppOsAppSettings(
         context,
@@ -82,9 +84,9 @@ class _ZeppOsAppSettingsPageState extends State<ZeppOsAppSettingsPage> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(localizedErrorMessage(l10n, error))),
+      );
     }
   }
 
@@ -112,9 +114,9 @@ class _ZeppOsAppSettingsPageState extends State<ZeppOsAppSettingsPage> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(localizedErrorMessage(l10n, error))),
+      );
     }
   }
 
@@ -144,7 +146,9 @@ class _ZeppOsAppSettingsPageState extends State<ZeppOsAppSettingsPage> {
           future: _items,
           builder: (context, snapshot) {
             if (snapshot.hasError) {
-              return Center(child: Text('${snapshot.error}'));
+              return Center(
+                child: Text(localizedErrorMessage(l10n, snapshot.error)),
+              );
             }
             if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());

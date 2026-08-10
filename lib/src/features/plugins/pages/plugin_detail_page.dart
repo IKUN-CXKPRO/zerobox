@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
@@ -126,9 +127,13 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            localizedErrorMessage(AppLocalizations.of(context)!, error),
+          ),
+        ),
+      );
     }
   }
 
@@ -187,7 +192,7 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
         ? Center(
             child: _error == null
                 ? const CircularProgressIndicator()
-                : Text(_error.toString()),
+                : Text(localizedErrorMessage(l10n, _error)),
           )
         : Column(
             children: [

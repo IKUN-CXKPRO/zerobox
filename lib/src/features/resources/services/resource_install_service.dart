@@ -58,6 +58,15 @@ class ResourceInstallService {
     onUpdate,
   }) async {
     onUpdate(ResourceTaskStatus.downloading, 0, null);
+    if (resource.downloadRestriction ==
+        CommunityResourceDownloadRestriction.astroBoxCreatorEncrypted) {
+      onUpdate(
+        ResourceTaskStatus.failed,
+        0,
+        'AstroBox Creator Console encrypted resources are not supported',
+      );
+      return null;
+    }
     try {
       final result = await catalog.download(
         CommunityDownloadRequest(
@@ -180,6 +189,7 @@ class ResourceInstallService {
     required Uint8List bytes,
     required DeviceManager deviceManager,
     required void Function(double progress) onProgress,
+    String? identifierOverride,
   }) async {
     await _analyzeAndInstall(
       typeHint: type,
@@ -187,6 +197,7 @@ class ResourceInstallService {
       fileName: fileName,
       bytes: bytes,
       deviceManager: deviceManager,
+      identifierOverride: identifierOverride,
       onProgress: onProgress,
     );
   }
@@ -250,6 +261,7 @@ class ResourceInstallService {
     required Uint8List bytes,
     required DeviceManager deviceManager,
     required void Function(double progress) onProgress,
+    String? identifierOverride,
   }) async {
     final analysis = _analyzer.analyze(
       fileName: fileName,
@@ -264,6 +276,7 @@ class ResourceInstallService {
       analysis: analysis,
       fileName: fileName,
       deviceManager: deviceManager,
+      identifierOverride: identifierOverride,
       onProgress: onProgress,
     );
   }

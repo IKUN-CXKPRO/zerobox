@@ -8,6 +8,7 @@ class SmoothLinearProgressIndicator extends StatelessWidget {
     this.minHeight,
     this.backgroundColor,
     this.color,
+    this.borderRadius,
   });
 
   final double? value;
@@ -15,6 +16,7 @@ class SmoothLinearProgressIndicator extends StatelessWidget {
   final double? minHeight;
   final Color? backgroundColor;
   final Color? color;
+  final BorderRadius? borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +26,7 @@ class SmoothLinearProgressIndicator extends StatelessWidget {
         minHeight: minHeight,
         backgroundColor: backgroundColor,
         color: color,
+        borderRadius: borderRadius,
       );
     }
 
@@ -37,6 +40,7 @@ class SmoothLinearProgressIndicator extends StatelessWidget {
           minHeight: minHeight,
           backgroundColor: backgroundColor,
           color: color,
+          borderRadius: borderRadius,
         );
       },
     );

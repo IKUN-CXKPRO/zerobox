@@ -169,6 +169,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorResourceSummary => 'Resource summary';
 
   @override
+  String get creatorPaidType => 'Payment type';
+
+  @override
   String get creatorSaveDraft => 'Save draft';
 
   @override
@@ -261,6 +264,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String creatorDeviceMoveBlocked(Object name) {
     return '\"$name\" has only this device bound and cannot be moved';
   }
+
+  @override
+  String get creatorSelectDevices => 'Select supported devices';
+
+  @override
+  String creatorSelectedDeviceCount(Object count) {
+    return '$count devices selected';
+  }
+
+  @override
+  String get creatorNoDevicesSelected => 'No devices selected';
+
+  @override
+  String get creatorDeviceSelectionDone => 'Done';
+
+  @override
+  String get creatorAtLeastOneDevice =>
+      'Each resource file must bind at least one device';
+
+  @override
+  String get resourceAstroBoxEncryptedTitle =>
+      'OronBox cannot process this AstroBox resource';
+
+  @override
+  String get resourceAstroBoxEncryptedMessage =>
+      'This resource uses AstroBox Creator Console\'s private encrypted upload. OronBox cannot decrypt, download, or install it. Please open it with AstroBox instead.';
+
+  @override
+  String get resourceAstroBoxEncryptedAction => 'Got it';
 
   @override
   String get filter => 'Filter';
@@ -443,8 +475,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'After OronBox review, this resource is published directly to the matching BandBBS categories. Deleting the OronBox resource also deletes the corresponding BandBBS resources.';
 
   @override
+  String get creatorBandBbsLimitsNotice =>
+      'One-click publishing to BandBBS has the following limitations, which must be fixed manually after publishing:\n1. BandBBS provides no API to upload the resource icon, so the icon will appear blank on BandBBS; please update it manually on the BandBBS site\n2. BandBBS provides no API for discussion-forum tags, so the resource\'s forum attributes will not be set, which may get the resource removed; please set the correct forum manually on the BandBBS site';
+
+  @override
   String get creatorAstroBoxTermsNotice =>
       'After OronBox review, a resource repository is created and a PR is submitted to the official AstroBox repository, reviewed independently by AstroBox maintainers. To delist after publication, contact the AstroBox-Repo maintainers.';
+
+  @override
+  String get creatorAstroBoxReviewNotice =>
+      'Resources published to AstroBox must meet the review requirements:\n1. The resource must not contain obscene, politically sensitive or otherwise illegal content\n2. The resource quality must not be too low, e.g. a watchface made by merely swapping a template, or an overly simple quickapp\n3. The cover should be attractive and aesthetically pleasing, with a 3:2 ratio (recommended 1200x800); icon recommended 192x192\n4. The resource must run its basic functions properly on supported devices\n5. Uploading others\' resources without authorization is forbidden\n6. When using well-known IP assets, the preview must include a copyright notice image (stating the assets are unrelated to AstroBox and Xiaomi)';
 
   @override
   String get failed => 'Failed / Needs action';
@@ -544,6 +584,44 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorRequestConflict =>
       'The content has changed. Refresh it and try again';
+
+  @override
+  String get errorCoinBalanceInsufficient => 'You do not have enough coins';
+
+  @override
+  String get errorCoinResourceLimit =>
+      'You can give at most 2 coins to this resource';
+
+  @override
+  String get errorCoinOwnResource => 'You cannot coin your own resource';
+
+  @override
+  String get errorCoinVotingFrozen => 'Coin voting is currently frozen';
+
+  @override
+  String get errorCoinAccountTooNew =>
+      'Your account must be at least 24 hours old to give coins';
+
+  @override
+  String get errorCoinOperationFailed =>
+      'The coin could not be sent. Try again';
+
+  @override
+  String get errorCoinStatusUnavailable =>
+      'Coin status is unavailable. Tap to retry';
+
+  @override
+  String get errorOperationFailed => 'The operation failed. Try again';
+
+  @override
+  String get errorUnknown => 'Something went wrong. Try again';
+
+  @override
+  String get errorDownloadQuotaExceeded =>
+      'Today\'s download limit has been reached';
+
+  @override
+  String get errorGitHubNotConfigured => 'GitHub publishing is not configured';
 
   @override
   String get errorRateLimited =>
@@ -2337,6 +2415,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resourceTypeUnknownTitle => 'Unrecognized resource type';
 
   @override
+  String get resourceTypeUnknownNoType =>
+      'OronBox cannot identify the resource type of this file';
+
+  @override
   String resourceTypeMismatchMessage(Object detectedType, Object selectedType) {
     return 'This appears to be a $detectedType resource, but you selected $selectedType. Choose how to install it';
   }
@@ -2546,24 +2628,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorLoginAction => 'Sign in to BandBBS';
 
   @override
-  String get creatorBandBbsWriteReady =>
-      'BandBBS publishing access is authorized';
+  String get creatorBandBbsWriteReady => 'BandBBS publishing authorized';
 
   @override
-  String get creatorBandBbsWriteMissing =>
-      'BandBBS write access is missing, so BandBBS publishing is unavailable';
+  String get creatorBandBbsWriteMissing => 'BandBBS publishing not authorized';
 
   @override
-  String creatorGitHubOwnPublishReady(Object login) {
-    return 'GitHub connected · $login';
-  }
+  String get creatorGitHubOwnPublishReady => 'GitHub connected';
 
   @override
-  String get creatorGitHubOwnPublishMissing =>
-      'GitHub is not connected, so AstroBox resources cannot be published under your account';
+  String get creatorGitHubOwnPublishMissing => 'GitHub not connected';
 
   @override
   String get creatorAuthorize => 'Authorize';
+
+  @override
+  String get installQueueFixWatchfaceId => 'Fix watchface ID';
+
+  @override
+  String get installQueueFixWatchfaceIdHint =>
+      'Enter a watchface ID and reinstall';
 
   @override
   String get authorize => 'Authorize';
@@ -2966,6 +3050,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resourceCoin => 'Coin';
 
   @override
+  String get resourceCoinNotSignedIn => 'Not signed in';
+
+  @override
   String get resourceCoinDialogTitle => 'Coin this resource';
 
   @override
@@ -2987,19 +3074,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resourceCoinSuccess => 'Coin sent';
 
   @override
+  String get resourceCoinVoted => 'Coined';
+
+  @override
   String get resourceFeatured => 'Featured';
 
   @override
   String get resourceCollection => 'Collection';
 
   @override
-  String resourceCollectionItems(int count) {
-    return '$count resources';
-  }
-
-  @override
-  String resourceCollectionCoins(int count) {
-    return '$count coins in total';
+  String resourceCollectionType(String type) {
+    return '$type Collection';
   }
 
   @override
@@ -3194,6 +3279,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateFailed => 'Update failed';
+
+  @override
+  String updateNoApkForAbi(String abi) {
+    return 'No APK is available for ABI $abi';
+  }
 
   @override
   String get cleanUpdateGroup => 'Updates';

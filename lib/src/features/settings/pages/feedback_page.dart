@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
@@ -241,7 +242,10 @@ class _TicketList extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(error.toString(), textAlign: TextAlign.center),
+            Text(
+              localizedErrorMessage(l10n, error),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 12),
             FilledButton.tonal(onPressed: onRetry, child: Text(l10n.retry)),
           ],
@@ -256,9 +260,8 @@ class _TicketList extends StatelessWidget {
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: tickets.length,
-        separatorBuilder: (_, _) => const SizedBox(
-          height: StyleConstants.cardSpace,
-        ),
+        separatorBuilder: (_, _) =>
+            const SizedBox(height: StyleConstants.cardSpace),
         itemBuilder: (context, index) {
           final ticket = tickets[index];
           return Card(
@@ -328,9 +331,13 @@ class _TicketDetailState extends ConsumerState<_TicketDetail> {
       widget.onUpdated(ticket);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              localizedErrorMessage(AppLocalizations.of(context)!, error),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -582,9 +589,13 @@ class _FeedbackComposerState extends ConsumerState<_FeedbackComposer> {
       if (mounted) Navigator.pop(context, ticket);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              localizedErrorMessage(AppLocalizations.of(context)!, error),
+            ),
+          ),
+        );
         setState(() => _sending = false);
       }
     }

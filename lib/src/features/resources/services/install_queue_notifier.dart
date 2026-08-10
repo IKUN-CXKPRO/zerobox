@@ -32,6 +32,7 @@ class InstallTask {
     required this.filePath,
     this.bytes,
     this.analysis,
+    this.identifier,
     this.resource,
     this.file,
     this.status = ResourceTaskStatus.pending,
@@ -50,6 +51,9 @@ class InstallTask {
   /// Analysis result resolved before this task entered the queue; reused for
   /// installation so the payload is only parsed once.
   final ResourcePayloadAnalysis? analysis;
+
+  /// Watchface identifier override for reinstalls (empty means default).
+  final String? identifier;
 
   final CommunityResourceDetail? resource;
   final CommunityResourceFile? file;
@@ -267,17 +271,71 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     return target.path;
   }
 
-  Future<void> _enqueue(OronBoxCommand command) async {
+  Future<void> _enqueue(OronBoxCommand command, {bool held = true}) async {
     final result = await ref
         .read(applicationHostProvider)
         .execute(
           OronBoxCommand(
             method: 'task.enqueue',
-            params: {'held': true, 'command': command.toJson()},
+            params: {'held': held, 'command': command.toJson()},
           ),
         );
-    if (!result.ok) throw StateError(result.error!.message);
+    if (!result.ok) {
+      throw StateError('${result.error!.code}: ${result.error!.message}');
+    }
     await _feed?.refresh();
+  }
+
+  /// Re-enqueue a failed watchface install with an explicit identifier,
+  /// letting users fix a wrong watchface id instead of re-picking the file.
+  void reinstallWatchface(String taskId, {required String identifier}) {
+    final task = state.tasks.where((item) => item.id == taskId).firstOrNull;
+    if (task == null) return;
+    if (kIsWeb) {
+      state = InstallQueueState(
+        tasks: [
+          for (final item in state.tasks)
+            if (item.id == taskId)
+              InstallTask(
+                id: item.id,
+                name: item.name,
+                description: item.description,
+                type: item.type,
+                installMode: item.installMode,
+                filePath: item.filePath,
+                bytes: item.bytes,
+                analysis: item.analysis,
+                identifier: identifier,
+                resource: item.resource,
+                file: item.file,
+              )
+            else
+              item,
+        ],
+        runStatus: state.runStatus,
+      );
+      start();
+      return;
+    }
+    unawaited(
+      _enqueue(
+        OronBoxCommand(
+          method: 'install.local',
+          params: {
+            'type': 'watchface',
+            'identifier': identifier,
+            'path': task.filePath,
+            'title': task.name,
+            'deleteAfter': true,
+            'autoClean': true,
+            if (task.resource != null)
+              'resource': communityResourceDetailToJson(task.resource!),
+            if (task.file != null) 'file': task.file!.id,
+          },
+        ),
+        held: false,
+      ),
+    );
   }
 
   void enqueueResource({
@@ -391,6 +449,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
                 filePath: task.filePath,
                 bytes: task.bytes,
                 analysis: task.analysis,
+                identifier: task.identifier,
                 resource: task.resource,
                 file: task.file,
               )
@@ -470,6 +529,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
                 filePath: item.filePath,
                 bytes: item.bytes,
                 analysis: item.analysis,
+                identifier: item.identifier,
                 resource: item.resource,
                 file: item.file,
                 status: status,
@@ -490,6 +550,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
           analysis: analysis,
           fileName: task.file!.fileName,
           deviceManager: manager,
+          identifierOverride: task.identifier,
           onProgress: (progress) =>
               update(ResourceTaskStatus.installing, progress, null),
         );
@@ -519,6 +580,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
               fileName: task.name,
               bytes: bytes,
               deviceManager: manager,
+              identifierOverride: task.identifier,
               onProgress: (progress) =>
                   update(ResourceTaskStatus.installing, progress, null),
             );
@@ -528,6 +590,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
               fileName: task.name,
               bytes: bytes,
               deviceManager: manager,
+              identifierOverride: task.identifier,
               onProgress: (progress) =>
                   update(ResourceTaskStatus.installing, progress, null),
             );

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/features/devices/services/zeppos_app_settings_service.dart';
 
@@ -94,9 +95,12 @@ class _ZeppOsSettingViewerPageState extends State<ZeppOsSettingViewerPage> {
             : Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  AppLocalizations.of(
-                    context,
-                  )!.zeppOsSettingPageLoadFailed('$_error'),
+                  AppLocalizations.of(context)!.zeppOsSettingPageLoadFailed(
+                    localizedErrorMessage(
+                      AppLocalizations.of(context)!,
+                      _error,
+                    ),
+                  ),
                 ),
               ),
       ),

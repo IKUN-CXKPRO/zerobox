@@ -301,19 +301,11 @@ class _PublishingAccessCard extends StatelessWidget {
               bandBbsReady
                   ? l10n.creatorBandBbsWriteReady
                   : l10n.creatorBandBbsWriteMissing,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            trailing: bandBbsReady
-                ? const Icon(Icons.check_circle_outline)
-                : FilledButton.tonal(
-                    onPressed: bandBbsBusy ? null : onAuthorizeBandBbs,
-                    child: bandBbsBusy
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(l10n.creatorAuthorize),
-                  ),
+            onTap: bandBbsReady || bandBbsBusy ? null : onAuthorizeBandBbs,
           ),
           ListTile(
             leading: const CreatorBrandLogo(
@@ -327,20 +319,14 @@ class _PublishingAccessCard extends StatelessWidget {
             subtitle: Text(
               githubLogin.isEmpty
                   ? l10n.creatorGitHubOwnPublishMissing
-                  : l10n.creatorGitHubOwnPublishReady(githubLogin),
+                  : l10n.creatorGitHubOwnPublishReady,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            trailing: githubLogin.isNotEmpty
-                ? const Icon(Icons.check_circle_outline)
-                : FilledButton.tonal(
-                    onPressed: githubBusy ? null : onConnectGitHub,
-                    child: githubBusy
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(l10n.creatorConnect),
-                  ),
+            onTap: githubLogin.isNotEmpty || githubBusy
+                ? null
+                : onConnectGitHub,
           ),
         ],
       ),

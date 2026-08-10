@@ -26,6 +26,20 @@ class MainFlutterWindow: NSWindow {
       parentWindow: self
     )
 
+    let fileChannel = FlutterMethodChannel(
+      name: "oronbox/file_open",
+      binaryMessenger: flutterViewController.engine.binaryMessenger
+    )
+    fileChannel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "getInitialFile":
+        result(AppDelegate.takePendingOpenPath())
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    AppDelegate.fileOpenChannel = fileChannel
+
     super.awakeFromNib()
     if noGui {
       orderOut(nil)

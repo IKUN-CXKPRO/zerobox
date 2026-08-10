@@ -892,7 +892,7 @@ class _WideResourceCard extends StatelessWidget {
             ref: ResourceRef(source: CommunitySourceId.oronBox, id: card.id),
             name: card.name,
             type: _homeCardKind(card.kind),
-            paidType: CommunityPaidType.free,
+            paidType: card.paidType,
             authors: [
               if (card.owner.isNotEmpty)
                 CommunityResourceAuthor(name: card.owner),
@@ -954,6 +954,13 @@ class _WideResourceCard extends StatelessWidget {
                     ),
                     color: colors.primary,
                   ),
+                  if (card.paidType != CommunityPaidType.free) ...[
+                    const SizedBox(width: 8),
+                    _ResourceLabel(
+                      label: _paidLabel(l10n, card.paidType),
+                      color: colors.tertiary,
+                    ),
+                  ],
                   if (card.owner.isNotEmpty) ...[
                     const SizedBox(width: 12),
                     Icon(
@@ -2474,21 +2481,25 @@ class _ResourceCard extends ConsumerWidget {
                     runSpacing: 4,
                     children: [
                       _ResourceLabel(
-                        label: _typeLabel(
-                          AppLocalizations.of(context)!,
-                          item.type,
-                          source: item.ref.source,
-                        ),
+                        label: item.isCollection
+                            ? AppLocalizations.of(
+                                context,
+                              )!.resourceCollectionType(
+                                _typeLabel(
+                                  AppLocalizations.of(context)!,
+                                  item.type,
+                                  source: item.ref.source,
+                                ),
+                              )
+                            : _typeLabel(
+                                AppLocalizations.of(context)!,
+                                item.type,
+                                source: item.ref.source,
+                              ),
                         color: color.primary,
                       ),
-                      if (item.isCollection)
-                        _ResourceLabel(
-                          label: AppLocalizations.of(
-                            context,
-                          )!.resourceCollection,
-                          color: color.tertiary,
-                        ),
-                      if (item.paidType != CommunityPaidType.free)
+                      if (!item.isCollection &&
+                          item.paidType != CommunityPaidType.free)
                         _ResourceLabel(
                           label: _paidLabel(
                             AppLocalizations.of(context)!,

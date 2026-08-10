@@ -51,6 +51,7 @@
   "creatorNewResource": "New resource",
   "creatorResourceName": "Resource name",
   "creatorResourceSummary": "Resource summary",
+  "creatorPaidType": "Payment type",
   "creatorSaveDraft": "Save draft",
   "creatorAddArtifact": "Add resource file",
   "creatorBindDevices": "Bind devices",
@@ -104,6 +105,14 @@
       "name": {}
     }
   },
+  "creatorSelectDevices": "Select supported devices",
+  "creatorSelectedDeviceCount": "{count} devices selected",
+  "creatorNoDevicesSelected": "No devices selected",
+  "creatorDeviceSelectionDone": "Done",
+  "creatorAtLeastOneDevice": "Each resource file must bind at least one device",
+  "resourceAstroBoxEncryptedTitle": "OronBox cannot process this AstroBox resource",
+  "resourceAstroBoxEncryptedMessage": "This resource uses AstroBox Creator Console's private encrypted upload. OronBox cannot decrypt, download, or install it. Please open it with AstroBox instead.",
+  "resourceAstroBoxEncryptedAction": "Got it",
   "filter": "Filter",
   "currentDevice": "Current device",
   "all": "All",
@@ -175,7 +184,9 @@
   "agree": "Agree",
   "creatorRulesAccept": "I have read and agree to the review rules above",
   "creatorBandBbsTermsNotice": "After OronBox review, this resource is published directly to the matching BandBBS categories. Deleting the OronBox resource also deletes the corresponding BandBBS resources.",
+  "creatorBandBbsLimitsNotice": "One-click publishing to BandBBS has the following limitations, which must be fixed manually after publishing:\n1. BandBBS provides no API to upload the resource icon, so the icon will appear blank on BandBBS; please update it manually on the BandBBS site\n2. BandBBS provides no API for discussion-forum tags, so the resource's forum attributes will not be set, which may get the resource removed; please set the correct forum manually on the BandBBS site",
   "creatorAstroBoxTermsNotice": "After OronBox review, a resource repository is created and a PR is submitted to the official AstroBox repository, reviewed independently by AstroBox maintainers. To delist after publication, contact the AstroBox-Repo maintainers.",
+  "creatorAstroBoxReviewNotice": "Resources published to AstroBox must meet the review requirements:\n1. The resource must not contain obscene, politically sensitive or otherwise illegal content\n2. The resource quality must not be too low, e.g. a watchface made by merely swapping a template, or an overly simple quickapp\n3. The cover should be attractive and aesthetically pleasing, with a 3:2 ratio (recommended 1200x800); icon recommended 192x192\n4. The resource must run its basic functions properly on supported devices\n5. Uploading others' resources without authorization is forbidden\n6. When using well-known IP assets, the preview must include a copyright notice image (stating the assets are unrelated to AstroBox and Xiaomi)",
   "failed": "Failed / Needs action",
   "basicInfo": "Basic info",
   "packageFiles": "Resource files",
@@ -204,6 +215,17 @@
   "errorPermissionDenied": "You do not have permission to perform this operation",
   "errorContentNotFound": "The requested content no longer exists or is unavailable",
   "errorRequestConflict": "The content has changed. Refresh it and try again",
+  "errorCoinBalanceInsufficient": "You do not have enough coins",
+  "errorCoinResourceLimit": "You can give at most 2 coins to this resource",
+  "errorCoinOwnResource": "You cannot coin your own resource",
+  "errorCoinVotingFrozen": "Coin voting is currently frozen",
+  "errorCoinAccountTooNew": "Your account must be at least 24 hours old to give coins",
+  "errorCoinOperationFailed": "The coin could not be sent. Try again",
+  "errorCoinStatusUnavailable": "Coin status is unavailable. Tap to retry",
+  "errorOperationFailed": "The operation failed. Try again",
+  "errorUnknown": "Something went wrong. Try again",
+  "errorDownloadQuotaExceeded": "Today's download limit has been reached",
+  "errorGitHubNotConfigured": "GitHub publishing is not configured",
   "errorRateLimited": "Too many requests. Wait a moment and try again",
   "errorFileTooLarge": "The selected file is too large",
   "errorInvalidRequest": "Some submitted information is invalid. Check it and try again",
@@ -1086,6 +1108,7 @@
   "devToolsOperationFailed": "Unable to change the DevTools state",
   "resourceTypeErrorTitle": "Incorrect resource type",
   "resourceTypeUnknownTitle": "Unrecognized resource type",
+  "resourceTypeUnknownNoType": "OronBox cannot identify the resource type of this file",
   "resourceTypeMismatchMessage": "This appears to be a {detectedType} resource, but you selected {selectedType}. Choose how to install it",
   "@resourceTypeMismatchMessage": {
     "placeholders": {
@@ -1232,16 +1255,13 @@
   "creatorLoginRequiredTitle": "Sign in to use Creator Center",
   "creatorLoginRequiredDescription": "Sign in to BandBBS and connect your OronBox account before creating, editing, or submitting resources",
   "creatorLoginAction": "Sign in to BandBBS",
-  "creatorBandBbsWriteReady": "BandBBS publishing access is authorized",
-  "creatorBandBbsWriteMissing": "BandBBS write access is missing, so BandBBS publishing is unavailable",
-  "creatorGitHubOwnPublishReady": "GitHub connected · {login}",
-  "@creatorGitHubOwnPublishReady": {
-    "placeholders": {
-      "login": {}
-    }
-  },
-  "creatorGitHubOwnPublishMissing": "GitHub is not connected, so AstroBox resources cannot be published under your account",
+  "creatorBandBbsWriteReady": "BandBBS publishing authorized",
+  "creatorBandBbsWriteMissing": "BandBBS publishing not authorized",
+  "creatorGitHubOwnPublishReady": "GitHub connected",
+  "creatorGitHubOwnPublishMissing": "GitHub not connected",
   "creatorAuthorize": "Authorize",
+  "installQueueFixWatchfaceId": "Fix watchface ID",
+  "installQueueFixWatchfaceIdHint": "Enter a watchface ID and reinstall",
   "authorize": "Authorize",
   "creatorBandBbsAuthorized": "BandBBS resource publishing is authorized",
   "creatorBandBbsAuthorizationRequired": "Authorize OronBox separately to publish BandBBS resources on your behalf",
@@ -1392,6 +1412,7 @@
     }
   },
   "resourceCoin": "Coin",
+  "resourceCoinNotSignedIn": "Not signed in",
   "resourceCoinDialogTitle": "Coin this resource",
   "resourceCoinDialogMessage": "Coin this resource?\n\nThis action cannot be undone\n\nCoins help the resource receive more exposure\n\nThe creator receives 10% of the contributed amount",
   "resourceCoinOne": "Give 1 coin",
@@ -1405,21 +1426,14 @@
     }
   },
   "resourceCoinSuccess": "Coin sent",
+  "resourceCoinVoted": "Coined",
   "resourceFeatured": "Featured",
   "resourceCollection": "Collection",
-  "resourceCollectionItems": "{count} resources",
-  "@resourceCollectionItems": {
+  "resourceCollectionType": "{type} Collection",
+  "@resourceCollectionType": {
     "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "resourceCollectionCoins": "{count} coins in total",
-  "@resourceCollectionCoins": {
-    "placeholders": {
-      "count": {
-        "type": "int"
+      "type": {
+        "type": "String"
       }
     }
   },
@@ -1518,6 +1532,14 @@
   "updateDownloading": "Downloading update",
   "updateInstalling": "Installing update",
   "updateFailed": "Update failed",
+  "updateNoApkForAbi": "No APK is available for ABI {abi}",
+  "@updateNoApkForAbi": {
+    "placeholders": {
+      "abi": {
+        "type": "String"
+      }
+    }
+  },
   "cleanUpdateGroup": "Updates",
   "cleanCheckUpdates": "Check for updates on launch",
   "updateLater": "Later",

@@ -163,6 +163,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorResourceSummary => '资源简介';
 
   @override
+  String get creatorPaidType => '付费类型';
+
+  @override
   String get creatorSaveDraft => '保存草稿';
 
   @override
@@ -250,6 +253,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String creatorDeviceMoveBlocked(Object name) {
     return '「$name」仅剩这一台绑定设备，无法移动';
   }
+
+  @override
+  String get creatorSelectDevices => '选择支持的设备';
+
+  @override
+  String creatorSelectedDeviceCount(Object count) {
+    return '已选择 $count 台设备';
+  }
+
+  @override
+  String get creatorNoDevicesSelected => '尚未选择设备';
+
+  @override
+  String get creatorDeviceSelectionDone => '完成';
+
+  @override
+  String get creatorAtLeastOneDevice => '每个资源文件至少要绑定一台设备';
+
+  @override
+  String get resourceAstroBoxEncryptedTitle => '此 AstroBox 资源无法由 OronBox 处理';
+
+  @override
+  String get resourceAstroBoxEncryptedMessage =>
+      '此资源使用 AstroBox Creator Console 的私有加密上传\nOronBox 无法解密、下载或安装它\n请改用 AstroBox 打开';
+
+  @override
+  String get resourceAstroBoxEncryptedAction => '知道了';
 
   @override
   String get filter => '筛选';
@@ -423,8 +453,16 @@ class AppLocalizationsZh extends AppLocalizations {
       'OronBox 审核通过后将以此资源信息直接发布到米坛对应分区\n删除 OronBox 资源会同步删除对应的米坛资源';
 
   @override
+  String get creatorBandBbsLimitsNotice =>
+      '一键发布米坛存在以下限制，发布后需手动处理：\n1. 米坛未提供资源 icon 上传接口，资源 icon 会显示为空白，需前往米坛社区手动修改\n2. 米坛未提供讨论区 tag 接口，资源的讨论区属性不会被设置，可能导致资源被删除，需前往米坛社区手动设置正确讨论区';
+
+  @override
   String get creatorAstroBoxTermsNotice =>
       'OronBox 审核通过后将创建资源分仓库并向 AstroBox 官方仓库提交 PR，由 AstroBox 维护者独立审核\n发布后如需下架，请联系 AstroBox-Repo 维护者';
+
+  @override
+  String get creatorAstroBoxReviewNotice =>
+      '发布到 AstroBox 的资源需满足以下要求：\n1. 资源本体不得包含色情低俗、政治敏感等不良内容或违反法律法规的内容\n2. 资源质量不得过低，例如仅模板换图制作的表盘、功能过于简陋的快应用\n3. 头图应美观且符合大众审美，比例 3:2（推荐 1200x800），图标推荐 192x192\n4. 资源在支持的设备上应能正常运行基本功能\n5. 禁止未经原作者授权盗传他人资源\n6. 使用知名 IP 素材时，preview 中必须包含版权声明图（声明素材与 AstroBox 及小米无关）';
 
   @override
   String get failed => '失败 / 需处理';
@@ -513,6 +551,39 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get errorRequestConflict => '内容状态已发生变化，请刷新后重试';
+
+  @override
+  String get errorCoinBalanceInsufficient => '硬币余额不足';
+
+  @override
+  String get errorCoinResourceLimit => '该资源最多投 2 颗币';
+
+  @override
+  String get errorCoinOwnResource => '不能给自己的资源投币';
+
+  @override
+  String get errorCoinVotingFrozen => '投币功能已被冻结';
+
+  @override
+  String get errorCoinAccountTooNew => '账号注册满 24 小时后才能投币';
+
+  @override
+  String get errorCoinOperationFailed => '投币失败，请重试';
+
+  @override
+  String get errorCoinStatusUnavailable => '无法获取投币状态，点击重试';
+
+  @override
+  String get errorOperationFailed => '操作失败，请重试';
+
+  @override
+  String get errorUnknown => '发生未知错误，请重试';
+
+  @override
+  String get errorDownloadQuotaExceeded => '已达到今日下载次数限制';
+
+  @override
+  String get errorGitHubNotConfigured => 'GitHub 发布尚未配置';
 
   @override
   String get errorRateLimited => '操作过于频繁，请稍后重试';
@@ -2231,6 +2302,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get resourceTypeUnknownTitle => '无法识别的资源类型';
 
   @override
+  String get resourceTypeUnknownNoType => 'OronBox 无法识别此文件的资源类型';
+
+  @override
   String resourceTypeMismatchMessage(Object detectedType, Object selectedType) {
     return '这似乎是一个$detectedType资源，但您选择的资源类型为$selectedType，请选择安装方式';
   }
@@ -2438,22 +2512,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorLoginAction => '登录米坛';
 
   @override
-  String get creatorBandBbsWriteReady => '已获得米坛资源发布权限';
+  String get creatorBandBbsWriteReady => '米坛发布已授权';
 
   @override
-  String get creatorBandBbsWriteMissing => '未获得米坛写入授权，无法发布到米坛';
+  String get creatorBandBbsWriteMissing => '未授权米坛发布';
 
   @override
-  String creatorGitHubOwnPublishReady(Object login) {
-    return '已连接 GitHub · $login';
-  }
+  String get creatorGitHubOwnPublishReady => '已连接 GitHub';
 
   @override
-  String get creatorGitHubOwnPublishMissing =>
-      '未连接 GitHub，无法以自己的账号发布 AstroBox 资源';
+  String get creatorGitHubOwnPublishMissing => '未连接 GitHub';
 
   @override
   String get creatorAuthorize => '授权';
+
+  @override
+  String get installQueueFixWatchfaceId => '修改表盘 ID';
+
+  @override
+  String get installQueueFixWatchfaceIdHint => '输入表盘 ID 后重新安装';
 
   @override
   String get authorize => '授权';
@@ -2838,6 +2915,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get resourceCoin => '投币';
 
   @override
+  String get resourceCoinNotSignedIn => '未登录';
+
+  @override
   String get resourceCoinDialogTitle => '投币资源';
 
   @override
@@ -2852,11 +2932,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String resourceCoinCount(int count) {
-    return '$count 枚硬币';
+    return '$count 次投币';
   }
 
   @override
   String get resourceCoinSuccess => '投币成功';
+
+  @override
+  String get resourceCoinVoted => '已投币';
 
   @override
   String get resourceFeatured => '精选';
@@ -2865,13 +2948,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get resourceCollection => '合集';
 
   @override
-  String resourceCollectionItems(int count) {
-    return '共 $count 个资源';
-  }
-
-  @override
-  String resourceCollectionCoins(int count) {
-    return '累计 $count 枚硬币';
+  String resourceCollectionType(String type) {
+    return '$type合集';
   }
 
   @override
@@ -3058,6 +3136,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get updateFailed => '更新失败';
+
+  @override
+  String updateNoApkForAbi(String abi) {
+    return '没有适用于 ABI $abi 的 APK';
+  }
 
   @override
   String get cleanUpdateGroup => '更新';

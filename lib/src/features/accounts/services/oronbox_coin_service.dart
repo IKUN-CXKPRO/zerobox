@@ -1,11 +1,23 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/errors/coded_error.dart';
+import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
 final oronBoxCoinServiceProvider = Provider<OronBoxCoinService>(
   (ref) => OronBoxCoinService(ref.watch(applicationHostProvider)),
 );
+
+/// Coins the signed-in user has already given to a resource (0, 1 or 2).
+/// Errors remain in the provider so the UI can distinguish an unknown status
+/// from a confirmed zero and prevent an unsafe duplicate action.
+final oronBoxMyCoinsProvider = FutureProvider.autoDispose.family<int, String>((
+  ref,
+  resourceId,
+) {
+  if (!ref.watch(bandBbsAuthProvider).isSignedIn) return 0;
+  return ref.watch(oronBoxCoinServiceProvider).myCoins(resourceId);
+});
 
 class CoinAccount {
   const CoinAccount({required this.balanceUnits, this.frozenReason = ''});
@@ -51,6 +63,15 @@ class OronBoxCoinService {
 
   Future<void> coin(String resourceId, int coins) async {
     await _execute('coins.resource', {'resource': resourceId, 'coins': coins});
+  }
+
+  /// How many coins the signed-in user has already given to [resourceId]
+  /// (0, 1 or 2). Requires an active OronBox session.
+  Future<int> myCoins(String resourceId) async {
+    final json = _map(
+      await _execute('coins.resource.status', {'resource': resourceId}),
+    );
+    return (json['my_coins'] as num?)?.toInt() ?? 0;
   }
 
   Future<Object?> _execute(

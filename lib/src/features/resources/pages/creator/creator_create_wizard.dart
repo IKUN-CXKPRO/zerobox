@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/network_img_layer.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
@@ -217,6 +218,7 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
 
   Future<void> _prepareImport() async {
     if (_selected.isEmpty || _preparing) return;
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _step = 2;
       _preparing = true;
@@ -241,7 +243,8 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
                 _ImportLogEntry(
                   _ImportLogLevel.warning,
                   'DETAIL FAILED · source=${ref.source.storageKey} · '
-                  'resource=${ref.id} · $error',
+                  'resource=${ref.id} · '
+                  '${localizedErrorMessage(l10n, error)}',
                 ),
               ),
             );
@@ -265,10 +268,15 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
         _stage = null;
         _result = CommunityImportResult(
           status: CommunityImportStatus.failed,
-          message: error.toString(),
+          message: 'import_failed',
           warnings: failures,
         );
-        _importLog.add(_ImportLogEntry(_ImportLogLevel.error, 'PLAN · $error'));
+        _importLog.add(
+          _ImportLogEntry(
+            _ImportLogLevel.error,
+            'PLAN · ${localizedErrorMessage(l10n, error)}',
+          ),
+        );
         _step = 4;
       });
     }
@@ -596,7 +604,7 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
                   child: Center(child: CircularProgressIndicator()),
                 )
               : _listError != null
-              ? Center(child: Text('$_listError'))
+              ? Center(child: Text(localizedErrorMessage(l10n, _listError)))
               : _items.isEmpty
               ? Padding(
                   padding: const EdgeInsets.symmetric(vertical: 48),
@@ -791,7 +799,7 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
             ? l10n.communityImportUnsupported
             : (result.message == 'noArtifacts'
                   ? l10n.communityImportNoArtifacts
-                  : (result.message ?? l10n.communityImportResultFailed)),
+                  : l10n.communityImportResultFailed),
       ),
     };
     return ListView(

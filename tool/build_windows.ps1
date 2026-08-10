@@ -30,6 +30,37 @@ function Get-PubspecVersion {
   }
 }
 
+function Find-WindowsBundle {
+  param(
+    [Parameter(Mandatory = $true)][string]$BuildRoot,
+    [Parameter(Mandatory = $true)][string]$AppName
+  )
+
+  if (!(Test-Path $BuildRoot)) {
+    return $null
+  }
+
+  $Executables = @(
+    Get-ChildItem -Path $BuildRoot -Filter "$AppName.exe" -File -Recurse -ErrorAction SilentlyContinue |
+      Where-Object { $_.Directory.Name -ieq "Release" } |
+      Sort-Object LastWriteTime -Descending
+  )
+  if ($Executables.Count -gt 0) {
+    return $Executables[0].Directory.FullName
+  }
+
+  $OtherExecutables = @(
+    Get-ChildItem -Path $BuildRoot -Filter "*.exe" -File -Recurse -ErrorAction SilentlyContinue |
+      Where-Object { $_.Directory.Name -ieq "Release" } |
+      Sort-Object FullName
+  )
+  if ($OtherExecutables.Count -gt 0) {
+    Write-Host "[ERROR] Windows Release bundle contains executables, but none is named $AppName.exe:"
+    $OtherExecutables | ForEach-Object { Write-Host "  $($_.FullName)" }
+  }
+  return $null
+}
+
 Require-Command "git"
 Require-Command "flutter"
 
@@ -106,12 +137,16 @@ New-Item -ItemType Directory -Force -Path $ReleaseDir | Out-Null
 
 Write-Host "[INFO] Building Windows release package for version $Version"
 flutter build windows --release --obfuscate --split-debug-info=symbols\windows --build-name=$Version --build-number=$($VersionInfo.BuildNumber) --dart-define=APP_VERSION=$Version --dart-define=GIT_COMMIT_HASH=$GitHash --dart-define=BUILD_USER=$BuildUser
-
-$BundleDir = Join-Path $ProjectRoot "build/windows/x64/runner/Release"
-$ExePath = Join-Path $BundleDir "$AppName.exe"
-if (!(Test-Path $ExePath)) {
-  throw "Windows build output not found: $BundleDir"
+if ($LASTEXITCODE -ne 0) {
+  throw "Flutter Windows build failed with exit code $LASTEXITCODE"
 }
+
+$WindowsBuildRoot = Join-Path $ProjectRoot "build/windows"
+$BundleDir = Find-WindowsBundle -BuildRoot $WindowsBuildRoot -AppName $AppName
+if ([string]::IsNullOrWhiteSpace($BundleDir)) {
+  throw "Windows build output not found under $WindowsBuildRoot. Expected $AppName.exe in a Release bundle."
+}
+Write-Host "[INFO] Using Windows bundle: $BundleDir"
 
 $Output = Join-Path $ReleaseDir "$AppName-$Version-windows-amd64.zip"
 if (Test-Path $Output) {
@@ -147,7 +182,7 @@ if (!$SkipInstaller) {
     throw "Inno Setup 6 (ISCC.exe) not found. Install it (choco install innosetup) or pass -SkipInstaller."
   }
   $IssFile = Join-Path $ScriptDir "windows/oronbox.iss"
-  & $Iscc $IssFile "/DMyAppVersion=$Version"
+  & $Iscc $IssFile "/DMyAppVersion=$Version" "/DBundleDir=$BundleDir"
   if ($LASTEXITCODE -ne 0) {
     throw "Inno Setup compilation failed with exit code $LASTEXITCODE"
   }

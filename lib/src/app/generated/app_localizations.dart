@@ -404,6 +404,12 @@ abstract class AppLocalizations {
   /// **'Resource summary'**
   String get creatorResourceSummary;
 
+  /// No description provided for @creatorPaidType.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment type'**
+  String get creatorPaidType;
+
   /// No description provided for @creatorSaveDraft.
   ///
   /// In en, this message translates to:
@@ -559,6 +565,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'\"{name}\" has only this device bound and cannot be moved'**
   String creatorDeviceMoveBlocked(Object name);
+
+  /// No description provided for @creatorSelectDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Select supported devices'**
+  String get creatorSelectDevices;
+
+  /// No description provided for @creatorSelectedDeviceCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} devices selected'**
+  String creatorSelectedDeviceCount(Object count);
+
+  /// No description provided for @creatorNoDevicesSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No devices selected'**
+  String get creatorNoDevicesSelected;
+
+  /// No description provided for @creatorDeviceSelectionDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get creatorDeviceSelectionDone;
+
+  /// No description provided for @creatorAtLeastOneDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Each resource file must bind at least one device'**
+  String get creatorAtLeastOneDevice;
+
+  /// No description provided for @resourceAstroBoxEncryptedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'OronBox cannot process this AstroBox resource'**
+  String get resourceAstroBoxEncryptedTitle;
+
+  /// No description provided for @resourceAstroBoxEncryptedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This resource uses AstroBox Creator Console\'s private encrypted upload. OronBox cannot decrypt, download, or install it. Please open it with AstroBox instead.'**
+  String get resourceAstroBoxEncryptedMessage;
+
+  /// No description provided for @resourceAstroBoxEncryptedAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get resourceAstroBoxEncryptedAction;
 
   /// No description provided for @filter.
   ///
@@ -884,11 +938,23 @@ abstract class AppLocalizations {
   /// **'After OronBox review, this resource is published directly to the matching BandBBS categories. Deleting the OronBox resource also deletes the corresponding BandBBS resources.'**
   String get creatorBandBbsTermsNotice;
 
+  /// No description provided for @creatorBandBbsLimitsNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'One-click publishing to BandBBS has the following limitations, which must be fixed manually after publishing:\n1. BandBBS provides no API to upload the resource icon, so the icon will appear blank on BandBBS; please update it manually on the BandBBS site\n2. BandBBS provides no API for discussion-forum tags, so the resource\'s forum attributes will not be set, which may get the resource removed; please set the correct forum manually on the BandBBS site'**
+  String get creatorBandBbsLimitsNotice;
+
   /// No description provided for @creatorAstroBoxTermsNotice.
   ///
   /// In en, this message translates to:
   /// **'After OronBox review, a resource repository is created and a PR is submitted to the official AstroBox repository, reviewed independently by AstroBox maintainers. To delist after publication, contact the AstroBox-Repo maintainers.'**
   String get creatorAstroBoxTermsNotice;
+
+  /// No description provided for @creatorAstroBoxReviewNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Resources published to AstroBox must meet the review requirements:\n1. The resource must not contain obscene, politically sensitive or otherwise illegal content\n2. The resource quality must not be too low, e.g. a watchface made by merely swapping a template, or an overly simple quickapp\n3. The cover should be attractive and aesthetically pleasing, with a 3:2 ratio (recommended 1200x800); icon recommended 192x192\n4. The resource must run its basic functions properly on supported devices\n5. Uploading others\' resources without authorization is forbidden\n6. When using well-known IP assets, the preview must include a copyright notice image (stating the assets are unrelated to AstroBox and Xiaomi)'**
+  String get creatorAstroBoxReviewNotice;
 
   /// No description provided for @failed.
   ///
@@ -1057,6 +1123,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The content has changed. Refresh it and try again'**
   String get errorRequestConflict;
+
+  /// No description provided for @errorCoinBalanceInsufficient.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have enough coins'**
+  String get errorCoinBalanceInsufficient;
+
+  /// No description provided for @errorCoinResourceLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You can give at most 2 coins to this resource'**
+  String get errorCoinResourceLimit;
+
+  /// No description provided for @errorCoinOwnResource.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot coin your own resource'**
+  String get errorCoinOwnResource;
+
+  /// No description provided for @errorCoinVotingFrozen.
+  ///
+  /// In en, this message translates to:
+  /// **'Coin voting is currently frozen'**
+  String get errorCoinVotingFrozen;
+
+  /// No description provided for @errorCoinAccountTooNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account must be at least 24 hours old to give coins'**
+  String get errorCoinAccountTooNew;
+
+  /// No description provided for @errorCoinOperationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The coin could not be sent. Try again'**
+  String get errorCoinOperationFailed;
+
+  /// No description provided for @errorCoinStatusUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Coin status is unavailable. Tap to retry'**
+  String get errorCoinStatusUnavailable;
+
+  /// No description provided for @errorOperationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The operation failed. Try again'**
+  String get errorOperationFailed;
+
+  /// No description provided for @errorUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Try again'**
+  String get errorUnknown;
+
+  /// No description provided for @errorDownloadQuotaExceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s download limit has been reached'**
+  String get errorDownloadQuotaExceeded;
+
+  /// No description provided for @errorGitHubNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub publishing is not configured'**
+  String get errorGitHubNotConfigured;
 
   /// No description provided for @errorRateLimited.
   ///
@@ -4232,6 +4364,12 @@ abstract class AppLocalizations {
   /// **'Unrecognized resource type'**
   String get resourceTypeUnknownTitle;
 
+  /// No description provided for @resourceTypeUnknownNoType.
+  ///
+  /// In en, this message translates to:
+  /// **'OronBox cannot identify the resource type of this file'**
+  String get resourceTypeUnknownNoType;
+
   /// No description provided for @resourceTypeMismatchMessage.
   ///
   /// In en, this message translates to:
@@ -4582,25 +4720,25 @@ abstract class AppLocalizations {
   /// No description provided for @creatorBandBbsWriteReady.
   ///
   /// In en, this message translates to:
-  /// **'BandBBS publishing access is authorized'**
+  /// **'BandBBS publishing authorized'**
   String get creatorBandBbsWriteReady;
 
   /// No description provided for @creatorBandBbsWriteMissing.
   ///
   /// In en, this message translates to:
-  /// **'BandBBS write access is missing, so BandBBS publishing is unavailable'**
+  /// **'BandBBS publishing not authorized'**
   String get creatorBandBbsWriteMissing;
 
   /// No description provided for @creatorGitHubOwnPublishReady.
   ///
   /// In en, this message translates to:
-  /// **'GitHub connected · {login}'**
-  String creatorGitHubOwnPublishReady(Object login);
+  /// **'GitHub connected'**
+  String get creatorGitHubOwnPublishReady;
 
   /// No description provided for @creatorGitHubOwnPublishMissing.
   ///
   /// In en, this message translates to:
-  /// **'GitHub is not connected, so AstroBox resources cannot be published under your account'**
+  /// **'GitHub not connected'**
   String get creatorGitHubOwnPublishMissing;
 
   /// No description provided for @creatorAuthorize.
@@ -4608,6 +4746,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Authorize'**
   String get creatorAuthorize;
+
+  /// No description provided for @installQueueFixWatchfaceId.
+  ///
+  /// In en, this message translates to:
+  /// **'Fix watchface ID'**
+  String get installQueueFixWatchfaceId;
+
+  /// No description provided for @installQueueFixWatchfaceIdHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a watchface ID and reinstall'**
+  String get installQueueFixWatchfaceIdHint;
 
   /// No description provided for @authorize.
   ///
@@ -5353,6 +5503,12 @@ abstract class AppLocalizations {
   /// **'Coin'**
   String get resourceCoin;
 
+  /// No description provided for @resourceCoinNotSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Not signed in'**
+  String get resourceCoinNotSignedIn;
+
   /// No description provided for @resourceCoinDialogTitle.
   ///
   /// In en, this message translates to:
@@ -5389,6 +5545,12 @@ abstract class AppLocalizations {
   /// **'Coin sent'**
   String get resourceCoinSuccess;
 
+  /// No description provided for @resourceCoinVoted.
+  ///
+  /// In en, this message translates to:
+  /// **'Coined'**
+  String get resourceCoinVoted;
+
   /// No description provided for @resourceFeatured.
   ///
   /// In en, this message translates to:
@@ -5401,17 +5563,11 @@ abstract class AppLocalizations {
   /// **'Collection'**
   String get resourceCollection;
 
-  /// No description provided for @resourceCollectionItems.
+  /// No description provided for @resourceCollectionType.
   ///
   /// In en, this message translates to:
-  /// **'{count} resources'**
-  String resourceCollectionItems(int count);
-
-  /// No description provided for @resourceCollectionCoins.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} coins in total'**
-  String resourceCollectionCoins(int count);
+  /// **'{type} Collection'**
+  String resourceCollectionType(String type);
 
   /// No description provided for @creatorCollections.
   ///
@@ -5754,6 +5910,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Update failed'**
   String get updateFailed;
+
+  /// No description provided for @updateNoApkForAbi.
+  ///
+  /// In en, this message translates to:
+  /// **'No APK is available for ABI {abi}'**
+  String updateNoApkForAbi(String abi);
 
   /// No description provided for @cleanUpdateGroup.
   ///

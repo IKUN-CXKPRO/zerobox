@@ -7,6 +7,7 @@ import 'package:oronbox/src/app/widgets/network_img_layer.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/features/resources/application/oronbox_resource_attributes.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/widgets/resource_media_hero.dart';
@@ -28,6 +29,12 @@ class BandBbsResourceCard extends ConsumerWidget {
     final detail = item.ref.source == CommunitySourceId.huamiAppStore
         ? ref.watch(communityResourceDetailProvider(item.ref)).value
         : null;
+    final attributeLabels = {
+      for (final attribute
+          in ref.watch(oronBoxResourceAttributesProvider).value ??
+              const <OronBoxResourceAttribute>[])
+        attribute.id: attribute.labelFor(Localizations.localeOf(context)),
+    };
     final authorName = detail?.authorName.isNotEmpty == true
         ? detail!.authorName
         : item.authorName;
@@ -36,8 +43,9 @@ class BandBbsResourceCard extends ConsumerWidget {
       clipBehavior: Clip.antiAlias,
       color: color.surfaceContainerHighest.withValues(alpha: .5),
       child: InkWell(
-        onTap: () =>
-            context.push('/resources/detail/${item.ref.id}', extra: item),
+        onTap: () => item.isCollection
+            ? context.push('/resources/collection/${item.ref.id}', extra: item)
+            : context.push('/resources/detail/${item.ref.id}', extra: item),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -128,12 +136,22 @@ class BandBbsResourceCard extends ConsumerWidget {
                 runSpacing: 4,
                 children: [
                   _StatChip(
-                    label: _typeLabel(l10n, item.type, source: item.ref.source),
+                    label: item.isCollection
+                        ? l10n.resourceCollectionType(
+                            _typeLabel(
+                              l10n,
+                              item.type,
+                              source: item.ref.source,
+                            ),
+                          )
+                        : _typeLabel(l10n, item.type, source: item.ref.source),
                     color: _typeColor(color, item.type),
                   ),
                   if (item.tags.firstOrNull != null)
                     _StatChip(
-                      label: item.tags.first,
+                      label: item.ref.source == CommunitySourceId.oronBox
+                          ? attributeLabels[item.tags.first] ?? item.tags.first
+                          : item.tags.first,
                       color: color.onSurfaceVariant,
                     ),
                   if (item.priceLabel != null)
@@ -147,6 +165,13 @@ class BandBbsResourceCard extends ConsumerWidget {
                     _StatChip(
                       icon: Icons.download,
                       label: '${item.downloadCount}',
+                      color: color.onSurfaceVariant,
+                    ),
+                  if (item.ref.source == CommunitySourceId.oronBox &&
+                      item.coinCount > 0)
+                    _StatChip(
+                      icon: Icons.toll_outlined,
+                      label: '${item.coinCount}',
                       color: color.onSurfaceVariant,
                     ),
                   if (item.version != null && item.version!.isNotEmpty)

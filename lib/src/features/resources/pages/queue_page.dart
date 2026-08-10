@@ -32,16 +32,14 @@ class QueuePage extends ConsumerWidget {
           final downloadList = const _DownloadQueuePanel();
           final installList = const _InstallQueuePanel();
 
-          return ProgressIndicatorTheme(
-            data: const ProgressIndicatorThemeData(year2023: false),
-            child: PageContainer(
-              padding: const EdgeInsets.fromLTRB(
-                StyleConstants.pagePadding,
-                8,
-                StyleConstants.pagePadding,
-                8,
-              ),
-              child: isWide
+          return PageContainer(
+            padding: const EdgeInsets.fromLTRB(
+              StyleConstants.pagePadding,
+              8,
+              StyleConstants.pagePadding,
+              8,
+            ),
+            child: isWide
                   ? Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -66,7 +64,6 @@ class QueuePage extends ConsumerWidget {
                         Expanded(child: installList),
                       ],
                     ),
-            ),
           );
         },
       ),
@@ -210,9 +207,54 @@ class _InstallQueuePanel extends ConsumerWidget {
             error: task.error,
             onRemove: () => notifier.remove(task.id),
             onRetry: () => notifier.retry(task.id),
+            onFixWatchfaceId:
+                task.type == LocalDeviceInstallType.watchface &&
+                    task.status == ResourceTaskStatus.failed
+                ? () => _promptWatchfaceId(context, ref, task)
+                : null,
           ),
       ],
     );
+  }
+
+  Future<void> _promptWatchfaceId(
+    BuildContext context,
+    WidgetRef ref,
+    InstallTask task,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final controller = TextEditingController(
+      text: task.analysis?.identifier ?? '',
+    );
+    final identifier = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.installQueueFixWatchfaceId),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: l10n.installQueueFixWatchfaceIdHint,
+          ),
+          onSubmitted: (value) => Navigator.of(context).pop(value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    if (identifier != null && identifier.isNotEmpty) {
+      ref
+          .read(installQueueProvider.notifier)
+          .reinstallWatchface(task.id, identifier: identifier);
+    }
   }
 }
 
@@ -275,6 +317,7 @@ class _QueueTile extends StatelessWidget {
     this.error,
     required this.onRemove,
     this.onRetry,
+    this.onFixWatchfaceId,
   });
 
   final IconData icon;
@@ -286,6 +329,9 @@ class _QueueTile extends StatelessWidget {
   final String? error;
   final VoidCallback onRemove;
   final VoidCallback? onRetry;
+
+  /// Offered on failed watchface installs to reinstall with a custom id.
+  final VoidCallback? onFixWatchfaceId;
 
   @override
   Widget build(BuildContext context) {
@@ -342,7 +388,21 @@ class _QueueTile extends StatelessWidget {
           ],
         ),
         trailing: status == ResourceTaskStatus.failed && onRetry != null
-            ? IconButton(icon: const Icon(Icons.refresh), onPressed: onRetry)
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (onFixWatchfaceId != null)
+                    IconButton(
+                      icon: const Icon(Icons.tag),
+                      tooltip: l10n.installQueueFixWatchfaceId,
+                      onPressed: onFixWatchfaceId,
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: onRetry,
+                  ),
+                ],
+              )
             : IconButton(icon: const Icon(Icons.close), onPressed: onRemove),
       ),
     );

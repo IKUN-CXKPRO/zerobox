@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
@@ -102,10 +103,11 @@ class _ZeppOsAppSideDebugPageState
       });
     } catch (error) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       setState(
-        () => _refreshError = AppLocalizations.of(
-          context,
-        )!.zeppOsDebugRefreshFailed('$error'),
+        () => _refreshError = l10n.zeppOsDebugRefreshFailed(
+          localizedErrorMessage(l10n, error),
+        ),
       );
       if (showError) _show(error);
     } finally {
@@ -256,9 +258,13 @@ class _ZeppOsAppSideDebugPageState
 
   void _show(Object error) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(error.toString())));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          localizedErrorMessage(AppLocalizations.of(context)!, error),
+        ),
+      ),
+    );
   }
 
   @override

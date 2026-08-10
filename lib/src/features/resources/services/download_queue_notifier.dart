@@ -179,7 +179,9 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
             },
           ),
         );
-    if (!result.ok) throw StateError(result.error!.message);
+    if (!result.ok) {
+      throw StateError('${result.error!.code}: ${result.error!.message}');
+    }
     final download = (result.value as Map).cast<String, Object?>();
     return ResourceTask(
       id: task.id,
@@ -249,7 +251,9 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
             },
           ),
         );
-    if (!result.ok) throw StateError(result.error!.message);
+    if (!result.ok) {
+      throw StateError('${result.error!.code}: ${result.error!.message}');
+    }
   }
 
   void _update(

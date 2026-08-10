@@ -129,7 +129,9 @@ class _DebugRuntimeInspectorState extends State<DebugRuntimeInspector> {
     final result = await widget.host.execute(
       const OronBoxCommand(method: 'debug.runtime'),
     );
-    if (!result.ok) throw StateError(result.error!.message);
+    if (!result.ok) {
+      throw StateError('${result.error!.code}: ${result.error!.message}');
+    }
     return (result.value as Map).cast<String, Object?>();
   }
 
@@ -139,7 +141,9 @@ class _DebugRuntimeInspectorState extends State<DebugRuntimeInspector> {
     final result = await widget.host.execute(
       OronBoxCommand(method: 'debug.plugin.snapshot', params: {'id': id}),
     );
-    if (!result.ok) throw StateError(result.error!.message);
+    if (!result.ok) {
+      throw StateError('${result.error!.code}: ${result.error!.message}');
+    }
     return (result.value as Map).cast<String, Object?>();
   }
 

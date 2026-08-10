@@ -28,7 +28,7 @@ Map<String, Object?> communityResourceToJson(CommunityResource resource) => {
   'ref': resource.ref.key,
   'name': resource.name,
   'type': resource.type.name,
-  'paidType': resource.paidType.name,
+  'paidType': communityPaidTypeToWire(resource.paidType),
   'authors': resource.authors
       .map(
         (author) => {
@@ -50,6 +50,14 @@ Map<String, Object?> communityResourceToJson(CommunityResource resource) => {
   if (resource.downloadCount != null) 'downloadCount': resource.downloadCount,
   if (resource.version != null) 'version': resource.version,
   if (resource.priceLabel != null) 'priceLabel': resource.priceLabel,
+  if (resource.coinCount > 0) 'coinCount': resource.coinCount,
+  if (resource.curationGrade != 'standard')
+    'curationGrade': resource.curationGrade,
+  if (resource.collectionId != null) 'collectionId': resource.collectionId,
+  if (resource.collectionName != null)
+    'collectionName': resource.collectionName,
+  if (resource.isCollection) 'isCollection': true,
+  if (resource.resourceCount > 0) 'resourceCount': resource.resourceCount,
   if (resource.sourceSectionId != null)
     'sourceSectionId': resource.sourceSectionId,
   if (resource.sourceRepoOwner != null)
@@ -89,6 +97,10 @@ Map<String, Object?> communityResourceDetailToJson(
       .map((link) => {'title': link.title, 'url': link.url.toString()})
       .toList(growable: false),
   'canDownload': detail.canDownload,
+  if (detail.downloadRestriction != CommunityResourceDownloadRestriction.none)
+    'downloadRestriction': communityResourceDownloadRestrictionToWire(
+      detail.downloadRestriction,
+    ),
 };
 
 CommunityResource communityResourceFromJson(Map<String, Object?> json) {
@@ -109,6 +121,12 @@ CommunityResource communityResourceFromJson(Map<String, Object?> json) {
     downloadCount: common.downloadCount,
     version: common.version,
     priceLabel: common.priceLabel,
+    coinCount: common.coinCount,
+    curationGrade: common.curationGrade,
+    collectionId: common.collectionId,
+    collectionName: common.collectionName,
+    isCollection: common.isCollection,
+    resourceCount: common.resourceCount,
     sourceSectionId: common.sourceSectionId,
     sourceRepoOwner: common.sourceRepoOwner,
     sourceRepoName: common.sourceRepoName,
@@ -137,6 +155,12 @@ CommunityResourceDetail communityResourceDetailFromJson(
     downloadCount: common.downloadCount,
     version: common.version,
     priceLabel: common.priceLabel,
+    coinCount: common.coinCount,
+    curationGrade: common.curationGrade,
+    collectionId: common.collectionId,
+    collectionName: common.collectionName,
+    isCollection: common.isCollection,
+    resourceCount: common.resourceCount,
     sourceSectionId: common.sourceSectionId,
     sourceRepoOwner: common.sourceRepoOwner,
     sourceRepoName: common.sourceRepoName,
@@ -167,6 +191,9 @@ CommunityResourceDetail communityResourceDetailFromJson(
       );
     }).toList(),
     canDownload: json['canDownload'] != false,
+    downloadRestriction: communityResourceDownloadRestrictionFromWire(
+      json['downloadRestriction'],
+    ),
   );
 }
 
@@ -197,6 +224,12 @@ class _CommonResourceFields {
     this.downloadCount,
     this.version,
     this.priceLabel,
+    this.coinCount = 0,
+    this.curationGrade = 'standard',
+    this.collectionId,
+    this.collectionName,
+    this.isCollection = false,
+    this.resourceCount = 0,
     this.sourceSectionId,
     this.sourceRepoOwner,
     this.sourceRepoName,
@@ -218,6 +251,12 @@ class _CommonResourceFields {
   final int? downloadCount;
   final String? version;
   final String? priceLabel;
+  final int coinCount;
+  final String curationGrade;
+  final String? collectionId;
+  final String? collectionName;
+  final bool isCollection;
+  final int resourceCount;
   final String? sourceSectionId;
   final String? sourceRepoOwner;
   final String? sourceRepoName;
@@ -229,7 +268,7 @@ _CommonResourceFields _common(Map<String, Object?> json) =>
       ref: resourceRefFromKey(json['ref']!.toString()),
       name: json['name']?.toString() ?? '',
       type: _enum(CommunityResourceType.values, json['type']),
-      paidType: _enum(CommunityPaidType.values, json['paidType']),
+      paidType: communityPaidTypeFromWire(json['paidType']),
       authors: _list(json['authors']).map((row) {
         final author = row is Map ? _map(row) : {'name': row};
         return CommunityResourceAuthor(
@@ -248,6 +287,12 @@ _CommonResourceFields _common(Map<String, Object?> json) =>
       downloadCount: (json['downloadCount'] as num?)?.toInt(),
       version: json['version']?.toString(),
       priceLabel: json['priceLabel']?.toString(),
+      coinCount: (json['coinCount'] as num?)?.toInt() ?? 0,
+      curationGrade: json['curationGrade']?.toString() ?? 'standard',
+      collectionId: json['collectionId']?.toString(),
+      collectionName: json['collectionName']?.toString(),
+      isCollection: json['isCollection'] == true,
+      resourceCount: (json['resourceCount'] as num?)?.toInt() ?? 0,
       sourceSectionId: json['sourceSectionId']?.toString(),
       sourceRepoOwner: json['sourceRepoOwner']?.toString(),
       sourceRepoName: json['sourceRepoName']?.toString(),

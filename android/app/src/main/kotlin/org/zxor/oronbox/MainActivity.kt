@@ -71,6 +71,8 @@ class MainActivity : FlutterActivity() {
     private var zeppSettingsAppId: Long? = null
     private var zeppSettingsChannel: MethodChannel? = null
     private var xmsWearableChannel: MethodChannel? = null
+    private var fileOpenChannel: MethodChannel? = null
+    private var pendingOpenFilePath: String? = null
 
     private fun startBackgroundService(label: String, mode: String) {
         val intent = Intent(this, BackgroundTaskService::class.java).apply {
@@ -92,6 +94,21 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        fileOpenChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "oronbox/file_open",
+        ).also { channel ->
+            channel.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getInitialFile" -> result.success(pendingOpenFilePath)
+                    else -> result.notImplemented()
+                }
+            }
+            resolveOpenIntent(intent)?.let { path ->
+                pendingOpenFilePath = path
+                channel.invokeMethod("openFile", path)
+            }
+        }
         xmsWearableChannel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             "oronbox/xms_wearable",
@@ -363,6 +380,34 @@ class MainActivity : FlutterActivity() {
         }
 
         requestBluetoothPermissionsIfNeeded()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val path = resolveOpenIntent(intent) ?: return
+        pendingOpenFilePath = path
+        // Warm start: the Dart handler is already listening; push directly.
+        fileOpenChannel?.invokeMethod("openFile", path)
+    }
+
+    /** Copies an "open with" content/file URI into the cache and returns the
+     *  local path, or null when the intent carries no openable file. */
+    private fun resolveOpenIntent(intent: Intent?): String? {
+        val uri = intent?.data ?: return null
+        val scheme = uri.scheme
+        if (scheme != "content" && scheme != "file") return null
+        return try {
+            val name = uri.lastPathSegment?.takeIf { it.isNotBlank() } ?: "opened-file"
+            val dir = java.io.File(cacheDir, "file_open").apply { mkdirs() }
+            val target = java.io.File(dir, name)
+            contentResolver.openInputStream(uri)?.use { input ->
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
+            target.absolutePath
+        } catch (_: Exception) {
+            null
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")

@@ -5,6 +5,26 @@ import WebKit
 
 @main
 class AppDelegate: FlutterAppDelegate {
+  /// Bridge to the "open with" file channel registered in MainFlutterWindow.
+  /// Cold-start files land in [pendingOpenPaths] and are pulled by Dart via
+  /// getInitialFile once the channel handler is up; warm-start files are
+  /// pushed straight away through [fileOpenChannel].
+  static var fileOpenChannel: FlutterMethodChannel?
+  private static var pendingOpenPaths: [String] = []
+
+  static func takePendingOpenPath() -> String? {
+    guard !pendingOpenPaths.isEmpty else { return nil }
+    return pendingOpenPaths.removeFirst()
+  }
+
+  private static func pushOrQueue(_ path: String) {
+    if let channel = fileOpenChannel {
+      channel.invokeMethod("openFile", arguments: path)
+    } else {
+      pendingOpenPaths.append(path)
+    }
+  }
+
   override func applicationDidFinishLaunching(_ notification: Notification) {
     if ProcessInfo.processInfo.arguments.contains("--nogui") {
       NSApp.setActivationPolicy(.prohibited)
@@ -19,6 +39,19 @@ class AppDelegate: FlutterAppDelegate {
 
   override func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
     return true
+  }
+
+  // MARK: - "Open with OronBox" file handling
+
+  override func application(_ sender: NSApplication, openFile filename: String) -> Bool {
+    Self.pushOrQueue(filename)
+    return true
+  }
+
+  override func application(_ sender: NSApplication, openFiles filenames: [String]) {
+    for filename in filenames {
+      Self.pushOrQueue(filename)
+    }
   }
 }
 

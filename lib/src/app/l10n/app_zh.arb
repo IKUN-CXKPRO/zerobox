@@ -51,6 +51,7 @@
   "creatorNewResource": "新建资源",
   "creatorResourceName": "资源名称",
   "creatorResourceSummary": "资源简介",
+  "creatorPaidType": "付费类型",
   "creatorSaveDraft": "保存草稿",
   "creatorAddArtifact": "添加资源文件",
   "creatorBindDevices": "绑定设备",
@@ -104,6 +105,14 @@
       "name": {}
     }
   },
+  "creatorSelectDevices": "选择支持的设备",
+  "creatorSelectedDeviceCount": "已选择 {count} 台设备",
+  "creatorNoDevicesSelected": "尚未选择设备",
+  "creatorDeviceSelectionDone": "完成",
+  "creatorAtLeastOneDevice": "每个资源文件至少要绑定一台设备",
+  "resourceAstroBoxEncryptedTitle": "此 AstroBox 资源无法由 OronBox 处理",
+  "resourceAstroBoxEncryptedMessage": "此资源使用 AstroBox Creator Console 的私有加密上传\nOronBox 无法解密、下载或安装它\n请改用 AstroBox 打开",
+  "resourceAstroBoxEncryptedAction": "知道了",
   "filter": "筛选",
   "currentDevice": "当前设备",
   "all": "全部",
@@ -175,7 +184,9 @@
   "agree": "同意",
   "creatorRulesAccept": "我已阅读并同意上述审核标准",
   "creatorBandBbsTermsNotice": "OronBox 审核通过后将以此资源信息直接发布到米坛对应分区\n删除 OronBox 资源会同步删除对应的米坛资源",
+  "creatorBandBbsLimitsNotice": "一键发布米坛存在以下限制，发布后需手动处理：\n1. 米坛未提供资源 icon 上传接口，资源 icon 会显示为空白，需前往米坛社区手动修改\n2. 米坛未提供讨论区 tag 接口，资源的讨论区属性不会被设置，可能导致资源被删除，需前往米坛社区手动设置正确讨论区",
   "creatorAstroBoxTermsNotice": "OronBox 审核通过后将创建资源分仓库并向 AstroBox 官方仓库提交 PR，由 AstroBox 维护者独立审核\n发布后如需下架，请联系 AstroBox-Repo 维护者",
+  "creatorAstroBoxReviewNotice": "发布到 AstroBox 的资源需满足以下要求：\n1. 资源本体不得包含色情低俗、政治敏感等不良内容或违反法律法规的内容\n2. 资源质量不得过低，例如仅模板换图制作的表盘、功能过于简陋的快应用\n3. 头图应美观且符合大众审美，比例 3:2（推荐 1200x800），图标推荐 192x192\n4. 资源在支持的设备上应能正常运行基本功能\n5. 禁止未经原作者授权盗传他人资源\n6. 使用知名 IP 素材时，preview 中必须包含版权声明图（声明素材与 AstroBox 及小米无关）",
   "failed": "失败 / 需处理",
   "basicInfo": "基本信息",
   "packageFiles": "资源文件",
@@ -204,6 +215,17 @@
   "errorPermissionDenied": "当前账号没有执行此操作的权限",
   "errorContentNotFound": "请求的内容不存在或已不可用",
   "errorRequestConflict": "内容状态已发生变化，请刷新后重试",
+  "errorCoinBalanceInsufficient": "硬币余额不足",
+  "errorCoinResourceLimit": "该资源最多投 2 颗币",
+  "errorCoinOwnResource": "不能给自己的资源投币",
+  "errorCoinVotingFrozen": "投币功能已被冻结",
+  "errorCoinAccountTooNew": "账号注册满 24 小时后才能投币",
+  "errorCoinOperationFailed": "投币失败，请重试",
+  "errorCoinStatusUnavailable": "无法获取投币状态，点击重试",
+  "errorOperationFailed": "操作失败，请重试",
+  "errorUnknown": "发生未知错误，请重试",
+  "errorDownloadQuotaExceeded": "已达到今日下载次数限制",
+  "errorGitHubNotConfigured": "GitHub 发布尚未配置",
   "errorRateLimited": "操作过于频繁，请稍后重试",
   "errorFileTooLarge": "所选文件过大",
   "errorInvalidRequest": "提交的信息有误，请检查后重试",
@@ -1086,6 +1108,7 @@
   "devToolsOperationFailed": "无法更改 DevTools 状态",
   "resourceTypeErrorTitle": "错误的资源类型",
   "resourceTypeUnknownTitle": "无法识别的资源类型",
+  "resourceTypeUnknownNoType": "OronBox 无法识别此文件的资源类型",
   "resourceTypeMismatchMessage": "这似乎是一个{detectedType}资源，但您选择的资源类型为{selectedType}，请选择安装方式",
   "@resourceTypeMismatchMessage": {
     "placeholders": {
@@ -1232,15 +1255,13 @@
   "creatorLoginRequiredTitle": "登录后使用创作者中心",
   "creatorLoginRequiredDescription": "需要登录米坛并连接 OronBox 账号，才能创建、编辑和提交资源",
   "creatorLoginAction": "登录米坛",
-  "creatorBandBbsWriteReady": "已获得米坛资源发布权限",
-  "creatorBandBbsWriteMissing": "未获得米坛写入授权，无法发布到米坛",
-  "creatorGitHubOwnPublishReady": "已连接 GitHub · {login}",
-  "@creatorGitHubOwnPublishReady": {
-    "placeholders": {
-      "login": {}
-    }
-  },
-  "creatorGitHubOwnPublishMissing": "未连接 GitHub，无法以自己的账号发布 AstroBox 资源",
+  "creatorBandBbsWriteReady": "米坛发布已授权",
+  "creatorBandBbsWriteMissing": "未授权米坛发布",
+  "creatorGitHubOwnPublishReady": "已连接 GitHub",
+  "creatorGitHubOwnPublishMissing": "未连接 GitHub",
+  "creatorAuthorize": "授权",
+  "installQueueFixWatchfaceId": "修改表盘 ID",
+  "installQueueFixWatchfaceIdHint": "输入表盘 ID 后重新安装",
   "creatorAuthorize": "授权",
   "authorize": "授权",
   "creatorBandBbsAuthorized": "已获得米坛资源发布授权",
@@ -1392,11 +1413,12 @@
     }
   },
   "resourceCoin": "投币",
+  "resourceCoinNotSignedIn": "未登录",
   "resourceCoinDialogTitle": "投币资源",
   "resourceCoinDialogMessage": "确认要为这个资源投币吗？\n\n投币后无法撤回\n\n投币有助于资源获得更多展示机会\n\n创作者将获得投币数量 10% 的硬币收益",
   "resourceCoinOne": "投 1 颗",
   "resourceCoinTwo": "投 2 颗",
-  "resourceCoinCount": "{count} 枚硬币",
+  "resourceCoinCount": "{count} 次投币",
   "@resourceCoinCount": {
     "placeholders": {
       "count": {
@@ -1405,21 +1427,14 @@
     }
   },
   "resourceCoinSuccess": "投币成功",
+  "resourceCoinVoted": "已投币",
   "resourceFeatured": "精选",
   "resourceCollection": "合集",
-  "resourceCollectionItems": "共 {count} 个资源",
-  "@resourceCollectionItems": {
+  "resourceCollectionType": "{type}合集",
+  "@resourceCollectionType": {
     "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "resourceCollectionCoins": "累计 {count} 枚硬币",
-  "@resourceCollectionCoins": {
-    "placeholders": {
-      "count": {
-        "type": "int"
+      "type": {
+        "type": "String"
       }
     }
   },
@@ -1518,6 +1533,14 @@
   "updateDownloading": "正在下载更新",
   "updateInstalling": "正在安装更新",
   "updateFailed": "更新失败",
+  "updateNoApkForAbi": "没有适用于 ABI {abi} 的 APK",
+  "@updateNoApkForAbi": {
+    "placeholders": {
+      "abi": {
+        "type": "String"
+      }
+    }
+  },
   "cleanUpdateGroup": "更新",
   "cleanCheckUpdates": "启动时检查更新",
   "updateLater": "稍后",

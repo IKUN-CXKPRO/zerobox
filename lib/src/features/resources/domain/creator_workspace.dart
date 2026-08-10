@@ -1,3 +1,5 @@
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+
 enum CreatorResourceKind { quickApp, watchface }
 
 class CreatorWorkspace {
@@ -118,6 +120,7 @@ class CreatorRevision {
     required this.name,
     required this.summary,
     required this.state,
+    this.paidType = CommunityPaidType.free,
     this.attributes = const [],
     this.publicationPlan,
   });
@@ -126,6 +129,7 @@ class CreatorRevision {
   final String name;
   final String summary;
   final String state;
+  final CommunityPaidType paidType;
   final List<String> attributes;
 
   /// Saved publish intent ({target, config} entries); editor baseline, never
@@ -140,6 +144,7 @@ class CreatorRevision {
         name: json['name']?.toString() ?? '',
         summary: json['summary']?.toString() ?? '',
         state: json['state']?.toString() ?? '',
+        paidType: communityPaidTypeFromWire(json['paid_type']),
         attributes: (json['attributes'] as List? ?? const [])
             .map((value) => value.toString())
             .toList(),

@@ -9,9 +9,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/app/widgets/app_icon.dart';
+import 'package:oronbox/src/app/widgets/smooth_linear_progress_indicator.dart';
 import 'package:oronbox/src/core/constants/app_constants.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/logging/file_log_sink.dart';
@@ -23,11 +25,13 @@ import 'package:oronbox/src/features/settings/widgets/update_download_dialog.dar
 
 final _aboutLatestReleaseProvider = FutureProvider.autoDispose
     .family<AppReleaseInfo, String>((ref, language) {
-  return ref.read(oronBoxSupportApiProvider).latestRelease(
-        language: language,
-        currentVersion: BuildInfoService.appVersion,
-      );
-});
+      return ref
+          .read(oronBoxSupportApiProvider)
+          .latestRelease(
+            language: language,
+            currentVersion: BuildInfoService.appVersion,
+          );
+    });
 
 class AboutSoftwarePage extends ConsumerWidget {
   const AboutSoftwarePage({super.key});
@@ -44,12 +48,7 @@ class AboutSoftwarePage extends ConsumerWidget {
       body: SingleChildScrollView(
         child: PageContainer(
           maxWidth: 1000,
-          padding: const EdgeInsets.fromLTRB(
-            16,
-            8,
-            16,
-            0,
-          ),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -161,12 +160,13 @@ class _ChangelogSection extends ConsumerWidget {
             // supply their own spacing, so drop it here.
             shrinkWrap: true,
             padding: EdgeInsets.zero,
-            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-              p: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                height: 1.45,
-              ),
-            ),
+            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
+                .copyWith(
+                  p: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    height: 1.45,
+                  ),
+                ),
           ),
         ],
       ),
@@ -291,8 +291,7 @@ class _UpdatePillState extends ConsumerState<_UpdatePill> {
         );
       } else {
         // Jump to the website download page instead of the release link.
-        final isEn =
-            Localizations.localeOf(context).languageCode == 'en';
+        final isEn = Localizations.localeOf(context).languageCode == 'en';
         await _openUrl(
           isEn
               ? '${AppConstants.websiteUrl}/en/download'
@@ -537,7 +536,10 @@ class _RuntimeLogsPageState extends ConsumerState<RuntimeLogsPage> {
         const OronBoxCommand(method: 'device.logs.pull'),
       );
       if (!result.ok) {
-        throw StateError(result.error?.message ?? 'Unknown error');
+        throw StateError(
+          '${result.error?.code ?? 'internal'}: '
+          '${result.error?.message ?? 'Unknown error'}',
+        );
       }
       final value = (result.value as Map).cast<String, Object?>();
       final bytes = (value['bytes'] as List? ?? const [])
@@ -560,7 +562,11 @@ class _RuntimeLogsPageState extends ConsumerState<RuntimeLogsPage> {
     } catch (error) {
       if (mounted && !cancelRequested) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.settingsDeviceLogsFailed('$error'))),
+          SnackBar(
+            content: Text(
+              l10n.settingsDeviceLogsFailed(localizedErrorMessage(l10n, error)),
+            ),
+          ),
         );
       }
     } finally {
@@ -726,7 +732,7 @@ class _DeviceLogProgressDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              LinearProgressIndicator(value: value > 0 ? value : null),
+              SmoothLinearProgressIndicator(value: value > 0 ? value : null),
               const SizedBox(height: 12),
               Text(l10n.settingsDeviceLogsProgress((value * 100).round())),
               ValueListenableBuilder<String>(
@@ -884,4 +890,3 @@ class _TeamMemberTile extends StatelessWidget {
     );
   }
 }
-

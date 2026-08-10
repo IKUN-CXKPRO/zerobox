@@ -2,14 +2,47 @@ import 'dart:typed_data';
 
 import 'package:oronbox/src/data/community/community_source.dart';
 
-enum CommunityResourceType {
-  quickApp,
-  miniprogram,
-  watchface,
-  firmware,
-}
+enum CommunityResourceType { quickApp, miniprogram, watchface, firmware }
 
 enum CommunityPaidType { free, paid, forcePaid }
+
+/// Download modes that OronBox cannot process locally.
+///
+/// AstroBox Creator Console encrypts selected paid downloads before upload and
+/// keeps the decryption key in its own purchase/entitlement service. The
+/// manifest marker is surfaced as this domain value so every catalog path can
+/// make the same decision without exposing AstroBox's raw extension object.
+enum CommunityResourceDownloadRestriction { none, astroBoxCreatorEncrypted }
+
+String communityResourceDownloadRestrictionToWire(
+  CommunityResourceDownloadRestriction value,
+) => switch (value) {
+  CommunityResourceDownloadRestriction.none => 'none',
+  CommunityResourceDownloadRestriction.astroBoxCreatorEncrypted =>
+    'astrobox_creator_encrypted',
+};
+
+CommunityResourceDownloadRestriction
+communityResourceDownloadRestrictionFromWire(Object? value) =>
+    switch (value?.toString().trim().toLowerCase()) {
+      'astrobox_creator_encrypted' || 'astroboxcreatorencrypted' =>
+        CommunityResourceDownloadRestriction.astroBoxCreatorEncrypted,
+      _ => CommunityResourceDownloadRestriction.none,
+    };
+
+String communityPaidTypeToWire(CommunityPaidType value) => switch (value) {
+  CommunityPaidType.free => 'free',
+  CommunityPaidType.paid => 'paid',
+  CommunityPaidType.forcePaid => 'force_paid',
+};
+
+CommunityPaidType communityPaidTypeFromWire(Object? value) {
+  return switch (value?.toString().trim().toLowerCase()) {
+    'paid' => CommunityPaidType.paid,
+    'force_paid' || 'forcepaid' => CommunityPaidType.forcePaid,
+    _ => CommunityPaidType.free,
+  };
+}
 
 enum ResourceContentFormat { plainText, html }
 
@@ -194,6 +227,7 @@ class CommunityResourceDetail extends CommunityResource {
     this.previewImages = const [],
     this.links = const [],
     this.canDownload = true,
+    this.downloadRestriction = CommunityResourceDownloadRestriction.none,
   });
 
   final CommunityResourceContent content;
@@ -202,6 +236,7 @@ class CommunityResourceDetail extends CommunityResource {
   final List<CommunityResourceImage> previewImages;
   final List<CommunityResourceLink> links;
   final bool canDownload;
+  final CommunityResourceDownloadRestriction downloadRestriction;
 }
 
 class CommunityResourceDevice {

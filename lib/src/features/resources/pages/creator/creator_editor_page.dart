@@ -12,10 +12,12 @@ import 'package:image/image.dart' as img;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/widgets/smooth_linear_progress_indicator.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
 import 'package:oronbox/src/features/resources/application/oronbox_resource_attributes.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/domain/creator_external_binding.dart';
 import 'package:oronbox/src/features/resources/domain/creator_publication_plan.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
@@ -88,6 +90,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
   bool _publishAstroBox = false;
   bool _astroBindABAccount = true;
   String _astroPaidType = '';
+  CommunityPaidType _paidType = CommunityPaidType.free;
   List<Map<String, Object?>>? _publicationCategories;
   CreatorPublicationPlan? _publicationPlan;
   bool _loadingPublicationPlan = false;
@@ -129,6 +132,10 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
       }
     }
     final draftPlan = draft?.publicationPlan;
+    final baselineRevision = draft ?? widget.workspace.latestRevision;
+    if (baselineRevision != null) {
+      _paidType = baselineRevision.paidType;
+    }
     final planned = draftPlan ?? widget.workspace.publications;
     for (final publication in planned) {
       final config = publication['config'] is Map
@@ -193,6 +200,12 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
           _astroPaidType = meta['paid_type']?.toString() ?? '';
         }
       }
+    }
+    // Older imported workspaces may have the choice only in their external
+    // AstroBox binding. Use it as a one-time seed when there is no revision
+    // baseline; all subsequent edits are driven by the canonical field.
+    if (baselineRevision == null && _astroPaidType.isNotEmpty) {
+      _paidType = communityPaidTypeFromWire(_astroPaidType);
     }
     if (_astroAuthor.text.isEmpty) {
       _astroAuthor.text =
@@ -331,12 +344,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                   maxWidth: StyleConstants.pageMaxWidth,
                 ),
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(
-                    16,
-                    8,
-                    16,
-                    24,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   children: [
                     if (widget.state.error != null) ...[
                       MaterialBanner(
@@ -469,6 +477,32 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                             decoration: InputDecoration(
                               labelText: l10n.creatorResourceSummary,
                             ),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<CommunityPaidType>(
+                            initialValue: _paidType,
+                            decoration: InputDecoration(
+                              labelText: l10n.creatorPaidType,
+                            ),
+                            items: [
+                              DropdownMenuItem(
+                                value: CommunityPaidType.free,
+                                child: Text(l10n.free),
+                              ),
+                              DropdownMenuItem(
+                                value: CommunityPaidType.paid,
+                                child: Text(l10n.paid),
+                              ),
+                              DropdownMenuItem(
+                                value: CommunityPaidType.forcePaid,
+                                child: Text(l10n.forcePaid),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() => _paidType = value);
+                              }
+                            },
                           ),
                           const SizedBox(height: 16),
                           Align(
@@ -703,7 +737,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                   children: [
                     SizedBox(
                       width: 120,
-                      child: LinearProgressIndicator(
+                      child: SmoothLinearProgressIndicator(
                         value: _publishStage.isNotEmpty
                             ? (_publishStageProgress > 0
                                   ? _publishStageProgress
@@ -971,15 +1005,46 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     _rebuildPlan();
   }
 
-  void _toggleDevice(String artifactKey, String deviceId, bool checked) {
-    if (checked) {
+  Future<void> _openDeviceSelection(_DraftAsset asset) async {
+    final current = _deviceSelections[asset.key] ?? const <String>{};
+    final blockedMoves = <String, String>{};
+    for (final device in widget.state.devices) {
+      for (final other in _artifacts) {
+        if (other.key == asset.key) continue;
+        final otherSelection = _deviceSelections[other.key];
+        if (otherSelection?.contains(device.id) != true) continue;
+        if ((otherSelection?.length ?? 0) <= 1) {
+          blockedMoves[device.id] = other.name;
+        }
+      }
+    }
+    final selected = await showDialog<Set<String>>(
+      context: context,
+      builder: (dialogContext) => _CreatorDeviceSelectionDialog(
+        devices: widget.state.devices,
+        initialSelection: current,
+        blockedMoves: blockedMoves,
+      ),
+    );
+    if (!mounted || selected == null) return;
+    _applyDeviceSelection(asset.key, selected);
+  }
+
+  void _applyDeviceSelection(String artifactKey, Set<String> requested) {
+    if (requested.isEmpty) return;
+    final nextSelections = <String, Set<String>>{
+      for (final entry in _deviceSelections.entries)
+        entry.key: {...entry.value},
+    };
+    final current = nextSelections[artifactKey] ??= <String>{};
+    final additions = requested.difference(current).toList();
+    for (final deviceId in additions) {
+      var canAdd = true;
       for (final other in _artifacts) {
         if (other.key == artifactKey) continue;
-        final otherSelection = _deviceSelections[other.key];
-        if (otherSelection == null || !otherSelection.contains(deviceId)) {
-          continue;
-        }
-        if (otherSelection.length <= 1) {
+        final otherSelection = nextSelections[other.key];
+        if (otherSelection?.contains(deviceId) != true) continue;
+        if ((otherSelection?.length ?? 0) <= 1) {
           final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
@@ -988,15 +1053,18 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                 content: Text(l10n.creatorDeviceMoveBlocked(other.name)),
               ),
             );
-          return;
+          canAdd = false;
+          break;
         }
-        setState(() => otherSelection.remove(deviceId));
+        otherSelection!.remove(deviceId);
       }
+      if (canAdd) current.add(deviceId);
     }
-    final selection = _deviceSelections[artifactKey] ??= <String>{};
-    if (!checked && selection.length <= 1) return;
+    current.removeWhere((deviceId) => !requested.contains(deviceId));
     setState(() {
-      checked ? selection.add(deviceId) : selection.remove(deviceId);
+      _deviceSelections
+        ..clear()
+        ..addAll(nextSelections);
     });
     _rebuildPlan();
   }
@@ -1069,7 +1137,8 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
               .where((value) => value.isNotEmpty)
               .toList(),
           'author': _astroAuthor.text.trim(),
-          if (_astroPaidType.isNotEmpty) 'paid_type': _astroPaidType,
+          if (_paidType != CommunityPaidType.free)
+            'paid_type': communityPaidTypeToWire(_paidType),
           'bind_ab_account': _astroBindABAccount,
           'agreement': true,
         },
@@ -1237,6 +1306,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
             : 'quickapp',
         'name': _name.text.trim(),
         'summary': _summary.text.trim(),
+        'paid_type': communityPaidTypeToWire(_paidType),
         'attributes': _attributes.toList()..sort(),
         'links': [
           for (final link in _links)
@@ -1635,20 +1705,63 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
             style: Theme.of(context).textTheme.labelMedium,
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final device in widget.state.devices)
-                FilterChip(
-                  selected: selected.contains(device.id),
-                  label: Text(device.name),
-                  onSelected: widget.state.loading
-                      ? null
-                      : (checked) =>
-                            _toggleDevice(asset.key, device.id, checked),
+          Material(
+            color: colors.surfaceContainerHighest.withValues(alpha: .52),
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: widget.state.loading
+                  ? null
+                  : () => _openDeviceSelection(asset),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
                 ),
-            ],
+                child: Row(
+                  children: [
+                    Icon(Icons.devices_other_outlined, color: colors.primary),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            selected.isEmpty
+                                ? l10n.creatorNoDevicesSelected
+                                : l10n.creatorSelectedDeviceCount(
+                                    selected.length,
+                                  ),
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          if (selected.isNotEmpty)
+                            Text(
+                              widget.state.devices
+                                  .where(
+                                    (device) => selected.contains(device.id),
+                                  )
+                                  .map((device) => device.name)
+                                  .join('、'),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: colors.onSurfaceVariant),
+                            ),
+                          if (selected.isEmpty)
+                            Text(
+                              l10n.creatorAtLeastOneDevice,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: colors.error),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -1901,39 +2014,47 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(isBandBbs ? 'BandBBS' : 'AstroBox-Repo'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isBandBbs
-                  ? l10n.creatorBandBbsTermsNotice
-                  : l10n.creatorAstroBoxTermsNotice,
-            ),
-            const SizedBox(height: 8),
-            TextButton.icon(
-              onPressed: () => launchUrl(
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
                 isBandBbs
-                    ? Uri.https('www.bandbbs.cn', '/help/terms/')
-                    : Uri.https(
-                        'github.com',
-                        '/AstralSightStudios/AstroBox-Repo/blob/main/assets/docs/submission_standards.md',
-                      ),
+                    ? l10n.creatorBandBbsTermsNotice
+                    : l10n.creatorAstroBoxTermsNotice,
               ),
-              icon: CreatorBrandLogo(
-                asset: isBandBbs
-                    ? 'assets/images/brands/bandbbs.svg'
-                    : 'assets/images/brands/astrobox.svg',
-                label: isBandBbs ? 'BandBBS' : 'AstroBox',
-                size: 18,
-              ),
-              label: Text(
+              const Divider(height: 24),
+              Text(
                 isBandBbs
-                    ? l10n.creatorTermsBandBbs
-                    : l10n.creatorTermsAstroBox,
+                    ? l10n.creatorBandBbsLimitsNotice
+                    : l10n.creatorAstroBoxReviewNotice,
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: () => launchUrl(
+                  isBandBbs
+                      ? Uri.https('www.bandbbs.cn', '/help/terms/')
+                      : Uri.https(
+                          'github.com',
+                          '/AstralSightStudios/AstroBox-Repo/blob/main/assets/docs/submission_standards.md',
+                        ),
+                ),
+                icon: CreatorBrandLogo(
+                  asset: isBandBbs
+                      ? 'assets/images/brands/bandbbs.svg'
+                      : 'assets/images/brands/astrobox.svg',
+                  label: isBandBbs ? 'BandBBS' : 'AstroBox',
+                  size: 18,
+                ),
+                label: Text(
+                  isBandBbs
+                      ? l10n.creatorTermsBandBbs
+                      : l10n.creatorTermsAstroBox,
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -2184,6 +2305,108 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     } catch (error) {
       if (mounted) showCreatorFailure(context, error);
     }
+  }
+}
+
+class _CreatorDeviceSelectionDialog extends StatefulWidget {
+  const _CreatorDeviceSelectionDialog({
+    required this.devices,
+    required this.initialSelection,
+    required this.blockedMoves,
+  });
+
+  final List<CreatorDevice> devices;
+  final Set<String> initialSelection;
+  final Map<String, String> blockedMoves;
+
+  @override
+  State<_CreatorDeviceSelectionDialog> createState() =>
+      _CreatorDeviceSelectionDialogState();
+}
+
+class _CreatorDeviceSelectionDialogState
+    extends State<_CreatorDeviceSelectionDialog> {
+  late final Set<String> _selected = {...widget.initialSelection};
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      title: Text(l10n.creatorSelectDevices),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 500),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              _selected.isEmpty
+                  ? l10n.creatorNoDevicesSelected
+                  : l10n.creatorSelectedDeviceCount(_selected.length),
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: widget.devices.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 2),
+                itemBuilder: (context, index) {
+                  final device = widget.devices[index];
+                  final selected = _selected.contains(device.id);
+                  final owner = widget.blockedMoves[device.id];
+                  final canUnselect = !selected || _selected.length > 1;
+                  final enabled = owner == null && canUnselect;
+                  return CheckboxListTile(
+                    value: selected,
+                    onChanged: enabled
+                        ? (checked) => setState(() {
+                            if (checked == true) {
+                              _selected.add(device.id);
+                            } else {
+                              _selected.remove(device.id);
+                            }
+                          })
+                        : null,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      device.name.isEmpty ? device.id : device.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: owner != null
+                        ? Text(l10n.creatorDeviceMoveBlocked(owner))
+                        : device.id.isEmpty || device.name == device.id
+                        ? null
+                        : Text(device.id),
+                  );
+                },
+              ),
+            ),
+            if (_selected.isEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                l10n.creatorAtLeastOneDevice,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: _selected.isEmpty
+              ? null
+              : () => Navigator.of(context).pop({..._selected}),
+          child: Text(l10n.creatorDeviceSelectionDone),
+        ),
+      ],
+    );
   }
 }
 

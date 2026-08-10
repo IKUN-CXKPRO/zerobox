@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/widgets/smooth_linear_progress_indicator.dart';
 import 'package:oronbox/src/core/constants/app_constants.dart';
 import 'package:oronbox/src/core/network/github_cdn.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
@@ -47,7 +49,13 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
       final abi = await _channel.invokeMethod<String>('getSupportedAbi');
       final url = await _resolveApkUrl(abi);
       if (url == null) {
-        setState(() => _error = 'No APK matches ABI "$abi"');
+        if (mounted) {
+          setState(
+            () => _error = AppLocalizations.of(
+              context,
+            )!.updateNoApkForAbi(abi ?? '-'),
+          );
+        }
         return;
       }
       final cdn = ref.read(appSettingsProvider).cdn;
@@ -67,10 +75,15 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
       );
       if (!mounted) return;
       setState(() => _progress = 1);
-      await _channel.invokeMethod('installApk', path);
+      await _channel.invokeMethod('installApk', {'path': path});
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) {
+        setState(
+          () =>
+              _error = localizedErrorMessage(AppLocalizations.of(context)!, e),
+        );
+      }
     }
   }
 
@@ -121,12 +134,10 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
               textAlign: TextAlign.center,
             ),
           ] else ...[
-            LinearProgressIndicator(value: _progress),
+            SmoothLinearProgressIndicator(value: _progress),
             const SizedBox(height: 8),
             Text(
-              _progress >= 1
-                  ? l10n.updateInstalling
-                  : l10n.updateDownloading,
+              _progress >= 1 ? l10n.updateInstalling : l10n.updateDownloading,
             ),
           ],
         ],

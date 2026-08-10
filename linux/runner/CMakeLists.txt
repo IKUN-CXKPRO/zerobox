@@ -8,6 +8,7 @@ project(runner LANGUAGES CXX)
 # Any new source files that you add to the application should be added here.
 add_executable(${BINARY_NAME}
   "classic_spp_channel.cc"
+  "file_open_channel.cc"
   "mi_account_2fa_channel.cc"
   "zeppos_app_settings_channel.cc"
   "main.cc"

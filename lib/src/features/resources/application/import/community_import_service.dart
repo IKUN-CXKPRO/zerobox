@@ -579,7 +579,9 @@ class CommunityImportService {
       );
       return CommunityImportResult(
         status: CommunityImportStatus.failed,
-        message: error.toString(),
+        // Keep implementation details in diagnostics; the wizard localizes
+        // this stable result code for users.
+        message: 'import_failed',
         warnings: warnings,
       );
     }

@@ -2,6 +2,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/widgets/smooth_linear_progress_indicator.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_map_upload_system.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/devices/pages/more/zeppos_map_preview.dart';
@@ -25,7 +27,9 @@ Future<void> showZeppOsMapTransfer(BuildContext context) async {
   try {
     prepared = ZeppOsMapPackage.prepare(bytes, fileName: file.name);
   } catch (error) {
-    if (context.mounted) await _showMapError(context, error.toString());
+    if (context.mounted) {
+      await _showMapError(context, localizedErrorMessage(l10n, error));
+    }
     return;
   }
   if (!context.mounted) return;
@@ -163,7 +167,7 @@ class _MapTransferDialogState extends ConsumerState<_MapTransferDialog> {
                 ),
                 if (_uploading || _completed) ...[
                   const SizedBox(height: 20),
-                  LinearProgressIndicator(value: _progress),
+                  SmoothLinearProgressIndicator(value: _progress),
                   const SizedBox(height: 8),
                   Text(
                     _completed
@@ -176,7 +180,7 @@ class _MapTransferDialogState extends ConsumerState<_MapTransferDialog> {
                 if (_error case final error?) ...[
                   const SizedBox(height: 16),
                   Text(
-                    error.toString(),
+                    localizedErrorMessage(l10n, error),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
                     ),

@@ -64,7 +64,9 @@ class DaemonTaskFeed<T> {
     final result = await host.execute(
       OronBoxCommand(method: command, params: {'id': id}),
     );
-    if (!result.ok) throw StateError(result.error!.message);
+    if (!result.ok) {
+      throw StateError('${result.error!.code}: ${result.error!.message}');
+    }
   }
 
   void _handleEvent(CommandEvent event) {

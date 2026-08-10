@@ -7,6 +7,59 @@ import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 import 'package:oronbox/src/features/resources/pages/resource_detail_page.dart';
 
 void main() {
+  test(
+    'preserves collection kind and representative media from the public API',
+    () async {
+      final digest = List.filled(64, 'c').join();
+      final dio = Dio();
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            handler.resolve(
+              Response<Object?>(
+                requestOptions: options,
+                statusCode: 200,
+                data: {
+                  'id': 'collection',
+                  'name': 'Watch collection',
+                  'summary': 'A collection of watchfaces',
+                  'owner': 'creator',
+                  'kind': 'watchface',
+                  'representative_resource_id': 'watchface-resource',
+                  'representative': {
+                    'id': 'watchface-resource',
+                    'name': 'Representative watchface',
+                    'kind': 'watchface',
+                    'paid_type': 'force_paid',
+                    'icon_sha256': digest,
+                  },
+                  'resource_count': 2,
+                  'resources': [
+                    {
+                      'id': 'other-resource',
+                      'name': 'Other resource',
+                      'kind': 'watchface',
+                    },
+                  ],
+                },
+              ),
+            );
+          },
+        ),
+      );
+
+      final detail = await OronBoxResourceCatalog(
+        dio: dio,
+      ).getCollection('collection');
+
+      expect(detail.type, CommunityResourceType.watchface);
+      expect(detail.resourceCount, 2);
+      expect(detail.representative?.ref.id, 'watchface-resource');
+      expect(detail.representative?.paidType, CommunityPaidType.forcePaid);
+      expect(detail.representative?.iconUrl?.pathSegments.last, digest);
+    },
+  );
+
   test('maps the OronBox owner BandBBS avatar from the public API', () async {
     final digest = List.filled(64, 'b').join();
     final dio = Dio();
@@ -57,6 +110,43 @@ void main() {
     expect(page.items.single.tags, ['original', 'template']);
   });
 
+  test('uses the icon as the default cover instead of a preview', () async {
+    final iconDigest = List.filled(64, 'i').join();
+    final previewDigest = List.filled(64, 'p').join();
+    final dio = Dio();
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          handler.resolve(
+            Response<Object?>(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'resources': [
+                  {
+                    'id': 'resource',
+                    'name': 'Resource',
+                    'kind': 'quickapp',
+                    'icon_sha256': iconDigest,
+                    'preview_sha256': previewDigest,
+                  },
+                ],
+                'total': 1,
+              },
+            ),
+          );
+        },
+      ),
+    );
+
+    final item = (await OronBoxResourceCatalog(
+      dio: dio,
+    ).getPage(const CommunityResourceQuery(page: 0, pageSize: 1))).items.single;
+
+    expect(item.coverUrl, item.iconUrl);
+    expect(item.coverUrl?.pathSegments.last, iconDigest);
+  });
+
   test('parses preview media using the server sha256 field', () {
     final digest = List.filled(64, 'a').join();
     final images = parseOronBoxPreviewImages([
@@ -67,6 +157,38 @@ void main() {
     expect(images.single.url.pathSegments.last, digest);
     expect(images.single.width, 1200);
     expect(images.single.height, 800);
+  });
+
+  test('passes paid visibility filters to the OronBox API', () async {
+    final dio = Dio();
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          expect(options.queryParameters['hide_paid'], '1');
+          expect(options.queryParameters['hide_force_paid'], '1');
+          handler.resolve(
+            Response<Object?>(
+              requestOptions: options,
+              statusCode: 200,
+              data: {'resources': <Object?>[], 'total': 0},
+            ),
+          );
+        },
+      ),
+    );
+
+    await OronBoxResourceCatalog(dio: dio).getPage(
+      const CommunityResourceQuery(hidePaid: true, hideForcePaid: true),
+    );
+  });
+
+  test('uses the stable paid type wire values', () {
+    expect(communityPaidTypeToWire(CommunityPaidType.forcePaid), 'force_paid');
+    expect(
+      communityPaidTypeFromWire('force_paid'),
+      CommunityPaidType.forcePaid,
+    );
+    expect(communityPaidTypeFromWire('unrecognized'), CommunityPaidType.free);
   });
 
   test('expands one artifact into one install choice per bound device', () {

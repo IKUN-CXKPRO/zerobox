@@ -337,7 +337,7 @@ class HostCommandException implements CodedError {
   final Object? details;
 
   @override
-  String toString() => message;
+  String toString() => '$code: $message';
 }
 
 class HostTwoFactorRequired implements Exception {

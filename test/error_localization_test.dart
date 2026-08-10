@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oronbox/src/app/generated/app_localizations_en.dart';
 import 'package:oronbox/src/app/generated/app_localizations_zh.dart';
@@ -97,6 +98,14 @@ void main() {
           'forbidden': en.errorPermissionDenied,
           'resource_not_found': en.errorContentNotFound,
           'conflict': en.errorRequestConflict,
+          'coin_balance_insufficient': en.errorCoinBalanceInsufficient,
+          'coin_resource_limit': en.errorCoinResourceLimit,
+          'coin_own_resource': en.errorCoinOwnResource,
+          'coin_voting_frozen': en.errorCoinVotingFrozen,
+          'coin_account_too_new': en.errorCoinAccountTooNew,
+          'coin_vote_failed': en.errorCoinOperationFailed,
+          'coin_status_failed': en.errorCoinStatusUnavailable,
+          'coin_account_failed': en.errorServiceUnavailable,
           'rate_limited': en.errorRateLimited,
           'http_413': en.errorFileTooLarge,
           'invalid_request': en.errorInvalidRequest,
@@ -117,6 +126,93 @@ void main() {
         }
       },
     );
+
+    test('localizes the complete coded-error catalog safely', () {
+      for (final code in oronBoxKnownErrorCodes) {
+        final message = localizedErrorMessage(
+          en,
+          _TestCodedError(code, 'sensitive backend detail'),
+        );
+        expect(
+          message,
+          isNot(contains('sensitive backend detail')),
+          reason: code,
+        );
+      }
+
+      expect(
+        localizedErrorMessage(
+          en,
+          const _TestCodedError('new_server_code', 'sensitive backend detail'),
+        ),
+        en.errorUnknown,
+      );
+      expect(
+        localizedErrorMessage(en, StateError('new_server_code: secret detail')),
+        en.errorUnknown,
+      );
+      expect(
+        localizedErrorMessage(en, StateError('invalid_request: secret detail')),
+        en.errorInvalidRequest,
+      );
+    });
+
+    test('localizes raw Dio transport and response failures safely', () {
+      expect(
+        localizedErrorMessage(
+          en,
+          DioException(
+            requestOptions: RequestOptions(path: '/api/resources'),
+            type: DioExceptionType.connectionError,
+          ),
+        ),
+        en.errorNetworkUnavailable,
+      );
+      expect(
+        localizedErrorMessage(
+          en,
+          DioException(
+            requestOptions: RequestOptions(path: '/api/resources'),
+            response: Response<Object?>(
+              requestOptions: RequestOptions(path: '/api/resources'),
+              statusCode: 429,
+            ),
+            type: DioExceptionType.badResponse,
+          ),
+        ),
+        en.errorRateLimited,
+      );
+      expect(
+        localizedErrorMessage(
+          en,
+          DioException(
+            requestOptions: RequestOptions(path: '/api/resources'),
+            response: Response<Object?>(
+              requestOptions: RequestOptions(path: '/api/resources'),
+              statusCode: 400,
+              data: {'code': 'coin_balance_insufficient'},
+            ),
+            type: DioExceptionType.badResponse,
+          ),
+        ),
+        en.errorCoinBalanceInsufficient,
+      );
+      expect(
+        localizedErrorMessage(
+          en,
+          DioException(
+            requestOptions: RequestOptions(path: '/api/resources'),
+            response: Response<Object?>(
+              requestOptions: RequestOptions(path: '/api/resources'),
+              statusCode: 400,
+              data: {'code': 'future_server_code', 'detail': 'secret'},
+            ),
+            type: DioExceptionType.badResponse,
+          ),
+        ),
+        en.errorUnknown,
+      );
+    });
 
     test(
       'unified guidance covers permission, nearby, not in use, mode, retry',

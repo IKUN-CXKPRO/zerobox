@@ -5,6 +5,11 @@ import UIKit
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private var backgroundTasks: [Int: UIBackgroundTaskIdentifier] = [:]
   private var nextBackgroundTaskId = 0
+
+  /// Shared "open with" file channel; SceneDelegate pushes files through it.
+  static var fileOpenChannel: FlutterMethodChannel?
+  static var pendingOpenFilePath: String?
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -43,6 +48,20 @@ import UIKit
         result(FlutterMethodNotImplemented)
       }
     }
+
+    let fileChannel = FlutterMethodChannel(
+      name: "oronbox/file_open",
+      binaryMessenger: registrar.messenger()
+    )
+    fileChannel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "getInitialFile":
+        result(Self.pendingOpenFilePath)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    AppDelegate.fileOpenChannel = fileChannel
   }
 
   private func endBackgroundTask(_ id: Int) {

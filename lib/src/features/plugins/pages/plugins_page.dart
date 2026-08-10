@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
@@ -652,9 +653,10 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
   }
 
   void _showError(Object error) {
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(error.toString())));
+    ).showSnackBar(SnackBar(content: Text(localizedErrorMessage(l10n, error))));
   }
 }
 
@@ -1147,7 +1149,10 @@ class _PluginMarket extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(error.toString(), textAlign: TextAlign.center),
+            Text(
+              localizedErrorMessage(AppLocalizations.of(context)!, error),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: onRefresh,

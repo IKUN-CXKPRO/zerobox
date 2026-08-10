@@ -60,6 +60,16 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="oronbox.zxor.org" android:pathPrefix="/open" />
             </intent-filter>
+            <!-- "Open with OronBox" from file managers. The app claims the
+                 generic binary MIME and filters by extension in Dart; these
+                 suffixes have no registered MIME type of their own. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
             <!-- Read by FlutterActivity.shouldHandleDeeplinking(), which only
                  looks at activity-level meta-data: links stay with app_links
                  and never reach go_router. -->

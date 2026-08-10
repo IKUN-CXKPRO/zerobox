@@ -143,7 +143,9 @@ class CommandResourceCatalog implements CommunityResourceCatalog {
       final nested = CommandResult.fromJson(
         (task['result'] as Map).cast<String, Object?>(),
       );
-      if (!nested.ok) throw StateError(nested.error!.message);
+      if (!nested.ok) {
+        throw StateError('${nested.error!.code}: ${nested.error!.message}');
+      }
       final result = (nested.value as Map).cast<String, Object?>();
       return CommunityResourceDownloadResult(
         path: result['path']!.toString(),

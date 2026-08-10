@@ -15,16 +15,17 @@ import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
+import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 import 'package:oronbox/src/features/accounts/services/oronbox_coin_service.dart';
 import 'package:oronbox/src/features/resources/application/comments/oronbox_comments.dart';
-import 'package:oronbox/src/features/resources/application/oronbox_resource_attributes.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
+import 'package:oronbox/src/features/resources/controllers/resource_filter_controller.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/services/download_queue_notifier.dart';
 import 'package:oronbox/src/features/resources/services/install_queue_notifier.dart';
 import 'package:oronbox/src/features/resources/widgets/community_html_content.dart';
+import 'package:oronbox/src/features/resources/widgets/resource_detail_header.dart';
 import 'package:oronbox/src/features/resources/widgets/resource_external_link.dart';
-import 'package:oronbox/src/features/resources/widgets/resource_media_hero.dart';
 import 'package:oronbox/src/features/settings/pages/feedback_page.dart';
 
 class ResourceDetailPage extends ConsumerWidget {
@@ -50,9 +51,9 @@ class ResourceDetailPage extends ConsumerWidget {
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
-          _ResourceHeader(
+          ResourceDetailHeader(
             resource: visibleResource,
-            mediaResource: resource,
+            mediaResource: visibleResource,
             animateCover: resource.coverUrl != null,
             animateIcon: resource.iconUrl != null,
           ),
@@ -112,147 +113,70 @@ class _DelayedLoadingIndicatorState extends State<_DelayedLoadingIndicator> {
   );
 }
 
-class _ResourceHeader extends ConsumerWidget {
-  const _ResourceHeader({
-    required this.resource,
-    required this.mediaResource,
-    required this.animateCover,
-    required this.animateIcon,
-  });
-
-  final CommunityResource resource;
-  final CommunityResource mediaResource;
-  final bool animateCover;
-  final bool animateIcon;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final attributeLabels = {
-      for (final attribute
-          in ref.watch(oronBoxResourceAttributesProvider).value ??
-              const <OronBoxResourceAttribute>[])
-        attribute.id: attribute.labelFor(Localizations.localeOf(context)),
-    };
-    final icon = NetworkImgLayer(
-      src: mediaResource.iconUrl?.toString() ?? '',
-      width: 76,
-      height: 76,
-    );
-    return _Hero(
-      image: mediaResource.coverUrl ?? mediaResource.iconUrl,
-      resourceRef: resource.ref,
-      animateCover: animateCover,
-      child: PageContainer(
-        padding: const EdgeInsets.fromLTRB(
-          StyleConstants.pagePadding,
-          8,
-          StyleConstants.pagePadding,
-          StyleConstants.pagePadding,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (animateIcon)
-              ResourceMediaHero(
-                tag: resourceMediaHeroTag(resource.ref, 'icon'),
-                url: mediaResource.iconUrl?.toString() ?? '',
-                width: 76,
-                height: 76,
-                style: const ResourceMediaHeroStyle(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                ),
-              )
-            else
-              icon,
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (resource.name.trim().isNotEmpty)
-                    Text(
-                      resource.name,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  const SizedBox(height: 4),
-                  _Authors(resource: resource),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    children: [
-                      _Chip(
-                        label: _typeLabel(
-                          AppLocalizations.of(context)!,
-                          resource.type,
-                          source: resource.ref.source,
-                        ),
-                        color: theme.colorScheme.primary,
-                      ),
-                      _Chip(
-                        label: _paidLabel(
-                          AppLocalizations.of(context)!,
-                          resource.paidType,
-                        ),
-                        color: resource.paidType == CommunityPaidType.free
-                            ? Colors.green
-                            : theme.colorScheme.tertiary,
-                      ),
-                      if (resource.ref.source == CommunitySourceId.bandbbs ||
-                          resource.ref.source == CommunitySourceId.oronBox)
-                        ...resource.tags
-                            .take(2)
-                            .map(
-                              (tag) => _Chip(
-                                label:
-                                    resource.ref.source ==
-                                        CommunitySourceId.oronBox
-                                    ? attributeLabels[tag] ?? tag
-                                    : tag,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                      if (resource.downloadCount != null)
-                        _Chip(
-                          label: AppLocalizations.of(
-                            context,
-                          )!.downloadTimes(resource.downloadCount!),
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      if (resource.curationGrade == 'featured')
-                        _Chip(
-                          label: AppLocalizations.of(context)!.resourceFeatured,
-                          color: theme.colorScheme.primary,
-                        ),
-                      if (resource.coinCount > 0)
-                        _Chip(
-                          label: AppLocalizations.of(
-                            context,
-                          )!.resourceCoinCount(resource.coinCount),
-                          color: theme.colorScheme.tertiary,
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DetailContent extends ConsumerWidget {
+class _DetailContent extends ConsumerStatefulWidget {
   const _DetailContent({required this.detail, required this.targetCommentId});
   final CommunityResourceDetail detail;
   final String targetCommentId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_DetailContent> createState() => _DetailContentState();
+}
+
+class _DetailContentState extends ConsumerState<_DetailContent> {
+  var _unsupportedNoticeShown = false;
+
+  CommunityResourceDetail get detail => widget.detail;
+  String get targetCommentId => widget.targetCommentId;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _maybeShowUnsupportedDownloadNotice();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DetailContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.detail.ref != widget.detail.ref) {
+      _unsupportedNoticeShown = false;
+    }
+    _maybeShowUnsupportedDownloadNotice();
+  }
+
+  void _maybeShowUnsupportedDownloadNotice() {
+    if (_unsupportedNoticeShown ||
+        detail.downloadRestriction !=
+            CommunityResourceDownloadRestriction.astroBoxCreatorEncrypted) {
+      return;
+    }
+    _unsupportedNoticeShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      unawaited(
+        showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            icon: Icon(
+              Icons.lock_outline,
+              color: Theme.of(dialogContext).colorScheme.error,
+            ),
+            title: Text(l10n.resourceAstroBoxEncryptedTitle),
+            content: Text(l10n.resourceAstroBoxEncryptedMessage),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(l10n.resourceAstroBoxEncryptedAction),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final deviceState = ref.watch(deviceManagerProvider);
@@ -280,24 +204,6 @@ class _DetailContent extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-          ],
-          if (detail.collectionName?.isNotEmpty == true) ...[
-            InkWell(
-              onTap: detail.collectionId?.isNotEmpty == true
-                  ? () => context.push(
-                      '/resources/collection/${detail.collectionId}',
-                    )
-                  : null,
-              child: Text(
-                l10n.resourceFromCollection(detail.collectionName!),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.primary,
-                  decoration: TextDecoration.underline,
-                  decorationColor: theme.colorScheme.primary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
           ],
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -348,6 +254,62 @@ class _DetailContent extends ConsumerWidget {
               ),
             ],
           ),
+          if (detail.collectionName?.isNotEmpty == true) ...[
+            const SizedBox(height: 12),
+            InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: detail.collectionId?.isNotEmpty == true
+                  ? () => context.push(
+                      '/resources/collection/${detail.collectionId}',
+                      extra: CommunityResource(
+                        ref: ResourceRef(
+                          source: CommunitySourceId.oronBox,
+                          id: detail.collectionId!,
+                        ),
+                        name: detail.collectionName ?? '',
+                        type: detail.type,
+                        paidType: detail.paidType,
+                        authors: detail.authors,
+                        supportedDevices: detail.supportedDevices,
+                        iconUrl: detail.iconUrl,
+                        coverUrl: detail.coverUrl,
+                        summary: detail.summary,
+                        isCollection: true,
+                      ),
+                    )
+                  : null,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withValues(
+                    alpha: .5,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.folder_outlined,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      l10n.resourceFromCollection(detail.collectionName!),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           if (detail.links.isNotEmpty) ...[
             const SizedBox(height: 12),
             Wrap(
@@ -429,7 +391,8 @@ class _CoinButton extends ConsumerStatefulWidget {
 class _CoinButtonState extends ConsumerState<_CoinButton> {
   var _sending = false;
 
-  Future<void> _send() async {
+  Future<void> _send(int remaining) async {
+    if (remaining <= 0 || _sending) return;
     final l10n = AppLocalizations.of(context)!;
     final count = await showDialog<int>(
       context: context,
@@ -438,14 +401,16 @@ class _CoinButtonState extends ConsumerState<_CoinButton> {
         content: Text(l10n.resourceCoinDialogMessage),
         actions: [
           TextButton(onPressed: () => context.pop(), child: Text(l10n.cancel)),
-          TextButton(
-            onPressed: () => context.pop(1),
-            child: Text(l10n.resourceCoinOne),
-          ),
-          FilledButton(
-            onPressed: () => context.pop(2),
-            child: Text(l10n.resourceCoinTwo),
-          ),
+          if (remaining >= 1)
+            TextButton(
+              onPressed: () => context.pop(1),
+              child: Text(l10n.resourceCoinOne),
+            ),
+          if (remaining >= 2)
+            FilledButton(
+              onPressed: () => context.pop(2),
+              child: Text(l10n.resourceCoinTwo),
+            ),
         ],
       ),
     );
@@ -460,6 +425,8 @@ class _CoinButtonState extends ConsumerState<_CoinButton> {
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.resourceCoinSuccess)));
       ref.invalidate(communityResourceDetailProvider(widget.resource.ref));
+      ref.invalidate(oronBoxMyCoinsProvider(widget.resource.ref.id));
+      ref.read(resourceRefreshProvider.notifier).refresh();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -471,21 +438,65 @@ class _CoinButtonState extends ConsumerState<_CoinButton> {
   }
 
   @override
-  Widget build(BuildContext context) => FilledButton.icon(
-    onPressed: _sending ? null : _send,
-    icon: _sending
-        ? const SizedBox.square(
-            dimension: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
-        : const Icon(Icons.toll_outlined),
-    label: Text(AppLocalizations.of(context)!.resourceCoin),
-    style: FilledButton.styleFrom(
-      minimumSize: const Size.fromHeight(36),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      visualDensity: VisualDensity.compact,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final isSignedIn = ref.watch(bandBbsAuthProvider).isSignedIn;
+    final myCoins = ref.watch(oronBoxMyCoinsProvider(widget.resource.ref.id));
+    final voted = myCoins.value ?? 0;
+    final statusLoading = isSignedIn && myCoins.isLoading;
+    final statusError = isSignedIn && myCoins.hasError;
+    final statusKnown = isSignedIn && myCoins.hasValue;
+    final locked = statusKnown && voted >= 2;
+    final canCoin =
+        statusKnown && !statusLoading && !statusError && !_sending && !locked;
+    final canRetry = statusError && !_sending;
+    return Tooltip(
+      message: !isSignedIn
+          ? l10n.resourceCoinNotSignedIn
+          : statusError
+          ? l10n.errorCoinStatusUnavailable
+          : '',
+      child: FilledButton.icon(
+        onPressed: canCoin
+            ? () => _send(2 - voted)
+            : canRetry
+            ? () =>
+                  ref.invalidate(oronBoxMyCoinsProvider(widget.resource.ref.id))
+            : null,
+        icon: _sending || statusLoading
+            ? const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : statusError
+            ? const Icon(Icons.refresh)
+            : const Icon(Icons.toll_outlined),
+        label: Text(
+          !isSignedIn
+              ? l10n.resourceCoinNotSignedIn
+              : statusError
+              ? l10n.refresh
+              : voted > 0
+              ? l10n.resourceCoinVoted
+              : l10n.resourceCoin,
+        ),
+        style: FilledButton.styleFrom(
+          minimumSize: const Size.fromHeight(36),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          visualDensity: VisualDensity.compact,
+          backgroundColor: !isSignedIn || (voted > 0 && statusKnown)
+              ? theme.colorScheme.surfaceContainerHighest
+              : null,
+          foregroundColor: !isSignedIn || (voted > 0 && statusKnown)
+              ? theme.colorScheme.onSurfaceVariant
+              : null,
+          disabledBackgroundColor: theme.colorScheme.surfaceContainerHighest,
+          disabledForegroundColor: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
 }
 
 class _CommentsSection extends ConsumerStatefulWidget {
@@ -604,15 +615,9 @@ class _CommentsSectionState extends ConsumerState<_CommentsSection> {
     } on CommentApiException catch (error) {
       if (!mounted) return false;
       final l10n = AppLocalizations.of(context)!;
-      final message = switch (error.code) {
-        'comment_blocked' => l10n.commentBlocked,
-        'moderation_unavailable' => l10n.commentModerationUnavailable,
-        'comment_rate_limited' => l10n.commentRateLimited,
-        _ => error.message,
-      };
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(localizedErrorMessage(l10n, error))),
+      );
       return false;
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -927,72 +932,6 @@ class _CommentTile extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _Authors extends StatelessWidget {
-  const _Authors({required this.resource});
-
-  final CommunityResource resource;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    if (resource.authors.isEmpty) return const SizedBox.shrink();
-    return Wrap(
-      spacing: 6,
-      runSpacing: 4,
-      children: resource.authors
-          .map(
-            (author) => InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () => _openAuthor(context, resource, author),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '@${author.name}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    if (resource.ref.source == CommunitySourceId.huamiAppStore)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 3),
-                        child: Icon(
-                          Icons.chevron_right,
-                          size: 16,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          )
-          .toList(),
-    );
-  }
-
-  void _openAuthor(
-    BuildContext context,
-    CommunityResource resource,
-    CommunityResourceAuthor author,
-  ) {
-    if (resource.ref.source == CommunitySourceId.huamiAppStore) {
-      final name = author.name.trim();
-      if (name.isEmpty) return;
-      context.push(
-        '/resources/huami-publisher?name=${Uri.encodeQueryComponent(name)}',
-      );
-      return;
-    }
-    final url = author.url;
-    if (url != null) {
-      openResourceExternalLink(context, url);
-    }
   }
 }
 
@@ -1424,91 +1363,3 @@ class _Compatibility extends StatelessWidget {
     );
   }
 }
-
-class _Hero extends StatelessWidget {
-  const _Hero({
-    required this.child,
-    required this.resourceRef,
-    required this.animateCover,
-    this.image,
-  });
-  final Widget child;
-  final ResourceRef resourceRef;
-  final bool animateCover;
-  final Uri? image;
-  @override
-  Widget build(BuildContext context) => Stack(
-    children: [
-      if (image != null)
-        Positioned.fill(
-          child: animateCover
-              ? ResourceMediaHero(
-                  tag: resourceMediaHeroTag(resourceRef, 'cover'),
-                  url: image.toString(),
-                  width: double.infinity,
-                  height: double.infinity,
-                  style: const ResourceMediaHeroStyle(
-                    opacity: .16,
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                )
-              : Opacity(
-                  opacity: .16,
-                  child: NetworkImgLayer(
-                    src: image.toString(),
-                    width: double.infinity,
-                    height: double.infinity,
-                  ),
-                ),
-        ),
-      Positioned.fill(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.primaryContainer.withValues(alpha: .22),
-          ),
-        ),
-      ),
-      child,
-    ],
-  );
-}
-
-class _Chip extends StatelessWidget {
-  const _Chip({required this.label, required this.color});
-  final String label;
-  final Color color;
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(12),
-      color: color.withValues(alpha: .12),
-    ),
-    child: Text(
-      label,
-      style: TextStyle(color: color, fontWeight: FontWeight.w600),
-    ),
-  );
-}
-
-String _typeLabel(
-  AppLocalizations l10n,
-  CommunityResourceType type, {
-  CommunitySourceId? source,
-}) => switch (type) {
-  CommunityResourceType.quickApp =>
-    source == CommunitySourceId.huamiAppStore
-        ? l10n.miniprogram
-        : l10n.quickApp,
-  CommunityResourceType.miniprogram => l10n.miniprogram,
-  CommunityResourceType.watchface => l10n.watchface,
-  CommunityResourceType.firmware => l10n.firmwareTool,
-};
-String _paidLabel(AppLocalizations l10n, CommunityPaidType type) =>
-    switch (type) {
-      CommunityPaidType.free => l10n.free,
-      CommunityPaidType.paid => l10n.paid,
-      CommunityPaidType.forcePaid => l10n.forcePaid,
-    };

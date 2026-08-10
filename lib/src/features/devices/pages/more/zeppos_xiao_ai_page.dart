@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
@@ -51,6 +52,7 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
   }
 
   Future<void> _initializeAudio() async {
+    final l10n = AppLocalizations.of(context)!;
     WasmOpusDecoder? decoder;
     try {
       decoder = await WasmOpusDecoder.create();
@@ -84,7 +86,9 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
     } catch (error) {
       decoder?.dispose();
       if (_audio.isInitialized) _audio.deinit();
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(() => _error = localizedErrorMessage(l10n, error));
+      }
     }
   }
 
@@ -138,7 +142,11 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
       });
     } catch (error) {
       if (mounted) {
-        setState(() => _error = l10n.voiceLabAudioProcessingFailed('$error'));
+        setState(
+          () => _error = l10n.voiceLabAudioProcessingFailed(
+            localizedErrorMessage(l10n, error),
+          ),
+        );
       }
     }
   }
@@ -161,7 +169,11 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
         );
       }
     } catch (error) {
-      if (mounted) setState(() => _error = l10n.sendFailed('$error'));
+      if (mounted) {
+        setState(
+          () => _error = l10n.sendFailed(localizedErrorMessage(l10n, error)),
+        );
+      }
     }
   }
 
@@ -174,7 +186,11 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
       if (mounted) setState(() => _continuousCapture = enabled);
     } catch (error) {
       if (mounted) {
-        setState(() => _error = l10n.voiceLabContinuousCaptureFailed('$error'));
+        setState(
+          () => _error = l10n.voiceLabContinuousCaptureFailed(
+            localizedErrorMessage(l10n, error),
+          ),
+        );
       }
     }
   }
@@ -206,7 +222,11 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
       }
     } catch (error) {
       if (mounted) {
-        setState(() => _error = l10n.voiceLabAssistantSwitchFailed('$error'));
+        setState(
+          () => _error = l10n.voiceLabAssistantSwitchFailed(
+            localizedErrorMessage(l10n, error),
+          ),
+        );
       }
     }
   }
@@ -223,7 +243,11 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
       );
     } catch (error) {
       if (mounted) {
-        setState(() => _error = l10n.voiceLabExportWavFailed('$error'));
+        setState(
+          () => _error = l10n.voiceLabExportWavFailed(
+            localizedErrorMessage(l10n, error),
+          ),
+        );
       }
     }
   }
@@ -240,7 +264,11 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
       );
     } catch (error) {
       if (mounted) {
-        setState(() => _error = l10n.voiceLabExportOpusFailed('$error'));
+        setState(
+          () => _error = l10n.voiceLabExportOpusFailed(
+            localizedErrorMessage(l10n, error),
+          ),
+        );
       }
     }
   }

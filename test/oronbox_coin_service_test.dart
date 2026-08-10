@@ -17,6 +17,15 @@ void main() {
     expect(host.lastParams, {'resource': 'resource/id', 'coins': 2});
   });
 
+  test('reads the number of coins already given to a resource', () async {
+    final host = _CoinHost();
+    final service = OronBoxCoinService(host);
+
+    expect(await service.myCoins('resource/id'), 1);
+    expect(host.methods, ['coins.resource.status']);
+    expect(host.lastParams, {'resource': 'resource/id'});
+  });
+
   test('preserves host error codes', () async {
     final service = OronBoxCoinService(
       _CoinHost(
@@ -62,6 +71,7 @@ class _CoinHost implements OronBoxCommandBus {
         'account': {'balance_units': 15},
       }),
       'coins.resource' => const CommandResult.success({'balance_units': 10}),
+      'coins.resource.status' => const CommandResult.success({'my_coins': 1}),
       _ => CommandResult.failure(CommandError('unexpected', command.method)),
     };
   }

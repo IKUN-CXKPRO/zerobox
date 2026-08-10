@@ -434,6 +434,10 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       '/api/resources/${_requiredCreatorId(command.params, 'resource')}/coins',
       data: {'coins': command.params['coins']},
     ),
+    'coins.resource.status' => _creatorRequest(
+      'GET',
+      '/api/resources/${_requiredCreatorId(command.params, 'resource')}/coins',
+    ),
     'comment.list' => _creatorApi.publicRequest(
       'GET',
       '/api/resources/${_requiredCreatorId(command.params, 'resource')}/comments',
@@ -1613,6 +1617,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
         return {'installed': true, 'path': path, 'type': 'music'};
       }
       final service = container.read(resourceInstallServiceProvider);
+      final identifier = params['identifier']?.toString();
       // The payload analyzer is the source of truth; the command's declared
       // type (e.g. quickapp) is only a fallback hint for undetectable files.
       final type =
@@ -1651,6 +1656,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
             bytes: bytes,
             deviceManager: _manager,
             onProgress: onProgress,
+            identifierOverride: identifier,
           );
         case ResourceInstallMode.forceType:
           await service.installForcedPayload(
@@ -1678,6 +1684,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
             fileName: fileName,
             deviceManager: _manager,
             forcePlatform: true,
+            identifierOverride: identifier,
             onProgress: onProgress,
           );
       }

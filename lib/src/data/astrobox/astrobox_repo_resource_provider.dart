@@ -13,6 +13,9 @@ import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 
+bool astroBoxManifestUsesCreatorEncryption(AstroBoxManifest manifest) =>
+    manifest.ext['enableAstroBoxCreatorFeatures'] == true;
+
 class AstroBoxRepoCatalog implements CommunityResourceCatalog {
   AstroBoxRepoCatalog({Dio? dio, this.cdn = GitHubCdn.raw})
     : _dio = dio ?? createAppHttpTransport();
@@ -91,6 +94,11 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
     _requireSource(ref);
     final item = await _findIndexItem(ref.id);
     final manifest = await _fetchManifest(item);
+    final usesCreatorEncryption = astroBoxManifestUsesCreatorEncryption(
+      manifest,
+    );
+    final iconUrl = _assetUri(item, manifest.item.icon);
+    final coverUrl = _assetUri(item, manifest.item.cover) ?? iconUrl;
     final files = <CommunityResourceFile>[];
     for (final entry in manifest.downloads.entries) {
       final download = entry.value;
@@ -117,8 +125,8 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
           .map((author) => CommunityResourceAuthor(name: author.name))
           .toList(),
       supportedDevices: files.expand((file) => file.supportedDevices).toSet(),
-      iconUrl: Uri.tryParse(_resolveAssetUrl(item, manifestItem.icon)),
-      coverUrl: Uri.tryParse(_resolveAssetUrl(item, manifestItem.cover)),
+      iconUrl: iconUrl,
+      coverUrl: coverUrl,
       publicUrl: _repositoryUrl(item),
       tags: item.tags,
       sourceRepoOwner: item.repoOwner,
@@ -130,11 +138,11 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
         value: manifestItem.description,
       ),
       previews: manifestItem.preview
-          .map((path) => Uri.tryParse(_resolveAssetUrl(item, path)))
+          .map((path) => _assetUri(item, path))
           .whereType<Uri>()
           .toList(),
       previewImages: manifestItem.preview
-          .map((path) => Uri.tryParse(_resolveAssetUrl(item, path)))
+          .map((path) => _assetUri(item, path))
           .whereType<Uri>()
           .map((url) => CommunityResourceImage(url: url))
           .toList(),
@@ -147,6 +155,10 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
           )
           .toList(),
       files: files,
+      canDownload: !usesCreatorEncryption,
+      downloadRestriction: usesCreatorEncryption
+          ? CommunityResourceDownloadRestriction.astroBoxCreatorEncrypted
+          : CommunityResourceDownloadRestriction.none,
     );
   }
 
@@ -169,6 +181,12 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
   Future<CommunityResourceDownloadResult> download(
     CommunityDownloadRequest request,
   ) async {
+    if (request.resource.downloadRestriction ==
+        CommunityResourceDownloadRestriction.astroBoxCreatorEncrypted) {
+      throw UnsupportedError(
+        'AstroBox Creator Console encrypted resources are not supported',
+      );
+    }
     if (request.file.downloadUrl == null) {
       throw StateError('AstroBox resource file has no download URL');
     }
@@ -294,8 +312,8 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
           ? const []
           : [CommunityResourceAuthor(name: item.repoOwner)],
       supportedDevices: item.devices.toSet(),
-      iconUrl: Uri.tryParse(_resolveAssetUrl(item, item.icon)),
-      coverUrl: Uri.tryParse(_resolveAssetUrl(item, item.cover)),
+      iconUrl: _assetUri(item, item.icon),
+      coverUrl: _assetUri(item, item.cover) ?? _assetUri(item, item.icon),
       publicUrl: _repositoryUrl(item),
       tags: item.tags,
       sourceRepoOwner: item.repoOwner,
@@ -325,6 +343,11 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
       '${_buildRepoRawUrl(item)}/${Uri.encodeComponent(value.trimStartMatches('/'))}',
       cdn,
     );
+  }
+
+  Uri? _assetUri(AstroBoxIndexItem item, String path) {
+    final url = _resolveAssetUrl(item, path);
+    return url.isEmpty ? null : Uri.tryParse(url);
   }
 
   String _resolveDownloadUrl(

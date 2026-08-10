@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/features/messages/application/message_center.dart';
@@ -38,7 +39,8 @@ class InboxPage extends ConsumerWidget {
       body: PageContainer(
         child: state.when(
           loading: () => LoadingView(message: l10n.inboxLoading),
-          error: (error, _) => Center(child: Text(error.toString())),
+          error: (error, _) =>
+              Center(child: Text(localizedErrorMessage(l10n, error))),
           data: (value) => RefreshIndicator(
             onRefresh: () => ref.read(messageCenterProvider.notifier).refresh(),
             child: value.messages.isEmpty

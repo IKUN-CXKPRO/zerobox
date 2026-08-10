@@ -5,6 +5,7 @@
 #include <flutter/flutter_view_controller.h>
 
 #include <memory>
+#include <string>
 
 #include "win32_window.h"
 
@@ -13,6 +14,7 @@ class FlutterWindow : public Win32Window {
  public:
   // Creates a new FlutterWindow hosting a Flutter view running |project|.
   explicit FlutterWindow(const flutter::DartProject& project,
+                         std::string initial_open_path,
                          bool show_on_first_frame = true);
   virtual ~FlutterWindow();
 
@@ -27,6 +29,9 @@ class FlutterWindow : public Win32Window {
   // The project to run.
   flutter::DartProject project_;
   bool show_on_first_frame_;
+
+  // A file opened with OronBox from Explorer, empty when launched normally.
+  std::string initial_open_path_;
 
   // The Flutter instance hosted by this window.
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;

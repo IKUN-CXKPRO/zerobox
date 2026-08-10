@@ -6,6 +6,7 @@
 #endif
 
 #include "classic_spp_channel.h"
+#include "file_open_channel.h"
 #include "flutter/generated_plugin_registrant.h"
 #include "mi_account_2fa_channel.h"
 #include "zeppos_app_settings_channel.h"
@@ -123,6 +124,7 @@ static void my_application_activate(GApplication* application) {
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
   classic_spp_channel_register(fl_engine_get_binary_messenger(fl_view_get_engine(view)));
+  file_open_channel_register(fl_engine_get_binary_messenger(fl_view_get_engine(view)));
   mi_account_2fa_channel_register(
       fl_engine_get_binary_messenger(fl_view_get_engine(view)), overlay);
   zeppos_app_settings_channel_register(
@@ -148,6 +150,31 @@ static gint my_application_command_line(GApplication* application,
 
   g_application_activate(application);
   return 0;
+}
+
+// Implements GApplication::open — invoked when the user opens a file (e.g.
+// double-click in a file manager) with OronBox as the handler. GApplication
+// hands over GFile handles; queue each resolved path for the Flutter side.
+static void my_application_open(GApplication* application, GFile** files,
+                                gint file_count, const gchar* hint) {
+  MyApplication* self = MY_APPLICATION(application);
+  (void)hint;
+
+  // Make sure the main window exists before forwarding the files.
+  GtkWindow* active_window =
+      gtk_application_get_active_window(GTK_APPLICATION(application));
+  if (active_window == nullptr) {
+    g_application_activate(application);
+  }
+
+  for (gint i = 0; i < file_count; i++) {
+    g_autofree gchar* path = g_file_get_path(files[i]);
+    if (path != nullptr) {
+      file_open_channel_queue(path);
+    }
+  }
+  file_open_channel_flush();
+  (void)self;
 }
 
 // Implements GApplication::startup.
@@ -178,6 +205,7 @@ static void my_application_dispose(GObject* object) {
 static void my_application_class_init(MyApplicationClass* klass) {
   G_APPLICATION_CLASS(klass)->activate = my_application_activate;
   G_APPLICATION_CLASS(klass)->command_line = my_application_command_line;
+  G_APPLICATION_CLASS(klass)->open = my_application_open;
   G_APPLICATION_CLASS(klass)->startup = my_application_startup;
   G_APPLICATION_CLASS(klass)->shutdown = my_application_shutdown;
   G_OBJECT_CLASS(klass)->dispose = my_application_dispose;
@@ -192,7 +220,8 @@ MyApplication* my_application_new(gboolean non_unique) {
   // the application to be recognized beyond its binary name.
   g_set_prgname(APPLICATION_ID);
 
-  GApplicationFlags flags = G_APPLICATION_HANDLES_COMMAND_LINE;
+  GApplicationFlags flags = static_cast<GApplicationFlags>(
+      G_APPLICATION_HANDLES_COMMAND_LINE | G_APPLICATION_HANDLES_OPEN);
   if (non_unique) {
     flags = static_cast<GApplicationFlags>(flags | G_APPLICATION_NON_UNIQUE);
   }

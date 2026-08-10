@@ -2,8 +2,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/app/widgets/smooth_linear_progress_indicator.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
 
@@ -54,7 +56,14 @@ class _XiaomiRecordingsPageState extends ConsumerState<XiaomiRecordingsPage> {
         _total = result.length;
       });
     } catch (error) {
-      if (mounted && !_cancelling) setState(() => _error = error.toString());
+      if (mounted && !_cancelling) {
+        setState(
+          () => _error = localizedErrorMessage(
+            AppLocalizations.of(context)!,
+            error,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _syncing = false);
     }
@@ -66,7 +75,14 @@ class _XiaomiRecordingsPageState extends ConsumerState<XiaomiRecordingsPage> {
     try {
       await ref.read(deviceManagerProvider.notifier).cancelRecordingSync();
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(
+          () => _error = localizedErrorMessage(
+            AppLocalizations.of(context)!,
+            error,
+          ),
+        );
+      }
     }
   }
 
@@ -81,7 +97,14 @@ class _XiaomiRecordingsPageState extends ConsumerState<XiaomiRecordingsPage> {
         bytes: recording.data,
       );
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(
+          () => _error = localizedErrorMessage(
+            AppLocalizations.of(context)!,
+            error,
+          ),
+        );
+      }
     }
   }
 
@@ -123,7 +146,7 @@ class _XiaomiRecordingsPageState extends ConsumerState<XiaomiRecordingsPage> {
                     ),
                     if (_syncing) ...[
                       const SizedBox(height: 16),
-                      LinearProgressIndicator(
+                      SmoothLinearProgressIndicator(
                         value: _total == 0 ? null : _completed / _total,
                       ),
                       const SizedBox(height: 8),

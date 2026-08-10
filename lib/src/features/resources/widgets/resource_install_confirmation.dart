@@ -19,7 +19,7 @@ Future<bool> confirmAndEnqueueResourceFile({
   required BuildContext context,
   required WidgetRef ref,
   required XFile file,
-  required LocalDeviceInstallType selectedType,
+  LocalDeviceInstallType? selectedType,
 }) async {
   final fileName = file.name;
   final fileLength = await file.length();
@@ -47,10 +47,10 @@ Future<bool> confirmAndEnqueueResourceFile({
   if (!context.mounted || decision == _InstallDecision.cancel) return false;
 
   final effectiveType = switch (decision) {
-    _InstallDecision.selectedType => selectedType,
+    _InstallDecision.selectedType => selectedType ?? analysis!.type,
     _InstallDecision.detectedType ||
     _InstallDecision.forceDetectedType => analysis!.type,
-    _InstallDecision.cancel => selectedType,
+    _InstallDecision.cancel => selectedType ?? analysis!.type,
   };
   final installMode = switch (decision) {
     _InstallDecision.selectedType => ResourceInstallMode.forceType,
@@ -72,7 +72,7 @@ Future<_InstallDecision> _confirmInstall(
   BuildContext context,
   WidgetRef ref,
   ResourcePayloadAnalysis? analysis, {
-  required LocalDeviceInstallType selectedType,
+  LocalDeviceInstallType? selectedType,
   required String fileName,
   required String fileSize,
 }) async {
@@ -84,14 +84,34 @@ Future<_InstallDecision> _confirmInstall(
           name: device.name,
           codename: device.codename,
         ).kind;
-  final selectedLabel = _typeLabel(
-    l10n,
-    selectedType,
-    platform: deviceKind == DeviceKind.zepp
-        ? ResourcePlatform.zeppOs
-        : ResourcePlatform.vela,
-  );
+  final selectedLabel = selectedType == null
+      ? ''
+      : _typeLabel(
+          l10n,
+          selectedType,
+          platform: deviceKind == DeviceKind.zepp
+              ? ResourcePlatform.zeppOs
+              : ResourcePlatform.vela,
+        );
   if (analysis == null) {
+    if (selectedType == null) {
+      // Opened externally (e.g. "open with OronBox"): nobody picked a type,
+      // so there is nothing to fall back to, just report the unknown file.
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.resourceTypeUnknownTitle),
+          content: Text(l10n.resourceTypeUnknownNoType),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.resourceInstallCancel),
+            ),
+          ],
+        ),
+      );
+      return _InstallDecision.cancel;
+    }
     return await showDialog<_InstallDecision>(
           context: context,
           builder: (context) => AlertDialog(
@@ -154,7 +174,7 @@ Future<_InstallDecision> _confirmInstall(
         _InstallDecision.cancel;
   }
 
-  if (analysis.type != selectedType) {
+  if (selectedType != null && analysis.type != selectedType) {
     final detectedLabel = _typeLabel(
       l10n,
       analysis.type,

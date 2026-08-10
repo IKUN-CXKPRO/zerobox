@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:oronbox/src/core/constants/oronbox_server.dart';
 import 'package:oronbox/src/core/network/app_http_transport.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 
 enum HomeBannerType { resource, blog, link }
 
@@ -34,6 +35,7 @@ class HomeResourceCard {
     required this.summary,
     required this.kind,
     required this.owner,
+    this.paidType = CommunityPaidType.free,
     this.iconUrl,
     this.coverUrl,
     this.previews = const [],
@@ -45,6 +47,7 @@ class HomeResourceCard {
   final String summary;
   final String kind;
   final String owner;
+  final CommunityPaidType paidType;
   final Uri? iconUrl;
   final Uri? coverUrl;
   final List<Uri> previews;
@@ -204,6 +207,7 @@ class OronBoxHomeApi {
     final id = json['id']?.toString() ?? '';
     if (json['resource'] is Map) {
       final resource = (json['resource']! as Map).cast<String, Object?>();
+      final iconUrl = _blobUri(resource['icon_sha256']?.toString() ?? '');
       return HomeSectionCard(
         id: id,
         resource: HomeResourceCard(
@@ -213,8 +217,10 @@ class OronBoxHomeApi {
           summary: resource['summary']?.toString() ?? '',
           kind: resource['kind']?.toString() ?? '',
           owner: resource['owner']?.toString() ?? '',
-          iconUrl: _blobUri(resource['icon_sha256']?.toString() ?? ''),
-          coverUrl: _blobUri(resource['cover_sha256']?.toString() ?? ''),
+          paidType: communityPaidTypeFromWire(resource['paid_type']),
+          iconUrl: iconUrl,
+          coverUrl:
+              _blobUri(resource['cover_sha256']?.toString() ?? '') ?? iconUrl,
           previews: (resource['previews'] as List? ?? const [])
               .map((value) => _blobUri(value.toString()))
               .whereType<Uri>()

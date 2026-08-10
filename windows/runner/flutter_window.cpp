@@ -1,15 +1,20 @@
 #include "flutter_window.h"
 
 #include <optional>
+#include <utility>
 
 #include "classic_spp_channel.h"
+#include "file_open_channel.h"
 #include "flutter/generated_plugin_registrant.h"
 #include "mi_account_2fa_channel.h"
 #include "zeppos_app_settings_channel.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project,
+                             std::string initial_open_path,
                              bool show_on_first_frame)
-    : project_(project), show_on_first_frame_(show_on_first_frame) {}
+    : project_(project),
+      show_on_first_frame_(show_on_first_frame),
+      initial_open_path_(std::move(initial_open_path)) {}
 
 FlutterWindow::~FlutterWindow() {}
 
@@ -30,6 +35,8 @@ bool FlutterWindow::OnCreate() {
   }
   RegisterPlugins(flutter_controller_->engine());
   RegisterRfcommChannel(flutter_controller_->engine()->messenger());
+  RegisterFileOpenChannel(flutter_controller_->engine()->messenger(),
+                          initial_open_path_);
   RegisterMiAccountTwoFactorChannel(flutter_controller_->engine()->messenger(),
                                     GetHandle());
   RegisterZeppOsAppSettingsChannel(flutter_controller_->engine()->messenger(),

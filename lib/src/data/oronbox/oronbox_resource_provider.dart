@@ -37,6 +37,8 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
           'devices': query.selectedDevices.join(','),
         if (query.selectedAttributes.isNotEmpty)
           'attributes': query.selectedAttributes.join(','),
+        if (query.hidePaid) 'hide_paid': '1',
+        if (query.hideForcePaid) 'hide_force_paid': '1',
         if (query.featured) 'featured': '1',
         'sort': query.sort.name,
       },
@@ -162,16 +164,32 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
       '$oronBoxServerBaseUrl/api/collections/${Uri.encodeComponent(id)}',
     );
     final json = _map(response.data);
+    final resources = (json['resources'] as List? ?? const [])
+        .whereType<Map>()
+        .map((value) => _summary(value.cast<String, Object?>()))
+        .toList();
+    final representative = switch (json['representative']) {
+      Map value => _summary(value.cast<String, Object?>()),
+      _ =>
+        resources
+            .where(
+              (resource) =>
+                  resource.ref.id ==
+                  json['representative_resource_id']?.toString(),
+            )
+            .firstOrNull,
+    };
     return OronBoxCollectionDetail(
       id: json['id']?.toString() ?? id,
       name: json['name']?.toString() ?? '',
       summary: json['summary']?.toString() ?? '',
       owner: json['owner']?.toString() ?? '',
       coinCount: (json['coin_count'] as num?)?.toInt() ?? 0,
-      resources: (json['resources'] as List? ?? const [])
-          .whereType<Map>()
-          .map((value) => _summary(value.cast<String, Object?>()))
-          .toList(),
+      type: _parseType(json['kind']?.toString()),
+      representative: representative ?? resources.firstOrNull,
+      resourceCount:
+          (json['resource_count'] as num?)?.toInt() ?? resources.length,
+      resources: resources,
     );
   }
 
@@ -298,6 +316,8 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
     final preview = json['preview_sha256']?.toString() ?? '';
     final icon = json['icon_sha256']?.toString() ?? '';
     final cover = json['cover_sha256']?.toString() ?? '';
+    final iconDigest = icon.isNotEmpty ? icon : preview;
+    final coverDigest = cover.isNotEmpty ? cover : iconDigest;
     final owner = json['owner']?.toString() ?? '';
     final ownerAvatar = Uri.tryParse(
       json['owner_avatar_url']?.toString() ?? '',
@@ -306,7 +326,7 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
       ref: ResourceRef(source: sourceId, id: id),
       name: json['name']?.toString() ?? '',
       type: _parseType(json['kind']?.toString()),
-      paidType: CommunityPaidType.free,
+      paidType: communityPaidTypeFromWire(json['paid_type']),
       authors: [
         if (owner.isNotEmpty)
           CommunityResourceAuthor(
@@ -317,8 +337,8 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
       supportedDevices: (json['devices'] as List? ?? const [])
           .map((value) => value.toString())
           .toSet(),
-      iconUrl: _imageBlobUri(icon.isNotEmpty ? icon : preview),
-      coverUrl: _imageBlobUri(cover.isNotEmpty ? cover : preview),
+      iconUrl: _imageBlobUri(iconDigest),
+      coverUrl: _imageBlobUri(coverDigest),
       summary: json['summary']?.toString() ?? '',
       tags: (json['attributes'] as List? ?? const [])
           .map((value) => value.toString())
@@ -385,6 +405,9 @@ class OronBoxCollectionDetail {
     required this.summary,
     required this.owner,
     required this.coinCount,
+    this.type = CommunityResourceType.quickApp,
+    this.representative,
+    this.resourceCount = 0,
     required this.resources,
   });
 
@@ -393,6 +416,9 @@ class OronBoxCollectionDetail {
   final String summary;
   final String owner;
   final int coinCount;
+  final CommunityResourceType type;
+  final CommunityResource? representative;
+  final int resourceCount;
   final List<CommunityResource> resources;
 }
 

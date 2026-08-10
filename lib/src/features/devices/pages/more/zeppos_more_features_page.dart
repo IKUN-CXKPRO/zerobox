@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
@@ -105,9 +106,13 @@ class _ZeppOsMoreFeaturesPageState
       if (mounted) setState(() => _finding = finding);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            localizedErrorMessage(AppLocalizations.of(context)!, error),
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -123,9 +128,7 @@ class _ZeppOsMoreFeaturesPageState
       appBar: SysAppBar(secondary: true, title: Text(l10n.zeppOsMoreFeatures)),
       body: SegmentedList(
         maxWidth: StyleConstants.pageMaxWidth,
-        contentPadding: const EdgeInsets.only(
-          top: 8,
-        ),
+        contentPadding: const EdgeInsets.only(top: 8),
         sections: [
           SegmentedSection(
             title: Text(l10n.zeppOsDeviceFeaturesSection),
@@ -397,7 +400,7 @@ class _WatchMirror extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  if (frame == null)
+                  if (frame == null && error == null)
                     Positioned.fill(
                       child: SvgPicture.asset(
                         'assets/images/devices/xiaomi-watch.svg',
@@ -407,7 +410,7 @@ class _WatchMirror extends StatelessWidget {
                         ),
                       ),
                     ),
-                  if (frame == null)
+                  if (frame == null && error == null)
                     SizedBox(
                       width: 44,
                       height: 44,
@@ -416,6 +419,11 @@ class _WatchMirror extends StatelessWidget {
                         strokeWidth: 4,
                         strokeCap: StrokeCap.round,
                       ),
+                    ),
+                  if (frame == null && error != null)
+                    _MirrorStatus(
+                      icon: Icons.error_outline,
+                      text: localizedErrorMessage(l10n, error),
                     ),
                   if (frame != null)
                     Positioned.fill(
@@ -433,7 +441,7 @@ class _WatchMirror extends StatelessWidget {
                                 errorBuilder: (_, error, _) => _MirrorStatus(
                                   icon: Icons.broken_image_outlined,
                                   text: l10n.zeppOsScreenMirrorUnsupported(
-                                    error.toString(),
+                                    localizedErrorMessage(l10n, error),
                                   ),
                                 ),
                               ),

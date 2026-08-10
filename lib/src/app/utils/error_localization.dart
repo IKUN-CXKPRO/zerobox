@@ -1,7 +1,130 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/core/errors/coded_error.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+
+/// Error codes understood by the OronBox client.
+///
+/// Keep this list in sync with the server's `errorBody` codes. It is also
+/// used when a code is embedded in a plain exception string.
+const oronBoxKnownErrorCodes = <String>{
+  'admin_coin_failed',
+  'already_exists',
+  'announcement_read_failed',
+  'announcements_read_failed',
+  'attributes_failed',
+  'auth_required',
+  'bandbbs_grant_invalid',
+  'bandbbs_refresh_failed',
+  'bandbbs_scope_forbidden',
+  'banned',
+  'blob_failed',
+  'blob_not_found',
+  'blog_failed',
+  'cancelled',
+  'coin_account_failed',
+  'coin_account_too_new',
+  'coin_balance_insufficient',
+  'coin_checkin_failed',
+  'coin_own_resource',
+  'coin_resource_limit',
+  'coin_status_failed',
+  'coin_vote_failed',
+  'coin_voting_frozen',
+  'collaborations_failed',
+  'collection_failed',
+  'collection_not_found',
+  'collection_review_failed',
+  'collections_failed',
+  'comment_blocked',
+  'comment_create_failed',
+  'comment_delete_failed',
+  'comment_not_found',
+  'comment_rate_limited',
+  'comment_target_not_found',
+  'comments_read_failed',
+  'conflict',
+  'connection_error',
+  'creator_coin_stats_failed',
+  'creator_failed',
+  'creator_frozen',
+  'creator_invalid',
+  'daemon_disconnected',
+  'database_failed',
+  'devices_failed',
+  'document_not_found',
+  'document_read_failed',
+  'feedback_closed',
+  'feedback_create_failed',
+  'feedback_list_failed',
+  'feedback_not_found',
+  'feedback_read_failed',
+  'feedback_reply_failed',
+  'file_too_large',
+  'forbidden',
+  'github_not_configured',
+  'github_oauth_failed',
+  'grants_failed',
+  'home_failed',
+  'host_unavailable',
+  'import_failed',
+  'internal',
+  'invalid_app',
+  'invalid_argument',
+  'invalid_before',
+  'invalid_blob',
+  'invalid_comment',
+  'invalid_flow',
+  'invalid_kind',
+  'invalid_operation',
+  'invalid_refresh_token',
+  'invalid_reply',
+  'invalid_request',
+  'invalid_response',
+  'invalid_target',
+  'invalid_ticket',
+  'invalid_upload',
+  'invalid_url',
+  'list_failed',
+  'message_read_failed',
+  'messages_clear_failed',
+  'messages_read_failed',
+  'moderation_settings_failed',
+  'moderation_unavailable',
+  'network_error',
+  'not_found',
+  'not_installed',
+  'oauth_start_failed',
+  'payload_too_large',
+  'plugin_delete_failed',
+  'plugin_hook_failed',
+  'plugin_invalid',
+  'plugin_error',
+  'plugin_not_found',
+  'plugin_not_owned',
+  'plugin_save_failed',
+  'plugins_failed',
+  'post_not_found',
+  'publish_failed',
+  'quota_exceeded',
+  'r2_unavailable',
+  'rate_limited',
+  'release_not_found',
+  'release_read_failed',
+  'resource_not_found',
+  'service_unavailable',
+  'session_expired',
+  'target_lookup_failed',
+  'token_create_failed',
+  'token_decrypt_failed',
+  'unauthenticated',
+  'unauthorized',
+  'upload_failed',
+  'usage',
+  'unsupported',
+  'validation',
+};
 
 String localizedErrorMessage(AppLocalizations l10n, Object? error) {
   final raw = _flattenError(error);
@@ -15,11 +138,13 @@ String localizedErrorMessage(AppLocalizations l10n, Object? error) {
       return l10n.errorOronBoxSessionExpired;
     case 'auth_required':
     case 'unauthenticated':
+    case 'bandbbs_grant_invalid':
       return l10n.settingsBandBbsAccountRequired;
     case 'forbidden':
     case 'banned':
     case 'creator_frozen':
     case 'bandbbs_scope_forbidden':
+    case 'plugin_not_owned':
     case 'http_403':
       return l10n.errorPermissionDenied;
     case 'not_found':
@@ -29,17 +154,43 @@ String localizedErrorMessage(AppLocalizations l10n, Object? error) {
     case 'feedback_not_found':
     case 'document_not_found':
     case 'blob_not_found':
+    case 'post_not_found':
+    case 'plugin_not_found':
+    case 'release_not_found':
+    case 'comment_target_not_found':
     case 'http_404':
       return l10n.errorContentNotFound;
     case 'conflict':
     case 'already_exists':
+    case 'feedback_closed':
     case 'http_409':
       return l10n.errorRequestConflict;
+    case 'comment_blocked':
+      return l10n.commentBlocked;
+    case 'coin_balance_insufficient':
+      return l10n.errorCoinBalanceInsufficient;
+    case 'coin_resource_limit':
+      return l10n.errorCoinResourceLimit;
+    case 'coin_own_resource':
+      return l10n.errorCoinOwnResource;
+    case 'coin_voting_frozen':
+      return l10n.errorCoinVotingFrozen;
+    case 'coin_account_too_new':
+      return l10n.errorCoinAccountTooNew;
+    case 'coin_vote_failed':
+    case 'coin_checkin_failed':
+    case 'admin_coin_failed':
+    case 'creator_coin_stats_failed':
+      return l10n.errorCoinOperationFailed;
+    case 'coin_status_failed':
+      return l10n.errorCoinStatusUnavailable;
     case 'rate_limited':
-    case 'comment_rate_limited':
-    case 'quota_exceeded':
     case 'http_429':
       return l10n.errorRateLimited;
+    case 'comment_rate_limited':
+      return l10n.commentRateLimited;
+    case 'quota_exceeded':
+      return l10n.errorDownloadQuotaExceeded;
     case 'payload_too_large':
     case 'file_too_large':
     case 'http_413':
@@ -47,6 +198,21 @@ String localizedErrorMessage(AppLocalizations l10n, Object? error) {
     case 'invalid_argument':
     case 'invalid_request':
     case 'creator_invalid':
+    case 'invalid_before':
+    case 'invalid_blob':
+    case 'invalid_comment':
+    case 'invalid_flow':
+    case 'invalid_kind':
+    case 'invalid_reply':
+    case 'invalid_target':
+    case 'invalid_ticket':
+    case 'invalid_upload':
+    case 'invalid_response':
+    case 'invalid_app':
+    case 'invalid_operation':
+    case 'invalid_url':
+    case 'not_installed':
+    case 'unsupported':
     case 'validation':
     case 'usage':
     case 'http_400':
@@ -58,7 +224,21 @@ String localizedErrorMessage(AppLocalizations l10n, Object? error) {
     case 'daemon_disconnected':
       return l10n.errorNetworkUnavailable;
     case 'service_unavailable':
-    case 'moderation_unavailable':
+    case 'coin_account_failed':
+    case 'database_failed':
+    case 'home_failed':
+    case 'blog_failed':
+    case 'list_failed':
+    case 'attributes_failed':
+    case 'collections_failed':
+    case 'collection_failed':
+    case 'devices_failed':
+    case 'announcements_read_failed':
+    case 'announcement_read_failed':
+    case 'document_read_failed':
+    case 'plugins_failed':
+    case 'release_read_failed':
+    case 'grants_failed':
     case 'r2_unavailable':
     case 'http_500':
     case 'http_502':
@@ -67,6 +247,40 @@ String localizedErrorMessage(AppLocalizations l10n, Object? error) {
       return l10n.errorServiceUnavailable;
     case 'cancelled':
       return l10n.errorOperationCancelled;
+    case 'github_not_configured':
+      return l10n.errorGitHubNotConfigured;
+    case 'moderation_unavailable':
+      return l10n.commentModerationUnavailable;
+    case 'bandbbs_refresh_failed':
+    case 'blob_failed':
+    case 'collaborations_failed':
+    case 'collection_review_failed':
+    case 'comment_create_failed':
+    case 'comment_delete_failed':
+    case 'comments_read_failed':
+    case 'feedback_create_failed':
+    case 'feedback_list_failed':
+    case 'feedback_read_failed':
+    case 'feedback_reply_failed':
+    case 'github_oauth_failed':
+    case 'messages_clear_failed':
+    case 'message_read_failed':
+    case 'messages_read_failed':
+    case 'oauth_start_failed':
+    case 'plugin_delete_failed':
+    case 'plugin_hook_failed':
+    case 'plugin_invalid':
+    case 'plugin_error':
+    case 'plugin_save_failed':
+    case 'target_lookup_failed':
+    case 'token_create_failed':
+    case 'token_decrypt_failed':
+    case 'upload_failed':
+    case 'creator_failed':
+    case 'import_failed':
+    case 'publish_failed':
+    case 'internal':
+      return l10n.errorOperationFailed;
   }
 
   if (code == 'unauthorized' &&
@@ -74,6 +288,39 @@ String localizedErrorMessage(AppLocalizations l10n, Object? error) {
           normalized.contains('invalid') ||
           normalized.contains('token'))) {
     return l10n.errorOronBoxSessionExpired;
+  }
+
+  // Raw Dio calls (resource catalogs, home feed, update checks, and similar
+  // APIs) do not all have a feature-specific exception wrapper. Keep their
+  // transport and HTTP failures on the same localized path as command errors.
+  if (error is DioException) {
+    final data = error.response?.data;
+    if (data is Map && data['code']?.toString().trim().isNotEmpty == true) {
+      // Known response codes have already gone through the switch above;
+      // unknown response codes must not fall through to a raw HTTP detail.
+      return l10n.errorUnknown;
+    }
+    final status = error.response?.statusCode;
+    if (status != null) {
+      if (status >= 500) return l10n.errorServiceUnavailable;
+      if (status >= 400) return l10n.errorInvalidRequest;
+    }
+    return switch (error.type) {
+      DioExceptionType.cancel => l10n.errorOperationCancelled,
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.sendTimeout ||
+      DioExceptionType.receiveTimeout => l10n.errorOperationTimeout,
+      DioExceptionType.connectionError => l10n.errorNetworkUnavailable,
+      DioExceptionType.badCertificate =>
+        l10n.errorCertificateVerificationFailed,
+      _ => l10n.errorUnknown,
+    };
+  }
+
+  // Coded backend messages can contain implementation details or sensitive
+  // values. Unknown codes must remain localized instead of being shown raw.
+  if (error is CodedError) {
+    return l10n.errorUnknown;
   }
 
   if (raw == DeviceManager.errorBluetoothUnavailable ||
@@ -121,6 +368,10 @@ String localizedErrorMessage(AppLocalizations l10n, Object? error) {
 
   if (normalized.contains('bluetooth permission is required')) {
     return l10n.errorBluetoothUnavailable;
+  }
+
+  if (_looksLikeCodedErrorText(normalized)) {
+    return l10n.errorUnknown;
   }
 
   if (normalized.contains('timeout') ||
@@ -198,56 +449,33 @@ String localizedErrorMessage(AppLocalizations l10n, Object? error) {
 
 String _errorCode(Object? error, String normalized) {
   if (error is CodedError) return error.code.trim().toLowerCase();
+  if (error is DioException) {
+    final data = error.response?.data;
+    if (data is Map) {
+      final responseCode = data['code']?.toString().trim().toLowerCase();
+      if (responseCode != null && responseCode.isNotEmpty) {
+        return responseCode;
+      }
+    }
+    final status = error.response?.statusCode;
+    if (status != null) return 'http_$status';
+  }
   if (normalized.contains('oronbox session expired')) return 'session_expired';
-  const knownCodes = <String>{
-    'invalid_refresh_token',
-    'session_expired',
-    'auth_required',
-    'unauthenticated',
-    'unauthorized',
-    'forbidden',
-    'banned',
-    'creator_frozen',
-    'bandbbs_scope_forbidden',
-    'not_found',
-    'resource_not_found',
-    'collection_not_found',
-    'comment_not_found',
-    'feedback_not_found',
-    'document_not_found',
-    'blob_not_found',
-    'conflict',
-    'already_exists',
-    'rate_limited',
-    'comment_rate_limited',
-    'quota_exceeded',
-    'payload_too_large',
-    'file_too_large',
-    'invalid_argument',
-    'invalid_request',
-    'creator_invalid',
-    'validation',
-    'usage',
-    'network_error',
-    'connection_error',
-    'host_unavailable',
-    'daemon_disconnected',
-    'service_unavailable',
-    'moderation_unavailable',
-    'r2_unavailable',
-    'cancelled',
-  };
-  for (final code in knownCodes) {
-    if (normalized == code ||
-        normalized.startsWith('$code:') ||
-        normalized.contains('"code":"$code"') ||
-        normalized.contains('"code": "$code"')) {
+  var text = normalized.trim();
+  for (final prefix in const ['exception: ', 'bad state: ']) {
+    if (text.startsWith(prefix)) text = text.substring(prefix.length);
+  }
+  for (final code in oronBoxKnownErrorCodes) {
+    if (text == code ||
+        text.startsWith('$code:') ||
+        text.contains('"code":"$code"') ||
+        text.contains('"code": "$code"')) {
       return code;
     }
   }
   final http = RegExp(
     r'\bhttp[_ ](400|401|403|404|409|413|422|429|500|502|503|504)\b',
-  ).firstMatch(normalized);
+  ).firstMatch(text);
   return http == null ? '' : 'http_${http.group(1)}';
 }
 
@@ -274,4 +502,14 @@ String _trimPlatformNoise(String raw) {
     text = text.substring('Bad state: '.length);
   }
   return text;
+}
+
+bool _looksLikeCodedErrorText(String normalized) {
+  var text = normalized.trim();
+  for (final prefix in const ['exception: ', 'bad state: ']) {
+    if (text.startsWith(prefix)) text = text.substring(prefix.length);
+  }
+  if (text.contains('"code"')) return true;
+  return text.startsWith('internal:') ||
+      RegExp(r'^[a-z][a-z0-9]*(?:_[a-z0-9]+)+\s*:').hasMatch(text);
 }

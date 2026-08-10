@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/core/errors/coded_error.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
 final oronBoxCommentsApiProvider = Provider(
@@ -55,9 +56,15 @@ class OronBoxCommentsApi {
   }
 }
 
-class CommentApiException implements Exception {
+class CommentApiException implements CodedError {
   const CommentApiException(this.code, this.message);
+
+  @override
   final String code, message;
+
+  @override
+  Object? get details => null;
+
   @override
   String toString() => message;
 }

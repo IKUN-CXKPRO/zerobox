@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
 
@@ -94,5 +95,26 @@ void main() {
       'kind': 'quickapp',
     });
     expect(legacy.moderationState, 'visible');
+  });
+
+  test('revision parses payment metadata with a free legacy default', () {
+    final revision = CreatorRevision.fromJson(const {
+      'id': 'revision',
+      'number': 1,
+      'name': 'Resource',
+      'summary': '',
+      'state': 'draft',
+      'paid_type': 'paid',
+    });
+    expect(revision.paidType, CommunityPaidType.paid);
+
+    final legacy = CreatorRevision.fromJson(const {
+      'id': 'legacy',
+      'number': 1,
+      'name': 'Legacy',
+      'summary': '',
+      'state': 'draft',
+    });
+    expect(legacy.paidType, CommunityPaidType.free);
   });
 }

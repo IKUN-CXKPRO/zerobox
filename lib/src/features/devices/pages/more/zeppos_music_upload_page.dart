@@ -5,8 +5,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/app/widgets/smooth_linear_progress_indicator.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/device/core/transport.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_music_upload_system.dart';
@@ -67,9 +69,9 @@ class _DeviceMusicUploadPageState extends ConsumerState<DeviceMusicUploadPage> {
     } catch (error) {
       if (mounted) {
         setState(
-          () => _error = AppLocalizations.of(
-            context,
-          )!.deviceMusicLoadFailed(error.toString()),
+          () => _error = AppLocalizations.of(context)!.deviceMusicLoadFailed(
+            localizedErrorMessage(AppLocalizations.of(context)!, error),
+          ),
         );
       }
     } finally {
@@ -181,7 +183,14 @@ class _DeviceMusicUploadPageState extends ConsumerState<DeviceMusicUploadPage> {
       ).showSnackBar(SnackBar(content: Text(l10n.deviceMusicTransferred)));
       if (widget.xiaomi) await _loadLibrary();
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(
+          () => _error = localizedErrorMessage(
+            AppLocalizations.of(context)!,
+            error,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -373,7 +382,7 @@ class _DeviceMusicUploadPageState extends ConsumerState<DeviceMusicUploadPage> {
                     ],
                     if (_uploading || _progress > 0) ...[
                       const SizedBox(height: 20),
-                      LinearProgressIndicator(value: _progress),
+                      SmoothLinearProgressIndicator(value: _progress),
                       const SizedBox(height: 8),
                       Row(
                         children: [
