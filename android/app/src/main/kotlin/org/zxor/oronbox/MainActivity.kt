@@ -12,7 +12,9 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.Uri
 import android.os.Environment
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -35,6 +37,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.util.UUID
@@ -73,6 +76,14 @@ class MainActivity : FlutterActivity() {
     private var xmsWearableChannel: MethodChannel? = null
     private var fileOpenChannel: MethodChannel? = null
     private var pendingOpenFilePath: String? = null
+    private var pendingWearableLogResult: MethodChannel.Result? = null
+    private val wearableLogExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+
+    companion object {
+        private const val WEARABLE_LOG_DIRECTORY_REQUEST = 0x5A11
+        private const val WEARABLE_LOG_DIRECTORY_PREF = "wearable_log_directory"
+        private const val MAX_WEARABLE_LOG_BYTES = 64 * 1024 * 1024
+    }
 
     private fun startBackgroundService(label: String, mode: String) {
         val intent = Intent(this, BackgroundTaskService::class.java).apply {
@@ -107,6 +118,15 @@ class MainActivity : FlutterActivity() {
             resolveOpenIntent(intent)?.let { path ->
                 pendingOpenFilePath = path
                 channel.invokeMethod("openFile", path)
+            }
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "oronbox/wearable_log",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "scanLatest" -> scanLatestWearableLog(result)
+                else -> result.notImplemented()
             }
         }
         xmsWearableChannel = MethodChannel(
@@ -380,6 +400,159 @@ class MainActivity : FlutterActivity() {
         }
 
         requestBluetoothPermissionsIfNeeded()
+    }
+
+    private fun scanLatestWearableLog(result: MethodChannel.Result) {
+        val saved = getPreferences(Context.MODE_PRIVATE)
+            .getString(WEARABLE_LOG_DIRECTORY_PREF, null)
+        if (saved == null) {
+            requestWearableLogDirectory(result)
+            return
+        }
+        readLatestWearableLog(Uri.parse(saved), result, retryPermission = true)
+    }
+
+    private fun requestWearableLogDirectory(result: MethodChannel.Result) {
+        if (pendingWearableLogResult != null) {
+            result.error("BUSY", "A wearable log scan is already running", null)
+            return
+        }
+        pendingWearableLogResult = result
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+            addFlags(
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION,
+            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                putExtra(
+                    DocumentsContract.EXTRA_INITIAL_URI,
+                    Uri.parse(
+                        "content://com.android.externalstorage.documents/document/" +
+                            "primary%3ADownload%2Fwearablelog",
+                    ),
+                )
+            }
+        }
+        startActivityForResult(intent, WEARABLE_LOG_DIRECTORY_REQUEST)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != WEARABLE_LOG_DIRECTORY_REQUEST) return
+        val result = pendingWearableLogResult ?: return
+        pendingWearableLogResult = null
+        val treeUri = data?.data
+        if (resultCode != RESULT_OK || treeUri == null) {
+            result.error("CANCELLED", "Wearable log directory selection cancelled", null)
+            return
+        }
+        try {
+            contentResolver.takePersistableUriPermission(
+                treeUri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
+            getPreferences(Context.MODE_PRIVATE)
+                .edit()
+                .putString(WEARABLE_LOG_DIRECTORY_PREF, treeUri.toString())
+                .apply()
+            readLatestWearableLog(treeUri, result, retryPermission = false)
+        } catch (error: Exception) {
+            result.error("READ_FAILED", error.message, null)
+        }
+    }
+
+    private fun readLatestWearableLog(
+        treeUri: Uri,
+        result: MethodChannel.Result,
+        retryPermission: Boolean,
+    ) {
+        wearableLogExecutor.execute {
+            try {
+                val documentId = DocumentsContract.getTreeDocumentId(treeUri)
+                val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
+                    treeUri,
+                    documentId,
+                )
+                var latestId: String? = null
+                var latestName: String? = null
+                var latestModified = Long.MIN_VALUE
+                val projection = arrayOf(
+                    DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                    DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+                    DocumentsContract.Document.COLUMN_SIZE,
+                )
+                contentResolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
+                    val idColumn = cursor.getColumnIndexOrThrow(
+                        DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                    )
+                    val nameColumn = cursor.getColumnIndexOrThrow(
+                        DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                    )
+                    val modifiedColumn = cursor.getColumnIndexOrThrow(
+                        DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+                    )
+                    val sizeColumn = cursor.getColumnIndexOrThrow(
+                        DocumentsContract.Document.COLUMN_SIZE,
+                    )
+                    while (cursor.moveToNext()) {
+                        val name = cursor.getString(nameColumn) ?: continue
+                        if (!name.lowercase().endsWith("log.zip")) continue
+                        val size = if (cursor.isNull(sizeColumn)) 0 else cursor.getLong(sizeColumn)
+                        if (size > MAX_WEARABLE_LOG_BYTES) continue
+                        val modified = if (cursor.isNull(modifiedColumn)) 0 else {
+                            cursor.getLong(modifiedColumn)
+                        }
+                        if (
+                            latestId == null ||
+                            modified > latestModified ||
+                            modified == latestModified && name > (latestName ?: "")
+                        ) {
+                            latestId = cursor.getString(idColumn)
+                            latestName = name
+                            latestModified = modified
+                        }
+                    }
+                }
+                val id = latestId
+                    ?: throw IOException("No wearable log ZIP was found")
+                val fileUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, id)
+                val bytes = contentResolver.openInputStream(fileUri)?.use { input ->
+                    val output = ByteArrayOutputStream()
+                    val buffer = ByteArray(64 * 1024)
+                    var total = 0
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        total += count
+                        if (total > MAX_WEARABLE_LOG_BYTES) {
+                            throw IOException("Wearable log ZIP is too large")
+                        }
+                        output.write(buffer, 0, count)
+                    }
+                    output.toByteArray()
+                } ?: throw IOException("Unable to open wearable log ZIP")
+                mainHandler.post {
+                    result.success(mapOf("name" to latestName, "bytes" to bytes))
+                }
+            } catch (error: SecurityException) {
+                mainHandler.post {
+                    if (retryPermission) {
+                        getPreferences(Context.MODE_PRIVATE)
+                            .edit()
+                            .remove(WEARABLE_LOG_DIRECTORY_PREF)
+                            .apply()
+                        requestWearableLogDirectory(result)
+                    } else {
+                        result.error("READ_FAILED", error.message, null)
+                    }
+                }
+            } catch (error: Exception) {
+                mainHandler.post {
+                    result.error("READ_FAILED", error.message, null)
+                }
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -1062,6 +1235,9 @@ class MainActivity : FlutterActivity() {
         closeZeppSettings(notify = false)
         stopSppScan()
         sendExecutor.shutdownNow()
+        wearableLogExecutor.shutdownNow()
+        pendingWearableLogResult?.error("CANCELLED", "Activity destroyed", null)
+        pendingWearableLogResult = null
         super.onDestroy()
     }
 }

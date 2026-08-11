@@ -312,6 +312,7 @@ class _TextField extends StatefulWidget {
 class _TextFieldState extends State<_TextField> {
   late final TextEditingController _ctrl;
   late final FocusNode _focus;
+  late String _lastEmittedValue;
 
   @override
   void initState() {
@@ -319,6 +320,7 @@ class _TextFieldState extends State<_TextField> {
     _ctrl = TextEditingController(
       text: widget.props['value']?.toString() ?? '',
     );
+    _lastEmittedValue = _ctrl.text;
     _focus = FocusNode()..addListener(_onBlur);
   }
 
@@ -328,13 +330,20 @@ class _TextFieldState extends State<_TextField> {
     if (!_focus.hasFocus) {
       final newValue = widget.props['value']?.toString() ?? '';
       if (_ctrl.text != newValue) _ctrl.text = newValue;
+      _lastEmittedValue = newValue;
     }
+  }
+
+  void _emitChange(String value) {
+    if (value == _lastEmittedValue) return;
+    _lastEmittedValue = value;
+    final cb = widget.props['onChange']?.toString() ?? '';
+    if (cb.isNotEmpty) widget.onInvoke(cb, value);
   }
 
   void _onBlur() {
     if (!_focus.hasFocus) {
-      final cb = widget.props['onChange']?.toString() ?? '';
-      if (cb.isNotEmpty) widget.onInvoke(cb, _ctrl.text);
+      _emitChange(_ctrl.text);
     }
   }
 
@@ -355,6 +364,7 @@ class _TextFieldState extends State<_TextField> {
       child: TextField(
         controller: _ctrl,
         focusNode: _focus,
+        onChanged: _emitChange,
         maxLines: multiline ? null : 1,
         decoration: placeholder != null
             ? InputDecoration(

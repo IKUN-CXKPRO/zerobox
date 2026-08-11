@@ -55,14 +55,15 @@ void RegisterFileAssociations() {
   if (::GetModuleFileNameW(nullptr, executable_path, MAX_PATH) == 0) {
     return;
   }
-  const wchar_t *extensions[] = {L".rpk", L".bin", L".face",
-                                 L".zpk", L".mwz"};
+  const wchar_t *extensions[] = {L".rpk", L".bin", L".face", L".zpk",
+                                 L".mwz", L".obp", L".abp"};
   const wchar_t *descriptions[] = {
       L"OronBox RPK Package", L"OronBox Firmware", L"OronBox Watchface",
-      L"OronBox ZPK Package", L"OronBox MWZ Project"};
+      L"OronBox ZPK Package", L"OronBox MWZ Project",
+      L"OronBox Plugin Package", L"AstroBox Plugin Package"};
   const std::wstring command =
       L"\"" + std::wstring(executable_path) + L"\" \"%1\"";
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 7; i++) {
     std::wstring class_name =
         std::wstring(L"OronBox.") + (extensions[i] + 1);
     HKEY class_key = nullptr;
@@ -115,7 +116,8 @@ std::string FilePathFromArguments(
                    [](unsigned char value) {
                      return static_cast<char>(std::tolower(value));
                    });
-    for (const char *extension : {".rpk", ".bin", ".face", ".zpk", ".mwz"}) {
+    for (const char *extension : {".rpk", ".bin", ".face", ".zpk", ".mwz",
+                                  ".obp", ".abp"}) {
       if (lower.size() >= strlen(extension) &&
           lower.compare(lower.size() - strlen(extension), strlen(extension),
                         extension) == 0) {

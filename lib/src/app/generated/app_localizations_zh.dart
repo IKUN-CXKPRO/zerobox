@@ -1786,6 +1786,29 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsMiAccountLoginAndSync => '登录并同步';
 
   @override
+  String get settingsMiAccountLogInvalid => '无法读取该小米运动健康日志';
+
+  @override
+  String get settingsMiAccountLogNoDevices => '日志中未找到包含完整 MAC 和 authkey 的设备';
+
+  @override
+  String get settingsWearableLogSync => '读取运动健康日志';
+
+  @override
+  String get settingsWearableLogGuide =>
+      '打开 小米运动健康\n“我的”页面底部“关于”\n连续狂点橙色圆环 logo 图标\n在弹出的对话框点击“确认”\n等待 toast 提示 log has been...\n回到此处点击扫描';
+
+  @override
+  String settingsWearableLogFound(int count) {
+    return '识别到 $count 个设备，点击以导入';
+  }
+
+  @override
+  String settingsWearableLogImportedDevice(Object name) {
+    return '已导入 $name';
+  }
+
+  @override
   String get settingsMiAccountMissingCredentials => '请输入小米账号和密码';
 
   @override

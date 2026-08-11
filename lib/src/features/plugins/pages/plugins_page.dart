@@ -30,6 +30,7 @@ class PluginsPage extends ConsumerStatefulWidget {
 }
 
 class _PluginsPageState extends ConsumerState<PluginsPage> {
+  StreamSubscription<CommandEvent>? _events;
   var _plugins = <Map<String, Object?>>[];
   var _loading = true;
   var _query = '';
@@ -46,7 +47,16 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
   @override
   void initState() {
     super.initState();
+    _events = ref.read(applicationHostProvider).events.listen((event) {
+      if (event.event == 'plugin.state') unawaited(_load());
+    });
     _load();
+  }
+
+  @override
+  void dispose() {
+    _events?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {

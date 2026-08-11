@@ -1,9 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math' as math;
-import 'dart:typed_data';
 
-import 'package:desktop_drop/desktop_drop.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:segmented_list/segmented_list.dart';
 import 'package:file_picker/file_picker.dart';
@@ -15,7 +12,6 @@ import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
-import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/core/models/device.dart';
@@ -23,15 +19,10 @@ import 'package:oronbox/src/core/utils/layout.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/devices/widgets/device_connection_text.dart';
-import 'package:oronbox/src/features/plugins/domain/plugin_package.dart';
-import 'package:oronbox/src/features/plugins/widgets/plugin_install_confirmation.dart';
 import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
 import 'package:oronbox/src/features/resources/widgets/resource_install_confirmation.dart';
 import 'package:oronbox/src/features/devices/pages/install/local_file_picker_policy.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
-import 'package:oronbox/src/host/application_host_provider.dart';
-
-enum _DroppedPluginResult { notPlugin, handled }
 
 class DevicesPage extends ConsumerStatefulWidget {
   const DevicesPage({super.key});
@@ -41,72 +32,8 @@ class DevicesPage extends ConsumerStatefulWidget {
 }
 
 class _DevicesPageState extends ConsumerState<DevicesPage> {
-  bool _dragging = false;
   bool _syncingTime = false;
   String? _lastErrorToast;
-
-  Future<_DroppedPluginResult> _installDroppedPlugin(XFile file) async {
-    final extension = file.name.split('.').last.toLowerCase();
-    if (!const {'obp', 'abp', 'zip'}.contains(extension)) {
-      return _DroppedPluginResult.notPlugin;
-    }
-
-    late final Uint8List bytes;
-    late final PluginPackage package;
-    try {
-      bytes = await file.readAsBytes();
-      package = const PluginPackageReader().read(bytes);
-    } catch (error) {
-      if (extension == 'zip') return _DroppedPluginResult.notPlugin;
-      rethrow;
-    }
-
-    final host = ref.read(applicationHostProvider);
-    final listResult = await host.execute(
-      const OronBoxCommand(
-        method: 'plugin.list',
-        params: {'includeIcons': false},
-      ),
-    );
-    if (!listResult.ok) {
-      throw StateError(
-        '${listResult.error!.code}: ${listResult.error!.message}',
-      );
-    }
-    final manifest = package.manifest;
-    final updating = (listResult.value as List? ?? const [])
-        .whereType<Map>()
-        .any((plugin) => plugin['id']?.toString() == manifest.id);
-    if (!mounted ||
-        !await confirmPluginInstall(
-          context: context,
-          name: manifest.name,
-          permissions: manifest.permissions,
-          updating: updating,
-          legacy: manifest.runtime == PluginRuntimeType.legacy,
-        )) {
-      return _DroppedPluginResult.handled;
-    }
-
-    final installResult = await host.execute(
-      OronBoxCommand(
-        method: 'plugin.install',
-        params: {'bytes': base64Encode(bytes), 'includeIcon': false},
-      ),
-    );
-    if (!installResult.ok) {
-      throw StateError(
-        '${installResult.error!.code}: ${installResult.error!.message}',
-      );
-    }
-    if (mounted) {
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${manifest.name}: ${l10n.pluginInstalled}')),
-      );
-    }
-    return _DroppedPluginResult.handled;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -161,189 +88,101 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
       }
     }
 
-    return DropTarget(
-      onDragEntered: (_) => setState(() => _dragging = true),
-      onDragExited: (_) => setState(() => _dragging = false),
-      onDragDone: (detail) async {
-        setState(() => _dragging = false);
-        final files = detail.files
-            .where((file) => file.path.isNotEmpty)
-            .toList();
-        if (files.isEmpty) return;
-        var enqueued = 0;
-        for (final file in files) {
-          if (!context.mounted) return;
-          try {
-            if (await _installDroppedPlugin(file) ==
-                _DroppedPluginResult.handled) {
-              continue;
-            }
-            if (!context.mounted) return;
-            if (await confirmAndEnqueueResourceFile(
-              context: context,
-              ref: ref,
-              file: file,
-            )) {
-              enqueued++;
-            }
-          } catch (error) {
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(localizedErrorMessage(l10n, error))),
-            );
-          }
-        }
-        if (!context.mounted || enqueued == 0) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.queueAddedFiles(enqueued))));
-      },
-      child: Scaffold(
-        appBar: SysAppBar(
-          title: Text(l10n.devicesTab),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: state.connecting || device == null
-                  ? null
-                  : refreshOrReconnect,
-              tooltip: device?.disconnected ?? true
-                  ? l10n.deviceReconnect
-                  : l10n.refresh,
-            ),
-          ],
-        ),
-        body: Stack(
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isWide = useWideLayout(constraints.maxWidth);
-                final isZeppOs =
-                    (device?.codename?.startsWith('zepp:') ?? false) ||
-                    (device != null &&
-                        zeppOsDeviceForBluetoothName(device.name) != null);
-                final infoPanel = _DeviceInfoPanel(
-                  compact: !isWide,
-                  showMetrics: false,
-                  device: device,
-                  isZeppOs: isZeppOs,
-                  isReady: isReady,
-                  connectionState: state,
-                  battery: state.battery,
-                  storage: state.systemInfo?.storageInfo,
-                  uploadBytesPerSecond: state.uploadBytesPerSecond,
-                  downloadBytesPerSecond: state.downloadBytesPerSecond,
-                  onReconnect: reconnectCurrent,
-                  onCancelConnect: () =>
-                      ref.read(deviceManagerProvider.notifier).cancelConnect(),
-                  onSwitch: () {
-                    context.push('/devices/switch');
-                  },
-                  onSyncTime: () {
-                    unawaited(syncCurrentTime());
-                  },
-                  syncingTime: _syncingTime,
-                );
-                final featuresPanel = _DeviceFeaturesPanel(
-                  compact: !isWide,
-                  showInstall: false,
-                  enabled: isReady,
-                  hasDevice: device != null,
-                  isZeppOs: isZeppOs,
-                );
+    return Scaffold(
+      appBar: SysAppBar(
+        title: Text(l10n.devicesTab),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: state.connecting || device == null
+                ? null
+                : refreshOrReconnect,
+            tooltip: device?.disconnected ?? true
+                ? l10n.deviceReconnect
+                : l10n.refresh,
+          ),
+        ],
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = useWideLayout(constraints.maxWidth);
+          final isZeppOs =
+              (device?.codename?.startsWith('zepp:') ?? false) ||
+              (device != null &&
+                  zeppOsDeviceForBluetoothName(device.name) != null);
+          final infoPanel = _DeviceInfoPanel(
+            compact: !isWide,
+            showMetrics: false,
+            device: device,
+            isZeppOs: isZeppOs,
+            isReady: isReady,
+            connectionState: state,
+            battery: state.battery,
+            storage: state.systemInfo?.storageInfo,
+            uploadBytesPerSecond: state.uploadBytesPerSecond,
+            downloadBytesPerSecond: state.downloadBytesPerSecond,
+            onReconnect: reconnectCurrent,
+            onCancelConnect: () =>
+                ref.read(deviceManagerProvider.notifier).cancelConnect(),
+            onSwitch: () {
+              context.push('/devices/switch');
+            },
+            onSyncTime: () {
+              unawaited(syncCurrentTime());
+            },
+            syncingTime: _syncingTime,
+          );
+          final featuresPanel = _DeviceFeaturesPanel(
+            compact: !isWide,
+            showInstall: false,
+            enabled: isReady,
+            hasDevice: device != null,
+            isZeppOs: isZeppOs,
+          );
 
-                return PageContainer(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isWide ? StyleConstants.pagePadding : 0,
-                  ),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        infoPanel,
-                        const SizedBox(height: StyleConstants.sectionSpacing),
-                        _DeviceStatusGrid(
-                          compact: !isWide,
-                          showStorage: !isZeppOs,
-                          enabled: isReady,
-                          battery: state.battery,
-                          storage: state.systemInfo?.storageInfo,
-                          appCount: state.apps
-                              .where(
-                                (app) => !app.packageName.startsWith(
-                                  'com.xiaomi.miwear.',
-                                ),
-                              )
-                              .length,
-                          watchfaceCount: state.watchfaces.length,
-                          onManageApps: () => context.push('/devices/apps'),
-                          onManageWatchfaces: () =>
-                              context.push('/devices/watchfaces'),
-                          onInstallApp: () => _pickAndEnqueueResource(
-                            context,
-                            ref,
-                            LocalDeviceInstallType.app,
-                          ),
-                          onInstallWatchface: () => _pickAndEnqueueResource(
-                            context,
-                            ref,
-                            LocalDeviceInstallType.watchface,
-                          ),
-                        ),
-                        const SizedBox(height: StyleConstants.sectionSpacing),
-                        featuresPanel,
-                      ],
-                    ),
-                  ),
-                );
-              },
+          return PageContainer(
+            padding: EdgeInsets.symmetric(
+              horizontal: isWide ? StyleConstants.pagePadding : 0,
             ),
-            if (_dragging)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(
-                      StyleConstants.cardRadius,
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  infoPanel,
+                  const SizedBox(height: StyleConstants.sectionSpacing),
+                  _DeviceStatusGrid(
+                    compact: !isWide,
+                    showStorage: !isZeppOs,
+                    enabled: isReady,
+                    battery: state.battery,
+                    storage: state.systemInfo?.storageInfo,
+                    appCount: state.apps
+                        .where(
+                          (app) =>
+                              !app.packageName.startsWith('com.xiaomi.miwear.'),
+                        )
+                        .length,
+                    watchfaceCount: state.watchfaces.length,
+                    onManageApps: () => context.push('/devices/apps'),
+                    onManageWatchfaces: () =>
+                        context.push('/devices/watchfaces'),
+                    onInstallApp: () => _pickAndEnqueueResource(
+                      context,
+                      ref,
+                      LocalDeviceInstallType.app,
                     ),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.12),
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(
-                          StyleConstants.cardRadius,
-                        ),
-                      ),
-                      child: Center(
-                        child: Card(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 16,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.upload_file,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(l10n.queueDragToInstall),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+                    onInstallWatchface: () => _pickAndEnqueueResource(
+                      context,
+                      ref,
+                      LocalDeviceInstallType.watchface,
                     ),
                   ),
-                ),
+                  const SizedBox(height: StyleConstants.sectionSpacing),
+                  featuresPanel,
+                ],
               ),
-          ],
-        ),
+            ),
+          );
+        },
       ),
     );
   }

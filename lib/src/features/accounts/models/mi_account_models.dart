@@ -44,8 +44,11 @@ class MiCloudDevice {
     return MiCloudDevice(
       name: json['name']?.toString() ?? '',
       model: json['model']?.toString() ?? '',
-      mac: detail['mac']?.toString() ?? '',
-      authKey: detail['encrypt_key']?.toString() ?? '',
+      mac: detail['mac']?.toString() ?? detail['mac_address']?.toString() ?? '',
+      authKey:
+          detail['encrypt_key']?.toString() ??
+          detail['auth_key']?.toString() ??
+          '',
       firmwareVersion: detail['fw_ver']?.toString() ?? '',
       serialNumber: detail['sn']?.toString() ?? '',
     );

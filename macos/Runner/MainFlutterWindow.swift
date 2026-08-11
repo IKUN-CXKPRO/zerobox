@@ -33,7 +33,7 @@ class MainFlutterWindow: NSWindow {
     fileChannel.setMethodCallHandler { call, result in
       switch call.method {
       case "getInitialFile":
-        result(AppDelegate.takePendingOpenPath())
+        result(AppDelegate.activateFileOpenDelivery())
       default:
         result(FlutterMethodNotImplemented)
       }

@@ -1868,6 +1868,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsMiAccountLoginAndSync => 'Sign in and sync';
 
   @override
+  String get settingsMiAccountLogInvalid =>
+      'Unable to read this Xiaomi Fitness log';
+
+  @override
+  String get settingsMiAccountLogNoDevices =>
+      'No device with a complete MAC and authkey was found in the log';
+
+  @override
+  String get settingsWearableLogSync => 'Read Xiaomi Fitness log';
+
+  @override
+  String get settingsWearableLogGuide =>
+      'Open Xiaomi Fitness\nGo to About at the bottom of the Profile page\nRepeatedly tap the orange ring logo\nTap Confirm in the dialog\nWait for the log has been... toast\nReturn here and tap Scan';
+
+  @override
+  String settingsWearableLogFound(int count) {
+    return 'Found $count devices, tap one to import';
+  }
+
+  @override
+  String settingsWearableLogImportedDevice(Object name) {
+    return 'Imported $name';
+  }
+
+  @override
   String get settingsMiAccountMissingCredentials =>
       'Enter your Xiaomi account and password';
 

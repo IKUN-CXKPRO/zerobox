@@ -90,4 +90,29 @@ void main() {
 
     expect(values, <Object?>[true, true]);
   });
+
+  testWidgets('publishes text changes before the field loses focus', (
+    tester,
+  ) async {
+    final values = <Object?>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: PluginUITree(
+            root: {
+              'type': 'TextField',
+              'props': {'onChange': 'change', 'placeholder': 'city'},
+            },
+            onInvoke: (id, [value]) async => values.add(value),
+          ),
+        ),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), '北京');
+
+    expect(values, <Object?>['北京']);
+  });
 }

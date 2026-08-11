@@ -871,6 +871,24 @@
   "settingsMiAccountPassword": "密码",
   "settingsMiAccountRememberCredentials": "记住账号密码",
   "settingsMiAccountLoginAndSync": "登录并同步",
+  "settingsMiAccountLogInvalid": "无法读取该小米运动健康日志",
+  "settingsMiAccountLogNoDevices": "日志中未找到包含完整 MAC 和 authkey 的设备",
+  "settingsWearableLogSync": "读取运动健康日志",
+  "settingsWearableLogGuide": "打开 小米运动健康\n“我的”页面底部“关于”\n连续狂点橙色圆环 logo 图标\n在弹出的对话框点击“确认”\n等待 toast 提示 log has been...\n回到此处点击扫描",
+  "settingsWearableLogFound": "识别到 {count} 个设备，点击以导入",
+  "@settingsWearableLogFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsWearableLogImportedDevice": "已导入 {name}",
+  "@settingsWearableLogImportedDevice": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "settingsMiAccountMissingCredentials": "请输入小米账号和密码",
   "settingsMiAccountTwoFactorPrompt": "请在验证页面完成小米账号二次验证",
   "settingsMiAccountLoginWindowClosed": "登录窗口已关闭",

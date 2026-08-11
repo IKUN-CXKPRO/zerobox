@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -20,6 +21,9 @@ import 'package:oronbox/src/core/logging/file_log_sink.dart';
 import 'package:oronbox/src/core/services/build_info_service.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
+import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
+import 'package:oronbox/src/features/accounts/services/mi_account_service.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/settings/services/oronbox_support_api.dart';
 import 'package:oronbox/src/features/settings/widgets/update_download_dialog.dart';
 
@@ -397,6 +401,7 @@ class RuntimeLogsPage extends ConsumerStatefulWidget {
 }
 
 class _RuntimeLogsPageState extends ConsumerState<RuntimeLogsPage> {
+  static const _wearableLogChannel = MethodChannel('oronbox/wearable_log');
   var _size = 0;
   var _busy = false;
   var _files = const <LogFileInfo>[];
@@ -580,6 +585,178 @@ class _RuntimeLogsPageState extends ConsumerState<RuntimeLogsPage> {
     }
   }
 
+  Future<void> _syncFromWearableLog() async {
+    final l10n = AppLocalizations.of(context)!;
+    List<MiCloudDevice>? devices;
+    var scanning = false;
+    String? error;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> scan() async {
+            setDialogState(() {
+              scanning = true;
+              error = null;
+            });
+            try {
+              final value = await _wearableLogChannel
+                  .invokeMapMethod<String, Object?>('scanLatest');
+              final rawBytes = value?['bytes'];
+              final bytes = switch (rawBytes) {
+                Uint8List value => value,
+                List value => Uint8List.fromList(
+                  value.whereType<num>().map((item) => item.toInt()).toList(),
+                ),
+                _ => null,
+              };
+              if (bytes == null) {
+                throw const FormatException('Missing wearable log data');
+              }
+              final found = await compute(
+                extractMiDevicesFromWearableLogZip,
+                bytes,
+              );
+              found.sort((a, b) => a.name.compareTo(b.name));
+              if (!dialogContext.mounted) return;
+              setDialogState(() {
+                scanning = false;
+                devices = found;
+                error = found.isEmpty
+                    ? l10n.settingsMiAccountLogNoDevices
+                    : null;
+              });
+            } on PlatformException catch (exception) {
+              if (!dialogContext.mounted) return;
+              setDialogState(() {
+                scanning = false;
+                if (exception.code != 'CANCELLED') {
+                  error = l10n.settingsMiAccountLogInvalid;
+                }
+              });
+            } catch (_) {
+              if (!dialogContext.mounted) return;
+              setDialogState(() {
+                scanning = false;
+                error = l10n.settingsMiAccountLogInvalid;
+              });
+            }
+          }
+
+          Future<void> importDevice(MiCloudDevice device) async {
+            final count = await ref
+                .read(deviceManagerProvider.notifier)
+                .importMiCloudDevices([device]);
+            if (!dialogContext.mounted || count == 0) return;
+            ScaffoldMessenger.of(dialogContext).showSnackBar(
+              SnackBar(
+                content: Text(
+                  l10n.settingsWearableLogImportedDevice(
+                    device.name.isEmpty ? device.model : device.name,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          return AlertDialog(
+            title: Text(l10n.settingsWearableLogSync),
+            content: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 460,
+                maxHeight: MediaQuery.sizeOf(context).height * 0.6,
+              ),
+              child: devices == null
+                  ? SingleChildScrollView(
+                      child: Text(
+                        error ?? l10n.settingsWearableLogGuide,
+                        style: error == null
+                            ? null
+                            : TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                      ),
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(l10n.settingsWearableLogFound(devices!.length)),
+                        const SizedBox(height: 12),
+                        if (devices!.isEmpty)
+                          Text(
+                            error ?? l10n.settingsMiAccountLogNoDevices,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          )
+                        else
+                          Flexible(
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: devices!.length,
+                              separatorBuilder: (_, _) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final device = devices![index];
+                                return InkWell(
+                                  onTap: () => importDevice(device),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 10,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          device.name.isEmpty
+                                              ? device.model
+                                              : device.name,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          [
+                                            if (device.model.isNotEmpty)
+                                              device.model,
+                                            device.mac,
+                                          ].join('\n'),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodySmall,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: scanning ? null : () => Navigator.pop(dialogContext),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: scanning ? null : scan,
+                child: scanning
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(l10n.scan),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   Future<void> _openDirectory() async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
@@ -656,6 +833,13 @@ class _RuntimeLogsPageState extends ConsumerState<RuntimeLogsPage> {
                           icon: const Icon(Icons.watch_outlined),
                           label: Text(l10n.settingsDeviceLogsPull),
                         ),
+                        if (!kIsWeb &&
+                            defaultTargetPlatform == TargetPlatform.android)
+                          FilledButton.tonalIcon(
+                            onPressed: _busy ? null : _syncFromWearableLog,
+                            icon: const Icon(Icons.folder_zip_outlined),
+                            label: Text(l10n.settingsWearableLogSync),
+                          ),
                         OutlinedButton.icon(
                           onPressed: _busy ? null : _clear,
                           icon: const Icon(Icons.delete_outline),

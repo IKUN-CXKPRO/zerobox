@@ -2,12 +2,99 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/core/network/app_http_transport.dart';
 import 'package:oronbox/src/core/network/dio_provider.dart';
 import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
+
+/// Extracts bound-device credentials from a Xiaomi Fitness wearable-log ZIP.
+///
+/// Xiaomi devices expose the device key as `encrypt_key`, while Huami devices
+/// use `auth_key`. Only complete source-list records with a valid MAC and a
+/// 16-byte hexadecimal key are returned; account-cookie `auth_key` values are
+/// therefore ignored.
+List<MiCloudDevice> extractMiDevicesFromWearableLogZip(List<int> bytes) {
+  const maxArchiveBytes = 64 * 1024 * 1024;
+  const maxLogBytes = 32 * 1024 * 1024;
+  const maxTotalLogBytes = 128 * 1024 * 1024;
+  if (bytes.isEmpty || bytes.length > maxArchiveBytes) {
+    throw const FormatException('Invalid or oversized wearable log archive');
+  }
+
+  final archive = ZipDecoder().decodeBytes(bytes);
+  final candidates = <String, MiCloudDevice>{};
+  var totalLogBytes = 0;
+  final recordPattern = RegExp(
+    r'\{"sid":"(?:\\.|[^"])*".*?"detail":\{[^{}]*\}\}',
+    dotAll: true,
+  );
+  final responsePattern = RegExp(
+    r'provideHttpLog:\s*(\{"code":0.*"result":\{"list":\[.*\]\}\})',
+  );
+  final keyPattern = RegExp(r'^[0-9a-fA-F]{32}$');
+  final macPattern = RegExp(r'^(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$');
+
+  void addRecord(Map<dynamic, dynamic> value) {
+    final device = MiCloudDevice.fromJson(value.cast<String, dynamic>());
+    final mac = device.mac.trim().toUpperCase();
+    final authKey = device.authKey.trim().toLowerCase();
+    if (!macPattern.hasMatch(mac) || !keyPattern.hasMatch(authKey)) return;
+    candidates[mac] = MiCloudDevice(
+      name: device.name.trim(),
+      model: device.model.trim(),
+      mac: mac,
+      authKey: authKey,
+      firmwareVersion: device.firmwareVersion.trim(),
+      serialNumber: device.serialNumber.trim(),
+    );
+  }
+
+  for (final file in archive.files) {
+    if (!file.isFile) continue;
+    final name = file.name.split(RegExp(r'[/\\]')).last;
+    if (!RegExp(
+      r'^XiaomiFit\.(?:device|main)\.log(?:\.bak\.\d+)?$',
+    ).hasMatch(name)) {
+      continue;
+    }
+    if (file.size > maxLogBytes) continue;
+    totalLogBytes += file.size;
+    if (totalLogBytes > maxTotalLogBytes) {
+      throw const FormatException('Wearable log archive is too large');
+    }
+
+    final content = file.readBytes();
+    if (content == null) continue;
+    final log = utf8.decode(content, allowMalformed: true);
+    for (final match in responsePattern.allMatches(log)) {
+      try {
+        final value = jsonDecode(match.group(1)!);
+        List? list;
+        if (value is Map && value['result'] is Map) {
+          list = (value['result'] as Map)['list'] as List?;
+        }
+        for (final record in list ?? const []) {
+          if (record is Map) addRecord(record);
+        }
+      } on FormatException {
+        // Fall through to individual-record recovery below.
+      }
+    }
+    for (final match in recordPattern.allMatches(log)) {
+      try {
+        final value = jsonDecode(match.group(0)!);
+        if (value is Map) addRecord(value);
+      } on FormatException {
+        // Logs can end mid-line. Ignore incomplete records and keep scanning.
+      }
+    }
+    file.clear();
+  }
+  return candidates.values.toList(growable: false);
+}
 
 class MiAccountService {
   MiAccountService({Dio? dio}) : _dio = dio ?? createAppHttpTransport();

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -103,5 +104,37 @@ void main() {
     expect(find.widgetWithText(FilledButton, '开始'), findsOneWidget);
     await tester.tap(find.widgetWithText(TextButton, '取消'));
     await tester.pump();
+  });
+
+  testWidgets('Android runtime logs exposes Xiaomi Fitness log sync', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    final router = GoRouter(
+      routes: [GoRoute(path: '/', builder: (_, _) => const RuntimeLogsPage())],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp.router(
+          locale: const Locale('zh'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final sync = find.text('读取运动健康日志');
+    await tester.ensureVisible(sync.first);
+    expect(find.byIcon(Icons.folder_zip_outlined), findsOneWidget);
+    await tester.tap(sync.first);
+    await tester.pump();
+
+    expect(find.textContaining('连续狂点橙色圆环 logo 图标'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, '取消'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '扫描'), findsOneWidget);
+    debugDefaultTargetPlatformOverride = null;
   });
 }

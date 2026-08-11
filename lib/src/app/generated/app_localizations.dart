@@ -3392,6 +3392,42 @@ abstract class AppLocalizations {
   /// **'Sign in and sync'**
   String get settingsMiAccountLoginAndSync;
 
+  /// No description provided for @settingsMiAccountLogInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to read this Xiaomi Fitness log'**
+  String get settingsMiAccountLogInvalid;
+
+  /// No description provided for @settingsMiAccountLogNoDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'No device with a complete MAC and authkey was found in the log'**
+  String get settingsMiAccountLogNoDevices;
+
+  /// No description provided for @settingsWearableLogSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Read Xiaomi Fitness log'**
+  String get settingsWearableLogSync;
+
+  /// No description provided for @settingsWearableLogGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Xiaomi Fitness\nGo to About at the bottom of the Profile page\nRepeatedly tap the orange ring logo\nTap Confirm in the dialog\nWait for the log has been... toast\nReturn here and tap Scan'**
+  String get settingsWearableLogGuide;
+
+  /// No description provided for @settingsWearableLogFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Found {count} devices, tap one to import'**
+  String settingsWearableLogFound(int count);
+
+  /// No description provided for @settingsWearableLogImportedDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {name}'**
+  String settingsWearableLogImportedDevice(Object name);
+
   /// No description provided for @settingsMiAccountMissingCredentials.
   ///
   /// In en, this message translates to:

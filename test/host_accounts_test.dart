@@ -1,12 +1,32 @@
 import 'dart:async';
 
+import 'package:archive/archive.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
+import 'package:oronbox/src/features/accounts/services/mi_account_service.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
 void main() {
+  test('extracts Xiaomi and Huami authkeys from wearable log zip', () {
+    const log = '''
+2026-01-01|I|HttpClient|{"code":0,"result":{"list":[{"sid":"1","identifier":"1","name":"Xiaomi Watch","model":"miwear.watch.test","status":1,"create_time":1,"update_time":2,"detail":{"encrypt_key":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","fw_ver":"1.2.3","mac":"01:23:45:67:89:AB","sn":"SN1","token":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},{"sid":"huami.2","identifier":"huami.2","name":"Mi Band","model":"hmpace.bracelet.test","status":1,"create_time":1,"update_time":2,"detail":{"auth_key":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","mac_address":"10:32:54:76:98:BA","sn":"SN2"}}]}}
+2026-01-01|I|Account|cookie is {auth_key=not-a-device-key}
+''';
+    final archive = Archive()
+      ..addFile(ArchiveFile.string('XiaomiFit.device.log', log));
+    final bytes = ZipEncoder().encode(archive);
+
+    final devices = extractMiDevicesFromWearableLogZip(bytes);
+
+    expect(devices, hasLength(2));
+    expect(devices[0].mac, '01:23:45:67:89:AB');
+    expect(devices[0].authKey, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+    expect(devices[1].mac, '10:32:54:76:98:BA');
+    expect(devices[1].authKey, 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
+  });
+
   test('account state and mutations use the host interface', () async {
     final host = _AccountHost();
     final container = ProviderContainer(

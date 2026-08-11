@@ -11,14 +11,21 @@ class AppDelegate: FlutterAppDelegate {
   /// pushed straight away through [fileOpenChannel].
   static var fileOpenChannel: FlutterMethodChannel?
   private static var pendingOpenPaths: [String] = []
+  private static var fileOpenDeliveryReady = false
 
-  static func takePendingOpenPath() -> String? {
-    guard !pendingOpenPaths.isEmpty else { return nil }
-    return pendingOpenPaths.removeFirst()
+  static func activateFileOpenDelivery() -> String? {
+    fileOpenDeliveryReady = true
+    let initial = pendingOpenPaths.isEmpty ? nil : pendingOpenPaths.removeFirst()
+    DispatchQueue.main.async {
+      while !pendingOpenPaths.isEmpty, let channel = fileOpenChannel {
+        channel.invokeMethod("openFile", arguments: pendingOpenPaths.removeFirst())
+      }
+    }
+    return initial
   }
 
   private static func pushOrQueue(_ path: String) {
-    if let channel = fileOpenChannel {
+    if fileOpenDeliveryReady, let channel = fileOpenChannel {
       channel.invokeMethod("openFile", arguments: path)
     } else {
       pendingOpenPaths.append(path)

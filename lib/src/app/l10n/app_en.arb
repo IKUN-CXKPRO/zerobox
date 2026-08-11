@@ -871,6 +871,24 @@
   "settingsMiAccountPassword": "Password",
   "settingsMiAccountRememberCredentials": "Remember account and password",
   "settingsMiAccountLoginAndSync": "Sign in and sync",
+  "settingsMiAccountLogInvalid": "Unable to read this Xiaomi Fitness log",
+  "settingsMiAccountLogNoDevices": "No device with a complete MAC and authkey was found in the log",
+  "settingsWearableLogSync": "Read Xiaomi Fitness log",
+  "settingsWearableLogGuide": "Open Xiaomi Fitness\nGo to About at the bottom of the Profile page\nRepeatedly tap the orange ring logo\nTap Confirm in the dialog\nWait for the log has been... toast\nReturn here and tap Scan",
+  "settingsWearableLogFound": "Found {count} devices, tap one to import",
+  "@settingsWearableLogFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsWearableLogImportedDevice": "Imported {name}",
+  "@settingsWearableLogImportedDevice": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "settingsMiAccountMissingCredentials": "Enter your Xiaomi account and password",
   "settingsMiAccountTwoFactorPrompt": "Complete Xiaomi account two-factor verification in the verification page",
   "settingsMiAccountLoginWindowClosed": "The login window was closed",

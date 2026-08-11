@@ -13,6 +13,7 @@ constexpr char kChannelName[] = "oronbox/file_open";
 
 FlMethodChannel* g_channel = nullptr;
 std::deque<std::string> g_pending_paths;
+bool g_dart_ready = false;
 
 void queue_path(const char* path) {
   if (path == nullptr || path[0] == '\0') {
@@ -22,7 +23,7 @@ void queue_path(const char* path) {
 }
 
 void flush() {
-  if (g_channel == nullptr) {
+  if (g_channel == nullptr || !g_dart_ready) {
     return;
   }
   while (!g_pending_paths.empty()) {
@@ -38,6 +39,7 @@ void method_call_cb(FlMethodChannel* channel, FlMethodCall* method_call,
                     gpointer user_data) {
   const gchar* method = fl_method_call_get_name(method_call);
   if (g_strcmp0(method, "getInitialFile") == 0) {
+    g_dart_ready = true;
     if (g_pending_paths.empty()) {
       fl_method_call_respond_success(method_call,
                                      fl_value_new_string(""), nullptr);
@@ -47,6 +49,7 @@ void method_call_cb(FlMethodChannel* channel, FlMethodCall* method_call,
       fl_method_call_respond_success(method_call,
                                      fl_value_new_string(path.c_str()), nullptr);
     }
+    flush();
     return;
   }
   fl_method_call_respond_not_implemented(method_call, nullptr);
@@ -60,7 +63,6 @@ void file_open_channel_register(FlBinaryMessenger* messenger) {
                                     FL_METHOD_CODEC(codec));
   fl_method_channel_set_method_call_handler(g_channel, method_call_cb, nullptr,
                                             nullptr);
-  flush();
 }
 
 void file_open_channel_queue(const char* path) { queue_path(path); }
