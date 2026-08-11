@@ -19,13 +19,13 @@ class PluginRepositories {
   final ProviderContainer container;
 
   late final Map<String, PluginRepository> _repositories = {
-    'abv1': AbV1PluginRepository(
-      createAppHttpTransport(),
-      readCdn: () => container.read(appSettingsProvider).cdn,
-    ),
     'oronbox': OronBoxPluginRepository(
       accessToken: () =>
           container.read(bandBbsAuthProvider).session?.accessToken,
+    ),
+    'abv1': AbV1PluginRepository(
+      createAppHttpTransport(),
+      readCdn: () => container.read(appSettingsProvider).cdn,
     ),
   };
 

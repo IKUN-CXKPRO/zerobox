@@ -990,7 +990,7 @@
   },
   "queueStatusCompleted": "已完成",
   "queueStatusFailed": "失败",
-  "queueDragToInstall": "松开以加入安装队列",
+  "queueDragToInstall": "松开以安装应用/表盘/插件",
   "queueAddedFiles": "已加入安装队列：{count} 个文件",
   "@queueAddedFiles": {
     "placeholders": {
@@ -1261,7 +1261,7 @@
   "creatorGitHubOwnPublishMissing": "未连接 GitHub",
   "creatorAuthorize": "授权",
   "installQueueFixWatchfaceId": "修改表盘 ID",
-  "installQueueFixWatchfaceIdHint": "输入表盘 ID 后重新安装",
+  "installQueueFixWatchfaceIdHint": "输入12位以内数字",
   "creatorAuthorize": "授权",
   "authorize": "授权",
   "creatorBandBbsAuthorized": "已获得米坛资源发布授权",

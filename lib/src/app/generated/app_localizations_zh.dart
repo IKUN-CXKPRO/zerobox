@@ -2088,7 +2088,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get queueStatusFailed => '失败';
 
   @override
-  String get queueDragToInstall => '松开以加入安装队列';
+  String get queueDragToInstall => '松开以安装应用/表盘/插件';
 
   @override
   String queueAddedFiles(int count) {
@@ -2530,7 +2530,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get installQueueFixWatchfaceId => '修改表盘 ID';
 
   @override
-  String get installQueueFixWatchfaceIdHint => '输入表盘 ID 后重新安装';
+  String get installQueueFixWatchfaceIdHint => '输入12位以内数字';
 
   @override
   String get authorize => '授权';

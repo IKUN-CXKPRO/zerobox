@@ -40,11 +40,13 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
   StreamSubscription<CommandEvent>? _events;
+  StreamSubscription<void>? _handoffs;
   late final OronBoxCommandBus _host;
   Future<void>? _loadFuture;
   Map<String, Object?>? _plugin;
   Object? _nodes;
   Object? _error;
+  bool _runtimeHandedOff = false;
 
   @override
   void initState() {
@@ -52,12 +54,18 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
     _tabs = TabController(length: 2, vsync: this);
     _host = ref.read(applicationHostProvider);
     _events = _host.events.listen(_handleEvent);
+    if (!widget.allowDetach) {
+      _handoffs = secondaryWindowHandoffs.listen((_) {
+        _runtimeHandedOff = true;
+      });
+    }
     _loadFuture = _load();
   }
 
   @override
   void dispose() {
     _events?.cancel();
+    _handoffs?.cancel();
     _tabs.dispose();
     unawaited(_closeAfterLoad());
     super.dispose();
@@ -69,9 +77,21 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
     } catch (_) {
       // A failed open does not leave a running plugin to close.
     }
+    if (_runtimeHandedOff) return;
     await _host.execute(
       OronBoxCommand(method: 'plugin.close', params: {'id': widget.pluginId}),
     );
+  }
+
+  Future<void> _detach() async {
+    final opened = await openPluginWindow(widget.pluginId);
+    if (!opened || !mounted) return;
+    _runtimeHandedOff = true;
+    if (widget.embedded) {
+      widget.onClose?.call();
+    } else {
+      context.pop();
+    }
   }
 
   Future<void> _load() async {
@@ -86,6 +106,10 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
                   as Map)
               .cast<String, Object?>();
       if (mounted) setState(() => _plugin = detail);
+      if (!widget.allowDetach) {
+        await setSecondaryWindowTitle(detail['name']?.toString() ?? '');
+        await setSecondaryWindowIcon(detail['icon']?.toString());
+      }
       final nodes = await _execute(
         OronBoxCommand(method: 'plugin.open', params: {'id': widget.pluginId}),
       );
@@ -113,7 +137,7 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
     }
   }
 
-  Future<void> _invoke(String callback, [String? value]) async {
+  Future<void> _invoke(String callback, [Object? value]) async {
     try {
       await _execute(
         OronBoxCommand(
@@ -188,6 +212,20 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final plugin = _plugin;
+    if (!widget.allowDetach) {
+      if (plugin == null) {
+        return Scaffold(
+          body: Center(
+            child: _error == null
+                ? const CircularProgressIndicator()
+                : Text(localizedErrorMessage(l10n, _error)),
+          ),
+        );
+      }
+      return Scaffold(
+        body: PluginUITree(root: _nodes, onInvoke: _invoke),
+      );
+    }
     final content = plugin == null
         ? Center(
             child: _error == null
@@ -201,7 +239,7 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
                 tabs: _tabs,
                 onClose: widget.embedded ? widget.onClose : null,
                 onDetach: widget.allowDetach && supportsSecondaryWindows
-                    ? () => openPluginWindow(widget.pluginId)
+                    ? _detach
                     : null,
               ),
               Expanded(

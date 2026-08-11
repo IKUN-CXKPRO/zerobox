@@ -26,7 +26,7 @@ class _UnsupportedPluginRuntime implements PluginRuntime {
   }
 
   @override
-  Future<void> invokeCallback(String callbackId, [String? value]) async {}
+  Future<void> invokeCallback(String callbackId, [Object? value]) async {}
 
   @override
   Future<Object?> invokeRegistered(

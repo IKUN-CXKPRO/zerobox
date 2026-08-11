@@ -36,9 +36,8 @@ std::wstring Utf8ToWide(const std::string& text) {
   if (text.empty()) {
     return L"";
   }
-  const int size = MultiByteToWideChar(CP_UTF8, 0, text.data(),
-                                       static_cast<int>(text.size()), nullptr,
-                                       0);
+  const int size = MultiByteToWideChar(
+      CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
   if (size <= 0) {
     return L"";
   }
@@ -57,9 +56,10 @@ std::string WideToUtf8(const wchar_t* text) {
   if (size <= 1) {
     return "";
   }
-  std::string result(static_cast<size_t>(size - 1), '\0');
+  std::string result(static_cast<size_t>(size), '\0');
   WideCharToMultiByte(CP_UTF8, 0, text, -1, result.data(), size, nullptr,
                       nullptr);
+  result.pop_back();
   return result;
 }
 
@@ -130,14 +130,26 @@ std::string HResultMessage(HRESULT hr) {
 using Microsoft::WRL::Callback;
 using Microsoft::WRL::ComPtr;
 
-class WinMiAccountTwoFactorSession {
+class WinMiAccountTwoFactorSession
+    : public std::enable_shared_from_this<WinMiAccountTwoFactorSession> {
  public:
   WinMiAccountTwoFactorSession(
-      HWND parent_window,
-      std::unique_ptr<MethodResult<EncodableValue>> result)
+      HWND parent_window, std::unique_ptr<MethodResult<EncodableValue>> result)
       : parent_window_(parent_window), result_(std::move(result)) {}
 
   ~WinMiAccountTwoFactorSession() {
+    if (window_ != nullptr) {
+      KillTimer(window_, kPollTimerId);
+    }
+    if (webview_ && navigation_completed_token_.value != 0) {
+      webview_->remove_NavigationCompleted(navigation_completed_token_);
+      navigation_completed_token_ = {};
+    }
+    if (controller_) {
+      controller_->Close();
+    }
+    webview_.Reset();
+    controller_.Reset();
     if (window_ != nullptr) {
       SetWindowLongPtr(window_, GWLP_USERDATA, 0);
       DestroyWindow(window_);
@@ -153,8 +165,7 @@ class WinMiAccountTwoFactorSession {
     auto* session = reinterpret_cast<WinMiAccountTwoFactorSession*>(
         GetWindowLongPtr(window, GWLP_USERDATA));
     if (message == WM_NCCREATE) {
-      const auto* create_struct =
-          reinterpret_cast<CREATESTRUCT*>(lparam);
+      const auto* create_struct = reinterpret_cast<CREATESTRUCT*>(lparam);
       session = static_cast<WinMiAccountTwoFactorSession*>(
           create_struct->lpCreateParams);
       SetWindowLongPtr(window, GWLP_USERDATA,
@@ -183,6 +194,9 @@ class WinMiAccountTwoFactorSession {
 
   LRESULT HandleMessage(HWND window, UINT message, WPARAM wparam,
                         LPARAM lparam) {
+    // Finish/Fail may release the global owner while processing this message.
+    // Keep the session alive until WindowProc returns.
+    [[maybe_unused]] const auto keep_alive = shared_from_this();
     switch (message) {
       case WM_SIZE:
         ResizeWebView();
@@ -219,9 +233,7 @@ class WinMiAccountTwoFactorSession {
   void InspectBody();
   void FinishSuccess(const std::string& cookie_header);
   void Fail(const std::string& code, const std::string& message);
-  void Cancel() {
-    Fail("CANCELLED", "Xiaomi 2FA WebView was closed");
-  }
+  void Cancel() { Fail("CANCELLED", "Xiaomi 2FA WebView was closed"); }
 
   HWND parent_window_ = nullptr;
   HWND window_ = nullptr;
@@ -232,11 +244,13 @@ class WinMiAccountTwoFactorSession {
   EventRegistrationToken navigation_completed_token_{};
   bool completed_ = false;
   bool checking_cookies_ = false;
+  bool inspecting_body_ = false;
 };
 
-std::unique_ptr<WinMiAccountTwoFactorSession> g_session;
+std::shared_ptr<WinMiAccountTwoFactorSession> g_session;
 
 void WinMiAccountTwoFactorSession::Start(const std::string& url) {
+  [[maybe_unused]] const auto keep_alive = shared_from_this();
   url_ = url;
   EnsureWindowClass();
 
@@ -246,15 +260,15 @@ void WinMiAccountTwoFactorSession::Start(const std::string& url) {
   }
   const int width = 980;
   const int height = 720;
-  const int x = parent_rect.left +
-                ((parent_rect.right - parent_rect.left) - width) / 2;
-  const int y = parent_rect.top +
-                ((parent_rect.bottom - parent_rect.top) - height) / 2;
+  const int x =
+      parent_rect.left + ((parent_rect.right - parent_rect.left) - width) / 2;
+  const int y =
+      parent_rect.top + ((parent_rect.bottom - parent_rect.top) - height) / 2;
 
-  window_ = CreateWindowExW(
-      WS_EX_DLGMODALFRAME, kWindowClassName, L"Xiaomi account verification",
-      WS_OVERLAPPEDWINDOW, x, y, width, height, parent_window_, nullptr,
-      GetModuleHandle(nullptr), this);
+  window_ = CreateWindowExW(WS_EX_DLGMODALFRAME, kWindowClassName,
+                            L"Xiaomi account verification", WS_OVERLAPPEDWINDOW,
+                            x, y, width, height, parent_window_, nullptr,
+                            GetModuleHandle(nullptr), this);
   if (window_ == nullptr) {
     Fail("WEBVIEW_FAILED", "Failed to create Xiaomi 2FA window");
     return;
@@ -266,50 +280,74 @@ void WinMiAccountTwoFactorSession::Start(const std::string& url) {
 }
 
 void WinMiAccountTwoFactorSession::CreateWebView() {
+  const auto weak_session = weak_from_this();
   HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
       nullptr, nullptr, nullptr,
       Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
-          [this](HRESULT result, ICoreWebView2Environment* environment)
-              -> HRESULT {
-            if (FAILED(result) || environment == nullptr) {
-              Fail("UNAVAILABLE",
-                   "Microsoft Edge WebView2 Runtime is not available");
+          [weak_session](HRESULT result,
+                         ICoreWebView2Environment* environment) -> HRESULT {
+            const auto self = weak_session.lock();
+            if (!self) {
               return S_OK;
             }
-            environment->CreateCoreWebView2Controller(
-                window_,
-                Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
-                    [this](HRESULT controller_result,
-                           ICoreWebView2Controller* controller) -> HRESULT {
-                      if (FAILED(controller_result) || controller == nullptr) {
-                        Fail("WEBVIEW_FAILED",
-                             HResultMessage(controller_result));
+            if (FAILED(result) || environment == nullptr) {
+              self->Fail("UNAVAILABLE",
+                         "Microsoft Edge WebView2 Runtime is not available");
+              return S_OK;
+            }
+            const auto controller_session = self->weak_from_this();
+            const HRESULT controller_hr = environment->CreateCoreWebView2Controller(
+                self->window_,
+                Callback<
+                    ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+                    [controller_session](
+                        HRESULT controller_result,
+                        ICoreWebView2Controller* controller) -> HRESULT {
+                      const auto self = controller_session.lock();
+                      if (!self) {
                         return S_OK;
                       }
-                      controller_ = controller;
-                      controller_->get_CoreWebView2(&webview_);
-                      if (!webview_) {
-                        Fail("WEBVIEW_FAILED", "WebView2 core is not available");
+                      if (FAILED(controller_result) || controller == nullptr) {
+                        self->Fail("WEBVIEW_FAILED",
+                                   HResultMessage(controller_result));
+                        return S_OK;
+                      }
+                      self->controller_ = controller;
+                      self->controller_->get_CoreWebView2(&self->webview_);
+                      if (!self->webview_) {
+                        self->Fail("WEBVIEW_FAILED",
+                                   "WebView2 core is not available");
                         return S_OK;
                       }
 
-                      webview_->add_NavigationCompleted(
-                          Callback<ICoreWebView2NavigationCompletedEventHandler>(
-                              [this](ICoreWebView2*,
-                                     ICoreWebView2NavigationCompletedEventArgs*)
+                      const auto navigation_session = self->weak_from_this();
+                      self->webview_->add_NavigationCompleted(
+                          Callback<
+                              ICoreWebView2NavigationCompletedEventHandler>(
+                              [navigation_session](
+                                  ICoreWebView2*,
+                                  ICoreWebView2NavigationCompletedEventArgs*)
                                   -> HRESULT {
-                                CompleteIfReady();
-                                InspectBody();
+                                const auto self = navigation_session.lock();
+                                if (!self) {
+                                  return S_OK;
+                                }
+                                self->CompleteIfReady();
+                                self->InspectBody();
                                 return S_OK;
                               })
                               .Get(),
-                          &navigation_completed_token_);
-                      ResizeWebView();
-                      webview_->Navigate(Utf8ToWide(url_).c_str());
-                      SetTimer(window_, kPollTimerId, kPollIntervalMs, nullptr);
+                          &self->navigation_completed_token_);
+                      self->ResizeWebView();
+                      self->webview_->Navigate(Utf8ToWide(self->url_).c_str());
+                      SetTimer(self->window_, kPollTimerId, kPollIntervalMs,
+                               nullptr);
                       return S_OK;
                     })
                     .Get());
+            if (FAILED(controller_hr)) {
+              self->Fail("WEBVIEW_FAILED", HResultMessage(controller_hr));
+            }
             return S_OK;
           })
           .Get());
@@ -330,8 +368,7 @@ void WinMiAccountTwoFactorSession::CompleteIfReady() {
   }
 
   ComPtr<ICoreWebView2CookieManager> cookie_manager;
-  if (FAILED(webview2->get_CookieManager(&cookie_manager)) ||
-      !cookie_manager) {
+  if (FAILED(webview2->get_CookieManager(&cookie_manager)) || !cookie_manager) {
     return;
   }
 
@@ -343,12 +380,18 @@ void WinMiAccountTwoFactorSession::CompleteIfReady() {
   CoTaskMemFree(source);
 
   checking_cookies_ = true;
-  cookie_manager->GetCookies(
+  const auto weak_session = weak_from_this();
+  const HRESULT cookies_hr = cookie_manager->GetCookies(
       source_uri.c_str(),
       Callback<ICoreWebView2GetCookiesCompletedHandler>(
-          [this](HRESULT result, ICoreWebView2CookieList* cookies) -> HRESULT {
-            checking_cookies_ = false;
-            if (completed_ || FAILED(result) || cookies == nullptr) {
+          [weak_session](HRESULT result,
+                         ICoreWebView2CookieList* cookies) -> HRESULT {
+            const auto self = weak_session.lock();
+            if (!self) {
+              return S_OK;
+            }
+            self->checking_cookies_ = false;
+            if (self->completed_ || FAILED(result) || cookies == nullptr) {
               return S_OK;
             }
             UINT count = 0;
@@ -382,32 +425,45 @@ void WinMiAccountTwoFactorSession::CompleteIfReady() {
               header += value_utf8;
             }
             if (HasSessionCookie(header)) {
-              FinishSuccess(header);
+              self->FinishSuccess(header);
             }
             return S_OK;
           })
           .Get());
+  if (FAILED(cookies_hr)) {
+    checking_cookies_ = false;
+  }
 }
 
 void WinMiAccountTwoFactorSession::InspectBody() {
-  if (completed_ || !webview_) {
+  if (completed_ || inspecting_body_ || !webview_) {
     return;
   }
-  webview_->ExecuteScript(
+  inspecting_body_ = true;
+  const auto weak_session = weak_from_this();
+  const HRESULT script_hr = webview_->ExecuteScript(
       L"(document.body && document.body.innerText || '').trim()",
       Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
-          [this](HRESULT result, LPCWSTR body_json) -> HRESULT {
-            if (completed_ || FAILED(result) || body_json == nullptr) {
+          [weak_session](HRESULT result, LPCWSTR body_json) -> HRESULT {
+            const auto self = weak_session.lock();
+            if (!self) {
+              return S_OK;
+            }
+            self->inspecting_body_ = false;
+            if (self->completed_ || FAILED(result) || body_json == nullptr) {
               return S_OK;
             }
             const std::string text = DecodeJsonString(body_json);
             if (text == "ok" ||
                 (text.size() > 3 && text.rfind("\nok") == text.size() - 3)) {
-              CompleteIfReady();
+              self->CompleteIfReady();
             }
             return S_OK;
           })
           .Get());
+  if (FAILED(script_hr)) {
+    inspecting_body_ = false;
+  }
 }
 
 void WinMiAccountTwoFactorSession::FinishSuccess(
@@ -419,15 +475,17 @@ void WinMiAccountTwoFactorSession::FinishSuccess(
   if (window_ != nullptr) {
     KillTimer(window_, kPollTimerId);
   }
+  if (webview_ && navigation_completed_token_.value != 0) {
+    webview_->remove_NavigationCompleted(navigation_completed_token_);
+    navigation_completed_token_ = {};
+  }
   auto result = std::move(result_);
   if (window_ != nullptr) {
     DestroyWindow(window_);
     window_ = nullptr;
   }
-  if (result) {
-    result->Success(EncodableValue(cookie_header));
-  }
-  g_session.reset();
+  if (g_session.get() == this) g_session.reset();
+  if (result) result->Success(EncodableValue(cookie_header));
 }
 
 void WinMiAccountTwoFactorSession::Fail(const std::string& code,
@@ -439,23 +497,25 @@ void WinMiAccountTwoFactorSession::Fail(const std::string& code,
   if (window_ != nullptr) {
     KillTimer(window_, kPollTimerId);
   }
+  if (webview_ && navigation_completed_token_.value != 0) {
+    webview_->remove_NavigationCompleted(navigation_completed_token_);
+    navigation_completed_token_ = {};
+  }
   auto result = std::move(result_);
   if (window_ != nullptr) {
     DestroyWindow(window_);
     window_ = nullptr;
   }
-  if (result) {
-    result->Error(code, message);
-  }
-  g_session.reset();
+  if (g_session.get() == this) g_session.reset();
+  if (result) result->Error(code, message);
 }
 
 #endif  // defined(ORONBOX_HAVE_WEBVIEW2)
 
-void HandleResolve(HWND parent_window,
-                   const EncodableValue* arguments,
+void HandleResolve(HWND parent_window, const EncodableValue* arguments,
                    std::unique_ptr<MethodResult<EncodableValue>> result) {
-  if (arguments == nullptr || !std::holds_alternative<EncodableMap>(*arguments)) {
+  if (arguments == nullptr ||
+      !std::holds_alternative<EncodableMap>(*arguments)) {
     result->Error("INVALID_ARGUMENT", "url is required");
     return;
   }
@@ -471,29 +531,27 @@ void HandleResolve(HWND parent_window,
     result->Error("BUSY", "Xiaomi 2FA WebView is already open");
     return;
   }
-  g_session = std::make_unique<WinMiAccountTwoFactorSession>(
-      parent_window, std::move(result));
+  g_session = std::make_shared<WinMiAccountTwoFactorSession>(parent_window,
+                                                             std::move(result));
   g_session->Start(std::get<std::string>(it->second));
 #else
   (void)parent_window;
-  result->Error(
-      "UNAVAILABLE",
-      "Windows Xiaomi 2FA requires the Microsoft Edge WebView2 SDK at build time");
+  result->Error("UNAVAILABLE",
+                "Windows Xiaomi 2FA requires the Microsoft Edge "
+                "WebView2 SDK at build time");
 #endif
 }
 
 }  // namespace
 
 void RegisterMiAccountTwoFactorChannel(flutter::BinaryMessenger* messenger,
-                                        HWND parent_window) {
+                                       HWND parent_window) {
   auto channel = std::make_unique<flutter::MethodChannel<EncodableValue>>(
-      messenger, kChannelName,
-      &flutter::StandardMethodCodec::GetInstance());
+      messenger, kChannelName, &flutter::StandardMethodCodec::GetInstance());
 
   channel->SetMethodCallHandler(
-      [parent_window](
-          const flutter::MethodCall<EncodableValue>& call,
-          std::unique_ptr<MethodResult<EncodableValue>> result) {
+      [parent_window](const flutter::MethodCall<EncodableValue>& call,
+                      std::unique_ptr<MethodResult<EncodableValue>> result) {
         if (call.method_name() == "resolve") {
           HandleResolve(parent_window, call.arguments(), std::move(result));
           return;

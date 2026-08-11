@@ -208,7 +208,7 @@ class AppSettings {
       cdn: githubCdnByName(cdnRaw ?? '') ?? GitHubCdn.raw,
       communitySource:
           communitySourceIdByName(sourceRaw ?? '') ??
-          CommunitySourceId.astroboxRepo,
+          CommunitySourceId.oronBox,
       autoInstall: prefs.getBool(_keyAutoInstall) ?? true,
       disableAutoClean: prefs.getBool(_keyDisableAutoClean) ?? false,
       autoReconnect: prefs.getBool(_keyAutoReconnect) ?? false,
@@ -247,7 +247,7 @@ class AppSettings {
 
   static const defaults = AppSettings(
     cdn: GitHubCdn.raw,
-    communitySource: CommunitySourceId.astroboxRepo,
+    communitySource: CommunitySourceId.oronBox,
     autoInstall: true,
     disableAutoClean: false,
     autoReconnect: false,
@@ -433,7 +433,7 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
           GitHubCdn.raw,
       communitySource:
           communitySourceIdByName(json['community_source']?.toString() ?? '') ??
-          CommunitySourceId.astroboxRepo,
+          CommunitySourceId.oronBox,
       autoInstall: json['auto_install'] as bool? ?? true,
       disableAutoClean: json['disable_auto_clean'] as bool? ?? false,
       autoReconnect: json['auto_reconnect'] as bool? ?? false,

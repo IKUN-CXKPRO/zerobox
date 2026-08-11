@@ -11,11 +11,13 @@ import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/app/window/window_launcher.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/utils/layout.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/plugins/domain/plugin_package.dart';
+import 'package:oronbox/src/features/plugins/widgets/plugin_install_confirmation.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
 import 'plugin_detail_page.dart';
@@ -72,7 +74,11 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
             .map((row) => row.cast<String, Object?>())
             .toList(growable: false);
         if (!_sources.any((source) => source['id'] == _marketSource)) {
-          _marketSource = _sources.firstOrNull?['id']?.toString();
+          _marketSource = _sources
+              .where((source) => source['id'] == 'oronbox')
+              .firstOrNull?['id']
+              ?.toString();
+          _marketSource ??= _sources.firstOrNull?['id']?.toString();
         }
         final ids = _plugins.map((plugin) => plugin['id']?.toString()).toSet();
         if (!ids.contains(_selectedPluginId)) {
@@ -116,6 +122,16 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
     }
   }
 
+  Future<void> _openInstalledPlugin(String id, {required bool wide}) async {
+    await takePluginWindow(id);
+    if (!mounted) return;
+    if (wide) {
+      setState(() => _selectedPluginId = id);
+    } else {
+      context.push('/plugins/$id');
+    }
+  }
+
   Future<Uint8List?> _pickPackage(List<String> extensions) async {
     final picked = await FilePicker.pickFiles(
       type: FileType.custom,
@@ -133,13 +149,15 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
   Future<void> _importPlugin() async {
     final bytes = await _pickPackage(const ['obp', 'abp', 'zip']);
     if (bytes == null) return;
+    if (!mounted) return;
     try {
       final package = const PluginPackageReader().read(bytes);
       final manifest = package.manifest;
       final updating = _plugins.any(
         (plugin) => plugin['id']?.toString() == manifest.id,
       );
-      if (!await _confirmPluginInstall(
+      if (!await confirmPluginInstall(
+        context: context,
         name: manifest.name,
         permissions: manifest.permissions,
         updating: updating,
@@ -161,7 +179,8 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
 
   Future<void> _installMarketPlugin(Map<String, Object?> entry) async {
     final legacy = entry['legacy'] == true;
-    if (!await _confirmPluginInstall(
+    if (!await confirmPluginInstall(
+      context: context,
       name: entry['name']?.toString() ?? '',
       permissions: (entry['permissions'] as List? ?? const [])
           .map((value) => value.toString())
@@ -422,73 +441,6 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
     );
   }
 
-  Future<bool> _confirmPluginInstall({
-    required String name,
-    required List<String> permissions,
-    required bool updating,
-    required bool legacy,
-  }) async {
-    final l10n = AppLocalizations.of(context)!;
-    return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(
-              updating
-                  ? l10n.pluginUpdateConfirmTitle
-                  : l10n.pluginInstallConfirmTitle,
-            ),
-            content: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name, style: Theme.of(context).textTheme.titleMedium),
-                  if (legacy) ...[
-                    const SizedBox(height: 16),
-                    const _LegacyWarning(),
-                  ],
-                  const SizedBox(height: 16),
-                  Text(l10n.pluginDeclaredPermissions),
-                  const SizedBox(height: 8),
-                  if (permissions.isEmpty)
-                    Text(
-                      l10n.pluginNoPermissions,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    )
-                  else
-                    ...permissions.map(
-                      (permission) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 3),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.circle, size: 7),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(permission)),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(l10n.cancel),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(updating ? l10n.update : l10n.install),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
-
   Future<void> _exitSafeMode() async {
     await _execute(
       const OronBoxCommand(
@@ -587,13 +539,7 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
             onRefreshMarket: () => _loadMarket(force: true),
             onInstall: _installMarketPlugin,
             onOpenEntry: _showMarketEntry,
-            onOpen: (id) {
-              if (wide) {
-                setState(() => _selectedPluginId = id);
-              } else {
-                context.push('/plugins/$id');
-              }
-            },
+            onOpen: (id) => _openInstalledPlugin(id, wide: wide),
           );
           return PageContainer(
             maxWidth: wide ? 1280 : 1000,
@@ -701,48 +647,6 @@ class _PluginSourceMenu extends StatelessWidget {
           children: [
             Text(current?['name']?.toString() ?? ''),
             const Icon(Icons.arrow_drop_down),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LegacyWarning extends StatelessWidget {
-  const _LegacyWarning();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final colors = Theme.of(context).colorScheme;
-    return ColoredBox(
-      color: colors.tertiaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.history_toggle_off, color: colors.onTertiaryContainer),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.pluginLegacyWarningTitle,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: colors.onTertiaryContainer,
-                    ),
-                  ),
-                  Text(
-                    l10n.pluginLegacyWarningMessage,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colors.onTertiaryContainer,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),

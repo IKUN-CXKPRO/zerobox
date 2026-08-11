@@ -34,7 +34,11 @@ class PluginManager {
     _interconnectSubscription = deviceManager.interconnectMessages.listen((
       message,
     ) {
-      _queueInterconnectDispatch(message.pkgName, message.payload);
+      _queueInterconnectDispatch(
+        message.deviceId,
+        message.pkgName,
+        message.payload,
+      );
     });
     _rawProtocolSubscription = deviceManager.rawProtocolFrames.listen(
       _queueRawProtocolDispatch,
@@ -268,7 +272,7 @@ class PluginManager {
     });
   }
 
-  Future<Object?> invoke(String id, String callbackId, String? value) async {
+  Future<Object?> invoke(String id, String callbackId, Object? value) async {
     await initialize();
     final plugin = _requirePlugin(id);
     try {
@@ -1032,7 +1036,14 @@ class PluginManager {
     if (packageName.isEmpty) {
       throw const FormatException('Package name is required');
     }
-    if (deviceId != null && deviceId.isNotEmpty) _validateDevice(deviceId);
+    if (deviceId != null && deviceId.isNotEmpty) {
+      _validateDevice(deviceId);
+      if (readDeviceState().currentDevice?.addr != deviceId) {
+        throw StateError(
+          'Interconnect messages can only be sent to the current device',
+        );
+      }
+    }
     final payload = Uint8List.fromList(utf8.encode(data));
     _log.info(
       'plugin $pluginId sending interconnect message to $packageName '
@@ -1493,7 +1504,11 @@ class PluginManager {
     throw const FormatException('Binary data is required');
   }
 
-  void _queueInterconnectDispatch(String packageName, Uint8List bytes) {
+  void _queueInterconnectDispatch(
+    String deviceId,
+    String packageName,
+    Uint8List bytes,
+  ) {
     final payload = utf8.decode(bytes, allowMalformed: true);
     _interconnectDispatchTail = _interconnectDispatchTail
         .catchError((_) {})
@@ -1517,7 +1532,11 @@ class PluginManager {
                     : 'interconnect',
                 plugin.manifest.runtime == PluginRuntimeType.legacy
                     ? payload
-                    : jsonEncode({'packageName': packageName, 'data': payload}),
+                    : jsonEncode({
+                        'deviceId': deviceId,
+                        'packageName': packageName,
+                        'data': payload,
+                      }),
               );
             } catch (error, stackTrace) {
               await _recordFailure(

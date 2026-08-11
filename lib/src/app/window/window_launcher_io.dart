@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/services.dart';
+import 'package:image/image.dart' as image;
+import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:oronbox/src/app/window/window_launch_spec.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
@@ -14,13 +17,37 @@ bool get supportsSecondaryWindows =>
 final _coordinator = _WindowCoordinator();
 _SecondaryWindowControl? _secondaryControl;
 
-Future<bool> initializeWindowCoordinator(WindowLaunchSpec spec) async {
+final _pendingPrimaryLaunchArguments = <List<String>>[];
+final StreamController<List<String>> _primaryLaunchArguments =
+    StreamController<List<String>>.broadcast(
+      onListen: () {
+        for (final arguments in _pendingPrimaryLaunchArguments) {
+          _primaryLaunchArguments.add(arguments);
+        }
+        _pendingPrimaryLaunchArguments.clear();
+      },
+    );
+Stream<List<String>> get primaryLaunchArguments =>
+    _primaryLaunchArguments.stream;
+
+void _emitPrimaryLaunchArguments(List<String> arguments) {
+  if (_primaryLaunchArguments.hasListener) {
+    _primaryLaunchArguments.add(arguments);
+  } else {
+    _pendingPrimaryLaunchArguments.add(arguments);
+  }
+}
+
+Future<bool> initializeWindowCoordinator(
+  WindowLaunchSpec spec, {
+  List<String> launchArguments = const [],
+}) async {
   if (!supportsSecondaryWindows) return true;
   if (spec.isSecondary) {
     _secondaryControl = await _SecondaryWindowControl.connect(spec);
     return true;
   } else {
-    return _coordinator.initialize();
+    return _coordinator.initialize(launchArguments: launchArguments);
   }
 }
 
@@ -37,6 +64,59 @@ Future<bool> openPluginWindow(String pluginId) => _coordinator.open(
   key: 'plugin:$pluginId',
   arguments: ['--window', 'plugin', '--plugin-id', pluginId],
 );
+
+Future<bool> takePluginWindow(String pluginId) =>
+    _coordinator.handoff('plugin:$pluginId');
+
+Future<void> setSecondaryWindowIcon(String? base64Icon) async {
+  if (base64Icon == null || base64Icon.isEmpty) return;
+  try {
+    if (Platform.isMacOS) {
+      await const MethodChannel(
+        'oronbox/window',
+      ).invokeMethod<void>('setIcon', base64Icon);
+      return;
+    }
+    if (!Platform.isWindows && !Platform.isLinux) return;
+    final bytes = base64Decode(base64Icon);
+    final directory = await getTemporaryDirectory();
+    final extension = Platform.isWindows ? 'ico' : 'png';
+    final file = File(
+      '${directory.path}${Platform.pathSeparator}oronbox-plugin-window-icon-$pid.$extension',
+    );
+    if (Platform.isWindows) {
+      final decoded = image.decodeImage(bytes);
+      if (decoded == null) throw const FormatException('Invalid plugin icon');
+      await file.writeAsBytes(
+        image.encodeIco(image.copyResize(decoded, width: 256, height: 256)),
+        flush: true,
+      );
+    } else {
+      await file.writeAsBytes(bytes, flush: true);
+    }
+    await const MethodChannel(
+      'window_manager',
+    ).invokeMethod<void>('setIcon', {'iconPath': file.path});
+  } on MissingPluginException {
+    // Runtime window icons are only available on runners that implement them.
+  } on PlatformException {
+    // A malformed optional icon must not prevent the plugin UI from opening.
+  } on FormatException {
+    // Ignore invalid optional plugin artwork.
+  } on FileSystemException {
+    // An unwritable temporary directory must not block the plugin UI.
+  } catch (_) {
+    // Window artwork is optional and must never prevent a plugin from opening.
+  }
+}
+
+Future<void> setSecondaryWindowTitle(String title) async {
+  if (title.isEmpty) return;
+  await windowManager.setTitle(title);
+}
+
+Stream<void> get secondaryWindowHandoffs =>
+    _SecondaryWindowControl.handoffs.stream;
 
 Future<void> shutdownSecondaryWindows() => _coordinator.shutdown();
 
@@ -65,7 +145,7 @@ class _WindowCoordinator {
   String? _ownerToken;
   bool _shuttingDown = false;
 
-  Future<bool> initialize() async {
+  Future<bool> initialize({List<String> launchArguments = const []}) async {
     if (_server != null) return true;
     if (!supportsSecondaryWindows) return true;
     final runtimeDirectory = Directory(daemonRuntimeDirectory);
@@ -81,7 +161,7 @@ class _WindowCoordinator {
       _primaryLock = lock;
     } catch (_) {
       await lock.close();
-      await _focusPrimary(runtimeDirectory);
+      await _focusPrimary(runtimeDirectory, launchArguments);
       exit(0);
     }
     final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
@@ -156,6 +236,18 @@ class _WindowCoordinator {
     return !_sessions.containsKey(key);
   }
 
+  Future<bool> handoff(String key) async {
+    final session = _sessions[key];
+    if (session == null) return true;
+    session.send(const {'command': 'handoff'});
+    try {
+      await session.exited.timeout(const Duration(seconds: 4));
+    } on TimeoutException {
+      await _terminate(session);
+    }
+    return !_sessions.containsKey(key);
+  }
+
   Future<void> shutdown() async {
     if (_shuttingDown) return;
     _shuttingDown = true;
@@ -191,6 +283,12 @@ class _WindowCoordinator {
     final token = message['token']?.toString();
     if (token != null) {
       if (token == _ownerToken && message['action'] == 'focus-main') {
+        final arguments = (message['arguments'] as List? ?? const [])
+            .map((value) => value.toString())
+            .toList(growable: false);
+        if (arguments.isNotEmpty) {
+          _emitPrimaryLaunchArguments(arguments);
+        }
         unawaited(_focusMainWindow());
         unawaited(socket.close());
         return;
@@ -248,7 +346,10 @@ class _WindowCoordinator {
     }
   }
 
-  Future<void> _focusPrimary(Directory runtimeDirectory) async {
+  Future<void> _focusPrimary(
+    Directory runtimeDirectory,
+    List<String> launchArguments,
+  ) async {
     try {
       final decoded = jsonDecode(
         await File(
@@ -262,7 +363,11 @@ class _WindowCoordinator {
         timeout: const Duration(seconds: 1),
       );
       socket.writeln(
-        jsonEncode({'token': decoded['token'], 'action': 'focus-main'}),
+        jsonEncode({
+          'token': decoded['token'],
+          'action': 'focus-main',
+          'arguments': launchArguments,
+        }),
       );
       await socket.flush();
       await socket.close();
@@ -334,6 +439,7 @@ class _SecondaryWindowControl {
 
   final Socket _socket;
   bool _closing = false;
+  static final handoffs = StreamController<void>.broadcast(sync: true);
 
   static Future<_SecondaryWindowControl> connect(WindowLaunchSpec spec) async {
     final port = spec.controlPort;
@@ -372,6 +478,10 @@ class _SecondaryWindowControl {
         unawaited(_focus());
         return;
       case 'close':
+        unawaited(_close());
+        return;
+      case 'handoff':
+        handoffs.add(null);
         unawaited(_close());
         return;
     }

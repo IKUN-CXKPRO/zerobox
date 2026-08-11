@@ -13,7 +13,7 @@ class PluginUITree extends StatelessWidget {
   const PluginUITree({super.key, required this.root, required this.onInvoke});
 
   final Object? root;
-  final Future<void> Function(String callback, [String? value]) onInvoke;
+  final Future<void> Function(String callback, [Object? value]) onInvoke;
 
   @override
   Widget build(BuildContext context) {
@@ -277,7 +277,7 @@ class _Html extends StatelessWidget {
 class _Button extends StatelessWidget {
   const _Button({required this.props, required this.onInvoke});
   final Map<String, Object?> props;
-  final Future<void> Function(String, [String?]) onInvoke;
+  final Future<void> Function(String, [Object?]) onInvoke;
 
   @override
   Widget build(BuildContext context) {
@@ -303,7 +303,7 @@ class _Button extends StatelessWidget {
 class _TextField extends StatefulWidget {
   const _TextField({required this.props, required this.onInvoke});
   final Map<String, Object?> props;
-  final Future<void> Function(String, [String?]) onInvoke;
+  final Future<void> Function(String, [Object?]) onInvoke;
 
   @override
   State<_TextField> createState() => _TextFieldState();
@@ -370,7 +370,7 @@ class _TextFieldState extends State<_TextField> {
 class _Switch extends StatelessWidget {
   const _Switch({required this.props, required this.onInvoke});
   final Map<String, Object?> props;
-  final Future<void> Function(String, [String?]) onInvoke;
+  final Future<void> Function(String, [Object?]) onInvoke;
 
   @override
   Widget build(BuildContext context) {
@@ -380,9 +380,7 @@ class _Switch extends StatelessWidget {
       padding: _parseEdgeInsets(props),
       child: Switch(
         value: checked,
-        onChanged: onChange.isEmpty
-            ? null
-            : (v) => onInvoke(onChange, v.toString()),
+        onChanged: onChange.isEmpty ? null : (v) => onInvoke(onChange, v),
       ),
     );
   }
@@ -391,7 +389,7 @@ class _Switch extends StatelessWidget {
 class _Checkbox extends StatelessWidget {
   const _Checkbox({required this.props, required this.onInvoke});
   final Map<String, Object?> props;
-  final Future<void> Function(String, [String?]) onInvoke;
+  final Future<void> Function(String, [Object?]) onInvoke;
 
   @override
   Widget build(BuildContext context) {
@@ -400,9 +398,7 @@ class _Checkbox extends StatelessWidget {
     final onChange = props['onChange']?.toString() ?? '';
     final cb = Checkbox(
       value: checked,
-      onChanged: onChange.isEmpty
-          ? null
-          : (v) => onInvoke(onChange, v.toString()),
+      onChanged: onChange.isEmpty ? null : (v) => onInvoke(onChange, v),
     );
     if (label == null) {
       return Padding(padding: _parseEdgeInsets(props), child: cb);
@@ -410,9 +406,7 @@ class _Checkbox extends StatelessWidget {
     return Padding(
       padding: _parseEdgeInsets(props),
       child: InkWell(
-        onTap: onChange.isEmpty
-            ? null
-            : () => onInvoke(onChange, (!checked).toString()),
+        onTap: onChange.isEmpty ? null : () => onInvoke(onChange, !checked),
         child: Row(mainAxisSize: MainAxisSize.min, children: [cb, Text(label)]),
       ),
     );
@@ -422,7 +416,7 @@ class _Checkbox extends StatelessWidget {
 class _Slider extends StatelessWidget {
   const _Slider({required this.props, required this.onInvoke});
   final Map<String, Object?> props;
-  final Future<void> Function(String, [String?]) onInvoke;
+  final Future<void> Function(String, [Object?]) onInvoke;
 
   @override
   Widget build(BuildContext context) {
@@ -436,9 +430,7 @@ class _Slider extends StatelessWidget {
         value: value.clamp(min, max),
         min: min,
         max: max,
-        onChanged: onChange.isEmpty
-            ? null
-            : (v) => onInvoke(onChange, v.toString()),
+        onChanged: onChange.isEmpty ? null : (v) => onInvoke(onChange, v),
       ),
     );
   }
@@ -447,7 +439,7 @@ class _Slider extends StatelessWidget {
 class _Dropdown extends StatelessWidget {
   const _Dropdown({required this.props, required this.onInvoke});
   final Map<String, Object?> props;
-  final Future<void> Function(String, [String?]) onInvoke;
+  final Future<void> Function(String, [Object?]) onInvoke;
 
   @override
   Widget build(BuildContext context) {
@@ -604,7 +596,7 @@ class _Modal extends StatelessWidget {
     required this.child,
   });
   final Map<String, Object?> props;
-  final Future<void> Function(String, [String?]) onInvoke;
+  final Future<void> Function(String, [Object?]) onInvoke;
   final Widget child;
 
   @override
@@ -662,7 +654,7 @@ class _Tabs extends StatefulWidget {
     required this.children,
   });
   final Map<String, Object?> props;
-  final Future<void> Function(String, [String?]) onInvoke;
+  final Future<void> Function(String, [Object?]) onInvoke;
   final List<Widget> children;
 
   @override

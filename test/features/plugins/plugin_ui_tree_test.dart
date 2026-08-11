@@ -57,4 +57,37 @@ void main() {
     await tester.tap(find.text('run'));
     expect(callback, 'callback-1');
   });
+
+  testWidgets('passes typed values from interactive controls', (tester) async {
+    final values = <Object?>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: PluginUITree(
+            root: {
+              'type': 'Column',
+              'children': [
+                {
+                  'type': 'Switch',
+                  'props': {'checked': false, 'onChange': 'switch'},
+                },
+                {
+                  'type': 'Checkbox',
+                  'props': {'checked': false, 'onChange': 'checkbox'},
+                },
+              ],
+            },
+            onInvoke: (id, [value]) async => values.add(value),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(Switch));
+    await tester.tap(find.byType(Checkbox));
+
+    expect(values, <Object?>[true, true]);
+  });
 }

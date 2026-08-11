@@ -147,6 +147,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
         orElse: () => ResourceInstallMode.automatic,
       ),
       filePath: view.path ?? '',
+      identifier: view.params['identifier']?.toString(),
       resource: resource,
       file: resourceFile,
       status: resourceTaskStatusFromDaemon(
@@ -203,6 +204,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     XFile file, {
     required LocalDeviceInstallType type,
     required ResourceInstallMode installMode,
+    String? identifier,
   }) async {
     if (kIsWeb) {
       final bytes = await file.readAsBytes();
@@ -215,6 +217,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
           installMode: installMode,
           filePath: file.path,
           bytes: bytes,
+          identifier: identifier,
         ),
       );
       start();
@@ -227,6 +230,8 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
         params: {
           'type': type.name,
           'installMode': installMode.name,
+          if (identifier != null && identifier.isNotEmpty)
+            'identifier': identifier,
           'path': path,
           'title': file.name,
           'deleteAfter': true,
@@ -288,7 +293,10 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
 
   /// Re-enqueue a failed watchface install with an explicit identifier,
   /// letting users fix a wrong watchface id instead of re-picking the file.
-  void reinstallWatchface(String taskId, {required String identifier}) {
+  Future<void> reinstallWatchface(
+    String taskId, {
+    required String identifier,
+  }) async {
     final task = state.tasks.where((item) => item.id == taskId).firstOrNull;
     if (task == null) return;
     if (kIsWeb) {
@@ -317,25 +325,24 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
       start();
       return;
     }
-    unawaited(
-      _enqueue(
-        OronBoxCommand(
-          method: 'install.local',
-          params: {
-            'type': 'watchface',
-            'identifier': identifier,
-            'path': task.filePath,
-            'title': task.name,
-            'deleteAfter': true,
-            'autoClean': true,
-            if (task.resource != null)
-              'resource': communityResourceDetailToJson(task.resource!),
-            if (task.file != null) 'file': task.file!.id,
-          },
-        ),
-        held: false,
+    await _enqueue(
+      OronBoxCommand(
+        method: 'install.local',
+        params: {
+          'type': 'watchface',
+          'identifier': identifier,
+          'path': task.filePath,
+          'title': task.name,
+          'deleteAfter': true,
+          'autoClean': true,
+          if (task.resource != null)
+            'resource': communityResourceDetailToJson(task.resource!),
+          if (task.file != null) 'file': task.file!.id,
+        },
       ),
+      held: false,
     );
+    await _feed?.remove(taskId, terminal: true);
   }
 
   void enqueueResource({

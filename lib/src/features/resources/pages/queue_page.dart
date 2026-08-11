@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
@@ -40,30 +41,30 @@ class QueuePage extends ConsumerWidget {
               8,
             ),
             child: isWide
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(child: _PanelWrapper(child: downloadList)),
-                        Container(
-                          width: 1,
-                          margin: const EdgeInsets.symmetric(vertical: 12),
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                        ),
-                        Expanded(child: _PanelWrapper(child: installList)),
-                      ],
-                    )
-                  : Column(
-                      children: [
-                        Expanded(child: downloadList),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Divider(height: 1),
-                        ),
-                        Expanded(child: installList),
-                      ],
-                    ),
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: _PanelWrapper(child: downloadList)),
+                      Container(
+                        width: 1,
+                        margin: const EdgeInsets.symmetric(vertical: 12),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                      ),
+                      Expanded(child: _PanelWrapper(child: installList)),
+                    ],
+                  )
+                : Column(
+                    children: [
+                      Expanded(child: downloadList),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Divider(height: 1),
+                      ),
+                      Expanded(child: installList),
+                    ],
+                  ),
           );
         },
       ),
@@ -223,40 +224,66 @@ class _InstallQueuePanel extends ConsumerWidget {
     InstallTask task,
   ) async {
     final l10n = AppLocalizations.of(context)!;
+    final currentIdentifier = task.identifier ?? '';
     final controller = TextEditingController(
-      text: task.analysis?.identifier ?? '',
+      text: RegExp(r'^[0-9]{1,12}$').hasMatch(currentIdentifier)
+          ? currentIdentifier
+          : '',
     );
-    final identifier = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.installQueueFixWatchfaceId),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: l10n.installQueueFixWatchfaceIdHint,
+    try {
+      final identifier = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.installQueueFixWatchfaceId),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(12),
+            ],
+            decoration: InputDecoration(
+              hintText: l10n.installQueueFixWatchfaceIdHint,
+            ),
+            onSubmitted: (value) {
+              final normalized = value.trim();
+              if (_isValidWatchfaceIdOverride(normalized)) {
+                Navigator.of(context).pop(normalized);
+              }
+            },
           ),
-          onSubmitted: (value) => Navigator.of(context).pop(value),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.cancel),
+            ),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: controller,
+              builder: (context, value, _) => FilledButton(
+                onPressed: _isValidWatchfaceIdOverride(value.text)
+                    ? () => Navigator.of(context).pop(value.text.trim())
+                    : null,
+                child: Text(l10n.save),
+              ),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: Text(l10n.save),
-          ),
-        ],
-      ),
-    );
-    if (identifier != null && identifier.isNotEmpty) {
-      ref
-          .read(installQueueProvider.notifier)
-          .reinstallWatchface(task.id, identifier: identifier);
+      );
+      if (identifier != null) {
+        await ref
+            .read(installQueueProvider.notifier)
+            .reinstallWatchface(task.id, identifier: identifier);
+      }
+    } finally {
+      controller.dispose();
     }
   }
 }
+
+bool _isValidWatchfaceIdOverride(String value) =>
+    RegExp(r'^[0-9]{1,12}$').hasMatch(value.trim()) &&
+    !RegExp(r'^[0]+$').hasMatch(value.trim());
 
 class _QueuePanel extends StatelessWidget {
   const _QueuePanel({
@@ -393,7 +420,7 @@ class _QueueTile extends StatelessWidget {
                 children: [
                   if (onFixWatchfaceId != null)
                     IconButton(
-                      icon: const Icon(Icons.tag),
+                      icon: const Icon(Icons.edit_outlined),
                       tooltip: l10n.installQueueFixWatchfaceId,
                       onPressed: onFixWatchfaceId,
                     ),

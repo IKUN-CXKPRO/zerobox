@@ -64,6 +64,7 @@ Future<bool> confirmAndEnqueueResourceFile({
         file,
         type: effectiveType,
         installMode: installMode,
+        identifier: analysis!.identifier,
       );
   return true;
 }

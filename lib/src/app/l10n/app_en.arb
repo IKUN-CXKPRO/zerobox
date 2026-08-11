@@ -990,7 +990,7 @@
   },
   "queueStatusCompleted": "Completed",
   "queueStatusFailed": "Failed",
-  "queueDragToInstall": "Release to add to install queue",
+  "queueDragToInstall": "Release to install an app, watchface, or plugin",
   "queueAddedFiles": "Added {count} files to install queue",
   "@queueAddedFiles": {
     "placeholders": {
@@ -1261,7 +1261,7 @@
   "creatorGitHubOwnPublishMissing": "GitHub not connected",
   "creatorAuthorize": "Authorize",
   "installQueueFixWatchfaceId": "Fix watchface ID",
-  "installQueueFixWatchfaceIdHint": "Enter a watchface ID and reinstall",
+  "installQueueFixWatchfaceIdHint": "Enter up to 12 digits",
   "authorize": "Authorize",
   "creatorBandBbsAuthorized": "BandBBS resource publishing is authorized",
   "creatorBandBbsAuthorizationRequired": "Authorize OronBox separately to publish BandBBS resources on your behalf",

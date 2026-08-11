@@ -27,7 +27,7 @@ abstract interface class PluginRuntime {
     required PluginHostCall hostCall,
   });
 
-  Future<void> invokeCallback(String callbackId, [String? value]);
+  Future<void> invokeCallback(String callbackId, [Object? value]);
 
   Future<Object?> invokeRegistered(String callbackId, List<Object?> arguments);
 
@@ -112,8 +112,8 @@ const oronBoxPluginBootstrap = r'''
         host('network.download', [url, path, options]),
     },
     interconnect: {
-      send: (packageName, data) =>
-        host('interconnect.send', [packageName, data]),
+      send: (packageName, data, deviceId) =>
+        host('interconnect.send', [packageName, data, deviceId]),
       onMessage: async (fn) => {
         await host('interconnect.observe');
         events.interconnect = (payload) => fn(

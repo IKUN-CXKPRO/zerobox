@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/window/window_launcher.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
@@ -27,6 +28,7 @@ class _DeviceDeepLinkHandlerState extends ConsumerState<DeviceDeepLinkHandler> {
   final AppLinks _appLinks = AppLinks();
   final Set<String> _handledLinks = {};
   StreamSubscription<Uri>? _linkSubscription;
+  StreamSubscription<List<String>>? _launchArgumentsSubscription;
   bool _handledInitialLinks = false;
 
   @override
@@ -35,11 +37,17 @@ class _DeviceDeepLinkHandlerState extends ConsumerState<DeviceDeepLinkHandler> {
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
       _handleLink(uri.toString());
     });
+    _launchArgumentsSubscription = primaryLaunchArguments.listen((arguments) {
+      for (final argument in arguments) {
+        unawaited(_handleLink(argument));
+      }
+    });
   }
 
   @override
   void dispose() {
     _linkSubscription?.cancel();
+    _launchArgumentsSubscription?.cancel();
     super.dispose();
   }
 

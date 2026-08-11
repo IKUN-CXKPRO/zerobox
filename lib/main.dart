@@ -36,7 +36,7 @@ void main(List<String> args) async {
   installGlobalErrorLogging();
   await SharedPrefsService.instance.init();
   await runCliIfRequested(args);
-  if (!await initializeWindowCoordinator(window)) return;
+  if (!await initializeWindowCoordinator(window, launchArguments: args)) return;
   if (window.role == OronBoxWindowRole.main) {
     await requestBluetoothPermissionOnStartup();
   }

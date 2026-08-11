@@ -36,13 +36,19 @@ class _DebugLayoutInspectorState extends State<DebugLayoutInspector> {
           itemBuilder: (context, index) {
             final node = widget.nodes[index];
             final content = (node['content'] as Map?)?.cast<String, Object?>();
+            final props = (node['props'] as Map?)?.cast<String, Object?>();
             return ListTile(
               dense: true,
               selected: _selected == index,
               leading: const Icon(Icons.widgets_outlined, size: 18),
-              title: Text(content?['type']?.toString() ?? 'Unknown'),
+              title: Text(
+                node['type']?.toString() ??
+                    content?['type']?.toString() ??
+                    'Unknown',
+              ),
               subtitle: Text(
-                node['node_id']?.toString() ?? '',
+                node['node_id']?.toString() ??
+                    (props == null ? '' : props.keys.join(', ')),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

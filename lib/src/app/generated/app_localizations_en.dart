@@ -2194,7 +2194,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get queueStatusFailed => 'Failed';
 
   @override
-  String get queueDragToInstall => 'Release to add to install queue';
+  String get queueDragToInstall =>
+      'Release to install an app, watchface, or plugin';
 
   @override
   String queueAddedFiles(int count) {
@@ -2646,8 +2647,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get installQueueFixWatchfaceId => 'Fix watchface ID';
 
   @override
-  String get installQueueFixWatchfaceIdHint =>
-      'Enter a watchface ID and reinstall';
+  String get installQueueFixWatchfaceIdHint => 'Enter up to 12 digits';
 
   @override
   String get authorize => 'Authorize';

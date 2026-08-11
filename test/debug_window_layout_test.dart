@@ -12,6 +12,24 @@ void main() {
     expect(nodes.single['type'], 'Column');
   });
 
+  test('plugin diagnostics flatten current tree children for inspection', () {
+    final nodes = debugLayoutNodes({
+      'type': 'Column',
+      'children': [
+        {
+          'type': 'Text',
+          'props': {'value': 'hello'},
+        },
+        {
+          'type': 'Button',
+          'props': {'text': 'run'},
+        },
+      ],
+    });
+
+    expect(nodes.map((node) => node['type']), ['Column', 'Text', 'Button']);
+  });
+
   test('plugin diagnostics keep accepting the legacy layout list', () {
     final nodes = debugLayoutNodes([
       {'type': 'Text'},

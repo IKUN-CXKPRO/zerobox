@@ -284,14 +284,27 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
 }
 
 List<Map<String, Object?>> debugLayoutNodes(Object? layout) {
-  final nodes = layout is List
+  final roots = layout is List
       ? layout.whereType<Map>()
       : layout is Map
       ? <Map>[layout]
       : const <Map>[];
-  return nodes
-      .map((node) => node.cast<String, Object?>())
-      .toList(growable: false);
+  final nodes = <Map<String, Object?>>[];
+  void visit(Map<dynamic, dynamic> raw) {
+    final node = raw.cast<String, Object?>();
+    nodes.add(node);
+    final children = node['children'];
+    if (children is List) {
+      for (final child in children.whereType<Map>()) {
+        visit(child);
+      }
+    }
+  }
+
+  for (final root in roots) {
+    visit(root);
+  }
+  return nodes;
 }
 
 class _SourceChips extends StatelessWidget {

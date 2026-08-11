@@ -622,7 +622,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'plugin.invoke' => _pluginManager.invoke(
       command.params['id']?.toString() ?? '',
       command.params['callback']?.toString() ?? '',
-      command.params['value']?.toString(),
+      command.params['value'],
     ),
     'plugin.close' => _pluginManager.closePlugin(
       command.params['id']?.toString() ?? '',
@@ -1664,6 +1664,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
             fileName: fileName,
             bytes: bytes,
             deviceManager: _manager,
+            identifierOverride: identifier,
             onProgress: onProgress,
           );
         case ResourceInstallMode.forcePlatform:

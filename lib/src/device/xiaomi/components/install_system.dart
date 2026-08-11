@@ -319,12 +319,10 @@ class XiaomiInstallSystem extends XiaomiPbSystem {
 
   static String _normalizeWatchfaceId(String watchfaceId, Uint8List fileData) {
     final extracted = _extractWatchfaceIdFromBin(fileData);
-    if (extracted != null && _isValidWatchfaceId(extracted)) {
-      return extracted;
-    }
-    if (_isValidWatchfaceId(watchfaceId)) {
-      return watchfaceId;
-    }
+    // A non-empty caller value is an explicit user override. Automatic
+    // installs pass an empty value and retain a valid embedded identifier.
+    if (_isValidWatchfaceId(watchfaceId)) return watchfaceId;
+    if (extracted != null && _isValidWatchfaceId(extracted)) return extracted;
     return _generateWatchfaceId();
   }
 

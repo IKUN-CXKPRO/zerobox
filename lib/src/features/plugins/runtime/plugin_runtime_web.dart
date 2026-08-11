@@ -127,7 +127,7 @@ class _WebPluginRuntime implements PluginRuntime {
   }
 
   @override
-  Future<void> invokeCallback(String callbackId, [String? value]) async {
+  Future<void> invokeCallback(String callbackId, [Object? value]) async {
     await invokeRegistered(callbackId, value == null ? const [] : [value]);
   }
 

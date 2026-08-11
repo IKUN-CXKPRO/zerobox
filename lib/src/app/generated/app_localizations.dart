@@ -3983,7 +3983,7 @@ abstract class AppLocalizations {
   /// No description provided for @queueDragToInstall.
   ///
   /// In en, this message translates to:
-  /// **'Release to add to install queue'**
+  /// **'Release to install an app, watchface, or plugin'**
   String get queueDragToInstall;
 
   /// No description provided for @queueAddedFiles.
@@ -4756,7 +4756,7 @@ abstract class AppLocalizations {
   /// No description provided for @installQueueFixWatchfaceIdHint.
   ///
   /// In en, this message translates to:
-  /// **'Enter a watchface ID and reinstall'**
+  /// **'Enter up to 12 digits'**
   String get installQueueFixWatchfaceIdHint;
 
   /// No description provided for @authorize.
