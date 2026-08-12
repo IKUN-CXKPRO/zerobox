@@ -99,6 +99,18 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Cache Android dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: oronbox-android-${{ runner.os }}-${{ runner.arch }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('pubspec.lock', 'android/**/gradle-wrapper.properties', 'android/**/build.gradle*', 'android/**/settings.gradle*') }}
+          restore-keys: |
+            oronbox-android-${{ runner.os }}-${{ runner.arch }}-${{ env.FLUTTER_VERSION }}-
+            oronbox-android-${{ runner.os }}-${{ runner.arch }}-
+
       - name: Install dependencies
         run: flutter pub get --enforce-lockfile
 
@@ -135,6 +147,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache Flutter SDK (arm64)
+        if: matrix.arch == 'arm64'
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/flutter
+          key: oronbox-flutter-${{ runner.os }}-${{ runner.arch }}-${{ env.FLUTTER_VERSION }}
+
       - name: Install Flutter (x64)
         if: matrix.arch == 'x64'
         uses: subosito/flutter-action@v2
@@ -146,11 +165,21 @@ jobs:
       - name: Install Flutter (arm64)
         if: matrix.arch == 'arm64'
         run: |
-          git clone --depth 1 --branch "$FLUTTER_VERSION" https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          if [[ ! -x "$RUNNER_TEMP/flutter/bin/flutter" ]]; then
+            git clone --depth 1 --branch "$FLUTTER_VERSION" https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          fi
           export PATH="$RUNNER_TEMP/flutter/bin:$PATH"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
           flutter config --no-analytics
           flutter --version
+
+      - name: Cache Dart packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: oronbox-linux-pub-${{ runner.arch }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            oronbox-linux-pub-${{ runner.arch }}-
 
       - name: Install Linux build dependencies
         run: |
@@ -235,6 +264,14 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Cache Dart packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: oronbox-macos-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            oronbox-macos-pub-
+
       - name: Install dependencies
         run: flutter pub get --enforce-lockfile
 
@@ -264,6 +301,17 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+
+      - name: Cache Windows dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\Pub\Cache
+            ${{ github.workspace }}\windows\packages
+          key: oronbox-windows-${{ runner.arch }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('pubspec.lock', 'windows/scripts/install_webview2_sdk.ps1') }}
+          restore-keys: |
+            oronbox-windows-${{ runner.arch }}-${{ env.FLUTTER_VERSION }}-
+            oronbox-windows-${{ runner.arch }}-
 
       - name: Install dependencies
         run: flutter pub get --enforce-lockfile

@@ -51,6 +51,7 @@
   "creatorNewResource": "New resource",
   "creatorResourceName": "Resource name",
   "creatorResourceSummary": "Resource summary",
+  "creatorResourceMetadataRequired": "Resource name and summary are required",
   "creatorPaidType": "Payment type",
   "creatorSaveDraft": "Save draft",
   "creatorAddArtifact": "Add resource file",
@@ -1219,6 +1220,8 @@
   },
   "creatorBandBbsDirectPublish": "Sync to BandBBS",
   "creatorBandBbsBoundUpdate": "Linked · Sync to BandBBS",
+  "creatorBandBbsVersionTitle": "Version title",
+  "creatorBandBbsVersionMessage": "Update notes",
   "creatorLinkedSections": "{count} linked sections",
   "@creatorLinkedSections": {
     "placeholders": {
@@ -1520,6 +1523,17 @@
   "creatorImportStageMedia": "Processing images",
   "creatorImportStageUploading": "Creating draft",
   "creatorImportContinue": "Import another",
+  "creatorImportPartialFailureTitle": "Some resources could not be read",
+  "creatorImportPartialFailureMessage": "{count} resource(s) could not be read\nYou can retry the failed items or continue with the resources that were read successfully",
+  "@creatorImportPartialFailureMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "creatorImportRetryFailed": "Retry failed items",
+  "creatorImportContinuePartial": "Continue anyway",
   "creatorImportWarnings": "{count} warnings",
   "@creatorImportWarnings": {
     "placeholders": {

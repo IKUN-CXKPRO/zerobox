@@ -411,7 +411,7 @@ class CreatorResourceCard extends StatelessWidget {
                     ),
                   if (!isCollection && workspace.artifacts.isNotEmpty)
                     _CreatorResourceTag(
-                      icon: Icons.inventory_2_outlined,
+                      icon: Icons.folder_zip_outlined,
                       label: l10n.creatorArtifactCount(
                         workspace.artifacts.length,
                       ),

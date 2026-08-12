@@ -169,6 +169,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorResourceSummary => 'Resource summary';
 
   @override
+  String get creatorResourceMetadataRequired =>
+      'Resource name and summary are required';
+
+  @override
   String get creatorPaidType => 'Payment type';
 
   @override
@@ -2550,6 +2554,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorBandBbsBoundUpdate => 'Linked · Sync to BandBBS';
 
   @override
+  String get creatorBandBbsVersionTitle => 'Version title';
+
+  @override
+  String get creatorBandBbsVersionMessage => 'Update notes';
+
+  @override
   String creatorLinkedSections(int count) {
     return '$count linked sections';
   }
@@ -3256,6 +3266,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creatorImportContinue => 'Import another';
+
+  @override
+  String get creatorImportPartialFailureTitle =>
+      'Some resources could not be read';
+
+  @override
+  String creatorImportPartialFailureMessage(int count) {
+    return '$count resource(s) could not be read\nYou can retry the failed items or continue with the resources that were read successfully';
+  }
+
+  @override
+  String get creatorImportRetryFailed => 'Retry failed items';
+
+  @override
+  String get creatorImportContinuePartial => 'Continue anyway';
 
   @override
   String creatorImportWarnings(int count) {

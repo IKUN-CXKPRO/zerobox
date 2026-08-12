@@ -230,31 +230,73 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
       _importLog.clear();
     });
     final service = ref.read(communityImportServiceProvider);
-    final failures = <String>[];
+    final failures = <String>{};
     try {
-      final details = await service.fetchDetails(
-        _selected.values.toList(),
-        onProgress: _updateProgress,
-        onError: (ref, error) {
-          failures.add(ref.key);
-          if (mounted) {
-            setState(
-              () => _importLog.add(
-                _ImportLogEntry(
-                  _ImportLogLevel.warning,
-                  'DETAIL FAILED · source=${ref.source.storageKey} · '
-                  'resource=${ref.id} · '
-                  '${localizedErrorMessage(l10n, error)}',
+      final detailsByRef = <String, CommunityResourceDetail>{};
+      var pending = _selected.values.toList();
+      while (pending.isNotEmpty) {
+        final failedRefs = <ResourceRef>[];
+        final roundDetails = await service.fetchDetails(
+          pending,
+          onProgress: _updateProgress,
+          onError: (ref, error) {
+            failures.add(ref.key);
+            failedRefs.add(ref);
+            if (mounted) {
+              setState(
+                () => _importLog.add(
+                  _ImportLogEntry(
+                    _ImportLogLevel.warning,
+                    'DETAIL FAILED · source=${ref.source.storageKey} · '
+                    'resource=${ref.id} · '
+                    '${localizedErrorMessage(l10n, error)}',
+                  ),
                 ),
-              ),
-            );
+              );
+            }
+          },
+        );
+        for (final detail in roundDetails) {
+          detailsByRef[detail.ref.key] = detail;
+          failures.remove(detail.ref.key);
+        }
+        if (failedRefs.isEmpty) break;
+        if (!mounted) return;
+        final action = await _showImportDetailFailureDialog(l10n, failedRefs);
+        if (action == null) {
+          if (mounted) {
+            setState(() {
+              _preparing = false;
+              _stage = null;
+              _step = 1;
+            });
           }
-        },
-      );
+          return;
+        }
+        if (action) {
+          pending = [
+            for (final ref in failedRefs)
+              if (_selected[ref.key] case final item?) item,
+          ];
+          continue;
+        }
+        break;
+      }
+      final details = detailsByRef.values.toList();
       if (details.isEmpty) {
         throw StateError('No external resource details were available');
       }
-      final plan = await service.planImport(details);
+      var plan = await service.planImport(details);
+      if (failures.isNotEmpty) {
+        plan = CommunityImportPlan(
+          details: plan.details,
+          bindings: plan.bindings,
+          warnings: [
+            ...plan.warnings,
+            ...failures.map((key) => 'detailFailed:$key'),
+          ],
+        );
+      }
       if (!mounted) return;
       setState(() {
         _preparing = false;
@@ -269,7 +311,7 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
         _result = CommunityImportResult(
           status: CommunityImportStatus.failed,
           message: 'import_failed',
-          warnings: failures,
+          warnings: failures.toList(),
         );
         _importLog.add(
           _ImportLogEntry(
@@ -281,6 +323,76 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
       });
     }
   }
+
+  /// Returns true to retry failed items, false to continue with the details
+  /// already fetched, and null to cancel the import.
+  Future<bool?> _showImportDetailFailureDialog(
+    AppLocalizations l10n,
+    List<ResourceRef> failed,
+  ) => showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      title: Text(l10n.creatorImportPartialFailureTitle),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 320),
+        child: SingleChildScrollView(
+          child: Text(
+            '${l10n.creatorImportPartialFailureMessage(failed.length)}\n\n'
+            '${failed.map((ref) => '${ref.source.displayName} · ${ref.id}').join('\n')}',
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(l10n.creatorImportContinuePartial),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(l10n.creatorImportRetryFailed),
+        ),
+      ],
+    ),
+  );
+
+  Future<CommunityImportRecoveryAction?> _showImportFailureDialog(
+    AppLocalizations l10n,
+    String item,
+    Object error,
+  ) => showDialog<CommunityImportRecoveryAction>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      title: Text(l10n.creatorImportPartialFailureTitle),
+      content: Text(
+        '$item\n${localizedErrorMessage(l10n, error)}\n\n'
+        '${l10n.creatorImportPartialFailureMessage(1)}',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () =>
+              Navigator.of(context).pop(CommunityImportRecoveryAction.cancel),
+          child: Text(l10n.cancel),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(
+            context,
+          ).pop(CommunityImportRecoveryAction.continueImport),
+          child: Text(l10n.creatorImportContinuePartial),
+        ),
+        FilledButton(
+          onPressed: () =>
+              Navigator.of(context).pop(CommunityImportRecoveryAction.retry),
+          child: Text(l10n.creatorImportRetryFailed),
+        ),
+      ],
+    ),
+  );
 
   void _updateProgress(
     CommunityImportStage stage,
@@ -311,14 +423,39 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
   Future<void> _runImport() async {
     final plan = _plan;
     if (plan == null || _running) return;
+    final l10n = AppLocalizations.of(context)!;
+    final resume = _result;
     setState(() {
       _step = 3;
       _running = true;
       _result = null;
     });
-    final result = await ref
-        .read(communityImportServiceProvider)
-        .importPlan(plan, onProgress: _updateProgress);
+    final service = ref.read(communityImportServiceProvider);
+    late CommunityImportResult result;
+    try {
+      result =
+          resume?.resourceId != null &&
+              (resume?.bundle != null || resume?.bundlePath != null)
+          ? await service.resumeDraft(
+              resourceId: resume!.resourceId!,
+              bundle: resume.bundle,
+              bundlePath: resume.bundlePath,
+              bindings: plan.bindings,
+            )
+          : await service.importPlan(
+              plan,
+              onProgress: _updateProgress,
+              onFailure: (item, error) async =>
+                  await _showImportFailureDialog(l10n, item, error) ??
+                  CommunityImportRecoveryAction.cancel,
+            );
+    } catch (error) {
+      result = CommunityImportResult(
+        status: CommunityImportStatus.failed,
+        message: 'import_failed',
+        warnings: [error.toString()],
+      );
+    }
     if (!mounted) return;
     setState(() {
       _running = false;
@@ -339,6 +476,12 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
   }
 
   void _importAgain() {
+    final result = _result;
+    if (result?.resourceId != null &&
+        (result?.bundle != null || result?.bundlePath != null)) {
+      _runImport();
+      return;
+    }
     setState(() {
       _step = 1;
       _plan = null;
@@ -352,7 +495,11 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
   Future<void> _create() async {
     final action = _action;
     final name = _name.text.trim();
-    if (action == null || action == _WizardAction.import || name.isEmpty) {
+    final summary = _summary.text.trim();
+    if (action == null ||
+        action == _WizardAction.import ||
+        name.isEmpty ||
+        (action == _WizardAction.resource && summary.isEmpty)) {
       return;
     }
     if (_creating) return;
@@ -384,18 +531,15 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
           name,
           _kind,
         );
-        final summary = _summary.text.trim();
-        if (summary.isNotEmpty) {
-          await controller.saveDraft(
-            bundle: buildCommunityImportBundle(
-              kind: _kind,
-              name: name,
-              summary: summary,
-              links: const [],
-              artifacts: const [],
-            ),
-          );
-        }
+        await controller.saveDraft(
+          bundle: buildCommunityImportBundle(
+            kind: _kind,
+            name: name,
+            summary: summary,
+            links: const [],
+            artifacts: const [],
+          ),
+        );
       }
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
@@ -537,12 +681,22 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
           controller: _summary,
           minLines: 4,
           maxLines: 8,
+          onChanged: (_) => setState(() {}),
           decoration: InputDecoration(
             labelText: isCollection
                 ? l10n.creatorCollectionSummary
                 : l10n.creatorResourceSummary,
           ),
         ),
+        if (!isCollection &&
+            (_name.text.trim().isEmpty || _summary.text.trim().isEmpty))
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              l10n.creatorResourceMetadataRequired,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
       ],
     );
   }
@@ -788,8 +942,8 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
       CommunityImportStatus.skipped => (
         Icons.remove_circle_outline,
         colors.tertiary,
-        result.message == 'duplicate'
-            ? l10n.communityImportDuplicate
+        result.message == 'duplicate' || result.message == 'alreadyImported'
+            ? l10n.creatorImportAlreadyImported
             : (result.message ?? ''),
       ),
       CommunityImportStatus.failed => (
@@ -797,9 +951,11 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
         colors.error,
         result.message == 'unsupportedType'
             ? l10n.communityImportUnsupported
-            : (result.message == 'noArtifacts'
-                  ? l10n.communityImportNoArtifacts
-                  : l10n.communityImportResultFailed),
+            : (result.message == 'missingMetadata'
+                  ? l10n.creatorResourceMetadataRequired
+                  : (result.message == 'noArtifacts'
+                        ? l10n.communityImportNoArtifacts
+                        : l10n.communityImportResultFailed)),
       ),
     };
     return ListView(
@@ -916,7 +1072,11 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
       (1, false) => (
         l10n.creatorConfirm,
         _create,
-        _name.text.trim().isNotEmpty && !_creating,
+        _name.text.trim().isNotEmpty &&
+            (isImport ||
+                _action == _WizardAction.collection ||
+                _summary.text.trim().isNotEmpty) &&
+            !_creating,
       ),
       (1, true) => (l10n.oobeNext, _prepareImport, _selected.isNotEmpty),
       _ => (l10n.oobeNext, () {}, false),

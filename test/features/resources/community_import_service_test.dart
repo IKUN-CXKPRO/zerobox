@@ -125,14 +125,14 @@ void main() {
         {'title': '米坛社区', 'url': 'https://www.bandbbs.cn/resources/1/'},
       ],
       icon: CommunityImportMedia(
-        extension: 'png',
+        extension: 'webp',
         bytes: Uint8List.fromList([1, 2, 3]),
         width: 256,
         height: 256,
       ),
       previews: [
         CommunityImportMedia(
-          extension: 'png',
+          extension: 'webp',
           bytes: Uint8List.fromList([4, 5]),
           width: 100,
           height: 50,
@@ -181,7 +181,7 @@ void main() {
     // publish targets from the imported bindings.
     expect(manifest.containsKey('publications'), isFalse);
     final media = manifest['media'] as Map<String, Object?>;
-    expect((media['icon'] as Map)['file'], 'media/icon.png');
+    expect((media['icon'] as Map)['file'], 'media/icon.webp');
     expect((media['icon'] as Map)['width'], 256);
     expect((media['previews'] as List), hasLength(1));
     final artifacts = manifest['artifacts'] as List;
@@ -192,7 +192,11 @@ void main() {
     expect(artifact['device_ids'], ['dev-1']);
     expect(
       archive.files.map((file) => file.name),
-      containsAll(['media/icon.png', 'media/preview-0.png', 'artifacts/0.bin']),
+      containsAll([
+        'media/icon.webp',
+        'media/preview-0.webp',
+        'artifacts/0.bin',
+      ]),
     );
     final bindings = manifest['bindings'] as List;
     expect(bindings, hasLength(2));

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -6,7 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/core/network/dio_provider.dart';
@@ -17,12 +18,53 @@ import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
 import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
+import 'package:oronbox/src/features/resources/services/resource_image_processor.dart';
 import 'package:oronbox/src/features/resources/services/resource_payload_analyzer.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
 const communityImportMaxPreviews = 12;
 const communityImportMaxNameRunes = 120;
 const communityImportMaxSummaryRunes = 4000;
+const _communityImportRetryCount = 3;
+
+bool _isRetryableImportError(Object error) {
+  if (error is DioException) {
+    final status = error.response?.statusCode;
+    return status == null ||
+        status == 408 ||
+        status == 425 ||
+        status == 429 ||
+        status >= 500;
+  }
+  if (error is SocketException || error is TimeoutException) return true;
+  final message = error.toString().toLowerCase();
+  return message.contains('timeout') ||
+      message.contains('timed out') ||
+      message.contains('connection reset') ||
+      message.contains('connection closed') ||
+      message.contains('network') ||
+      message.contains('temporarily unavailable') ||
+      message.contains('http 408') ||
+      message.contains('http 429') ||
+      message.contains('http 5');
+}
+
+Future<T> _retryImportOperation<T>(Future<T> Function() operation) async {
+  Future<T> attempt(int number) async {
+    try {
+      return await operation();
+    } catch (error, stackTrace) {
+      if (number >= _communityImportRetryCount ||
+          !_isRetryableImportError(error)) {
+        Error.throwWithStackTrace(error, stackTrace);
+      }
+      await Future<void>.delayed(Duration(seconds: 1 << (number - 1)));
+      return attempt(number + 1);
+    }
+  }
+
+  return attempt(1);
+}
 
 bool communityImportSourceSupported(CommunitySourceId source) =>
     source == CommunitySourceId.bandbbs ||
@@ -114,6 +156,15 @@ typedef CommunityImportProgress =
       String label,
     );
 
+enum CommunityImportRecoveryAction { retry, continueImport, cancel }
+
+typedef CommunityImportFailureHandler =
+    Future<CommunityImportRecoveryAction> Function(String item, Object error);
+
+class CommunityImportCancelled implements Exception {
+  const CommunityImportCancelled();
+}
+
 /// External identity the imported resource already has on another platform;
 /// recorded into the draft manifest so later publications update it.
 class CommunityImportBinding {
@@ -187,12 +238,19 @@ class CommunityImportResult {
   const CommunityImportResult({
     required this.status,
     this.resourceId,
+    this.bundle,
+    this.bundlePath,
     this.message,
     this.warnings = const [],
   });
 
   final CommunityImportStatus status;
   final String? resourceId;
+
+  /// The client-built draft bundle, retained so a failed upload can resume
+  /// without downloading and packaging the external resources again.
+  final Uint8List? bundle;
+  final String? bundlePath;
   final String? message;
   final List<String> warnings;
 }
@@ -252,8 +310,8 @@ class CommunityImportService {
     return result.value;
   }
 
-  /// Fetches full details for the selected list items; failures are skipped
-  /// and reported through [onError].
+  /// Fetches full details for the selected list items; failures are reported
+  /// through [onError] so the wizard can let the user retry or continue.
   Future<List<CommunityResourceDetail>> fetchDetails(
     List<CommunityResource> selected, {
     CommunityImportProgress? onProgress,
@@ -273,7 +331,9 @@ class CommunityImportService {
         final catalog = _ref.read(
           communityCatalogProviderForSource(item.ref.source),
         );
-        final detail = await catalog.getDetail(item.ref);
+        final detail = await _retryImportOperation(
+          () => catalog.getDetail(item.ref),
+        );
         details.add(detail);
         onProgress?.call(
           CommunityImportStage.fetchingDetail,
@@ -376,7 +436,9 @@ class CommunityImportService {
   /// BandBBS category tree flattened to {normalized codename: section id}.
   Future<Map<String, String>> _bandbbsSectionIds() async {
     try {
-      final value = await _execute('resource.bandbbs.categories');
+      final value = await _retryImportOperation(
+        () => _execute('resource.bandbbs.categories'),
+      );
       final result = <String, String>{};
       void walk(Map<Object?, Object?> node) {
         final title = node['title']?.toString() ?? '';
@@ -448,6 +510,7 @@ class CommunityImportService {
     CommunityImportPlan plan, {
     bool forceReimport = false,
     CommunityImportProgress? onProgress,
+    CommunityImportFailureHandler? onFailure,
   }) async {
     final kind = plan.kind;
     if (kind == null) {
@@ -456,11 +519,44 @@ class CommunityImportService {
         message: 'unsupportedType',
       );
     }
-    final existing = await _existingCreatorResources();
+    final name = _truncateRunes(plan.title, communityImportMaxNameRunes);
+    final summary = communityImportSummaryText(plan.primary);
+    if (name.trim().isEmpty || summary.trim().isEmpty) {
+      return const CommunityImportResult(
+        status: CommunityImportStatus.failed,
+        message: 'missingMetadata',
+        warnings: ['nameOrSummaryRequired'],
+      );
+    }
+    late (Set<String>, Set<String>, Map<String, String>) existing;
+    try {
+      existing = await _existingCreatorResources();
+    } catch (error) {
+      logDiagnostic(
+        _log,
+        Level.WARNING,
+        'Community import resource list failed',
+        error: error.toString(),
+      );
+      return CommunityImportResult(
+        status: CommunityImportStatus.failed,
+        message: 'import_failed',
+        warnings: plan.warnings,
+      );
+    }
     var slug = communityImportSlug(
       plan.title,
       fallback: 'import-${DateTime.now().millisecondsSinceEpoch}',
     );
+    final existingResourceId = _matchingExternalResourceId(plan, existing.$3);
+    if (existingResourceId != null && !forceReimport) {
+      return CommunityImportResult(
+        status: CommunityImportStatus.skipped,
+        resourceId: existingResourceId,
+        message: 'alreadyImported',
+        warnings: plan.warnings,
+      );
+    }
     final duplicated =
         existing.$1.contains(slug) ||
         existing.$2.contains(normalizeCommunityImportTitle(plan.title));
@@ -480,6 +576,9 @@ class CommunityImportService {
     }
     final warnings = [...plan.warnings];
     final stopwatch = Stopwatch()..start();
+    Uint8List? bundle;
+    String? bundlePath;
+    String? resourceId;
     try {
       final devices = await _creatorDevices();
       final artifacts = await _collectArtifacts(
@@ -488,16 +587,25 @@ class CommunityImportService {
         devices: devices,
         warnings: warnings,
         onProgress: onProgress,
+        onFailure: onFailure,
       );
+      if (artifacts.isEmpty) {
+        return CommunityImportResult(
+          status: CommunityImportStatus.failed,
+          message: 'noArtifacts',
+          warnings: warnings,
+        );
+      }
       final media = await _collectMedia(
         plan,
         warnings: warnings,
         onProgress: onProgress,
+        onFailure: onFailure,
       );
-      final bundle = buildCommunityImportBundle(
+      bundle = buildCommunityImportBundle(
         kind: kind,
-        name: _truncateRunes(plan.title, communityImportMaxNameRunes),
-        summary: communityImportSummaryText(plan.primary),
+        name: name,
+        summary: summary,
         links: _importLinks(plan),
         icon: media.$1,
         cover: media.$2,
@@ -520,22 +628,26 @@ class CommunityImportService {
       );
       final created = CreatorWorkspace.fromJson(
         _map(
-          await _execute('creator.create', {
-            'slug': slug,
-            'name': _truncateRunes(plan.title, communityImportMaxNameRunes),
-            'kind': kind == CreatorResourceKind.watchface
-                ? 'watchface'
-                : 'quickapp',
-          }),
+          await _retryImportOperation(
+            () => _execute('creator.create', {
+              'slug': slug,
+              'name': _truncateRunes(plan.title, communityImportMaxNameRunes),
+              'kind': kind == CreatorResourceKind.watchface
+                  ? 'watchface'
+                  : 'quickapp',
+            }),
+          ),
         ),
       );
-      final resourceId = created.resource.id;
+      resourceId = created.resource.id;
       final saved = CreatorWorkspace.fromJson(
         _map(
-          await _execute('creator.draft', {
-            'resource': resourceId,
-            'bundle': base64Encode(bundle),
-          }),
+          await _retryImportOperation(
+            () => _execute('creator.draft', {
+              'resource': resourceId,
+              'bundle': base64Encode(bundle!),
+            }),
+          ),
         ),
       );
       validateCommunityImportBindings(plan.bindings, saved.bindings);
@@ -570,6 +682,10 @@ class CommunityImportService {
         warnings: warnings,
       );
     } catch (error) {
+      resourceId ??= await _findCreatorResourceIdBySlug(slug);
+      if (bundle != null) {
+        bundlePath = await _persistImportBundle(bundle, slug);
+      }
       logDiagnostic(
         _log,
         Level.WARNING,
@@ -579,6 +695,9 @@ class CommunityImportService {
       );
       return CommunityImportResult(
         status: CommunityImportStatus.failed,
+        resourceId: resourceId,
+        bundle: bundle,
+        bundlePath: bundlePath,
         // Keep implementation details in diagnostics; the wizard localizes
         // this stable result code for users.
         message: 'import_failed',
@@ -587,11 +706,133 @@ class CommunityImportService {
     }
   }
 
+  /// Resumes the client-built draft upload after `creator.create` succeeded
+  /// but the first upload was interrupted. No external resource is fetched or
+  /// repackaged on this path.
+  Future<CommunityImportResult> resumeDraft({
+    required String resourceId,
+    Uint8List? bundle,
+    String? bundlePath,
+    required List<CommunityImportBinding> bindings,
+  }) async {
+    bundle ??= bundlePath == null ? null : await File(bundlePath).readAsBytes();
+    if (bundle == null) {
+      return CommunityImportResult(
+        status: CommunityImportStatus.failed,
+        resourceId: resourceId,
+        message: 'import_failed',
+      );
+    }
+    try {
+      final saved = CreatorWorkspace.fromJson(
+        _map(
+          await _retryImportOperation(
+            () => _execute('creator.draft', {
+              'resource': resourceId,
+              'bundle': base64Encode(bundle!),
+            }),
+          ),
+        ),
+      );
+      validateCommunityImportBindings(bindings, saved.bindings);
+      if (bundlePath != null) {
+        try {
+          await File(bundlePath).delete();
+        } catch (_) {
+          // Recovery data is best effort and should not turn a successful
+          // resume into a failed import.
+        }
+      }
+      return CommunityImportResult(
+        status: CommunityImportStatus.created,
+        resourceId: resourceId,
+      );
+    } catch (error) {
+      logDiagnostic(
+        _log,
+        Level.WARNING,
+        'Community draft resume failed',
+        fields: {'resource': resourceId},
+        error: error.toString(),
+      );
+      return CommunityImportResult(
+        status: CommunityImportStatus.failed,
+        resourceId: resourceId,
+        bundle: bundle,
+        bundlePath: bundlePath,
+        message: 'import_failed',
+      );
+    }
+  }
+
+  Future<String?> _persistImportBundle(Uint8List bundle, String slug) async {
+    try {
+      final directory = Directory(
+        '${(await getApplicationSupportDirectory()).path}/import-recovery',
+      );
+      await directory.create(recursive: true);
+      final file = File(
+        '${directory.path}/$slug-${DateTime.now().microsecondsSinceEpoch}.zip',
+      );
+      await file.writeAsBytes(bundle, flush: true);
+      return file.path;
+    } catch (error) {
+      logDiagnostic(
+        _log,
+        Level.WARNING,
+        'Community import recovery bundle could not be persisted',
+        error: error.toString(),
+      );
+      return null;
+    }
+  }
+
   /// Existing creator resources as (slugs, lowercase names) for dedupe.
-  Future<(Set<String>, Set<String>)> _existingCreatorResources() async {
-    final root = _map(await _execute('creator.list'));
+  String? _matchingExternalResourceId(
+    CommunityImportPlan plan,
+    Map<String, String> externalResources,
+  ) {
+    final astro = plan.details
+        .where((detail) => detail.ref.source == CommunitySourceId.astroboxRepo)
+        .map((detail) => externalResources['astrobox:${detail.ref.id}'])
+        .whereType<String>()
+        .firstOrNull;
+    if (astro != null) return astro;
+    for (final detail in plan.details.where(
+      (detail) => detail.ref.source == CommunitySourceId.bandbbs,
+    )) {
+      final found = externalResources['bandbbs:${detail.ref.id}'];
+      if (found != null) return found;
+    }
+    return null;
+  }
+
+  Future<String?> _findCreatorResourceIdBySlug(String slug) async {
+    try {
+      final root = _map(
+        await _retryImportOperation(() => _execute('creator.list')),
+      );
+      for (final item in (root['resources'] as List? ?? const [])) {
+        if (item is! Map) continue;
+        final resource = item['resource'];
+        if (resource is Map && resource['slug']?.toString() == slug) {
+          return resource['id']?.toString();
+        }
+      }
+    } catch (_) {
+      // Preserve the original import failure if recovery lookup also fails.
+    }
+    return null;
+  }
+
+  Future<(Set<String>, Set<String>, Map<String, String>)>
+  _existingCreatorResources() async {
+    final root = _map(
+      await _retryImportOperation(() => _execute('creator.list')),
+    );
     final slugs = <String>{};
     final names = <String>{};
+    final externalResources = <String, String>{};
     for (final item
         in (root['resources'] as List? ?? const []).whereType<Map>()) {
       final resource = item['resource'];
@@ -600,12 +841,35 @@ class CommunityImportService {
       final name = resource['draft_name']?.toString() ?? '';
       if (slug.isNotEmpty) slugs.add(slug);
       if (name.isNotEmpty) names.add(name.toLowerCase());
+      final resourceId = resource['id']?.toString() ?? '';
+      for (final binding in (item['bindings'] as List? ?? const [])) {
+        if (binding is! Map || resourceId.isEmpty) continue;
+        final provider = binding['provider']?.toString() ?? '';
+        final externalID = binding['external_id']?.toString() ?? '';
+        if (provider == 'astrobox' && externalID.isNotEmpty) {
+          externalResources['astrobox:$externalID'] = resourceId;
+        } else if (provider == 'bandbbs') {
+          Object? decoded;
+          try {
+            decoded = jsonDecode(externalID);
+          } catch (_) {
+            decoded = null;
+          }
+          if (decoded is Map) {
+            for (final value in decoded.values) {
+              externalResources['bandbbs:$value'] = resourceId;
+            }
+          }
+        }
+      }
     }
-    return (slugs, names);
+    return (slugs, names, externalResources);
   }
 
   Future<List<CreatorDevice>> _creatorDevices() async {
-    final root = _map(await _execute('creator.devices'));
+    final root = _map(
+      await _retryImportOperation(() => _execute('creator.devices')),
+    );
     return (root['devices'] as List? ?? const [])
         .whereType<Map>()
         .map((item) => CreatorDevice.fromJson(item.cast<String, Object?>()))
@@ -618,6 +882,7 @@ class CommunityImportService {
     required List<CreatorDevice> devices,
     required List<String> warnings,
     CommunityImportProgress? onProgress,
+    CommunityImportFailureHandler? onFailure,
   }) async {
     final deviceIdsByCodename = <String, String>{
       for (final device in devices)
@@ -678,33 +943,44 @@ class CommunityImportService {
         warnings.add('${file.label}: paidEncrypted');
         continue;
       }
-      final Uint8List bytes;
-      try {
-        final result = await catalog.download(
-          CommunityDownloadRequest(resource: detail, file: file),
-        );
-        // Non-web catalogs only write the file; read it back.
-        final downloaded =
-            result.bytes ??
-            (result.path.isNotEmpty
-                ? await File(result.path).readAsBytes()
-                : null);
-        if (downloaded == null || downloaded.isEmpty) {
-          warnings.add('${file.label}: noBytes');
-          continue;
+      Uint8List? bytes;
+      while (true) {
+        try {
+          final downloaded = await _retryImportOperation(() async {
+            final result = await catalog.download(
+              CommunityDownloadRequest(resource: detail, file: file),
+            );
+            return result.bytes ??
+                (result.path.isNotEmpty
+                    ? await File(result.path).readAsBytes()
+                    : null);
+          });
+          final downloadedBytes = downloaded;
+          if (downloadedBytes == null || downloadedBytes.isEmpty) {
+            throw StateError('download returned no bytes');
+          }
+          bytes = downloadedBytes;
+          break;
+        } catch (error) {
+          final action =
+              await onFailure?.call(file.label, error) ??
+              CommunityImportRecoveryAction.continueImport;
+          if (action == CommunityImportRecoveryAction.retry) continue;
+          if (action == CommunityImportRecoveryAction.cancel) {
+            throw const CommunityImportCancelled();
+          }
+          warnings.add('${file.label}: downloadFailed');
+          logDiagnostic(
+            _log,
+            Level.WARNING,
+            'Community import download failed',
+            fields: {'file': file.fileName},
+            error: error.toString(),
+          );
+          break;
         }
-        bytes = downloaded;
-      } catch (error) {
-        warnings.add('${file.label}: downloadFailed');
-        logDiagnostic(
-          _log,
-          Level.WARNING,
-          'Community import download failed',
-          fields: {'file': file.fileName},
-          error: error.toString(),
-        );
-        continue;
       }
+      if (bytes == null) continue;
       final analysis = install.analyzePayload(
         fileName: file.fileName,
         bytes: bytes,
@@ -786,6 +1062,7 @@ class CommunityImportService {
     CommunityImportPlan plan, {
     required List<String> warnings,
     CommunityImportProgress? onProgress,
+    CommunityImportFailureHandler? onFailure,
   }) async {
     final primary = plan.primary;
     // BandBBS has no real cover (its catalog fills it with the icon), so a
@@ -804,16 +1081,19 @@ class CommunityImportService {
     var done = 0;
     final icon = await _downloadImage(
       primary.iconUrl,
-      maxDimension: 256,
+      maxDimension: creatorIconMaxDimension,
       onDone: (label) =>
           onProgress?.call(CommunityImportStage.media, ++done, total, label),
       onError: () => warnings.add('icon: downloadFailed'),
+      onFailure: onFailure,
     );
     final cover = await _downloadImage(
       coverUrl,
+      maxDimension: creatorMediaMaxDimension,
       onDone: (label) =>
           onProgress?.call(CommunityImportStage.media, ++done, total, label),
       onError: () => warnings.add('cover: downloadFailed'),
+      onFailure: onFailure,
     );
     final importedPreviews = <CommunityImportMedia>[];
     for (final preview in previews) {
@@ -821,6 +1101,7 @@ class CommunityImportService {
         preview.url,
         onDone: (label) =>
             onProgress?.call(CommunityImportStage.media, ++done, total, label),
+        onFailure: onFailure,
       );
       if (media != null) importedPreviews.add(media);
     }
@@ -829,57 +1110,59 @@ class CommunityImportService {
 
   Future<CommunityImportMedia?> _downloadImage(
     Uri? url, {
-    int maxDimension = 1500,
+    int maxDimension = creatorMediaMaxDimension,
     void Function(String label)? onDone,
     void Function()? onError,
+    CommunityImportFailureHandler? onFailure,
   }) async {
     if (url == null) return null;
-    try {
-      final response = await _ref
-          .read(appDioProvider)
-          .get<List<int>>(
-            url.toString(),
-            options: Options(responseType: ResponseType.bytes),
-          );
-      final raw = Uint8List.fromList(response.data ?? const []);
-      var decoded = img.decodeImage(raw);
-      if (decoded == null) throw StateError('undecodable image');
-      if (decoded.width > maxDimension || decoded.height > maxDimension) {
-        final width = decoded.width >= decoded.height
-            ? maxDimension
-            : (decoded.width * maxDimension / decoded.height).round();
-        final height = decoded.width >= decoded.height
-            ? (decoded.height * maxDimension / decoded.width).round()
-            : maxDimension;
-        decoded = img.copyResize(
-          decoded,
-          width: width,
-          height: height,
-          interpolation: img.Interpolation.cubic,
+    while (true) {
+      try {
+        final response = await _retryImportOperation(
+          () => _ref
+              .read(appDioProvider)
+              .get<List<int>>(
+                url.toString(),
+                options: Options(responseType: ResponseType.bytes),
+              ),
         );
+        final raw = Uint8List.fromList(response.data ?? const []);
+        final processed = await processResourceImage(
+          raw,
+          maxDimension: maxDimension,
+        );
+        if (processed == null) throw StateError('undecodable image');
+        final name = url.pathSegments.isEmpty
+            ? url.host
+            : url.pathSegments.last;
+        onDone?.call(
+          '$name · ${raw.length} bytes · ${processed.width}x${processed.height} · '
+          'webp=${processed.bytes.length} bytes',
+        );
+        return CommunityImportMedia(
+          extension: 'webp',
+          bytes: processed.bytes,
+          width: processed.width,
+          height: processed.height,
+        );
+      } catch (error) {
+        final action =
+            await onFailure?.call(url.toString(), error) ??
+            CommunityImportRecoveryAction.continueImport;
+        if (action == CommunityImportRecoveryAction.retry) continue;
+        if (action == CommunityImportRecoveryAction.cancel) {
+          throw const CommunityImportCancelled();
+        }
+        logDiagnostic(
+          _log,
+          Level.WARNING,
+          'Community import media failed',
+          fields: {'url': url.toString()},
+          error: error.toString(),
+        );
+        onError?.call();
+        return null;
       }
-      final encoded = Uint8List.fromList(img.encodePng(decoded));
-      final name = url.pathSegments.isEmpty ? url.host : url.pathSegments.last;
-      onDone?.call(
-        '$name · ${raw.length} bytes · ${decoded.width}x${decoded.height} · '
-        'png=${encoded.length} bytes',
-      );
-      return CommunityImportMedia(
-        extension: 'png',
-        bytes: encoded,
-        width: decoded.width,
-        height: decoded.height,
-      );
-    } catch (error) {
-      logDiagnostic(
-        _log,
-        Level.WARNING,
-        'Community import media failed',
-        fields: {'url': url.toString()},
-        error: error.toString(),
-      );
-      onError?.call();
-      return null;
     }
   }
 
@@ -934,19 +1217,19 @@ Uint8List buildCommunityImportBundle({
   };
   final media = <String, Object?>{};
   if (icon != null) {
-    final path = 'media/icon.${icon.extension}';
+    final path = 'media/icon.webp';
     addFile(path, icon.bytes);
     media['icon'] = mediaRef(icon, path);
   }
   if (cover != null) {
-    final path = 'media/cover.${cover.extension}';
+    final path = 'media/cover.webp';
     addFile(path, cover.bytes);
     media['cover'] = mediaRef(cover, path);
   }
   media['previews'] = [
     for (var index = 0; index < previews.length; index++)
       () {
-        final path = 'media/preview-$index.${previews[index].extension}';
+        final path = 'media/preview-$index.webp';
         addFile(path, previews[index].bytes);
         return mediaRef(previews[index], path);
       }(),

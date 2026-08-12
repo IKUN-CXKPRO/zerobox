@@ -5,8 +5,8 @@
 #include <flutter/standard_method_codec.h>
 #include <windows.h>
 
-#include <algorithm>
-#include <cctype>
+#include "utils.h"
+
 #include <memory>
 #include <sstream>
 #include <string>
@@ -31,6 +31,7 @@ constexpr char kChannelName[] = "oronbox/mi_account_2fa";
 constexpr wchar_t kWindowClassName[] = L"OronBoxMiAccount2FAWindow";
 constexpr UINT_PTR kPollTimerId = 1;
 constexpr UINT kPollIntervalMs = 750;
+constexpr UINT kFinalizeMessage = WM_APP + 0x2FA;
 
 std::wstring Utf8ToWide(const std::string& text) {
   if (text.empty()) {
@@ -63,57 +64,6 @@ std::string WideToUtf8(const wchar_t* text) {
   return result;
 }
 
-std::string TrimLower(std::string text) {
-  auto is_space = [](unsigned char ch) { return std::isspace(ch) != 0; };
-  while (!text.empty() && is_space(static_cast<unsigned char>(text.front()))) {
-    text.erase(text.begin());
-  }
-  while (!text.empty() && is_space(static_cast<unsigned char>(text.back()))) {
-    text.pop_back();
-  }
-  std::transform(text.begin(), text.end(), text.begin(), [](unsigned char ch) {
-    return static_cast<char>(std::tolower(ch));
-  });
-  return text;
-}
-
-std::string DecodeJsonString(const std::wstring& json) {
-  if (json.size() < 2 || json.front() != L'"' || json.back() != L'"') {
-    return TrimLower(WideToUtf8(json.c_str()));
-  }
-
-  std::wstring decoded;
-  decoded.reserve(json.size());
-  for (size_t i = 1; i + 1 < json.size(); ++i) {
-    wchar_t ch = json[i];
-    if (ch != L'\\' || i + 1 >= json.size() - 1) {
-      decoded.push_back(ch);
-      continue;
-    }
-    wchar_t escaped = json[++i];
-    switch (escaped) {
-      case L'n':
-        decoded.push_back(L'\n');
-        break;
-      case L'r':
-        decoded.push_back(L'\r');
-        break;
-      case L't':
-        decoded.push_back(L'\t');
-        break;
-      case L'"':
-      case L'\\':
-      case L'/':
-        decoded.push_back(escaped);
-        break;
-      default:
-        decoded.push_back(escaped);
-        break;
-    }
-  }
-  return TrimLower(WideToUtf8(decoded.c_str()));
-}
-
 bool HasSessionCookie(const std::string& header) {
   return header.find("passToken=") != std::string::npos ||
          header.find("cUserId=") != std::string::npos ||
@@ -140,10 +90,6 @@ class WinMiAccountTwoFactorSession
   ~WinMiAccountTwoFactorSession() {
     if (window_ != nullptr) {
       KillTimer(window_, kPollTimerId);
-    }
-    if (webview_ && navigation_completed_token_.value != 0) {
-      webview_->remove_NavigationCompleted(navigation_completed_token_);
-      navigation_completed_token_ = {};
     }
     if (controller_) {
       controller_->Close();
@@ -204,10 +150,12 @@ class WinMiAccountTwoFactorSession
       case WM_TIMER:
         if (wparam == kPollTimerId) {
           CompleteIfReady();
-          InspectBody();
           return 0;
         }
         break;
+      case kFinalizeMessage:
+        Finalize();
+        return 0;
       case WM_CLOSE:
         Cancel();
         return 0;
@@ -230,9 +178,10 @@ class WinMiAccountTwoFactorSession
   }
 
   void CompleteIfReady();
-  void InspectBody();
   void FinishSuccess(const std::string& cookie_header);
   void Fail(const std::string& code, const std::string& message);
+  void Finalize();
+  void ScheduleFinalize();
   void Cancel() { Fail("CANCELLED", "Xiaomi 2FA WebView was closed"); }
 
   HWND parent_window_ = nullptr;
@@ -241,10 +190,13 @@ class WinMiAccountTwoFactorSession
   std::unique_ptr<MethodResult<EncodableValue>> result_;
   ComPtr<ICoreWebView2Controller> controller_;
   ComPtr<ICoreWebView2> webview_;
-  EventRegistrationToken navigation_completed_token_{};
   bool completed_ = false;
   bool checking_cookies_ = false;
-  bool inspecting_body_ = false;
+  bool finalize_posted_ = false;
+  bool pending_success_ = false;
+  std::string pending_value_;
+  std::string pending_error_code_;
+  std::string pending_error_message_;
 };
 
 std::shared_ptr<WinMiAccountTwoFactorSession> g_session;
@@ -281,18 +233,22 @@ void WinMiAccountTwoFactorSession::Start(const std::string& url) {
 
 void WinMiAccountTwoFactorSession::CreateWebView() {
   const auto weak_session = weak_from_this();
+  const std::wstring user_data_folder = GetWebView2UserDataFolder();
+  if (user_data_folder.empty()) {
+    Fail("WEBVIEW_FAILED", "Failed to prepare WebView2 user data folder");
+    return;
+  }
   HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
-      nullptr, nullptr, nullptr,
+      nullptr, user_data_folder.c_str(), nullptr,
       Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
           [weak_session](HRESULT result,
                          ICoreWebView2Environment* environment) -> HRESULT {
             const auto self = weak_session.lock();
-            if (!self) {
+            if (!self || self->completed_ || self->window_ == nullptr) {
               return S_OK;
             }
             if (FAILED(result) || environment == nullptr) {
-              self->Fail("UNAVAILABLE",
-                         "Microsoft Edge WebView2 Runtime is not available");
+              self->Fail("UNAVAILABLE", HResultMessage(result));
               return S_OK;
             }
             const auto controller_session = self->weak_from_this();
@@ -304,7 +260,7 @@ void WinMiAccountTwoFactorSession::CreateWebView() {
                         HRESULT controller_result,
                         ICoreWebView2Controller* controller) -> HRESULT {
                       const auto self = controller_session.lock();
-                      if (!self) {
+                      if (!self || self->completed_ || self->window_ == nullptr) {
                         return S_OK;
                       }
                       if (FAILED(controller_result) || controller == nullptr) {
@@ -313,35 +269,32 @@ void WinMiAccountTwoFactorSession::CreateWebView() {
                         return S_OK;
                       }
                       self->controller_ = controller;
-                      self->controller_->get_CoreWebView2(&self->webview_);
+                      const HRESULT core_hr =
+                          self->controller_->get_CoreWebView2(&self->webview_);
+                      if (FAILED(core_hr)) {
+                        self->Fail("WEBVIEW_FAILED", HResultMessage(core_hr));
+                        return S_OK;
+                      }
                       if (!self->webview_) {
                         self->Fail("WEBVIEW_FAILED",
                                    "WebView2 core is not available");
                         return S_OK;
                       }
 
-                      const auto navigation_session = self->weak_from_this();
-                      self->webview_->add_NavigationCompleted(
-                          Callback<
-                              ICoreWebView2NavigationCompletedEventHandler>(
-                              [navigation_session](
-                                  ICoreWebView2*,
-                                  ICoreWebView2NavigationCompletedEventArgs*)
-                                  -> HRESULT {
-                                const auto self = navigation_session.lock();
-                                if (!self) {
-                                  return S_OK;
-                                }
-                                self->CompleteIfReady();
-                                self->InspectBody();
-                                return S_OK;
-                              })
-                              .Get(),
-                          &self->navigation_completed_token_);
                       self->ResizeWebView();
-                      self->webview_->Navigate(Utf8ToWide(self->url_).c_str());
-                      SetTimer(self->window_, kPollTimerId, kPollIntervalMs,
-                               nullptr);
+                      const HRESULT navigate_hr =
+                          self->webview_->Navigate(
+                              Utf8ToWide(self->url_).c_str());
+                      if (FAILED(navigate_hr)) {
+                        self->Fail("WEBVIEW_FAILED",
+                                   HResultMessage(navigate_hr));
+                        return S_OK;
+                      }
+                      if (SetTimer(self->window_, kPollTimerId,
+                                   kPollIntervalMs, nullptr) == 0) {
+                        self->Fail("WEBVIEW_FAILED",
+                                   "Failed to start Xiaomi 2FA polling");
+                      }
                       return S_OK;
                     })
                     .Get());
@@ -353,7 +306,7 @@ void WinMiAccountTwoFactorSession::CreateWebView() {
           .Get());
 
   if (FAILED(hr)) {
-    Fail("UNAVAILABLE", "Microsoft Edge WebView2 Runtime is not available");
+    Fail("UNAVAILABLE", HResultMessage(hr));
   }
 }
 
@@ -391,7 +344,12 @@ void WinMiAccountTwoFactorSession::CompleteIfReady() {
               return S_OK;
             }
             self->checking_cookies_ = false;
-            if (self->completed_ || FAILED(result) || cookies == nullptr) {
+            if (self->completed_) {
+              self->finalize_posted_ = false;
+              self->ScheduleFinalize();
+              return S_OK;
+            }
+            if (FAILED(result) || cookies == nullptr) {
               return S_OK;
             }
             UINT count = 0;
@@ -435,37 +393,6 @@ void WinMiAccountTwoFactorSession::CompleteIfReady() {
   }
 }
 
-void WinMiAccountTwoFactorSession::InspectBody() {
-  if (completed_ || inspecting_body_ || !webview_) {
-    return;
-  }
-  inspecting_body_ = true;
-  const auto weak_session = weak_from_this();
-  const HRESULT script_hr = webview_->ExecuteScript(
-      L"(document.body && document.body.innerText || '').trim()",
-      Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
-          [weak_session](HRESULT result, LPCWSTR body_json) -> HRESULT {
-            const auto self = weak_session.lock();
-            if (!self) {
-              return S_OK;
-            }
-            self->inspecting_body_ = false;
-            if (self->completed_ || FAILED(result) || body_json == nullptr) {
-              return S_OK;
-            }
-            const std::string text = DecodeJsonString(body_json);
-            if (text == "ok" ||
-                (text.size() > 3 && text.rfind("\nok") == text.size() - 3)) {
-              self->CompleteIfReady();
-            }
-            return S_OK;
-          })
-          .Get());
-  if (FAILED(script_hr)) {
-    inspecting_body_ = false;
-  }
-}
-
 void WinMiAccountTwoFactorSession::FinishSuccess(
     const std::string& cookie_header) {
   if (completed_) {
@@ -475,17 +402,9 @@ void WinMiAccountTwoFactorSession::FinishSuccess(
   if (window_ != nullptr) {
     KillTimer(window_, kPollTimerId);
   }
-  if (webview_ && navigation_completed_token_.value != 0) {
-    webview_->remove_NavigationCompleted(navigation_completed_token_);
-    navigation_completed_token_ = {};
-  }
-  auto result = std::move(result_);
-  if (window_ != nullptr) {
-    DestroyWindow(window_);
-    window_ = nullptr;
-  }
-  if (g_session.get() == this) g_session.reset();
-  if (result) result->Success(EncodableValue(cookie_header));
+  pending_success_ = true;
+  pending_value_ = cookie_header;
+  ScheduleFinalize();
 }
 
 void WinMiAccountTwoFactorSession::Fail(const std::string& code,
@@ -497,17 +416,50 @@ void WinMiAccountTwoFactorSession::Fail(const std::string& code,
   if (window_ != nullptr) {
     KillTimer(window_, kPollTimerId);
   }
-  if (webview_ && navigation_completed_token_.value != 0) {
-    webview_->remove_NavigationCompleted(navigation_completed_token_);
-    navigation_completed_token_ = {};
+  pending_success_ = false;
+  pending_error_code_ = code;
+  pending_error_message_ = message;
+  ScheduleFinalize();
+}
+
+void WinMiAccountTwoFactorSession::ScheduleFinalize() {
+  if (finalize_posted_) {
+    return;
+  }
+  finalize_posted_ = true;
+  if (window_ == nullptr ||
+      !PostMessage(window_, kFinalizeMessage, 0, 0)) {
+    Finalize();
+  }
+}
+
+void WinMiAccountTwoFactorSession::Finalize() {
+  if (checking_cookies_) {
+    finalize_posted_ = false;
+    return;
   }
   auto result = std::move(result_);
   if (window_ != nullptr) {
-    DestroyWindow(window_);
+    const HWND window = window_;
     window_ = nullptr;
+    SetWindowLongPtr(window, GWLP_USERDATA, 0);
+    DestroyWindow(window);
   }
-  if (g_session.get() == this) g_session.reset();
-  if (result) result->Error(code, message);
+  if (controller_) {
+    controller_->Close();
+  }
+  webview_.Reset();
+  controller_.Reset();
+  if (result) {
+    if (pending_success_) {
+      result->Success(EncodableValue(pending_value_));
+    } else {
+      result->Error(pending_error_code_, pending_error_message_);
+    }
+  }
+  if (g_session.get() == this) {
+    g_session.reset();
+  }
 }
 
 #endif  // defined(ORONBOX_HAVE_WEBVIEW2)

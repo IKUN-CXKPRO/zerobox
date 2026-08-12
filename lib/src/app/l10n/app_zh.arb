@@ -51,6 +51,7 @@
   "creatorNewResource": "新建资源",
   "creatorResourceName": "资源名称",
   "creatorResourceSummary": "资源简介",
+  "creatorResourceMetadataRequired": "资源名称和简介不能为空",
   "creatorPaidType": "付费类型",
   "creatorSaveDraft": "保存草稿",
   "creatorAddArtifact": "添加资源文件",
@@ -1219,6 +1220,8 @@
   },
   "creatorBandBbsDirectPublish": "同步到米坛",
   "creatorBandBbsBoundUpdate": "已关联 · 同步到米坛",
+  "creatorBandBbsVersionTitle": "版本标题",
+  "creatorBandBbsVersionMessage": "更新说明",
   "creatorLinkedSections": "已关联 {count} 个分区",
   "@creatorLinkedSections": {
     "placeholders": {
@@ -1521,6 +1524,17 @@
   "creatorImportStageMedia": "处理图片",
   "creatorImportStageUploading": "创建草稿",
   "creatorImportContinue": "继续导入",
+  "creatorImportPartialFailureTitle": "部分资源读取失败",
+  "creatorImportPartialFailureMessage": "有 {count} 个资源读取失败\n可以重试失败项，也可以继续导入已成功读取的资源",
+  "@creatorImportPartialFailureMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "creatorImportRetryFailed": "重试失败项",
+  "creatorImportContinuePartial": "仍然继续",
   "creatorImportWarnings": "{count} 条警告",
   "@creatorImportWarnings": {
     "placeholders": {

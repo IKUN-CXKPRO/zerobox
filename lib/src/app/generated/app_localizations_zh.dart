@@ -163,6 +163,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorResourceSummary => '资源简介';
 
   @override
+  String get creatorResourceMetadataRequired => '资源名称和简介不能为空';
+
+  @override
   String get creatorPaidType => '付费类型';
 
   @override
@@ -2433,6 +2436,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorBandBbsBoundUpdate => '已关联 · 同步到米坛';
 
   @override
+  String get creatorBandBbsVersionTitle => '版本标题';
+
+  @override
+  String get creatorBandBbsVersionMessage => '更新说明';
+
+  @override
   String creatorLinkedSections(int count) {
     return '已关联 $count 个分区';
   }
@@ -3114,6 +3123,20 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get creatorImportContinue => '继续导入';
+
+  @override
+  String get creatorImportPartialFailureTitle => '部分资源读取失败';
+
+  @override
+  String creatorImportPartialFailureMessage(int count) {
+    return '有 $count 个资源读取失败\n可以重试失败项，也可以继续导入已成功读取的资源';
+  }
+
+  @override
+  String get creatorImportRetryFailed => '重试失败项';
+
+  @override
+  String get creatorImportContinuePartial => '仍然继续';
 
   @override
   String creatorImportWarnings(int count) {

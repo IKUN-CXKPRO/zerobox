@@ -8,7 +8,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image/image.dart' as img;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
@@ -22,8 +21,8 @@ import 'package:oronbox/src/features/resources/domain/creator_external_binding.d
 import 'package:oronbox/src/features/resources/domain/creator_publication_plan.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
-import 'package:oronbox/src/core/wasm/wasm_webp_encoder.dart';
 import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
+import 'package:oronbox/src/features/resources/services/resource_image_processor.dart';
 import 'package:oronbox/src/features/resources/services/resource_payload_analyzer.dart';
 
 class CreatorEditorView extends StatefulWidget {
@@ -86,6 +85,8 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
   final _astroRepository = TextEditingController();
   final _astroTags = TextEditingController();
   final _astroAuthor = TextEditingController();
+  final _bandBbsVersionTitle = TextEditingController();
+  final _bandBbsVersionMessage = TextEditingController();
   bool _publishBandBbs = false;
   bool _publishAstroBox = false;
   bool _astroBindABAccount = true;
@@ -144,6 +145,9 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
       switch (publication['target']) {
         case 'bandbbs':
           _publishBandBbs = true;
+          _bandBbsVersionTitle.text = config['version_title']?.toString() ?? '';
+          _bandBbsVersionMessage.text =
+              config['version_message']?.toString() ?? '';
         case 'astrobox':
           _publishAstroBox = true;
           _astroItemId.text = config['item_id']?.toString() ?? '';
@@ -321,6 +325,8 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     _astroRepository.dispose();
     _astroTags.dispose();
     _astroAuthor.dispose();
+    _bandBbsVersionTitle.dispose();
+    _bandBbsVersionMessage.dispose();
     for (final link in _links) {
       link.dispose();
     }
@@ -474,10 +480,25 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                             controller: _summary,
                             minLines: 3,
                             maxLines: 8,
+                            onChanged: (_) => setState(() {}),
                             decoration: InputDecoration(
                               labelText: l10n.creatorResourceSummary,
                             ),
                           ),
+                          if (_name.text.trim().isEmpty ||
+                              _summary.text.trim().isEmpty)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  l10n.creatorResourceMetadataRequired,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
+                                ),
+                              ),
+                            ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<CommunityPaidType>(
                             initialValue: _paidType,
@@ -668,7 +689,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                     ),
                     const SizedBox(height: 24),
                     CreatorSectionTitle(
-                      icon: Icons.inventory_2_outlined,
+                      icon: Icons.folder_zip_outlined,
                       title: l10n.packageFiles,
                     ),
                     const SizedBox(height: 8),
@@ -792,7 +813,9 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
   }
 
   bool get _canPublish {
-    if (_name.text.trim().isEmpty) return false;
+    if (_name.text.trim().isEmpty || _summary.text.trim().isEmpty) {
+      return false;
+    }
     if (_artifacts.isEmpty || _previews.isEmpty) return false;
     for (final artifact in _artifacts) {
       if ((_deviceSelections[artifact.key] ?? const <String>{}).isEmpty) {
@@ -840,7 +863,9 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     try {
       final asset = await _processedImageAsset(
         file.bytes!,
-        maxDimension: role == 'icon' ? 256 : 1500,
+        maxDimension: role == 'icon'
+            ? creatorIconMaxDimension
+            : creatorMediaMaxDimension,
       );
       if (!mounted) return;
       if (asset == null) {
@@ -897,50 +922,18 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
 
   Future<_DraftAsset?> _processedImageAsset(
     Uint8List raw, {
-    int maxDimension = 1500,
+    int maxDimension = creatorMediaMaxDimension,
   }) async {
-    final decoded = img.decodeImage(raw);
-    if (decoded == null) return null;
-    var processed = decoded;
-    if (decoded.width > maxDimension || decoded.height > maxDimension) {
-      final width = decoded.width >= decoded.height
-          ? maxDimension
-          : (decoded.width * maxDimension / decoded.height).round();
-      final height = decoded.width >= decoded.height
-          ? (decoded.height * maxDimension / decoded.width).round()
-          : maxDimension;
-      processed = img.copyResize(
-        decoded,
-        width: width,
-        height: height,
-        interpolation: img.Interpolation.cubic,
-      );
-    }
+    final processed = await processResourceImage(
+      raw,
+      maxDimension: maxDimension,
+    );
+    if (processed == null) return null;
     final key = 'local-${DateTime.now().microsecondsSinceEpoch}';
-    // getBytes() emits the image's own channel count; RGB sources would be
-    // misread as RGBA by the encoder, so normalize to 4 channels first.
-    processed = processed.convert(numChannels: 4);
-    try {
-      final encoder = await WasmWebpEncoder.instance();
-      final webp = encoder.encode(
-        processed.getBytes(),
-        processed.width,
-        processed.height,
-      );
-      if (webp != null) {
-        return _DraftAsset(
-          key: key,
-          name: 'image.webp',
-          bytes: webp,
-          width: processed.width,
-          height: processed.height,
-        );
-      }
-    } catch (_) {}
     return _DraftAsset(
       key: key,
-      name: 'image.png',
-      bytes: Uint8List.fromList(img.encodePng(processed)),
+      name: 'image.webp',
+      bytes: processed.bytes,
       width: processed.width,
       height: processed.height,
     );
@@ -1117,6 +1110,10 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
         'target': 'bandbbs',
         'config': <String, Object?>{
           'agreement': true,
+          if (_bandBbsVersionTitle.text.trim().isNotEmpty)
+            'version_title': _bandBbsVersionTitle.text.trim(),
+          if (_bandBbsVersionMessage.text.trim().isNotEmpty)
+            'version_message': _bandBbsVersionMessage.text.trim(),
           'targets': [
             for (final target
                 in _publicationPlan?.bandBbsTargets ??
@@ -1147,6 +1144,10 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
 
   Future<void> _publish() async {
     final l10n = AppLocalizations.of(context)!;
+    if (_name.text.trim().isEmpty || _summary.text.trim().isEmpty) {
+      _showFailure(l10n.creatorResourceMetadataRequired);
+      return;
+    }
     final plans = <Map<String, Object?>>[
       {'target': 'oronbox', 'config': <String, Object?>{}},
       ..._publishPlans(),
@@ -1200,20 +1201,27 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     });
   }
 
-  Future<void> _saveDraft() => _run(() async {
-    final bundle = await _prepareBundle(_publishPlans());
-    if (bundle == null) return;
-    try {
-      await widget.controller.saveDraft(bundle: bundle);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _publishStage = '';
-          _publishStageProgress = 0;
-        });
-      }
+  Future<void> _saveDraft() {
+    final l10n = AppLocalizations.of(context)!;
+    if (_name.text.trim().isEmpty || _summary.text.trim().isEmpty) {
+      _showFailure(l10n.creatorResourceMetadataRequired);
+      return Future<void>.value();
     }
-  });
+    return _run(() async {
+      final bundle = await _prepareBundle(_publishPlans());
+      if (bundle == null) return;
+      try {
+        await widget.controller.saveDraft(bundle: bundle);
+      } finally {
+        if (mounted) {
+          setState(() {
+            _publishStage = '';
+            _publishStageProgress = 0;
+          });
+        }
+      }
+    });
+  }
 
   Future<Uint8List?> _prepareBundle(
     List<Map<String, Object?>> publications,
@@ -1237,6 +1245,38 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
         missing[index].sha256,
       );
     }
+    // Normalize legacy media loaded from older revisions as well. Newly
+    // selected media already uses WebP, so avoid a second lossy encode when
+    // the extension and dimensions are already canonical.
+    for (final entry in <(String, _DraftAsset?)>[
+      ('icon', _icon),
+      ('cover', _cover),
+      ..._previews.map((asset) => ('preview', asset)),
+    ]) {
+      final asset = entry.$2;
+      if (asset?.bytes == null) continue;
+      final maxDimension = entry.$1 == 'icon'
+          ? creatorIconMaxDimension
+          : creatorMediaMaxDimension;
+      if (asset!.name.toLowerCase().endsWith('.webp') &&
+          asset.width <= maxDimension &&
+          asset.height <= maxDimension) {
+        continue;
+      }
+      final processed = await processResourceImage(
+        asset.bytes!,
+        maxDimension: maxDimension,
+      );
+      if (processed == null) {
+        _showFailure(l10n.creatorInvalidImage);
+        return null;
+      }
+      asset
+        ..name = 'image.webp'
+        ..bytes = processed.bytes
+        ..width = processed.width
+        ..height = processed.height;
+    }
     if (!mounted) return null;
     setState(() {
       _publishStage = l10n.creatorPublishPreparing(
@@ -1259,8 +1299,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
       'width': asset.width,
       'height': asset.height,
     };
-    String pathOf(String stem, _DraftAsset asset) =>
-        asset.name.endsWith('.webp') ? '$stem.webp' : '$stem.png';
+    String pathOf(String stem, _DraftAsset asset) => '$stem.webp';
     final media = <String, Object?>{};
     if (_icon case final icon?) {
       final path = pathOf('media/icon', icon);
@@ -1913,6 +1952,29 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _bandBbsVersionTitle,
+                    decoration: InputDecoration(
+                      labelText: l10n.creatorBandBbsVersionTitle,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _bandBbsVersionMessage,
+                    minLines: 3,
+                    maxLines: 8,
+                    decoration: InputDecoration(
+                      labelText: l10n.creatorBandBbsVersionMessage,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
           SwitchListTile(
             value: _publishAstroBox,
@@ -2347,41 +2409,45 @@ class _CreatorDeviceSelectionDialogState
             ),
             const SizedBox(height: 8),
             Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: widget.devices.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 2),
-                itemBuilder: (context, index) {
-                  final device = widget.devices[index];
-                  final selected = _selected.contains(device.id);
-                  final owner = widget.blockedMoves[device.id];
-                  final canUnselect = !selected || _selected.length > 1;
-                  final enabled = owner == null && canUnselect;
-                  return CheckboxListTile(
-                    value: selected,
-                    onChanged: enabled
-                        ? (checked) => setState(() {
-                            if (checked == true) {
-                              _selected.add(device.id);
-                            } else {
-                              _selected.remove(device.id);
-                            }
-                          })
-                        : null,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      device.name.isEmpty ? device.id : device.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: owner != null
-                        ? Text(l10n.creatorDeviceMoveBlocked(owner))
-                        : device.id.isEmpty || device.name == device.id
-                        ? null
-                        : Text(device.id),
-                  );
-                },
+              child: SingleChildScrollView(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final device in widget.devices)
+                      Builder(
+                        builder: (context) {
+                          final selected = _selected.contains(device.id);
+                          final owner = widget.blockedMoves[device.id];
+                          final canUnselect = !selected || _selected.length > 1;
+                          final enabled = owner == null && canUnselect;
+                          final chip = FilterChip(
+                            label: Text(
+                              device.name.isEmpty ? device.id : device.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            selected: selected,
+                            showCheckmark: true,
+                            onSelected: enabled
+                                ? (checked) => setState(() {
+                                    if (checked) {
+                                      _selected.add(device.id);
+                                    } else {
+                                      _selected.remove(device.id);
+                                    }
+                                  })
+                                : null,
+                          );
+                          return owner == null
+                              ? chip
+                              : Tooltip(
+                                  message: l10n.creatorDeviceMoveBlocked(owner),
+                                  child: chip,
+                                );
+                        },
+                      ),
+                  ],
+                ),
               ),
             ),
             if (_selected.isEmpty) ...[
@@ -2425,7 +2491,7 @@ class _DraftAsset {
   });
 
   final String key;
-  final String name;
+  String name;
   Uint8List? bytes;
   final String sha256;
   final int sizeBytes;

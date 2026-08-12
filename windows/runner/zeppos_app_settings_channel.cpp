@@ -4,6 +4,8 @@
 #include <flutter/method_channel.h>
 #include <flutter/standard_method_codec.h>
 
+#include "utils.h"
+
 #include <cwchar>
 #include <memory>
 #include <string>
@@ -97,8 +99,13 @@ class Session : public std::enable_shared_from_this<Session> {
     ShowWindow(window_, SW_SHOW);
 
     const auto self = shared_from_this();
+    const std::wstring user_data_folder = GetWebView2UserDataFolder();
+    if (user_data_folder.empty()) {
+      Fail("WEBVIEW_FAILED", "Failed to prepare WebView2 user data folder");
+      return;
+    }
     CreateCoreWebView2EnvironmentWithOptions(
-        nullptr, nullptr, nullptr,
+        nullptr, user_data_folder.c_str(), nullptr,
         Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
             [self](HRESULT hr, ICoreWebView2Environment* environment) -> HRESULT {
               if (FAILED(hr) || !environment) {

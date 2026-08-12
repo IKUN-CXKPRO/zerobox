@@ -404,6 +404,12 @@ abstract class AppLocalizations {
   /// **'Resource summary'**
   String get creatorResourceSummary;
 
+  /// No description provided for @creatorResourceMetadataRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource name and summary are required'**
+  String get creatorResourceMetadataRequired;
+
   /// No description provided for @creatorPaidType.
   ///
   /// In en, this message translates to:
@@ -4567,6 +4573,18 @@ abstract class AppLocalizations {
   /// **'Linked · Sync to BandBBS'**
   String get creatorBandBbsBoundUpdate;
 
+  /// No description provided for @creatorBandBbsVersionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Version title'**
+  String get creatorBandBbsVersionTitle;
+
+  /// No description provided for @creatorBandBbsVersionMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Update notes'**
+  String get creatorBandBbsVersionMessage;
+
   /// No description provided for @creatorLinkedSections.
   ///
   /// In en, this message translates to:
@@ -5868,6 +5886,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Import another'**
   String get creatorImportContinue;
+
+  /// No description provided for @creatorImportPartialFailureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Some resources could not be read'**
+  String get creatorImportPartialFailureTitle;
+
+  /// No description provided for @creatorImportPartialFailureMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} resource(s) could not be read\nYou can retry the failed items or continue with the resources that were read successfully'**
+  String creatorImportPartialFailureMessage(int count);
+
+  /// No description provided for @creatorImportRetryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry failed items'**
+  String get creatorImportRetryFailed;
+
+  /// No description provided for @creatorImportContinuePartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue anyway'**
+  String get creatorImportContinuePartial;
 
   /// No description provided for @creatorImportWarnings.
   ///
