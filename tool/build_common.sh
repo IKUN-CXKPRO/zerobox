@@ -217,6 +217,24 @@ run_cmd() {
   "$@"
 }
 
+retry_cmd() {
+  local attempts="${ORONBOX_RETRY_ATTEMPTS:-3}"
+  local delay="${ORONBOX_RETRY_DELAY_SECONDS:-10}"
+  local attempt=1
+
+  while true; do
+    if "$@"; then
+      return 0
+    fi
+    if [[ "${attempt}" -ge "${attempts}" ]]; then
+      return 1
+    fi
+    log_warn "Attempt ${attempt}/${attempts} failed; retrying in $((delay * attempt))s: $*"
+    sleep "$((delay * attempt))"
+    attempt=$((attempt + 1))
+  done
+}
+
 host_os() {
   case "$(uname -s)" in
     Darwin*) echo "macos" ;;

@@ -83,7 +83,6 @@ APPLESCRIPT
       --app-drop-link 560 "${DMG_ICON_Y}" \
       --text-size 14 \
       --no-internet-enable \
-      --overwrite \
       "${DMG_BUILD}" \
       "${DMG_STAGE}"
   else
