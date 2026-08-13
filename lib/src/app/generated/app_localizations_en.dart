@@ -1865,6 +1865,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sign in and sync authkeys from bound devices';
 
   @override
+  String get deviceSwitchMiAccountImport =>
+      'Sign in to Xiaomi account and sync bound devices';
+
+  @override
+  String get deviceSwitchWearableLogImport =>
+      'Import devices from Xiaomi Fitness logs';
+
+  @override
   String get settingsMiAccountLoginTitle => 'Xiaomi account login';
 
   @override

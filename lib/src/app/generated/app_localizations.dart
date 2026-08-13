@@ -3386,6 +3386,18 @@ abstract class AppLocalizations {
   /// **'Sign in and sync authkeys from bound devices'**
   String get settingsMiAccountDesc;
 
+  /// No description provided for @deviceSwitchMiAccountImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to Xiaomi account and sync bound devices'**
+  String get deviceSwitchMiAccountImport;
+
+  /// No description provided for @deviceSwitchWearableLogImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import devices from Xiaomi Fitness logs'**
+  String get deviceSwitchWearableLogImport;
+
   /// No description provided for @settingsMiAccountLoginTitle.
   ///
   /// In en, this message translates to:

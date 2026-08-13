@@ -1783,6 +1783,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsMiAccountDesc => '登录并同步已绑定设备 authkey';
 
   @override
+  String get deviceSwitchMiAccountImport => '登录小米账号同步绑定的设备';
+
+  @override
+  String get deviceSwitchWearableLogImport => '从小米运动健康日志导入设备';
+
+  @override
   String get settingsMiAccountLoginTitle => '小米账号登录';
 
   @override

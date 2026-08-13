@@ -89,8 +89,11 @@ class SettingsPage extends ConsumerWidget {
               title: l10n.settingsAccount,
               tiles: [
                 SegmentedTile.navigation(
-                  onPressed: (_) => _showMiAccountLogin(context, ref),
-                  leading: const _MiLogo(),
+                  onPressed: (_) => SettingsPage.showMiAccountLoginDialog(
+                    context,
+                    ref,
+                  ),
+                  leading: const MiLogo(),
                   title: Text(l10n.settingsMiAccount),
                   description: Text(l10n.settingsMiAccountDesc),
                 ),
@@ -590,7 +593,10 @@ class SettingsPage extends ConsumerWidget {
     }
   }
 
-  Future<void> _showMiAccountLogin(BuildContext context, WidgetRef ref) async {
+  static Future<void> showMiAccountLoginDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final rootContext = context;
     final l10n = AppLocalizations.of(context)!;
     final accounts = ref.read(hostAccountsProvider.notifier);
@@ -1396,18 +1402,21 @@ class _AccountLeading extends StatelessWidget {
   }
 }
 
-class _MiLogo extends StatelessWidget {
-  const _MiLogo();
+class MiLogo extends StatelessWidget {
+  const MiLogo({super.key, this.width = 32, this.height = 32});
+
+  final double width;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox.square(
-      dimension: 32,
+      dimension: height,
       child: Center(
         child: SvgPicture.asset(
           'assets/images/brands/xiaomi.svg',
-          width: 24,
-          height: 24,
+          width: width,
+          height: width,
           colorFilter: ColorFilter.mode(
             Theme.of(context).colorScheme.onSurface,
             BlendMode.srcIn,

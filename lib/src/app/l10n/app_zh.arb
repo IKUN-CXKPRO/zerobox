@@ -870,6 +870,8 @@
   "bandBbsShowAllCategoriesDesc": "包含默认隐藏的未适配设备分区",
   "settingsMiAccount": "小米账号",
   "settingsMiAccountDesc": "登录并同步已绑定设备 authkey",
+  "deviceSwitchMiAccountImport": "登录小米账号同步绑定的设备",
+  "deviceSwitchWearableLogImport": "从小米运动健康日志导入设备",
   "settingsMiAccountLoginTitle": "小米账号登录",
   "settingsMiAccountUsername": "账号",
   "settingsMiAccountPassword": "密码",

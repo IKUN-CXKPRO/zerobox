@@ -22,6 +22,8 @@ import 'package:oronbox/src/features/devices/utils/device_address.dart';
 import 'package:oronbox/src/features/devices/widgets/device_connection_text.dart';
 import 'package:oronbox/src/features/devices/services/device_share_link.dart';
 import 'package:oronbox/src/features/devices/providers/pending_shared_device_provider.dart';
+import 'package:oronbox/src/features/settings/pages/about_software_page.dart';
+import 'package:oronbox/src/features/settings/pages/settings_page.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
 
 List<BTDeviceInfo> _visibleScannedDevices(DeviceManagerState state) {
@@ -159,7 +161,7 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
       appBar: SysAppBar(secondary: true, title: Text(l10n.switchDeviceTitle)),
       body: !kIsWeb
           ? _buildLayout(context, ref, state, currentAddr)
-          : _buildWebLayout(context, state, currentAddr),
+          : _buildWebLayout(context, ref, state, currentAddr),
     );
   }
 
@@ -175,6 +177,10 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
         final savedList = _SavedDeviceList(
           selectedAddr: currentAddr,
           onComplete: () => setState(() {}),
+          onMiAccountLogin: () =>
+              SettingsPage.showMiAccountLoginDialog(context, ref),
+          onWearableLogImport: () =>
+              showWearableLogSyncDialog(context, ref),
         );
         final scanList = _ScanDeviceList(onComplete: () => setState(() {}));
 
@@ -228,6 +234,13 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
                           _SliverSavedDeviceList(
                             selectedAddr: currentAddr,
                             onComplete: () => setState(() {}),
+                            onMiAccountLogin: () =>
+                                SettingsPage.showMiAccountLoginDialog(
+                                  context,
+                                  ref,
+                                ),
+                            onWearableLogImport: () =>
+                                showWearableLogSyncDialog(context, ref),
                           ),
                           const SliverToBoxAdapter(
                             child: Padding(
@@ -255,6 +268,7 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
 
   Widget _buildWebLayout(
     BuildContext context,
+    WidgetRef ref,
     DeviceManagerState state,
     String? currentAddr,
   ) {
@@ -264,6 +278,10 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
         final savedList = _SavedDeviceList(
           selectedAddr: currentAddr,
           onComplete: () => setState(() {}),
+          onMiAccountLogin: () =>
+              SettingsPage.showMiAccountLoginDialog(context, ref),
+          onWearableLogImport: () =>
+              showWearableLogSyncDialog(context, ref),
         );
 
         return PageContainer(
@@ -303,10 +321,23 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
                       ),
                     ),
                     if (state.pairedDevices.isEmpty)
-                      const SliverToBoxAdapter(
-                        child: SizedBox(
-                          height: 96,
-                          child: _EmptyState(message: ''),
+                      SliverToBoxAdapter(
+                        child: Column(
+                          children: [
+                            _DeviceImportActions(
+                              onMiAccountLogin: () =>
+                                  SettingsPage.showMiAccountLoginDialog(
+                                    context,
+                                    ref,
+                                  ),
+                              onWearableLogImport: () =>
+                                  showWearableLogSyncDialog(context, ref),
+                            ),
+                            const SizedBox(
+                              height: 96,
+                              child: _EmptyState(message: ''),
+                            ),
+                          ],
                         ),
                       )
                     else
@@ -470,14 +501,134 @@ class _WebSerialHint extends StatelessWidget {
   }
 }
 
+class _DeviceImportActions extends StatelessWidget {
+  const _DeviceImportActions({
+    required this.onMiAccountLogin,
+    required this.onWearableLogImport,
+  });
+
+  final VoidCallback onMiAccountLogin;
+  final VoidCallback onWearableLogImport;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final supportsMiAccountImport =
+        !kIsWeb &&
+        switch (defaultTargetPlatform) {
+          TargetPlatform.android ||
+          TargetPlatform.linux ||
+          TargetPlatform.macOS ||
+          TargetPlatform.windows => true,
+          _ => false,
+        };
+    final supportsWearableLogImport =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (supportsMiAccountImport)
+            _DeviceImportActionCard(
+              leading: const MiLogo(width: 24, height: 32),
+              title: l10n.deviceSwitchMiAccountImport,
+              onTap: onMiAccountLogin,
+            ),
+          if (supportsWearableLogImport)
+            _DeviceImportActionCard(
+              leading: const _XiaomiFitnessLogo(),
+              title: l10n.deviceSwitchWearableLogImport,
+              onTap: onWearableLogImport,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeviceImportActionCard extends StatelessWidget {
+  const _DeviceImportActionCard({
+    required this.leading,
+    required this.title,
+    required this.onTap,
+  });
+
+  final Widget leading;
+  final String title;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: ListTile(
+          leading: SizedBox(
+            width: 24,
+            height: 32,
+            child: Center(child: leading),
+          ),
+          title: Text(title),
+          trailing: const Icon(Icons.chevron_right),
+        ),
+      ),
+    );
+  }
+}
+
+class _XiaomiFitnessLogo extends StatelessWidget {
+  const _XiaomiFitnessLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: 24,
+      child: CustomPaint(
+        painter: _XiaomiFitnessLogoPainter(
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+    );
+  }
+}
+
+class _XiaomiFitnessLogoPainter extends CustomPainter {
+  const _XiaomiFitnessLogoPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final ring = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round;
+    final center = size.center(Offset.zero);
+    final radius = (size.shortestSide - ring.strokeWidth) / 2;
+    canvas.drawCircle(center, radius, ring);
+  }
+
+  @override
+  bool shouldRepaint(covariant _XiaomiFitnessLogoPainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
 class _SavedDeviceList extends ConsumerWidget {
   const _SavedDeviceList({
     required this.selectedAddr,
     required this.onComplete,
+    required this.onMiAccountLogin,
+    required this.onWearableLogImport,
   });
 
   final String? selectedAddr;
   final VoidCallback onComplete;
+  final VoidCallback onMiAccountLogin;
+  final VoidCallback onWearableLogImport;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -495,10 +646,15 @@ class _SavedDeviceList extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(title: l10n.savedDevices, hiddenOnMobile: true),
-        if (sorted.isEmpty)
+        if (sorted.isEmpty) ...[
+          _DeviceImportActions(
+            onMiAccountLogin: onMiAccountLogin,
+            onWearableLogImport: onWearableLogImport,
+          ),
           const Flexible(
             child: SizedBox(height: 240, child: _EmptyState(message: '')),
-          )
+          ),
+        ]
         else
           Expanded(
             child: ListView.builder(
@@ -597,10 +753,14 @@ class _SliverSavedDeviceList extends ConsumerWidget {
   const _SliverSavedDeviceList({
     required this.selectedAddr,
     required this.onComplete,
+    required this.onMiAccountLogin,
+    required this.onWearableLogImport,
   });
 
   final String? selectedAddr;
   final VoidCallback onComplete;
+  final VoidCallback onMiAccountLogin;
+  final VoidCallback onWearableLogImport;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -614,8 +774,19 @@ class _SliverSavedDeviceList extends ConsumerWidget {
       });
 
     if (sorted.isEmpty) {
-      return const SliverToBoxAdapter(
-        child: SizedBox(height: 240, child: _EmptyState(message: '')),
+      return SliverToBoxAdapter(
+        child: Column(
+          children: [
+            _DeviceImportActions(
+              onMiAccountLogin: onMiAccountLogin,
+              onWearableLogImport: onWearableLogImport,
+            ),
+            const SizedBox(
+              height: 240,
+              child: _EmptyState(message: ''),
+            ),
+          ],
+        ),
       );
     }
     return SliverList.builder(
