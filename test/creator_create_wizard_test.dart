@@ -51,6 +51,8 @@ void main() {
       find.text('Import existing resources from other platforms'),
     );
     await tester.pump();
+    expect(find.text('Import existing resources'), findsOneWidget);
+    await tester.tap(find.text('Continue import'));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
