@@ -1,10 +1,34 @@
-# OronBox
+<p align="center">
+  <img src="assets/images/app_icon.png" width="112" alt="OronBox">
+</p>
 
-一个又好看又快的 VelaOS / ZeppOS 可穿戴设备管理软件，使用 Flutter 构建
+<h1 align="center">OronBox</h1>
+
+<p align="center">一个又好看又快的 VelaOS / ZeppOS 可穿戴设备管理软件，使用 Flutter 构建</p>
+
+<p align="center">
+  <a href="https://github.com/zxor-org/OronBox/releases"><img src="https://img.shields.io/github/v/release/zxor-org/OronBox?display_name=tag&sort=semver&label=release" alt="Latest release"></a>
+  <a href="https://github.com/zxor-org/OronBox/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/zxor-org/OronBox/ci.yml?label=CI" alt="CI status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/zxor-org/OronBox" alt="License"></a>
+  <a href="https://github.com/zxor-org/OronBox/stargazers"><img src="https://img.shields.io/github/stars/zxor-org/OronBox?style=flat" alt="GitHub stars"></a>
+</p>
 
 [English](README.en.md) · 简体中文
 
-> ⚠️ 这是一个正在开发中的项目：OronBox 仍在积极开发，尚未达到生产可用状态
+OronBox 面向用户日常使用与资源创作者，覆盖设备连接、资源安装、社区浏览和跨平台发布流程
+项目已完成主要桌面端、移动端与 Web 端能力建设，发行包与构建流程由 GitHub Actions 自动维护
+
+## 快速入口
+
+- [下载最新版本](https://github.com/zxor-org/OronBox/releases)
+- [用户文档](https://oronbox.zxor.org/user)
+- [开发文档](https://oronbox.zxor.org/developer)
+- [问题反馈](https://github.com/zxor-org/OronBox/issues)
+
+## 项目定位
+
+OronBox 不依赖官方客户端即可连接、管理 VelaOS / 小米与 ZeppOS 设备，并提供资源安装、社区资源发现、创作者发布和设备维护能力
+桌面端、Android 与 Web 端共享同一套资源与设备业务模型
 
 ## OronBox 是什么？
 
@@ -33,11 +57,11 @@ OronBox 是一款跨平台可穿戴设备管理工具，无需官方客户端，
 | 优化设备连接体验 | ✅ 已完成 |
 | 接入米坛 OAuth 登录，获取米坛社区资源 | ✅ 已完成 |
 | 创作者中心，一键发布资源到 米坛 / AstroBox-Repo | ✅ 已完成 |
-| 首页完善 | 🚧 WIP |
+| 首页完善 | ✅ 已完成 |
 
 ## CLI 使用
 
-OronBox 提供功能完整且可脚本化的命令行界面，可在无 GUI 模式下管理设备、安装资源、访问社区源以及控制后台任务，详细用法参见 [OronBox 文档站](https://github.com/zxor-org/OronBox-Docs)
+OronBox 提供功能完整且可脚本化的命令行界面，可在无 GUI 模式下管理设备、安装资源、访问社区源以及控制后台任务，详细用法参见 [OronBox 文档站](https://oronbox.zxor.org/user/cli)
 
 ## 从源码构建
 
@@ -121,3 +145,13 @@ OronBox 受益于以下优秀项目：
 ## 许可证
 
 OronBox 采用 [GNU Affero General Public License v3.0](LICENSE) 许可证
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=zxor-org%2FOronBox&type=date&legend=bottom-right">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=zxor-org/OronBox&type=date&theme=dark&legend=bottom-right&sealed_token=zjHhbYRQSFR--PiwPij12KvbSLyZpMjCTzHDFKh0Tmg1j9Od44-VRoc2Z_O7YjiNpEWX2n72xgKNaSEpSAXqDiRF709__x-d5YB-JXY2_yqVgDV1FGdGOCwsNkXUFXs37GfZqGiqTnNCKAiIuQh2Njdoxx_yE9I48b4Q6iItHM-O40tXhJhnMJsHn908" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=zxor-org/OronBox&type=date&legend=bottom-right&sealed_token=zjHhbYRQSFR--PiwPij12KvbSLyZpMjCTzHDFKh0Tmg1j9Od44-VRoc2Z_O7YjiNpEWX2n72xgKNaSEpSAXqDiRF709__x-d5YB-JXY2_yqVgDV1FGdGOCwsNkXUFXs37GfZqGiqTnNCKAiIuQh2Njdoxx_yE9I48b4Q6iItHM-O40tXhJhnMJsHn908" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=zxor-org/OronBox&type=date&legend=bottom-right&sealed_token=zjHhbYRQSFR--PiwPij12KvbSLyZpMjCTzHDFKh0Tmg1j9Od44-VRoc2Z_O7YjiNpEWX2n72xgKNaSEpSAXqDiRF709__x-d5YB-JXY2_yqVgDV1FGdGOCwsNkXUFXs37GfZqGiqTnNCKAiIuQh2Njdoxx_yE9I48b4Q6iItHM-O40tXhJhnMJsHn908" />
+ </picture>
+</a>

@@ -1,10 +1,34 @@
-# OronBox
+<p align="center">
+  <img src="assets/images/app_icon.png" width="112" alt="OronBox">
+</p>
 
-A pretty fast wearable management tool for VelaOS and ZeppOS, built with Flutter
+<h1 align="center">OronBox</h1>
+
+<p align="center">A pretty fast wearable management tool for VelaOS and ZeppOS, built with Flutter</p>
+
+<p align="center">
+  <a href="https://github.com/zxor-org/OronBox/releases"><img src="https://img.shields.io/github/v/release/zxor-org/OronBox?display_name=tag&sort=semver&label=release" alt="Latest release"></a>
+  <a href="https://github.com/zxor-org/OronBox/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/zxor-org/OronBox/ci.yml?label=CI" alt="CI status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/zxor-org/OronBox" alt="License"></a>
+  <a href="https://github.com/zxor-org/OronBox/stargazers"><img src="https://img.shields.io/github/stars/zxor-org/OronBox?style=flat" alt="GitHub stars"></a>
+</p>
 
 [简体中文](README.md) · English
 
-> ⚠️ This project is under active development and is not yet production-ready
+OronBox is built for daily device management and resource publishing, covering device connectivity, resource installation, community discovery and cross-platform publication
+The main desktop, mobile and web workflows are complete, with release packages and build automation maintained through GitHub Actions
+
+## Quick links
+
+- [Download the latest release](https://github.com/zxor-org/OronBox/releases)
+- [User documentation](https://oronbox.zxor.org/user)
+- [Developer documentation](https://oronbox.zxor.org/developer)
+- [Report an issue](https://github.com/zxor-org/OronBox/issues)
+
+## Project focus
+
+OronBox connects to and manages VelaOS / Xiaomi and ZeppOS devices without requiring the official client
+It combines resource installation, community discovery, creator publishing and device maintenance in one application, sharing the same resource and device model across desktop, Android and web targets
 
 ## What is OronBox?
 
@@ -33,11 +57,11 @@ OronBox is a cross-platform wearable device management tool that lets you connec
 | Optimize device connection experience | ✅ Done |
 | Integrate BandBBS OAuth login for BandBBS community resources | ✅ Done |
 | Creator center, one-click publish resources to BandBBS / AstroBox-Repo | ✅ Done |
-| Home page improvements | 🚧 WIP |
+| Home page improvements | ✅ Done |
 
 ## CLI usage
 
-OronBox provides a powerful, scriptable command-line interface for managing devices, installing resources, accessing community sources and controlling background tasks without the GUI. See the [OronBox documentation site](https://github.com/zxor-org/OronBox-Docs) for usage details.
+OronBox provides a powerful, scriptable command-line interface for managing devices, installing resources, accessing community sources and controlling background tasks without the GUI. See the [OronBox documentation site](https://oronbox.zxor.org/user/cli) for usage details.
 
 ## Build from source
 
@@ -116,3 +140,13 @@ OronBox benefits from the following excellent projects:
 ## License
 
 OronBox is licensed under the [GNU Affero General Public License v3.0](LICENSE)
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=zxor-org%2FOronBox&type=date&legend=bottom-right">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=zxor-org/OronBox&type=date&theme=dark&legend=bottom-right&sealed_token=zjHhbYRQSFR--PiwPij12KvbSLyZpMjCTzHDFKh0Tmg1j9Od44-VRoc2Z_O7YjiNpEWX2n72xgKNaSEpSAXqDiRF709__x-d5YB-JXY2_yqVgDV1FGdGOCwsNkXUFXs37GfZqGiqTnNCKAiIuQh2Njdoxx_yE9I48b4Q6iItHM-O40tXhJhnMJsHn908" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=zxor-org/OronBox&type=date&legend=bottom-right&sealed_token=zjHhbYRQSFR--PiwPij12KvbSLyZpMjCTzHDFKh0Tmg1j9Od44-VRoc2Z_O7YjiNpEWX2n72xgKNaSEpSAXqDiRF709__x-d5YB-JXY2_yqVgDV1FGdGOCwsNkXUFXs37GfZqGiqTnNCKAiIuQh2Njdoxx_yE9I48b4Q6iItHM-O40tXhJhnMJsHnN908" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=zxor-org/OronBox&type=date&legend=bottom-right&sealed_token=zjHhbYRQSFR--PiwPij12KvbSLyZpMjCTzHDFKh0Tmg1j9Od44-VRoc2Z_O7YjiNpEWX2n72xgKNaSEpSAXqDiRF709__x-d5YB-JXY2_yqVgDV1FGdGOCwsNkXUFXs37GfZqGiqTnNCKAiIuQh2Njdoxx_yE9I48b4Q6iItHM-O40tXhJhnMJsHnN908" />
+ </picture>
+</a>
