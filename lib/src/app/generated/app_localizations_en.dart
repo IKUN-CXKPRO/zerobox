@@ -157,6 +157,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resourceLibrary => 'Resource library';
 
   @override
+  String get resourceDetails => 'Resource details';
+
+  @override
+  String get resourceCollectionDetails => 'Collection details';
+
+  @override
+  String get resourceArticleDetails => 'Article details';
+
+  @override
   String get creatorCenter => 'Creator center';
 
   @override
@@ -2932,7 +2941,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commentRateLimited => 'You are commenting too quickly';
 
   @override
-  String get commentReplying => 'Replying to this comment';
+  String get commentReplying => 'Reply to comment';
 
   @override
   String get loadMore => 'Load more';
@@ -3092,7 +3101,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resourceCoinDialogMessage =>
-      'Coin this resource?\n\nThis action cannot be undone\n\nCoins help the resource receive more exposure\n\nThe creator receives 10% of the contributed amount';
+      'Coin this resource?\nThis action cannot be undone\n\nCoins help the resource receive more exposure\nThe creator receives 10% of the contributed amount\nCheck in at Settings - BandBBS account to earn coins';
 
   @override
   String get resourceCoinOne => 'Give 1 coin';
@@ -3322,6 +3331,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get oobeCdnTestFailed => 'Failed';
 
   @override
+  String get settingsGithubCdnAuto => 'Auto';
+
+  @override
   String get updateDownloading => 'Downloading update';
 
   @override
@@ -3349,4 +3361,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateGoToPage => 'Go to download page';
+
+  @override
+  String get updateDownloadFromCloud => 'Download from cloud drive';
+
+  @override
+  String get updateDownloadFromOfficial => 'Download from official website';
+
+  @override
+  String get creatorImportNoticeTitle => 'Import existing resources';
+
+  @override
+  String get creatorImportNoticeMessage =>
+      'Resources supporting multiple devices may be published to multiple BandBBS sections\nYou can select multiple BandBBS entries when importing, but select entries from the same resource\nClick Import to merge the selected entries into one resource\nIf the import fails, open the corresponding draft and delete it\nDeleting a draft will not delete resources linked on other platforms';
+
+  @override
+  String get creatorImportNoticeConfirm => 'Continue import';
+
+  @override
+  String get creatorImportSameResourceHint =>
+      'Select only one resource for each import';
 }

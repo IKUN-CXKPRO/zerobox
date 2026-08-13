@@ -50,12 +50,15 @@ class GithubCdnInterceptor extends Interceptor {
       handler.next(err);
       return;
     }
+    final selected = cdn();
+    final effective = selected == GitHubCdn.auto ? GitHubCdn.raw : selected;
     final candidates = <GitHubCdn>[
-      cdn(),
-      ...GitHubCdn.values.where((value) => value != cdn()),
+      effective,
+      ...GitHubCdn.values.where(
+        (value) => value != GitHubCdn.auto && value != effective,
+      ),
     ];
-    final tried =
-        (err.requestOptions.extra[_triedKey] as int? ?? 0) + 1;
+    final tried = (err.requestOptions.extra[_triedKey] as int? ?? 0) + 1;
     if (tried >= candidates.length) {
       handler.next(err);
       return;
@@ -86,10 +89,11 @@ class GithubCdnInterceptor extends Interceptor {
   }
 
   bool _isRetryable(DioException err) {
-    if (err.type case DioExceptionType.connectionError ||
-        DioExceptionType.connectionTimeout ||
-        DioExceptionType.sendTimeout ||
-        DioExceptionType.receiveTimeout) {
+    if (err.type
+        case DioExceptionType.connectionError ||
+            DioExceptionType.connectionTimeout ||
+            DioExceptionType.sendTimeout ||
+            DioExceptionType.receiveTimeout) {
       return true;
     }
     final status = err.response?.statusCode ?? 0;

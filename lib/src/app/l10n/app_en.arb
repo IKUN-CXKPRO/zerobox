@@ -47,6 +47,9 @@
   "notifications": "Notifications",
   "newlyPublished": "Newly published",
   "resourceLibrary": "Resource library",
+  "resourceDetails": "Resource details",
+  "resourceCollectionDetails": "Collection details",
+  "resourceArticleDetails": "Article details",
   "creatorCenter": "Creator center",
   "creatorNewResource": "New resource",
   "creatorResourceName": "Resource name",
@@ -1364,7 +1367,7 @@
   "commentBlocked": "This comment did not meet the community guidelines",
   "commentModerationUnavailable": "Comment moderation is temporarily unavailable",
   "commentRateLimited": "You are commenting too quickly",
-  "commentReplying": "Replying to this comment",
+  "commentReplying": "Reply to comment",
   "loadMore": "Load more",
   "more": "More",
   "reply": "Reply",
@@ -1435,7 +1438,7 @@
   "resourceCoin": "Coin",
   "resourceCoinNotSignedIn": "Not signed in",
   "resourceCoinDialogTitle": "Coin this resource",
-  "resourceCoinDialogMessage": "Coin this resource?\n\nThis action cannot be undone\n\nCoins help the resource receive more exposure\n\nThe creator receives 10% of the contributed amount",
+  "resourceCoinDialogMessage": "Coin this resource?\nThis action cannot be undone\n\nCoins help the resource receive more exposure\nThe creator receives 10% of the contributed amount\nCheck in at Settings - BandBBS account to earn coins",
   "resourceCoinOne": "Give 1 coin",
   "resourceCoinTwo": "Give 2 coins",
   "resourceCoinCount": "{count} coins",
@@ -1561,6 +1564,7 @@
     }
   },
   "oobeCdnTestFailed": "Failed",
+  "settingsGithubCdnAuto": "Auto",
   "updateDownloading": "Downloading update",
   "updateInstalling": "Installing update",
   "updateFailed": "Update failed",
@@ -1576,5 +1580,11 @@
   "cleanCheckUpdates": "Check for updates on launch",
   "updateLater": "Later",
   "updateNow": "Update now",
-  "updateGoToPage": "Go to download page"
+  "updateGoToPage": "Go to download page",
+  "updateDownloadFromCloud": "Download from cloud drive",
+  "updateDownloadFromOfficial": "Download from official website",
+  "creatorImportNoticeTitle": "Import existing resources",
+  "creatorImportNoticeMessage": "Resources supporting multiple devices may be published to multiple BandBBS sections\nYou can select multiple BandBBS entries when importing, but select entries from the same resource\nClick Import to merge the selected entries into one resource\nIf the import fails, open the corresponding draft and delete it\nDeleting a draft will not delete resources linked on other platforms",
+  "creatorImportNoticeConfirm": "Continue import",
+  "creatorImportSameResourceHint": "Select only one resource for each import"
 }

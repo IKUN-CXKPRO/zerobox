@@ -42,12 +42,8 @@ class ResourceDetailPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final detail = ref.watch(communityResourceDetailProvider(resource.ref));
     final visibleResource = detail.value ?? resource;
-    final title = visibleResource.name.trim();
     return Scaffold(
-      appBar: SysAppBar(
-        secondary: true,
-        title: Text(title.isEmpty ? l10n.resourceLibrary : title),
-      ),
+      appBar: SysAppBar(secondary: true, title: Text(l10n.resourceDetails)),
       body: ListView(
         padding: EdgeInsets.zero,
         children: [

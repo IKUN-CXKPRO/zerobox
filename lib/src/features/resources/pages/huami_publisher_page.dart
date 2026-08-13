@@ -23,34 +23,36 @@ class HuamiPublisherPage extends ConsumerWidget {
         secondary: true,
         title: Text(name.isEmpty ? '@' : '@$name'),
       ),
-      body: resources.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            Center(child: Text(localizedErrorMessage(l10n, error))),
-        data: (items) {
-          if (name.isEmpty || items.isEmpty) {
-            return Center(child: Text(l10n.notFound));
-          }
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(huamiPublisherResourcesProvider(name));
-            },
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(
-                vertical: StyleConstants.pagePadding,
-              ),
-              itemBuilder: (context, index) => PageContainer(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: StyleConstants.pagePadding,
-                ),
-                child: BandBbsResourceCard(item: items[index]),
-              ),
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemCount: items.length,
+      body: resources.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : resources.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) =>
+                  Center(child: Text(localizedErrorMessage(l10n, error))),
+              data: (items) {
+                if (name.isEmpty || items.isEmpty) {
+                  return Center(child: Text(l10n.notFound));
+                }
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(huamiPublisherResourcesProvider(name));
+                  },
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: StyleConstants.pagePadding,
+                    ),
+                    itemBuilder: (context, index) => PageContainer(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: StyleConstants.pagePadding,
+                      ),
+                      child: BandBbsResourceCard(item: items[index]),
+                    ),
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemCount: items.length,
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
 }

@@ -9,7 +9,7 @@ import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 
 final appDioProvider = Provider<Dio>((ref) {
   return createAppHttpTransport(
-    githubCdn: () => ref.read(appSettingsProvider).cdn,
+    githubCdn: () => ref.read(appSettingsProvider).effectiveCdn,
     onGithubCdnFallback: (fallback) {
       final messenger = appScaffoldMessengerKey.currentState;
       final context = appScaffoldMessengerKey.currentContext;

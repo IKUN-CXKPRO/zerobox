@@ -29,7 +29,7 @@ final localCommunityCatalogProviderForSource =
         CommunitySourceId.astroboxRepo => AstroBoxRepoCatalog(
           dio: dio,
           cdn: ref.watch(
-            appSettingsProvider.select((settings) => settings.cdn),
+            appSettingsProvider.select((settings) => settings.effectiveCdn),
           ),
         ),
         CommunitySourceId.bandbbs => BandBbsCatalog(

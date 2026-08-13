@@ -31,9 +31,7 @@ class BlogPostPage extends ConsumerWidget {
     return Scaffold(
       appBar: SysAppBar(
         secondary: true,
-        title: Text(
-          post.value?.title ?? preview?.title ?? blogTypeLabel(l10n, ''),
-        ),
+        title: Text(l10n.resourceArticleDetails),
       ),
       body: switch (post) {
         AsyncData(:final value) => _BlogPostBody(post: value),
@@ -104,14 +102,11 @@ class _BlogPostBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       children: [
+        _BlogPostHeader(post: post),
         PageContainer(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _BlogPostHeader(post: post),
-              const SizedBox(height: 20),
-              ..._contentSegments(context),
-            ],
+            children: _contentSegments(context),
           ),
         ),
       ],
@@ -127,15 +122,8 @@ class _BlogPostPreviewHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ListView(
     children: [
-      PageContainer(
-        child: Column(
-          children: [
-            _BlogPostHeader(post: post),
-            const SizedBox(height: 20),
-            const LinearProgressIndicator(),
-          ],
-        ),
-      ),
+      _BlogPostHeader(post: post),
+      PageContainer(child: Column(children: [const LinearProgressIndicator()])),
     ],
   );
 }
@@ -170,12 +158,16 @@ class _BlogPostHeader extends StatelessWidget {
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: colors.primaryContainer.withValues(alpha: .22),
-              borderRadius: BorderRadius.circular(12),
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+        PageContainer(
+          padding: const EdgeInsets.fromLTRB(
+            StyleConstants.pagePadding,
+            8,
+            StyleConstants.pagePadding,
+            StyleConstants.pagePadding,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

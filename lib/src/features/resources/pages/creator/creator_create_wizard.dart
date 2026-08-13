@@ -10,7 +10,7 @@ import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/data/bandbbs/bandbbs_resource_provider.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
-import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
+import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
 import 'package:oronbox/src/features/resources/application/import/community_import_service.dart';
 import 'package:oronbox/src/features/resources/application/resource_catalog_providers.dart';
@@ -70,7 +70,28 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
       ref.read(creatorWorkspaceProvider).grants['github_login']?.toString() ??
       '';
 
-  void _chooseAction(_WizardAction action) {
+  Future<void> _chooseAction(_WizardAction action) async {
+    if (action == _WizardAction.import) {
+      final l10n = AppLocalizations.of(context)!;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(l10n.creatorImportNoticeTitle),
+          content: Text(l10n.creatorImportNoticeMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.creatorImportNoticeConfirm),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
     setState(() {
       _action = action;
       _step = 1;
@@ -104,7 +125,10 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
     try {
       final List<CommunityResource> items;
       if (_source == CommunitySourceId.bandbbs) {
-        final userId = ref.read(hostAccountsProvider).bandbbs.userId ?? '';
+        final auth = ref.read(bandBbsAuthProvider.notifier);
+        await auth.restoreCredentials();
+        await auth.reloadCredentials();
+        final userId = ref.read(bandBbsAuthProvider).userId ?? '';
         final catalog = ref.read(
           localCommunityCatalogProviderForSource(CommunitySourceId.bandbbs),
         );
@@ -181,7 +205,11 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
 
   void _switchSource(CommunitySourceId source) {
     if (source == _source) return;
-    setState(() => _source = source);
+    setState(() {
+      _source = source;
+      _selected.clear();
+      _plan = null;
+    });
     _loadExternalItems();
   }
 
@@ -191,6 +219,9 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
       if (!select) {
         _selected.remove(item.ref.key);
         return;
+      }
+      if (_source == CommunitySourceId.astroboxRepo) {
+        _selected.clear();
       }
       _selected[item.ref.key] = item;
     });
@@ -725,6 +756,19 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
             onSelectionChanged: (value) => _switchSource(value.single),
           ),
         ),
+        if (isBandBbs)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                l10n.creatorImportSameResourceHint,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+              ),
+            ),
+          ),
         Expanded(
           child: needsGitHub
               ? Padding(

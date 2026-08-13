@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -11,6 +12,8 @@ import 'package:oronbox/src/core/network/app_http_transport.dart';
 import 'package:oronbox/src/core/network/http_observability_interceptor.dart';
 import 'package:oronbox/src/core/services/build_info_service.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/host/application_host_provider.dart';
 
 const _clientAppId = 'oronbox';
 const _callbackUri = 'oronbox://oauth/bandbbs';
@@ -224,6 +227,7 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
   Future<BandBbsToken?>? _tokenRefresh;
   Future<OronBoxSession?>? _sessionRefresh;
   Future<void>? _credentialRestore;
+  StreamSubscription<CommandEvent>? _hostEvents;
   int _credentialRevision = 0;
 
   final Dio _dio = createAppHttpTransport(
@@ -242,6 +246,27 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
       username: prefs.getString(_keyUsername),
       avatarUrl: prefs.getString(_keyAvatarUrl),
     );
+    _hostEvents = ref.read(applicationHostProvider).events.listen((event) {
+      if (event.event == 'host.connected') {
+        unawaited(reloadCredentials());
+        return;
+      }
+      if (event.event != 'account.state') return;
+      final rows = event.data['state'];
+      if (rows is! List) {
+        unawaited(reloadCredentials());
+        return;
+      }
+      final bandbbs = rows.whereType<Map>().cast<Map>().firstWhere(
+        (row) => row['provider']?.toString() == 'bandbbs',
+        orElse: () => const {},
+      );
+      final signedIn = bandbbs['signedIn'];
+      unawaited(
+        reloadCredentials(clearWhenMissing: signedIn is bool && !signedIn),
+      );
+    });
+    ref.onDispose(() => unawaited(_hostEvents?.cancel()));
     _credentialRestore = Future.microtask(_restoreCredentials);
     return initial;
   }
@@ -270,10 +295,12 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
 
   /// Reload credentials written by the daemon process after an OAuth flow.
   Future<void> reloadCredentials({bool clearWhenMissing = false}) async {
+    await _credentialRestore;
     final revision = ++_credentialRevision;
     _sessionRefresh = null;
     _tokenRefresh = null;
     final prefs = SharedPrefsService.instance;
+    if (prefs.isInitialized) await prefs.reload();
     final tokenRaw = prefs.isInitialized ? prefs.getString(_keyToken) : null;
     final sessionRaw = prefs.isInitialized
         ? prefs.getString(_keySession)
@@ -460,7 +487,11 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
   /// expired (the refresh token never leaves the server).
   Future<BandBbsToken?> refreshIfNeeded() async {
     await _credentialRestore;
-    final token = state.token;
+    var token = state.token;
+    if (token == null) {
+      await reloadCredentials();
+      token = state.token;
+    }
     if (token == null) return null;
     if (!token.isExpired) return token;
     final existing = _tokenRefresh;
@@ -526,7 +557,9 @@ class BandBbsAuthNotifier extends Notifier<BandBbsAuthState>
     // once more so the frontend picks up a login that happened in the
     // background.
     if (session == null) {
-      final raw = SharedPrefsService.instance.getString(_keySession);
+      final prefs = SharedPrefsService.instance;
+      if (prefs.isInitialized) await prefs.reload();
+      final raw = prefs.getString(_keySession);
       if (raw != null) {
         final restored = _restore(raw, OronBoxSession.fromJson);
         if (restored != null) {

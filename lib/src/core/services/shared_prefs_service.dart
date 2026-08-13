@@ -14,6 +14,10 @@ class SharedPrefsService {
     _prefs ??= await SharedPreferences.getInstance();
   }
 
+  /// Refresh the in-memory cache from disk when another OronBox process may
+  /// have changed preferences, such as the desktop daemon after OAuth.
+  Future<void> reload() => _safePrefs.reload();
+
   SharedPreferences get _safePrefs {
     if (_prefs == null) {
       throw StateError(

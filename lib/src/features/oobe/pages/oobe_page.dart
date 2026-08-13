@@ -21,7 +21,6 @@ import 'package:oronbox/src/features/accounts/services/mi_account_two_factor_res
 import 'package:oronbox/src/features/oobe/oobe_state.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
-
 /// First-run experience: welcome → terms → privacy → optional account sign-in
 /// → done. Uses PageView for smooth animated transitions and Material 3
 /// components throughout.
@@ -550,9 +549,6 @@ class _LoginStepState extends ConsumerState<_LoginStep> {
   final _cdnResults = <GitHubCdn, int?>{};
   bool _cdnTesting = true;
 
-  static const _testUrl =
-      'https://raw.githubusercontent.com/zxor-org/oronbox/main/README.md';
-
   @override
   void initState() {
     super.initState();
@@ -560,30 +556,13 @@ class _LoginStepState extends ConsumerState<_LoginStep> {
   }
 
   Future<void> _runCdnTests() async {
-    final cdns = GitHubCdn.values;
-    final futures = cdns.map((cdn) async {
-      final uri = rewriteGithubCdnUri(Uri.parse(_testUrl), cdn);
-      final sw = Stopwatch()..start();
-      int? ms;
-      try {
-        final response = await _dio.headUri(uri);
-        sw.stop();
-        if (response.statusCode == 200) {
-          ms = sw.elapsedMilliseconds;
-        }
-      } catch (_) {
-        sw.stop();
-      }
-      return (cdn, ms);
-    });
-    final results = await Future.wait(futures);
+    final results = await testGithubCdns(dio: _dio);
     if (!mounted) return;
 
-    final sorted = results.where((r) => r.$2 != null).toList()
-      ..sort((a, b) => a.$2!.compareTo(b.$2!));
-    final fastest = sorted.firstOrNull;
-    if (fastest != null && fastest.$2 != null) {
-      ref.read(appSettingsProvider.notifier).setCdn(fastest.$1);
+    final fastest = fastestGithubCdn(results);
+    if (fastest != null &&
+        ref.read(appSettingsProvider).cdn == GitHubCdn.auto) {
+      await ref.read(appSettingsProvider.notifier).setEffectiveCdn(fastest);
     }
 
     setState(() {
@@ -613,7 +592,7 @@ class _LoginStepState extends ConsumerState<_LoginStep> {
       ..sort((a, b) => a.value!.compareTo(b.value!));
     final fastestCdn = fastest.isNotEmpty ? fastest.first.key : null;
 
-    for (final cdn in GitHubCdn.values) {
+    for (final cdn in GitHubCdn.values.where((cdn) => cdn != GitHubCdn.auto)) {
       final ms = _cdnResults[cdn];
       final isFastest = cdn == fastestCdn;
       cdnTiles.add(

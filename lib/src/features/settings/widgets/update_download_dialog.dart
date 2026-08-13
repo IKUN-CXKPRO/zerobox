@@ -58,7 +58,7 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
         }
         return;
       }
-      final cdn = ref.read(appSettingsProvider).cdn;
+      final cdn = ref.read(appSettingsProvider).effectiveCdn;
       final downloadUrl = rewriteGithubCdnUrl(url, cdn);
       final dir = await getApplicationSupportDirectory();
       final apkDir = Directory('${dir.path}/apk');

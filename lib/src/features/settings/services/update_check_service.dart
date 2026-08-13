@@ -9,6 +9,7 @@ import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/router/app_router.dart';
 import 'package:oronbox/src/core/constants/app_constants.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
+import 'package:oronbox/src/core/network/github_cdn.dart';
 import 'package:oronbox/src/core/services/build_info_service.dart';
 import 'package:oronbox/src/features/oobe/oobe_state.dart';
 import 'package:oronbox/src/features/settings/services/oronbox_support_api.dart';
@@ -53,8 +54,7 @@ class UpdateCheckHandler extends ConsumerStatefulWidget {
   final Widget child;
 
   @override
-  ConsumerState<UpdateCheckHandler> createState() =>
-      _UpdateCheckHandlerState();
+  ConsumerState<UpdateCheckHandler> createState() => _UpdateCheckHandlerState();
 }
 
 class _UpdateCheckHandlerState extends ConsumerState<UpdateCheckHandler> {
@@ -70,10 +70,18 @@ class _UpdateCheckHandlerState extends ConsumerState<UpdateCheckHandler> {
     if (!mounted) return;
     try {
       final settings = ref.read(appSettingsProvider);
-      if (!settings.checkUpdateOnLaunch) return;
       if (!isOobeCompleted()) return;
-      final language =
-          Localizations.localeOf(context).languageCode == 'en' ? 'en' : 'zh';
+      if (settings.cdn == GitHubCdn.auto) {
+        final fastest = fastestGithubCdn(await testGithubCdns());
+        if (fastest != null && mounted) {
+          await ref.read(appSettingsProvider.notifier).setEffectiveCdn(fastest);
+        }
+      }
+      if (!settings.checkUpdateOnLaunch) return;
+      if (!mounted) return;
+      final language = Localizations.localeOf(context).languageCode == 'en'
+          ? 'en'
+          : 'zh';
       final release = await ref
           .read(oronBoxSupportApiProvider)
           .latestRelease(
@@ -138,7 +146,26 @@ class UpdateAvailableDialog extends ConsumerWidget {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(l10n.updateLater),
         ),
-        if (isAndroid)
+        if (isAndroid) ...[
+          TextButton(
+            onPressed: () {
+              final isEn = Localizations.localeOf(context).languageCode == 'en';
+              Navigator.of(context).pop();
+              _openUrl(
+                isEn
+                    ? '${AppConstants.websiteUrl}/en/download'
+                    : '${AppConstants.websiteUrl}/download',
+              );
+            },
+            child: Text(l10n.updateDownloadFromOfficial),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _openUrl(AppConstants.androidCloudDownloadUrl);
+            },
+            child: Text(l10n.updateDownloadFromCloud),
+          ),
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
@@ -151,16 +178,17 @@ class UpdateAvailableDialog extends ConsumerWidget {
               }
             },
             child: Text(l10n.updateNow),
-          )
-        else
+          ),
+        ] else
           FilledButton(
             onPressed: () {
+              final isEn = Localizations.localeOf(context).languageCode == 'en';
               Navigator.of(context).pop();
-              final isEn =
-                  Localizations.localeOf(context).languageCode == 'en';
-              _openUrl(isEn
-                  ? '${AppConstants.websiteUrl}/en/download'
-                  : '${AppConstants.websiteUrl}/download');
+              _openUrl(
+                isEn
+                    ? '${AppConstants.websiteUrl}/en/download'
+                    : '${AppConstants.websiteUrl}/download',
+              );
             },
             child: Text(l10n.updateGoToPage),
           ),

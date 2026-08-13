@@ -228,10 +228,42 @@ class _ResourceHomeView extends ConsumerWidget {
         home.hasError && sections.every((section) => section.$3.hasError);
     final allEmpty =
         !allFailed &&
+        !home.isLoading &&
         curatedEmpty &&
         sections.every(
           (section) => section.$3.hasValue && section.$3.value!.isEmpty,
         );
+
+    final editorHeroKeysBySection = <Set<String>>[];
+    final seenHeroKeys = <String>{};
+    if (clean.homeEditorSectionsEnabled && curated != null) {
+      for (final section in curated.sections) {
+        final sectionHeroKeys = <String>{};
+        for (final card in section.cards) {
+          final resource = card.resource;
+          final resourceKey = resource == null
+              ? null
+              : ResourceRef(
+                  source: CommunitySourceId.oronBox,
+                  id: resource.id,
+                ).key;
+          if (resourceKey != null && seenHeroKeys.add(resourceKey)) {
+            sectionHeroKeys.add(resourceKey);
+          }
+        }
+        editorHeroKeysBySection.add(sectionHeroKeys);
+      }
+    }
+    final sectionHeroKeys = <Set<String>>[];
+    for (final section in sections) {
+      final heroKeys = <String>{};
+      for (final resource in section.$3.value ?? const <CommunityResource>[]) {
+        if (seenHeroKeys.add(resource.ref.key)) {
+          heroKeys.add(resource.ref.key);
+        }
+      }
+      sectionHeroKeys.add(heroKeys);
+    }
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -261,21 +293,35 @@ class _ResourceHomeView extends ConsumerWidget {
             else
               SliverList.list(
                 children: [
-                  if (clean.homeBannerEnabled)
-                    if (curated == null && !home.hasError)
-                      const _HomeBannerSkeleton()
-                    else if (curated != null && curated.banners.isNotEmpty)
-                      _HomeBannerCarousel(banners: curated.banners),
-                  if (curated == null && !home.hasError)
-                    const _HomeBlogSkeleton()
-                  else if (curated != null && curated.blogs.isNotEmpty)
+                  if (!home.isLoading &&
+                      clean.homeBannerEnabled &&
+                      curated != null &&
+                      curated.banners.isNotEmpty)
+                    _HomeBannerCarousel(banners: curated.banners),
+                  if (!home.isLoading &&
+                      curated != null &&
+                      curated.blogs.isNotEmpty)
                     _HomeBlogSection(blogs: curated.blogs),
-                  if (clean.homeEditorSectionsEnabled && curated != null)
-                    for (final section in curated.sections)
-                      if (section.cards.isNotEmpty)
-                        _HomeEditorSection(section: section),
-                  for (final (title, sort, feed) in sections)
-                    _HomeSection(title: title, sort: sort, feed: feed),
+                  if (!home.isLoading &&
+                      clean.homeEditorSectionsEnabled &&
+                      curated != null)
+                    for (
+                      var index = 0;
+                      index < curated.sections.length;
+                      index++
+                    )
+                      if (curated.sections[index].cards.isNotEmpty)
+                        _HomeEditorSection(
+                          section: curated.sections[index],
+                          heroKeys: editorHeroKeysBySection[index],
+                        ),
+                  for (var index = 0; index < sections.length; index++)
+                    _HomeSection(
+                      title: sections[index].$1,
+                      sort: sections[index].$2,
+                      feed: sections[index].$3,
+                      heroKeys: sectionHeroKeys[index],
+                    ),
                   const SizedBox(height: StyleConstants.pagePadding),
                 ],
               ),
@@ -291,11 +337,13 @@ class _HomeSection extends ConsumerWidget {
     required this.title,
     required this.sort,
     required this.feed,
+    required this.heroKeys,
   });
 
   final String title;
   final CommunitySortRule sort;
   final AsyncValue<List<CommunityResource>> feed;
+  final Set<String> heroKeys;
 
   static const _cardSpacing = 12.0;
   static const _cardTargetWidth = 190.0;
@@ -348,43 +396,57 @@ class _HomeSection extends ConsumerWidget {
               final coverHeight = cardWidth * 0.64;
               return SizedBox(
                 height: coverHeight + _cardBodyHeight,
-                child: switch (feed) {
-                  AsyncData(:final value) =>
-                    value.isEmpty
-                        ? _HomeSlotEmpty(height: coverHeight + _cardBodyHeight)
-                        : ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: value.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(width: _cardSpacing),
-                            itemBuilder: (context, index) => SizedBox(
-                              width: cardWidth,
-                              child: _ResourceCard(
-                                item: value[index],
-                                coverHeight: coverHeight,
-                                heroEnabled: false,
-                              ),
+                child: feed.isLoading
+                    ? _HomeLoadingCards(
+                        count: count,
+                        cardWidth: cardWidth,
+                        coverHeight: coverHeight,
+                      )
+                    : switch (feed) {
+                        AsyncData(:final value) =>
+                          value.isEmpty
+                              ? _HomeSlotEmpty(
+                                  height: coverHeight + _cardBodyHeight,
+                                )
+                              : ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: value.length,
+                                  separatorBuilder: (_, _) =>
+                                      const SizedBox(width: _cardSpacing),
+                                  itemBuilder: (context, index) => SizedBox(
+                                    width: cardWidth,
+                                    child: _ResourceCard(
+                                      item: value[index],
+                                      coverHeight: coverHeight,
+                                      heroEnabled: heroKeys.contains(
+                                        value[index].ref.key,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                        AsyncError(:final error) => Center(
+                          child: Text(
+                            localizedErrorMessage(l10n, error),
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                           ),
-                  AsyncError(:final error) => Center(
-                    child: Text(
-                      localizedErrorMessage(l10n, error),
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  _ => ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: count,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(width: _cardSpacing),
-                    itemBuilder: (_, _) => SizedBox(
-                      width: cardWidth,
-                      child: _HomeResourceSkeleton(coverHeight: coverHeight),
-                    ),
-                  ),
-                },
+                        ),
+                        _ => ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: count,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(width: _cardSpacing),
+                          itemBuilder: (_, _) => SizedBox(
+                            width: cardWidth,
+                            child: _HomeResourceSkeleton(
+                              coverHeight: coverHeight,
+                            ),
+                          ),
+                        ),
+                      },
               );
             },
           ),
@@ -484,72 +546,28 @@ class _HomeSlotEmpty extends StatelessWidget {
   }
 }
 
-class _HomeBannerSkeleton extends StatelessWidget {
-  const _HomeBannerSkeleton();
+class _HomeLoadingCards extends StatelessWidget {
+  const _HomeLoadingCards({
+    required this.count,
+    required this.cardWidth,
+    required this.coverHeight,
+  });
+
+  final int count;
+  final double cardWidth;
+  final double coverHeight;
 
   @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(
-      context,
-    ).colorScheme.onSurfaceVariant.withValues(alpha: .12);
-    return PageContainer(
-      padding: const EdgeInsets.fromLTRB(
-        StyleConstants.pagePadding,
-        0,
-        StyleConstants.pagePadding,
-        8,
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) => Container(
-          height: math.min(constraints.maxWidth * 9 / 21, 340),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HomeBlogSkeleton extends StatelessWidget {
-  const _HomeBlogSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(
-      context,
-    ).colorScheme.onSurfaceVariant.withValues(alpha: .12);
-    return PageContainer(
-      padding: const EdgeInsets.fromLTRB(
-        StyleConstants.pagePadding,
-        8,
-        StyleConstants.pagePadding,
-        0,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            AppLocalizations.of(context)!.resourceHomeUpdates,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) => Container(
-              height: math.min(constraints.maxWidth * 9 / 21, 240) + 110,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => ListView.separated(
+    scrollDirection: Axis.horizontal,
+    itemCount: count,
+    separatorBuilder: (_, _) =>
+        const SizedBox(width: _HomeSection._cardSpacing),
+    itemBuilder: (_, _) => SizedBox(
+      width: cardWidth,
+      child: _HomeResourceSkeleton(coverHeight: coverHeight),
+    ),
+  );
 }
 
 class _HomeResourceSkeleton extends StatelessWidget {
@@ -787,9 +805,10 @@ class _HomeBannerCarouselState extends ConsumerState<_HomeBannerCarousel> {
 }
 
 class _HomeEditorSection extends StatelessWidget {
-  const _HomeEditorSection({required this.section});
+  const _HomeEditorSection({required this.section, required this.heroKeys});
 
   final HomeSection section;
+  final Set<String> heroKeys;
 
   @override
   Widget build(BuildContext context) {
@@ -822,7 +841,15 @@ class _HomeEditorSection extends StatelessWidget {
           const SizedBox(height: 12),
           for (final card in section.cards) ...[
             if (card.resource != null)
-              _WideResourceCard(card: card.resource!)
+              _WideResourceCard(
+                card: card.resource!,
+                heroEnabled: heroKeys.contains(
+                  ResourceRef(
+                    source: CommunitySourceId.oronBox,
+                    id: card.resource!.id,
+                  ).key,
+                ),
+              )
             else if (card.blog != null)
               _HomeBlogCard(card: card.blog!, heroEnabled: false),
             const SizedBox(height: 12),
@@ -873,36 +900,37 @@ CommunityResourceType _homeCardKind(String kind) => switch (kind) {
 };
 
 class _WideResourceCard extends StatelessWidget {
-  const _WideResourceCard({required this.card});
+  const _WideResourceCard({required this.card, this.heroEnabled = true});
 
   final HomeResourceCard card;
+  final bool heroEnabled;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
+    final resource = CommunityResource(
+      ref: ResourceRef(source: CommunitySourceId.oronBox, id: card.id),
+      name: card.name,
+      type: _homeCardKind(card.kind),
+      paidType: card.paidType,
+      authors: [
+        if (card.owner.isNotEmpty) CommunityResourceAuthor(name: card.owner),
+      ],
+      supportedDevices: const {},
+      iconUrl: card.iconUrl,
+      coverUrl: card.coverUrl,
+      summary: card.summary,
+    );
+    final imageUrl = card.iconUrl ?? card.coverUrl;
+    final imageRole = card.iconUrl != null ? 'icon' : 'cover';
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       color: colors.surfaceContainerHighest.withValues(alpha: .5),
       child: InkWell(
-        onTap: () => context.push(
-          '/resources/detail/${card.id}',
-          extra: CommunityResource(
-            ref: ResourceRef(source: CommunitySourceId.oronBox, id: card.id),
-            name: card.name,
-            type: _homeCardKind(card.kind),
-            paidType: card.paidType,
-            authors: [
-              if (card.owner.isNotEmpty)
-                CommunityResourceAuthor(name: card.owner),
-            ],
-            supportedDevices: const {},
-            iconUrl: card.iconUrl,
-            coverUrl: card.coverUrl,
-            summary: card.summary,
-          ),
-        ),
+        onTap: () =>
+            context.push('/resources/detail/${card.id}', extra: resource),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -910,12 +938,26 @@ class _WideResourceCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  NetworkImgLayer(
-                    src: (card.iconUrl ?? card.coverUrl)?.toString(),
-                    width: 56,
-                    height: 56,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  if (imageUrl != null)
+                    HeroMode(
+                      enabled: heroEnabled,
+                      child: ResourceMediaHero(
+                        tag: resourceMediaHeroTag(resource.ref, imageRole),
+                        url: imageUrl.toString(),
+                        width: 56,
+                        height: 56,
+                        style: const ResourceMediaHeroStyle(
+                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                        ),
+                      ),
+                    )
+                  else
+                    NetworkImgLayer(
+                      src: null,
+                      width: 56,
+                      height: 56,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
@@ -1541,7 +1583,10 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
     required bool gridView,
   }) {
     return RefreshIndicator(
-      onRefresh: _reset,
+      onRefresh: () {
+        unawaited(_reset());
+        return Future<void>.value();
+      },
       child: ScrollConfiguration(
         behavior: const _NoStretchScrollBehavior(),
         child: CustomScrollView(
@@ -2429,6 +2474,7 @@ class _ResourceCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final color = Theme.of(context).colorScheme;
     final image = item.coverUrl ?? item.iconUrl;
     final heroRole = item.coverUrl != null ? 'cover' : 'icon';
@@ -2482,35 +2528,30 @@ class _ResourceCard extends ConsumerWidget {
                     children: [
                       _ResourceLabel(
                         label: item.isCollection
-                            ? AppLocalizations.of(
-                                context,
-                              )!.resourceCollectionType(
+                            ? l10n.resourceCollectionType(
                                 _typeLabel(
-                                  AppLocalizations.of(context)!,
+                                  l10n,
                                   item.type,
                                   source: item.ref.source,
                                 ),
                               )
                             : _typeLabel(
-                                AppLocalizations.of(context)!,
+                                l10n,
                                 item.type,
                                 source: item.ref.source,
                               ),
                         color: color.primary,
                       ),
-                      if (!item.isCollection &&
-                          item.paidType != CommunityPaidType.free)
+                      if (!item.isCollection)
                         _ResourceLabel(
-                          label: _paidLabel(
-                            AppLocalizations.of(context)!,
-                            item.paidType,
-                          ),
+                          label: _paidLabel(l10n, item.paidType),
                           color: color.tertiary,
                         ),
-                      if (item.ref.source == CommunitySourceId.bandbbs ||
-                          item.ref.source == CommunitySourceId.oronBox)
+                      if (item.isCollection &&
+                          (item.ref.source == CommunitySourceId.bandbbs ||
+                              item.ref.source == CommunitySourceId.oronBox))
                         ...item.tags
-                            .take(2)
+                            .take(1)
                             .map(
                               (tag) => _ResourceLabel(
                                 label:

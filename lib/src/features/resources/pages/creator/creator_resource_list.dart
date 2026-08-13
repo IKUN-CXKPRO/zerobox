@@ -59,7 +59,7 @@ class _CreatorResourceListState extends State<CreatorResourceList> {
       ))
         _CreatorListEntry(workspace: workspace),
     ];
-    if ((state.loading || widget.collectionsLoading) && entries.isEmpty) {
+    if (state.loading || widget.collectionsLoading) {
       return LoadingView(message: creatorOperationLabel(l10n, state.operation));
     }
     if (entries.isEmpty) {

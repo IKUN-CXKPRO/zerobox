@@ -1,8 +1,11 @@
-enum GitHubCdn { raw, ghfast, ghproxy }
+import 'package:dio/dio.dart';
+
+enum GitHubCdn { auto, raw, ghfast, ghproxy }
 
 extension GitHubCdnExtension on GitHubCdn {
   String get displayName {
     return switch (this) {
+      GitHubCdn.auto => 'Auto',
       GitHubCdn.raw => 'Raw',
       GitHubCdn.ghfast => 'GHFast',
       GitHubCdn.ghproxy => 'GHProxy',
@@ -11,14 +14,59 @@ extension GitHubCdnExtension on GitHubCdn {
 }
 
 Uri rewriteGithubCdnUri(Uri uri, GitHubCdn cdn) {
-  if (cdn == GitHubCdn.raw || !isConvertibleGithubUri(uri)) return uri;
+  if (cdn == GitHubCdn.auto ||
+      cdn == GitHubCdn.raw ||
+      !isConvertibleGithubUri(uri)) {
+    return uri;
+  }
 
   final origin = uri.toString();
   return switch (cdn) {
-    GitHubCdn.raw => uri,
+    GitHubCdn.auto || GitHubCdn.raw => uri,
     GitHubCdn.ghfast => Uri.parse('https://ghfast.top/$origin'),
     GitHubCdn.ghproxy => Uri.parse('https://gh-proxy.com/$origin'),
   };
+}
+
+Future<List<(GitHubCdn cdn, int? milliseconds)>> testGithubCdns({
+  Dio? dio,
+}) async {
+  final client =
+      dio ??
+      Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 5),
+        ),
+      );
+  const testUrl =
+      'https://raw.githubusercontent.com/zxor-org/oronbox/main/README.md';
+  final results = await Future.wait(
+    GitHubCdn.values.where((cdn) => cdn != GitHubCdn.auto).map((cdn) async {
+      final uri = rewriteGithubCdnUri(Uri.parse(testUrl), cdn);
+      final stopwatch = Stopwatch()..start();
+      int? milliseconds;
+      try {
+        final response = await client.headUri(uri);
+        if (response.statusCode == 200) {
+          milliseconds = stopwatch.elapsedMilliseconds;
+        }
+      } catch (_) {
+        // A failed probe is represented by null and excluded from selection
+      } finally {
+        stopwatch.stop();
+      }
+      return (cdn, milliseconds);
+    }),
+  );
+  if (dio == null) client.close();
+  return results;
+}
+
+GitHubCdn? fastestGithubCdn(List<(GitHubCdn cdn, int? milliseconds)> results) {
+  final available = results.where((result) => result.$2 != null).toList()
+    ..sort((a, b) => a.$2!.compareTo(b.$2!));
+  return available.firstOrNull?.$1;
 }
 
 String rewriteGithubCdnUrl(String url, GitHubCdn cdn) {

@@ -151,6 +151,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get resourceLibrary => '资源库';
 
   @override
+  String get resourceDetails => '资源详情';
+
+  @override
+  String get resourceCollectionDetails => '合集详情';
+
+  @override
+  String get resourceArticleDetails => '文章详情';
+
+  @override
   String get creatorCenter => '创作者中心';
 
   @override
@@ -2797,7 +2806,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commentRateLimited => '评论过于频繁，请稍后再试';
 
   @override
-  String get commentReplying => '正在回复这条评论';
+  String get commentReplying => '回复评论';
 
   @override
   String get loadMore => '加载更多';
@@ -2954,7 +2963,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get resourceCoinDialogMessage =>
-      '确认要为这个资源投币吗？\n\n投币后无法撤回\n\n投币有助于资源获得更多展示机会\n\n创作者将获得投币数量 10% 的硬币收益';
+      '确认要为这个资源投币吗？\n投币后无法撤回\n\n投币有助于资源获得更多展示机会\n创作者将获得投币数量 10% 的硬币收益\n您可以在 设置-米坛账号 签到获得硬币';
 
   @override
   String get resourceCoinOne => '投 1 颗';
@@ -3175,6 +3184,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get oobeCdnTestFailed => '失败';
 
   @override
+  String get settingsGithubCdnAuto => '自动';
+
+  @override
   String get updateDownloading => '正在下载更新';
 
   @override
@@ -3202,4 +3214,23 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get updateGoToPage => '前往下载';
+
+  @override
+  String get updateDownloadFromCloud => '网盘下载';
+
+  @override
+  String get updateDownloadFromOfficial => '官网下载';
+
+  @override
+  String get creatorImportNoticeTitle => '导入已有资源';
+
+  @override
+  String get creatorImportNoticeMessage =>
+      '考虑到多设备适配的资源可能被发布到米坛的多个分区\n导入时支持多选米坛资源项，但请只选择同一个资源\n选择完毕后点击导入会把这些资源合并为同一个\n如果导入出错，可以进入对应草稿进行删除\n删除草稿不会删除关联的其它平台资源';
+
+  @override
+  String get creatorImportNoticeConfirm => '继续导入';
+
+  @override
+  String get creatorImportSameResourceHint => '每次导入请只选择同一个资源';
 }

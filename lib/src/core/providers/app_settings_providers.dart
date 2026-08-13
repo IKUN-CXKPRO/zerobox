@@ -137,6 +137,7 @@ class CleanSettings {
 class AppSettings {
   const AppSettings({
     required this.cdn,
+    this.effectiveCdn = GitHubCdn.raw,
     required this.communitySource,
     required this.autoInstall,
     required this.disableAutoClean,
@@ -149,6 +150,7 @@ class AppSettings {
   });
 
   final GitHubCdn cdn;
+  final GitHubCdn effectiveCdn;
   final CommunitySourceId communitySource;
   final bool autoInstall;
   final bool disableAutoClean;
@@ -161,6 +163,7 @@ class AppSettings {
 
   AppSettings copyWith({
     GitHubCdn? cdn,
+    GitHubCdn? effectiveCdn,
     CommunitySourceId? communitySource,
     bool? autoInstall,
     bool? disableAutoClean,
@@ -173,6 +176,7 @@ class AppSettings {
   }) {
     return AppSettings(
       cdn: cdn ?? this.cdn,
+      effectiveCdn: effectiveCdn ?? this.effectiveCdn,
       communitySource: communitySource ?? this.communitySource,
       autoInstall: autoInstall ?? this.autoInstall,
       disableAutoClean: disableAutoClean ?? this.disableAutoClean,
@@ -188,6 +192,7 @@ class AppSettings {
   }
 
   static const String _keyCdn = 'github_cdn';
+  static const String _keyEffectiveCdn = 'github_cdn_effective';
   static const String _keyCommunitySource = 'community_source';
   static const String _keyAutoInstall = 'auto_install';
   static const String _keyDisableAutoClean = 'disable_auto_clean';
@@ -202,13 +207,17 @@ class AppSettings {
   static AppSettings load() {
     final prefs = SharedPrefsService.instance;
     final cdnRaw = prefs.getString(_keyCdn);
+    final cdn = githubCdnByName(cdnRaw ?? '') ?? GitHubCdn.auto;
+    final effectiveCdn =
+        githubCdnByName(prefs.getString(_keyEffectiveCdn) ?? '') ??
+        (cdn == GitHubCdn.auto ? GitHubCdn.raw : cdn);
     final sourceRaw = prefs.getString(_keyCommunitySource);
     final railPositionRaw = prefs.getString(_keyWideNavigationRailPosition);
     return AppSettings(
-      cdn: githubCdnByName(cdnRaw ?? '') ?? GitHubCdn.raw,
+      cdn: cdn,
+      effectiveCdn: effectiveCdn,
       communitySource:
-          communitySourceIdByName(sourceRaw ?? '') ??
-          CommunitySourceId.oronBox,
+          communitySourceIdByName(sourceRaw ?? '') ?? CommunitySourceId.oronBox,
       autoInstall: prefs.getBool(_keyAutoInstall) ?? true,
       disableAutoClean: prefs.getBool(_keyDisableAutoClean) ?? false,
       autoReconnect: prefs.getBool(_keyAutoReconnect) ?? false,
@@ -246,7 +255,8 @@ class AppSettings {
   }
 
   static const defaults = AppSettings(
-    cdn: GitHubCdn.raw,
+    cdn: GitHubCdn.auto,
+    effectiveCdn: GitHubCdn.raw,
     communitySource: CommunitySourceId.oronBox,
     autoInstall: true,
     disableAutoClean: false,
@@ -259,6 +269,7 @@ class AppSettings {
   Future<void> save() async {
     final prefs = SharedPrefsService.instance;
     await prefs.setString(_keyCdn, cdn.name);
+    await prefs.setString(_keyEffectiveCdn, effectiveCdn.name);
     await prefs.setString(_keyCommunitySource, communitySource.storageKey);
     await prefs.setBool(_keyAutoInstall, autoInstall);
     await prefs.setBool(_keyDisableAutoClean, disableAutoClean);
@@ -306,6 +317,7 @@ class AppSettings {
 
 abstract class AppSettingsNotifier extends Notifier<AppSettings> {
   Future<void> setCdn(GitHubCdn cdn);
+  Future<void> setEffectiveCdn(GitHubCdn cdn);
   Future<void> setCommunitySource(CommunitySourceId source);
   Future<void> setAutoInstall(bool value);
   Future<void> setDisableAutoClean(bool value);
@@ -345,7 +357,16 @@ class LocalAppSettingsNotifier extends AppSettingsNotifier {
 
   @override
   Future<void> setCdn(GitHubCdn cdn) async {
-    state = state.copyWith(cdn: cdn);
+    state = state.copyWith(
+      cdn: cdn,
+      effectiveCdn: cdn == GitHubCdn.auto ? state.effectiveCdn : cdn,
+    );
+    await state.save();
+  }
+
+  @override
+  Future<void> setEffectiveCdn(GitHubCdn cdn) async {
+    state = state.copyWith(effectiveCdn: cdn);
     await state.save();
   }
 
@@ -427,10 +448,16 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
         .execute(const OronBoxCommand(method: 'settings.list'));
     if (!result.ok) return;
     final json = (result.value as Map).cast<String, Object?>();
+    final cdn =
+        githubCdnByName(json['github_cdn']?.toString() ?? '') ?? GitHubCdn.auto;
+    final storedEffectiveCdn = githubCdnByName(
+      SharedPrefsService.instance.getString(AppSettings._keyEffectiveCdn) ?? '',
+    );
     state = AppSettings(
-      cdn:
-          githubCdnByName(json['github_cdn']?.toString() ?? '') ??
-          GitHubCdn.raw,
+      cdn: cdn,
+      effectiveCdn: cdn == GitHubCdn.auto
+          ? storedEffectiveCdn ?? GitHubCdn.raw
+          : cdn,
       communitySource:
           communitySourceIdByName(json['community_source']?.toString() ?? '') ??
           CommunitySourceId.oronBox,
@@ -461,8 +488,32 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
   }
 
   @override
-  Future<void> setCdn(GitHubCdn cdn) =>
-      _set('github_cdn', cdn.name, state.copyWith(cdn: cdn));
+  Future<void> setCdn(GitHubCdn cdn) async {
+    await _set(
+      'github_cdn',
+      cdn.name,
+      state.copyWith(
+        cdn: cdn,
+        effectiveCdn: cdn == GitHubCdn.auto ? state.effectiveCdn : cdn,
+      ),
+    );
+    if (cdn != GitHubCdn.auto) {
+      await SharedPrefsService.instance.setString(
+        AppSettings._keyEffectiveCdn,
+        cdn.name,
+      );
+    }
+  }
+
+  @override
+  Future<void> setEffectiveCdn(GitHubCdn cdn) async {
+    state = state.copyWith(effectiveCdn: cdn);
+    await SharedPrefsService.instance.setString(
+      AppSettings._keyEffectiveCdn,
+      cdn.name,
+    );
+  }
+
   @override
   Future<void> setCommunitySource(CommunitySourceId source) => _set(
     'community_source',

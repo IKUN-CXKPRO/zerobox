@@ -380,6 +380,24 @@ abstract class AppLocalizations {
   /// **'Resource library'**
   String get resourceLibrary;
 
+  /// No description provided for @resourceDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource details'**
+  String get resourceDetails;
+
+  /// No description provided for @resourceCollectionDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection details'**
+  String get resourceCollectionDetails;
+
+  /// No description provided for @resourceArticleDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Article details'**
+  String get resourceArticleDetails;
+
   /// No description provided for @creatorCenter.
   ///
   /// In en, this message translates to:
@@ -5272,7 +5290,7 @@ abstract class AppLocalizations {
   /// No description provided for @commentReplying.
   ///
   /// In en, this message translates to:
-  /// **'Replying to this comment'**
+  /// **'Reply to comment'**
   String get commentReplying;
 
   /// No description provided for @loadMore.
@@ -5572,7 +5590,7 @@ abstract class AppLocalizations {
   /// No description provided for @resourceCoinDialogMessage.
   ///
   /// In en, this message translates to:
-  /// **'Coin this resource?\n\nThis action cannot be undone\n\nCoins help the resource receive more exposure\n\nThe creator receives 10% of the contributed amount'**
+  /// **'Coin this resource?\nThis action cannot be undone\n\nCoins help the resource receive more exposure\nThe creator receives 10% of the contributed amount\nCheck in at Settings - BandBBS account to earn coins'**
   String get resourceCoinDialogMessage;
 
   /// No description provided for @resourceCoinOne.
@@ -5971,6 +5989,12 @@ abstract class AppLocalizations {
   /// **'Failed'**
   String get oobeCdnTestFailed;
 
+  /// No description provided for @settingsGithubCdnAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get settingsGithubCdnAuto;
+
   /// No description provided for @updateDownloading.
   ///
   /// In en, this message translates to:
@@ -6024,6 +6048,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go to download page'**
   String get updateGoToPage;
+
+  /// No description provided for @updateDownloadFromCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Download from cloud drive'**
+  String get updateDownloadFromCloud;
+
+  /// No description provided for @updateDownloadFromOfficial.
+  ///
+  /// In en, this message translates to:
+  /// **'Download from official website'**
+  String get updateDownloadFromOfficial;
+
+  /// No description provided for @creatorImportNoticeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import existing resources'**
+  String get creatorImportNoticeTitle;
+
+  /// No description provided for @creatorImportNoticeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Resources supporting multiple devices may be published to multiple BandBBS sections\nYou can select multiple BandBBS entries when importing, but select entries from the same resource\nClick Import to merge the selected entries into one resource\nIf the import fails, open the corresponding draft and delete it\nDeleting a draft will not delete resources linked on other platforms'**
+  String get creatorImportNoticeMessage;
+
+  /// No description provided for @creatorImportNoticeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue import'**
+  String get creatorImportNoticeConfirm;
+
+  /// No description provided for @creatorImportSameResourceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select only one resource for each import'**
+  String get creatorImportSameResourceHint;
 }
 
 class _AppLocalizationsDelegate

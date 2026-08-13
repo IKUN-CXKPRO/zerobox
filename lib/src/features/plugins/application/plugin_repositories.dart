@@ -25,7 +25,7 @@ class PluginRepositories {
     ),
     'abv1': AbV1PluginRepository(
       createAppHttpTransport(),
-      readCdn: () => container.read(appSettingsProvider).cdn,
+      readCdn: () => container.read(appSettingsProvider).effectiveCdn,
     ),
   };
 

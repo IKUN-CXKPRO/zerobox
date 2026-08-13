@@ -25,7 +25,7 @@ import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
 import 'package:oronbox/src/features/accounts/services/mi_account_service.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/settings/services/oronbox_support_api.dart';
-import 'package:oronbox/src/features/settings/widgets/update_download_dialog.dart';
+import 'package:oronbox/src/features/settings/services/update_check_service.dart';
 
 final _aboutLatestReleaseProvider = FutureProvider.autoDispose
     .family<AppReleaseInfo, String>((ref, language) {
@@ -287,11 +287,9 @@ class _UpdatePillState extends ConsumerState<_UpdatePill> {
     if (_checking) return;
     if (_found != null) {
       if (Platform.isAndroid) {
-        // In-app update on Android: download the APK for the device ABI,
-        // then hand it to the system installer.
         showDialog<void>(
           context: context,
-          builder: (_) => UpdateDownloadDialog(release: _found!),
+          builder: (_) => UpdateAvailableDialog(release: _found!),
         );
       } else {
         // Jump to the website download page instead of the release link.

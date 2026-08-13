@@ -53,6 +53,7 @@ class _CreatorCollectionPageState extends ConsumerState<CreatorCollectionPage> {
   }
 
   Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
     try {
       final controller = ref.read(creatorWorkspaceProvider.notifier);
       await controller.refresh();
@@ -244,7 +245,7 @@ class _CreatorCollectionPageState extends ConsumerState<CreatorCollectionPage> {
           ),
         ],
       ),
-      body: _loading && _item == null
+      body: _loading
           ? LoadingView(message: l10n.creatorOperationRefreshing)
           : SingleChildScrollView(
               child: PageContainer(

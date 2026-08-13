@@ -347,7 +347,11 @@ class SettingsPage extends ConsumerWidget {
                   leading: const Icon(Icons.cloud_outlined),
                   title: Text(l10n.settingsSourceOfficialCdn),
                   description: Text(l10n.settingsSourceOfficialCdnDesc),
-                  value: Text(ref.watch(appSettingsProvider).cdn.displayName),
+                  value: Text(
+                    ref.watch(appSettingsProvider).cdn == GitHubCdn.auto
+                        ? l10n.settingsGithubCdnAuto
+                        : ref.watch(appSettingsProvider).cdn.displayName,
+                  ),
                 ),
                 SegmentedTile.switchTile(
                   onToggle: (value) async {
@@ -544,6 +548,7 @@ class SettingsPage extends ConsumerWidget {
   }
 
   Future<void> _showCdnMenu(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final current = ref.read(appSettingsProvider).cdn;
     final tileContext = context;
     final renderBox = tileContext.findRenderObject() as RenderBox?;
@@ -571,7 +576,11 @@ class SettingsPage extends ConsumerWidget {
       items: GitHubCdn.values.map((cdn) {
         return PopupMenuItem<GitHubCdn>(
           value: cdn,
-          child: Text(cdn.displayName),
+          child: Text(
+            cdn == GitHubCdn.auto
+                ? l10n.settingsGithubCdnAuto
+                : cdn.displayName,
+          ),
         );
       }).toList(),
     );

@@ -74,11 +74,7 @@ class _ResourceCollectionPageState extends State<ResourceCollectionPage> {
     return Scaffold(
       appBar: SysAppBar(
         secondary: true,
-        title: Text(
-          headerResource.name.isEmpty
-              ? l10n.resourceCollection
-              : headerResource.name,
-        ),
+        title: Text(l10n.resourceCollectionDetails),
       ),
       body: ListView(
         padding: EdgeInsets.zero,
