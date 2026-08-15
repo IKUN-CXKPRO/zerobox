@@ -312,6 +312,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get watchfaces => '表盘';
 
   @override
+  String get module => '模块';
+
+  @override
   String get quickApps => '快应用';
 
   @override
@@ -1241,6 +1244,64 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deviceMusicSync => '音乐同步';
+
+  @override
+  String get deviceHealthTitle => '运动健康';
+
+  @override
+  String get deviceHealthDescription => '同步设备上的活动与睡眠数据';
+
+  @override
+  String get deviceHealthSyncCardTitle => '健康数据';
+
+  @override
+  String get deviceHealthNeverSynced => '还没有同步过运动健康数据';
+
+  @override
+  String deviceHealthLastSynced(String time) {
+    return '上次同步于 $time';
+  }
+
+  @override
+  String get deviceHealthSync => '同步运动健康数据';
+
+  @override
+  String get deviceHealthSyncing => '正在同步';
+
+  @override
+  String get deviceHealthConnectFirst => '请先连接设备再同步运动健康数据';
+
+  @override
+  String get deviceHealthPartialSync => '部分运动健康数据同步失败';
+
+  @override
+  String get deviceHealthToday => '今日活动';
+
+  @override
+  String get deviceHealthSteps => '步数';
+
+  @override
+  String get deviceHealthDistance => '距离';
+
+  @override
+  String get deviceHealthCalories => '卡路里';
+
+  @override
+  String get deviceHealthHeartRate => '心率';
+
+  @override
+  String get deviceHealthSleep => '最近睡眠';
+
+  @override
+  String deviceHealthAverageHeartRate(int value) {
+    return '平均心率 $value bpm';
+  }
+
+  @override
+  String get deviceHealthNoData => '暂无数据';
+
+  @override
+  String get deviceHealthLoadFailed => '无法读取运动健康数据';
 
   @override
   String get deviceMusicUpload => '传输音乐';
@@ -3555,6 +3616,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get watchfaces => '錶盤';
 
   @override
+  String get module => '模組';
+
+  @override
   String get quickApps => '快應用';
 
   @override
@@ -4484,6 +4548,64 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get deviceMusicSync => '音樂同步';
+
+  @override
+  String get deviceHealthTitle => '運動健康';
+
+  @override
+  String get deviceHealthDescription => '同步裝置上的活動與睡眠資料';
+
+  @override
+  String get deviceHealthSyncCardTitle => '健康資料';
+
+  @override
+  String get deviceHealthNeverSynced => '尚未同步運動健康資料';
+
+  @override
+  String deviceHealthLastSynced(String time) {
+    return '上次同步於 $time';
+  }
+
+  @override
+  String get deviceHealthSync => '同步運動健康資料';
+
+  @override
+  String get deviceHealthSyncing => '正在同步';
+
+  @override
+  String get deviceHealthConnectFirst => '請先連線裝置再同步運動健康資料';
+
+  @override
+  String get deviceHealthPartialSync => '部分運動健康資料同步失敗';
+
+  @override
+  String get deviceHealthToday => '今日活動';
+
+  @override
+  String get deviceHealthSteps => '步數';
+
+  @override
+  String get deviceHealthDistance => '距離';
+
+  @override
+  String get deviceHealthCalories => '卡路里';
+
+  @override
+  String get deviceHealthHeartRate => '心率';
+
+  @override
+  String get deviceHealthSleep => '最近睡眠';
+
+  @override
+  String deviceHealthAverageHeartRate(int value) {
+    return '平均心率 $value bpm';
+  }
+
+  @override
+  String get deviceHealthNoData => '暫無資料';
+
+  @override
+  String get deviceHealthLoadFailed => '無法讀取運動健康資料';
 
   @override
   String get deviceMusicUpload => '傳輸音樂';

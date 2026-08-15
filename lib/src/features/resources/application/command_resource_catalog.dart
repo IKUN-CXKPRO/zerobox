@@ -48,6 +48,7 @@ class CommandResourceCatalog implements CommunityResourceCatalog {
             'type': switch (query.type!) {
               CommunityResourceType.quickApp => 'quickapp',
               CommunityResourceType.miniprogram => 'miniprogram',
+              CommunityResourceType.canopus => 'canopus',
               _ => query.type!.name,
             },
           'hidePaid': query.hidePaid,

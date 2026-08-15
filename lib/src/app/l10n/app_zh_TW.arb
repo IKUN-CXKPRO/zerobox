@@ -12,6 +12,7 @@
   "creatorPaidType": "付費類型",
   "supportedDevices": "支援的裝置",
   "watchfaces": "錶盤",
+  "module": "模組",
   "quickApps": "快應用",
   "miniprograms": "小程式",
   "firmwareTools": "韌體 / 工具",
@@ -1590,5 +1591,37 @@
   "creatorImportNoticeTitle": "匯入現有資源",
   "creatorImportNoticeMessage": "支援多部裝置的資源可能已發佈至 BandBBS 的多個分區\n匯入時可以選取多個 BandBBS 項目，但請只選擇同一項資源\n點擊「匯入」會將選取的項目合併為一項資源\n如果匯入失敗，可以開啟對應草稿並刪除\n刪除草稿不會刪除其他平台上已繫結的資源",
   "creatorImportNoticeConfirm": "繼續匯入",
-  "creatorImportSameResourceHint": "每次匯入請只選擇同一項資源"
+  "creatorImportSameResourceHint": "每次匯入請只選擇同一項資源",
+  "deviceHealthTitle": "運動健康",
+  "deviceHealthDescription": "同步裝置上的活動與睡眠資料",
+  "deviceHealthSyncCardTitle": "健康資料",
+  "deviceHealthNeverSynced": "尚未同步運動健康資料",
+  "deviceHealthLastSynced": "上次同步於 {time}",
+  "@deviceHealthLastSynced": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "deviceHealthSync": "同步運動健康資料",
+  "deviceHealthSyncing": "正在同步",
+  "deviceHealthConnectFirst": "請先連線裝置再同步運動健康資料",
+  "deviceHealthPartialSync": "部分運動健康資料同步失敗",
+  "deviceHealthToday": "今日活動",
+  "deviceHealthSteps": "步數",
+  "deviceHealthDistance": "距離",
+  "deviceHealthCalories": "卡路里",
+  "deviceHealthHeartRate": "心率",
+  "deviceHealthSleep": "最近睡眠",
+  "deviceHealthAverageHeartRate": "平均心率 {value} bpm",
+  "@deviceHealthAverageHeartRate": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "deviceHealthNoData": "暫無資料",
+  "deviceHealthLoadFailed": "無法讀取運動健康資料"
 }

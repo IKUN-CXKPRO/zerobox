@@ -12,6 +12,7 @@
   "creatorPaidType": "支払いタイプ",
   "supportedDevices": "対応デバイス",
   "watchfaces": "文字盤",
+  "module": "モジュール",
   "quickApps": "クイックアプリ",
   "miniprograms": "ミニプログラム",
   "firmwareTools": "ファームウェア / ツール",
@@ -412,6 +413,38 @@
   "zeppOsAppDebug": "アプリデバッグ",
   "zeppOsAppDebugDescription": "アプリ側スクリプトとデバイス通信をデバッグ",
   "deviceMusicSync": "音楽同期",
+  "deviceHealthTitle": "ヘルスケア",
+  "deviceHealthDescription": "デバイスの活動量と睡眠データを同期",
+  "deviceHealthSyncCardTitle": "ヘルスデータ",
+  "deviceHealthNeverSynced": "ヘルスデータはまだ同期されていません",
+  "deviceHealthLastSynced": "最終同期 {time}",
+  "@deviceHealthLastSynced": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "deviceHealthSync": "ヘルスデータを同期",
+  "deviceHealthSyncing": "同期中",
+  "deviceHealthConnectFirst": "ヘルスデータを同期するにはデバイスを接続してください",
+  "deviceHealthPartialSync": "一部のヘルスデータを同期できませんでした",
+  "deviceHealthToday": "今日",
+  "deviceHealthSteps": "歩数",
+  "deviceHealthDistance": "距離",
+  "deviceHealthCalories": "カロリー",
+  "deviceHealthHeartRate": "心拍数",
+  "deviceHealthSleep": "最近の睡眠",
+  "deviceHealthAverageHeartRate": "平均心拍数 {value} bpm",
+  "@deviceHealthAverageHeartRate": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "deviceHealthNoData": "データがありません",
+  "deviceHealthLoadFailed": "ヘルスデータを読み込めません",
   "deviceMusicUpload": "音楽を転送",
   "deviceMusicSyncDescription": "MP3ファイルをデバイスへ同期",
   "deviceMusicChooseDialog": "デバイスへ同期するMP3ファイルを選択",

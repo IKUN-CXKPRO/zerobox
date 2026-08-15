@@ -336,6 +336,12 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
             .toList(),
         included: command.params['included'] == true,
       ),
+    'device.xiaomi.health.data' => _manager.loadXiaomiHealthData().then(
+      (value) => value.toJson(),
+    ),
+    'device.xiaomi.health.sync' => _manager.syncXiaomiHealth().then(
+      (value) => value.toJson(),
+    ),
     'device.xiaomi.recordings.download' => _downloadXiaomiRecordings(),
     'device.recordings.cancel' => _cancelRecordingSync(),
     'device.zeppos.find' => _setFindingZeppOsDevice(
@@ -1871,21 +1877,28 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     }
 
     final service = container.read(resourceInstallServiceProvider);
+    String? downloadError;
     final downloaded = await service.downloadResource(
       resource: detail,
       file: file,
       catalog: catalog,
       targetDevice: params['targetDevice']?.toString(),
-      onUpdate: (status, progress, error) => _events.add(
-        CommandEvent(
-          status.name,
-          data: {'progress': progress, if (error != null) 'error': error},
-        ),
-      ),
+      onUpdate: (status, progress, error) {
+        if (error != null) downloadError = error;
+        _events.add(
+          CommandEvent(
+            status.name,
+            data: {'progress': progress, if (error != null) 'error': error},
+          ),
+        );
+      },
     );
     _throwIfCancelled();
     if (downloaded == null) {
-      throw const CommandFailure('download', 'Resource download failed');
+      throw CommandFailure(
+        'download',
+        downloadError ?? 'Resource download failed',
+      );
     }
     final payloadBytes =
         downloaded.bytes ?? await File(downloaded.path).readAsBytes();
@@ -1901,6 +1914,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
           CommunityResourceType.miniprogram => 'miniprogram',
           CommunityResourceType.watchface => 'watchface',
           CommunityResourceType.firmware => 'firmware',
+          CommunityResourceType.canopus => 'watchface',
         };
     if (install) {
       await _ensureConnected(params['device']?.toString());
@@ -1911,6 +1925,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
           CommunityResourceType.miniprogram => LocalDeviceInstallType.app,
           CommunityResourceType.watchface => LocalDeviceInstallType.watchface,
           CommunityResourceType.firmware => LocalDeviceInstallType.firmware,
+          CommunityResourceType.canopus => LocalDeviceInstallType.watchface,
         },
         fileName: downloaded.fileName,
         bytes: payloadBytes,
@@ -1979,6 +1994,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       'miniprogram' => CommunityResourceType.miniprogram,
       'watchface' => CommunityResourceType.watchface,
       'firmware' => CommunityResourceType.firmware,
+      'canopus' => CommunityResourceType.canopus,
       _ => throw CommandFailure('usage', 'Unknown resource type: $value'),
     };
   }

@@ -58,6 +58,9 @@ import 'package:oronbox/src/device/zeppos/zeppos_btbr_transport.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_factory.dart';
 import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
+import 'package:oronbox/src/features/devices/health/health_models.dart';
+import 'package:oronbox/src/features/devices/health/health_store.dart';
+import 'package:oronbox/src/features/devices/health/xiaomi_health_sync_service.dart';
 import 'package:oronbox/src/features/devices/domain/device_scan_results.dart';
 import 'package:oronbox/src/features/devices/utils/device_address.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart'
@@ -430,6 +433,8 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
     required List<int> songId,
     required bool included,
   });
+  Future<XiaomiHealthData> loadXiaomiHealthData();
+  Future<XiaomiHealthSyncResult> syncXiaomiHealth();
   Future<List<DeviceRecording>> downloadXiaomiRecordings({
     void Function(int completed, int total, String fileName)? onProgress,
   });
@@ -493,6 +498,33 @@ class LocalDeviceManager extends DeviceManager {
   @override
   XiaomiHealthSystem? get xiaomiHealthSystem =>
       _currentEntity?.system<XiaomiHealthSystem>();
+
+  @override
+  Future<XiaomiHealthData> loadXiaomiHealthData() async {
+    final deviceId = _currentEntity?.id ?? state.currentDevice?.addr;
+    if (deviceId == null || deviceId.isEmpty) {
+      return const XiaomiHealthData();
+    }
+    return HealthStore().read(deviceId);
+  }
+
+  @override
+  Future<XiaomiHealthSyncResult> syncXiaomiHealth() async {
+    final system = _requireXiaomiHealthSystem();
+    return XiaomiHealthSyncService(
+      system: system,
+      deviceId: _currentEntity!.id,
+    ).sync();
+  }
+
+  XiaomiHealthSystem _requireXiaomiHealthSystem() {
+    final entity = _currentEntity;
+    if (entity == null || state.protocolState != ProtocolState.ready) {
+      throw ProtocolException('Device not ready');
+    }
+    return entity.system<XiaomiHealthSystem>() ??
+        (throw UnsupportedError('Health synchronization is unavailable'));
+  }
 
   @override
   DeviceManagerState build() {
@@ -858,8 +890,7 @@ class LocalDeviceManager extends DeviceManager {
             sppRemoveBond:
                 defaultTargetPlatform == TargetPlatform.android &&
                 profile.kind == DeviceKind.xiaomi &&
-                connectType == ConnectType.spp &&
-                attempt == 2,
+                connectType == ConnectType.spp,
           ),
         );
         _log.info(

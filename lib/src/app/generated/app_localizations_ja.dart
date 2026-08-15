@@ -312,6 +312,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get watchfaces => '文字盤';
 
   @override
+  String get module => 'モジュール';
+
+  @override
   String get quickApps => 'クイックアプリ';
 
   @override
@@ -1252,6 +1255,64 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get deviceMusicSync => '音楽同期';
+
+  @override
+  String get deviceHealthTitle => 'ヘルスケア';
+
+  @override
+  String get deviceHealthDescription => 'デバイスの活動量と睡眠データを同期';
+
+  @override
+  String get deviceHealthSyncCardTitle => 'ヘルスデータ';
+
+  @override
+  String get deviceHealthNeverSynced => 'ヘルスデータはまだ同期されていません';
+
+  @override
+  String deviceHealthLastSynced(String time) {
+    return '最終同期 $time';
+  }
+
+  @override
+  String get deviceHealthSync => 'ヘルスデータを同期';
+
+  @override
+  String get deviceHealthSyncing => '同期中';
+
+  @override
+  String get deviceHealthConnectFirst => 'ヘルスデータを同期するにはデバイスを接続してください';
+
+  @override
+  String get deviceHealthPartialSync => '一部のヘルスデータを同期できませんでした';
+
+  @override
+  String get deviceHealthToday => '今日';
+
+  @override
+  String get deviceHealthSteps => '歩数';
+
+  @override
+  String get deviceHealthDistance => '距離';
+
+  @override
+  String get deviceHealthCalories => 'カロリー';
+
+  @override
+  String get deviceHealthHeartRate => '心拍数';
+
+  @override
+  String get deviceHealthSleep => '最近の睡眠';
+
+  @override
+  String deviceHealthAverageHeartRate(int value) {
+    return '平均心拍数 $value bpm';
+  }
+
+  @override
+  String get deviceHealthNoData => 'データがありません';
+
+  @override
+  String get deviceHealthLoadFailed => 'ヘルスデータを読み込めません';
 
   @override
   String get deviceMusicUpload => '音楽を転送';

@@ -209,7 +209,31 @@ class BandBbsCatalog implements CommunityResourceCatalog {
   Future<CommunityResourceDownloadResult> download(
     CommunityDownloadRequest request,
   ) async {
-    final url = request.file.downloadUrl;
+    if (!request.resource.canDownload) {
+      throw StateError('BandBBS resource purchase is required');
+    }
+    var file = request.file;
+    if (request.resource.paidType != CommunityPaidType.free) {
+      // Queue entries can outlive the catalog response that created them.
+      // Refresh paid manifests so an encrypted file cannot be mistaken for a
+      // plain payload after the entry was serialized.
+      final fresh = await getDetail(request.resource.ref);
+      if (!fresh.canDownload) {
+        throw StateError('BandBBS resource purchase is required');
+      }
+      CommunityResourceFile? refreshedFile;
+      for (final candidate in fresh.files) {
+        if (candidate.id == file.id) {
+          refreshedFile = candidate;
+          break;
+        }
+      }
+      if (refreshedFile == null) {
+        throw StateError('BandBBS resource file is no longer available');
+      }
+      file = refreshedFile;
+    }
+    final url = file.downloadUrl;
     if (url == null) {
       throw StateError('BandBBS resource file has no download URL');
     }
@@ -220,19 +244,25 @@ class BandBbsCatalog implements CommunityResourceCatalog {
         if (total > 0) request.onProgress?.call((received / total) * 0.55);
       },
     );
-    final encrypted = Uint8List.fromList(response.data ?? const []);
-    if (encrypted.isEmpty) {
+    final downloaded = Uint8List.fromList(response.data ?? const []);
+    if (downloaded.isEmpty) {
       throw StateError('BandBBS resource download returned empty data');
     }
-    final payload = await _decryptIfLicensed(
-      resourceId: request.resource.ref.id,
-      encryptedBytes: encrypted,
-      onProgress: request.onProgress,
-    );
+    final payload = file.encrypted
+        ? await _decryptIfLicensed(
+            resourceId: request.resource.ref.id,
+            encryptedBytes: downloaded,
+            onProgress: request.onProgress,
+          )
+        : request.resource.paidType != CommunityPaidType.free
+        ? await _requireLicenseForPlainPayload(
+            resourceId: request.resource.ref.id,
+            bytes: downloaded,
+            onProgress: request.onProgress,
+          )
+        : _BandBbsPayload(bytes: downloaded, fileName: '');
     final fileName = _sanitizeFileName(
-      payload.fileName.trim().isEmpty
-          ? request.file.fileName
-          : payload.fileName,
+      payload.fileName.trim().isEmpty ? file.fileName : payload.fileName,
     );
     request.onProgress?.call(1, status: 'finished');
     if (kIsWeb) {
@@ -441,6 +471,8 @@ class BandBbsCatalog implements CommunityResourceCatalog {
       );
     }
     final files = <CommunityResourceFile>[];
+    final encrypted =
+        resource['xfa_rmmp_type']?.toString().trim().toLowerCase() == 'digital';
     for (final value in _files(resource)) {
       final fileName = value['filename']?.toString() ?? '';
       if (fileName.isEmpty) {
@@ -456,6 +488,7 @@ class BandBbsCatalog implements CommunityResourceCatalog {
           version: resource['version']?.toString() ?? '',
           downloadUrl: _uri(value['download_url']),
           size: _intValue(value['size']),
+          encrypted: encrypted,
           supportedDevices: codename.isEmpty
               ? summary.supportedDevices
               : {codename},
@@ -493,7 +526,10 @@ class BandBbsCatalog implements CommunityResourceCatalog {
       previewImages: previewImages,
       links: _linksFromResource(resource, summary),
       files: files,
-      canDownload: resource['can_download'] == true,
+      // Older detail responses omit can_download.  An omitted capability is
+      // not the same as an explicit denial: paid resources still need to
+      // reach the license/decryption check before we can decide.
+      canDownload: resource['can_download'] != false,
     );
   }
 
@@ -647,7 +683,7 @@ class BandBbsCatalog implements CommunityResourceCatalog {
   }) async {
     final license = await _api.checkLicense(resourceId);
     if (!license.valid) {
-      return _BandBbsPayload(bytes: encryptedBytes, fileName: '');
+      throw StateError('BandBBS resource purchase is required');
     }
     onProgress?.call(0.65, status: 'checking_license');
     final info = await _api.getDecryptInfo(
@@ -668,6 +704,19 @@ class BandBbsCatalog implements CommunityResourceCatalog {
     }
     onProgress?.call(0.9, status: 'decrypting');
     return _BandBbsPayload(bytes: decrypted, fileName: info.fileName);
+  }
+
+  Future<_BandBbsPayload> _requireLicenseForPlainPayload({
+    required String resourceId,
+    required Uint8List bytes,
+    void Function(double progress, {String status})? onProgress,
+  }) async {
+    final license = await _api.checkLicense(resourceId);
+    if (!license.valid) {
+      throw StateError('BandBBS resource purchase is required');
+    }
+    onProgress?.call(0.65, status: 'checking_license');
+    return _BandBbsPayload(bytes: bytes, fileName: '');
   }
 
   Uint8List _aesGcmDecrypt({

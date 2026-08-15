@@ -2,7 +2,13 @@ import 'package:oronbox/src/cli/cli_models.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 
 const _sortRules = {'recommendation', 'random', 'name', 'time'};
-const _resourceTypes = {'quickapp', 'watchface', 'firmware', 'miniprogram'};
+const _resourceTypes = {
+  'quickapp',
+  'watchface',
+  'firmware',
+  'miniprogram',
+  'canopus',
+};
 final _deviceFilterPattern = RegExp(r'\d');
 const _legacyFilterOptions = {
   'type',

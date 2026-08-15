@@ -170,6 +170,7 @@ class BandBbsApiClient {
         '$_developerApiBaseUrl/developerplatform/api/v1/public/files/decrypt',
         data: requestBody,
       ),
+      expireSessionOnUnauthorized: false,
     );
     final root = _objectMap(response.data);
     if (root['success'] != true) {
@@ -193,11 +194,16 @@ class BandBbsApiClient {
     throw FormatException('BandBBS API returned ${value.runtimeType}');
   }
 
-  Future<Response<T>> _send<T>(Future<Response<T>> Function() request) async {
+  Future<Response<T>> _send<T>(
+    Future<Response<T>> Function() request, {
+    bool expireSessionOnUnauthorized = true,
+  }) async {
     try {
       return await request();
     } on DioException catch (error) {
-      if (error.response?.statusCode != 401) rethrow;
+      if (error.response?.statusCode != 401 || !expireSessionOnUnauthorized) {
+        rethrow;
+      }
       // The token was rejected: the credential is dead everywhere, wipe it
       // and propagate instead of leaving UI gated on a stale login.
       try {

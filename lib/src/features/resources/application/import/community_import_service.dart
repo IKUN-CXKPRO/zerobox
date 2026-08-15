@@ -214,6 +214,7 @@ class CommunityImportPlan {
 
   CreatorResourceKind? get kind => switch (primary.type) {
     CommunityResourceType.watchface => CreatorResourceKind.watchface,
+    CommunityResourceType.canopus => CreatorResourceKind.watchface,
     CommunityResourceType.quickApp ||
     CommunityResourceType.miniprogram => CreatorResourceKind.quickApp,
     _ => null,

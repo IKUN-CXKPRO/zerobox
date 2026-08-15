@@ -281,6 +281,32 @@ void WinMiAccountTwoFactorSession::CreateWebView() {
                         return S_OK;
                       }
 
+                      // The WebView2 profile is shared across sessions so it
+                      // can live in a writable per-user directory on an
+                      // installed build.  Clear its cookies before every
+                      // Xiaomi login, otherwise a second account can reuse
+                      // the first account's session.
+                      ComPtr<ICoreWebView2_2> webview2;
+                      if (FAILED(self->webview_.As(&webview2)) || !webview2) {
+                        self->Fail("WEBVIEW_FAILED",
+                                   "WebView2 cookie manager is unavailable");
+                        return S_OK;
+                      }
+                      ComPtr<ICoreWebView2CookieManager> cookie_manager;
+                      if (FAILED(webview2->get_CookieManager(&cookie_manager)) ||
+                          !cookie_manager) {
+                        self->Fail("WEBVIEW_FAILED",
+                                   "WebView2 cookie manager is unavailable");
+                        return S_OK;
+                      }
+                      const HRESULT delete_cookies_hr =
+                          cookie_manager->DeleteAllCookies();
+                      if (FAILED(delete_cookies_hr)) {
+                        self->Fail("WEBVIEW_FAILED",
+                                   HResultMessage(delete_cookies_hr));
+                        return S_OK;
+                      }
+
                       self->ResizeWebView();
                       const HRESULT navigate_hr =
                           self->webview_->Navigate(

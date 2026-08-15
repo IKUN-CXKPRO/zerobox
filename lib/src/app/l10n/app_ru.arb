@@ -123,6 +123,7 @@
   "currentDevice": "Текущее устройство",
   "all": "Все",
   "watchfaces": "Циферблаты",
+  "module": "Модуль",
   "quickApps": "Быстрые приложения",
   "firmwareTools": "Прошивка / инструменты",
   "oronBox": "OronBox",
@@ -562,6 +563,38 @@
   "zeppOsAppDebug": "Отладка приложения Zepp OS",
   "zeppOsAppDebugDescription": "Просмотр событий и запуск локального скрипта приложения",
   "deviceMusicSync": "Синхронизация музыки",
+  "deviceHealthTitle": "Здоровье",
+  "deviceHealthDescription": "Синхронизация активности и сна с устройством",
+  "deviceHealthSyncCardTitle": "Данные о здоровье",
+  "deviceHealthNeverSynced": "Данные о здоровье ещё не синхронизировались",
+  "deviceHealthLastSynced": "Последняя синхронизация: {time}",
+  "@deviceHealthLastSynced": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "deviceHealthSync": "Синхронизировать данные о здоровье",
+  "deviceHealthSyncing": "Синхронизация",
+  "deviceHealthConnectFirst": "Подключите устройство, чтобы синхронизировать данные о здоровье",
+  "deviceHealthPartialSync": "Не удалось синхронизировать часть данных о здоровье",
+  "deviceHealthToday": "Сегодня",
+  "deviceHealthSteps": "Шаги",
+  "deviceHealthDistance": "Расстояние",
+  "deviceHealthCalories": "Калории",
+  "deviceHealthHeartRate": "Пульс",
+  "deviceHealthSleep": "Последний сон",
+  "deviceHealthAverageHeartRate": "Средний пульс: {value} уд/мин",
+  "@deviceHealthAverageHeartRate": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "deviceHealthNoData": "Нет данных",
+  "deviceHealthLoadFailed": "Не удалось загрузить данные о здоровье",
   "deviceMusicUpload": "Загрузка музыки на устройство",
   "deviceMusicSyncDescription": "Синхронизация MP3-файлов с устройством",
   "deviceMusicChooseDialog": "Выберите MP3-файлы для синхронизации с устройством",

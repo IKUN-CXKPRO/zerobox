@@ -679,6 +679,12 @@ abstract class AppLocalizations {
   /// **'Watchface'**
   String get watchfaces;
 
+  /// No description provided for @module.
+  ///
+  /// In en, this message translates to:
+  /// **'Module'**
+  String get module;
+
   /// No description provided for @quickApps.
   ///
   /// In en, this message translates to:
@@ -2394,6 +2400,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Music sync'**
   String get deviceMusicSync;
+
+  /// No description provided for @deviceHealthTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Health'**
+  String get deviceHealthTitle;
+
+  /// No description provided for @deviceHealthDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync activity and sleep data from the device'**
+  String get deviceHealthDescription;
+
+  /// No description provided for @deviceHealthSyncCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Health data'**
+  String get deviceHealthSyncCardTitle;
+
+  /// No description provided for @deviceHealthNeverSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'No health data has been synchronized yet'**
+  String get deviceHealthNeverSynced;
+
+  /// No description provided for @deviceHealthLastSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'Last synchronized {time}'**
+  String deviceHealthLastSynced(String time);
+
+  /// No description provided for @deviceHealthSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronize health data'**
+  String get deviceHealthSync;
+
+  /// No description provided for @deviceHealthSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronizing'**
+  String get deviceHealthSyncing;
+
+  /// No description provided for @deviceHealthConnectFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect the device to synchronize health data'**
+  String get deviceHealthConnectFirst;
+
+  /// No description provided for @deviceHealthPartialSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Some health data could not be synchronized'**
+  String get deviceHealthPartialSync;
+
+  /// No description provided for @deviceHealthToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get deviceHealthToday;
+
+  /// No description provided for @deviceHealthSteps.
+  ///
+  /// In en, this message translates to:
+  /// **'Steps'**
+  String get deviceHealthSteps;
+
+  /// No description provided for @deviceHealthDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance'**
+  String get deviceHealthDistance;
+
+  /// No description provided for @deviceHealthCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories'**
+  String get deviceHealthCalories;
+
+  /// No description provided for @deviceHealthHeartRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Heart rate'**
+  String get deviceHealthHeartRate;
+
+  /// No description provided for @deviceHealthSleep.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent sleep'**
+  String get deviceHealthSleep;
+
+  /// No description provided for @deviceHealthAverageHeartRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Average heart rate {value} bpm'**
+  String deviceHealthAverageHeartRate(int value);
+
+  /// No description provided for @deviceHealthNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No data available'**
+  String get deviceHealthNoData;
+
+  /// No description provided for @deviceHealthLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load health data'**
+  String get deviceHealthLoadFailed;
 
   /// No description provided for @deviceMusicUpload.
   ///

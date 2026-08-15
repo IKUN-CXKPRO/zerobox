@@ -71,10 +71,8 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
               label: l10n.fieldModel,
               value: shown(state.systemInfo!.model),
             ),
-            _InfoRow(
-              label: l10n.fieldImei,
-              value: shown(state.systemInfo!.imei),
-            ),
+            if (state.systemInfo!.imei.trim().isNotEmpty)
+              _InfoRow(label: l10n.fieldImei, value: state.systemInfo!.imei),
             _InfoRow(
               label: l10n.fieldFirmware,
               value: shown(state.systemInfo!.firmwareVersion),

@@ -359,6 +359,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
       CommunityResourceType.miniprogram => LocalDeviceInstallType.app,
       CommunityResourceType.watchface => LocalDeviceInstallType.watchface,
       CommunityResourceType.firmware => LocalDeviceInstallType.firmware,
+      CommunityResourceType.canopus => LocalDeviceInstallType.watchface,
     };
     _addWebTask(
       InstallTask(

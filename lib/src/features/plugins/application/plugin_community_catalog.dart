@@ -221,6 +221,7 @@ class PluginCommunityCatalog implements CommunityResourceCatalog {
   CommunityResourceType _resourceType(Object? value) => switch (value) {
     'watchface' => CommunityResourceType.watchface,
     'firmware' => CommunityResourceType.firmware,
+    'canopus' => CommunityResourceType.canopus,
     'quickApp' || 'quickapp' => CommunityResourceType.quickApp,
     'miniprogram' => CommunityResourceType.miniprogram,
     _ => throw FormatException('Unsupported plugin resource type: $value'),

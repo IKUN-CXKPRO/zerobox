@@ -123,6 +123,7 @@
   "currentDevice": "当前设备",
   "all": "全部",
   "watchfaces": "表盘",
+  "module": "模块",
   "quickApps": "快应用",
   "firmwareTools": "固件 / 工具",
   "oronBox": "OronBox",
@@ -562,6 +563,38 @@
   "zeppOsAppDebug": "应用调试",
   "zeppOsAppDebugDescription": "调试应用侧脚本与设备通信",
   "deviceMusicSync": "音乐同步",
+  "deviceHealthTitle": "运动健康",
+  "deviceHealthDescription": "同步设备上的活动与睡眠数据",
+  "deviceHealthSyncCardTitle": "健康数据",
+  "deviceHealthNeverSynced": "还没有同步过运动健康数据",
+  "deviceHealthLastSynced": "上次同步于 {time}",
+  "@deviceHealthLastSynced": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "deviceHealthSync": "同步运动健康数据",
+  "deviceHealthSyncing": "正在同步",
+  "deviceHealthConnectFirst": "请先连接设备再同步运动健康数据",
+  "deviceHealthPartialSync": "部分运动健康数据同步失败",
+  "deviceHealthToday": "今日活动",
+  "deviceHealthSteps": "步数",
+  "deviceHealthDistance": "距离",
+  "deviceHealthCalories": "卡路里",
+  "deviceHealthHeartRate": "心率",
+  "deviceHealthSleep": "最近睡眠",
+  "deviceHealthAverageHeartRate": "平均心率 {value} bpm",
+  "@deviceHealthAverageHeartRate": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "deviceHealthNoData": "暂无数据",
+  "deviceHealthLoadFailed": "无法读取运动健康数据",
   "deviceMusicUpload": "传输音乐",
   "deviceMusicSyncDescription": "将 MP3 文件同步至设备",
   "deviceMusicChooseDialog": "选择要同步至设备的 MP3 文件",

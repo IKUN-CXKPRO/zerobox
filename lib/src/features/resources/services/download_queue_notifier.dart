@@ -10,6 +10,8 @@ import 'package:oronbox/src/features/resources/domain/community_resource_codec.d
 import 'package:oronbox/src/features/resources/services/install_queue_notifier.dart';
 import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
+import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
+import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 
 export 'package:oronbox/src/features/resources/services/resource_install_service.dart'
     show ResourceTaskStatus;
@@ -42,7 +44,24 @@ class ResourceTask {
   final String? installType;
 
   String get title => resource.name;
-  String get subtitle => '${resource.authorName} · $codename';
+  String get subtitle =>
+      '${resource.authorName} · ${resourceTargetDeviceDisplayName(codename)}';
+}
+
+String resourceTargetDeviceDisplayName(String value) {
+  final normalized = value.trim();
+  if (normalized.isEmpty) return normalized;
+  final xiaomi = normalizeXiaomiWearableIdentity(normalized);
+  if (xiaomi != null) return xiaomi.displayName;
+  final zeppId = normalized.startsWith('zepp:')
+      ? normalized.substring('zepp:'.length)
+      : normalized;
+  for (final device in zeppOsDeviceCatalog) {
+    if (device.id == zeppId && device.bluetoothNames.isNotEmpty) {
+      return device.bluetoothNames.first;
+    }
+  }
+  return normalized;
 }
 
 /// Runs downloads concurrently (up to [maxConcurrent]) on both platforms and
@@ -130,7 +149,10 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
       state = state.where((entry) => entry.id != task.id).toList();
     } catch (error) {
       if (state.any((entry) => entry.id == task.id)) {
-        _update(task.id, ResourceTaskStatus.failed, 0, error.toString());
+        final current = state.where((entry) => entry.id == task.id).firstOrNull;
+        if (current?.status != ResourceTaskStatus.failed) {
+          _update(task.id, ResourceTaskStatus.failed, 0, error.toString());
+        }
       }
     } finally {
       _active -= 1;
@@ -141,6 +163,7 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
   Future<ResourceTask> _download(ResourceTask task) async {
     final resource = task.resource;
     if (kIsWeb) {
+      String? downloadError;
       final downloaded = await ResourceInstallService().downloadResource(
         resource: resource,
         file: task.file,
@@ -148,11 +171,13 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
           localCommunityCatalogProviderForSource(resource.ref.source),
         ),
         targetDevice: task.codename,
-        onUpdate: (status, progress, error) =>
-            _update(task.id, status, progress, error),
+        onUpdate: (status, progress, error) {
+          if (error != null) downloadError = error;
+          _update(task.id, status, progress, error);
+        },
       );
       if (downloaded == null) {
-        throw StateError('Resource download failed');
+        throw StateError(downloadError ?? 'Resource download failed');
       }
       return ResourceTask(
         id: task.id,
@@ -212,6 +237,7 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
           CommunityResourceType.miniprogram => LocalDeviceInstallType.app,
           CommunityResourceType.watchface => LocalDeviceInstallType.watchface,
           CommunityResourceType.firmware => LocalDeviceInstallType.firmware,
+          CommunityResourceType.canopus => LocalDeviceInstallType.watchface,
         },
         source: 'download-queue',
       );

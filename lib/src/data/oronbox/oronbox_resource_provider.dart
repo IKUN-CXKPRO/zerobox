@@ -372,6 +372,7 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
     'zepp_app' => CommunityResourceType.miniprogram,
     'watchface' => CommunityResourceType.watchface,
     'firmware' => CommunityResourceType.firmware,
+    'canopus' => CommunityResourceType.canopus,
     _ => CommunityResourceType.quickApp,
   };
 
@@ -380,6 +381,7 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
     CommunityResourceType.miniprogram => 'zepp_app',
     CommunityResourceType.watchface => 'watchface',
     CommunityResourceType.firmware => 'firmware',
+    CommunityResourceType.canopus => 'canopus',
   };
 
   Map<String, Object?> _map(Object? value) => value is Map

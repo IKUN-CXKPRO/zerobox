@@ -326,6 +326,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get watchfaces => 'Watchface';
 
   @override
+  String get module => 'Module';
+
+  @override
   String get quickApps => 'Quickapps';
 
   @override
@@ -1305,6 +1308,68 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deviceMusicSync => 'Music sync';
+
+  @override
+  String get deviceHealthTitle => 'Health';
+
+  @override
+  String get deviceHealthDescription =>
+      'Sync activity and sleep data from the device';
+
+  @override
+  String get deviceHealthSyncCardTitle => 'Health data';
+
+  @override
+  String get deviceHealthNeverSynced =>
+      'No health data has been synchronized yet';
+
+  @override
+  String deviceHealthLastSynced(String time) {
+    return 'Last synchronized $time';
+  }
+
+  @override
+  String get deviceHealthSync => 'Synchronize health data';
+
+  @override
+  String get deviceHealthSyncing => 'Synchronizing';
+
+  @override
+  String get deviceHealthConnectFirst =>
+      'Connect the device to synchronize health data';
+
+  @override
+  String get deviceHealthPartialSync =>
+      'Some health data could not be synchronized';
+
+  @override
+  String get deviceHealthToday => 'Today';
+
+  @override
+  String get deviceHealthSteps => 'Steps';
+
+  @override
+  String get deviceHealthDistance => 'Distance';
+
+  @override
+  String get deviceHealthCalories => 'Calories';
+
+  @override
+  String get deviceHealthHeartRate => 'Heart rate';
+
+  @override
+  String get deviceHealthSleep => 'Recent sleep';
+
+  @override
+  String deviceHealthAverageHeartRate(int value) {
+    return 'Average heart rate $value bpm';
+  }
+
+  @override
+  String get deviceHealthNoData => 'No data available';
+
+  @override
+  String get deviceHealthLoadFailed => 'Unable to load health data';
 
   @override
   String get deviceMusicUpload => 'Transfer music';

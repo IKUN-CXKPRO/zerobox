@@ -909,6 +909,7 @@ CommunityResourceType _homeCardKind(String kind) => switch (kind) {
   'zepp_app' => CommunityResourceType.miniprogram,
   'watchface' => CommunityResourceType.watchface,
   'firmware' => CommunityResourceType.firmware,
+  'canopus' => CommunityResourceType.canopus,
   _ => CommunityResourceType.quickApp,
 };
 
@@ -2118,6 +2119,19 @@ class _FilterSheet extends ConsumerWidget {
                               : CommunityResourceType.firmware,
                         ),
                   ),
+                if (source == CommunitySourceId.astroboxRepo)
+                  FilterChip(
+                    showCheckmark: false,
+                    label: Text(l10n.module),
+                    selected: filters.type == CommunityResourceType.canopus,
+                    onSelected: (_) => ref
+                        .read(resourceFiltersProvider.notifier)
+                        .setType(
+                          filters.type == CommunityResourceType.canopus
+                              ? null
+                              : CommunityResourceType.canopus,
+                        ),
+                  ),
               ],
             ),
             if (source == CommunitySourceId.oronBox) ...[
@@ -2422,6 +2436,7 @@ String _typeLabel(
   CommunityResourceType.miniprogram => l10n.miniprograms,
   CommunityResourceType.watchface => l10n.watchfaces,
   CommunityResourceType.firmware => l10n.firmwareTools,
+  CommunityResourceType.canopus => l10n.module,
 };
 
 String _communitySourceLabel(AppLocalizations l10n, CommunitySourceId source) =>

@@ -1011,8 +1011,17 @@ class MainActivity : FlutterActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
             )
-            webView.loadUrl(url)
-            mainHandler.postDelayed(poller, 750)
+            // Android's CookieManager is process-global and otherwise keeps
+            // the previous Xiaomi account between two-factor sessions.  A
+            // fresh login must start without the old account's cookies.
+            webView.clearHistory()
+            webView.clearCache(true)
+            cookieManager.removeAllCookies {
+                if (completed) return@removeAllCookies
+                cookieManager.flush()
+                webView.loadUrl(url)
+                mainHandler.postDelayed(poller, 750)
+            }
         }
     }
 

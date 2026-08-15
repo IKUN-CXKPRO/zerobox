@@ -324,6 +324,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get watchfaces => 'Циферблаты';
 
   @override
+  String get module => 'Модуль';
+
+  @override
   String get quickApps => 'Быстрые приложения';
 
   @override
@@ -1314,6 +1317,68 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get deviceMusicSync => 'Синхронизация музыки';
+
+  @override
+  String get deviceHealthTitle => 'Здоровье';
+
+  @override
+  String get deviceHealthDescription =>
+      'Синхронизация активности и сна с устройством';
+
+  @override
+  String get deviceHealthSyncCardTitle => 'Данные о здоровье';
+
+  @override
+  String get deviceHealthNeverSynced =>
+      'Данные о здоровье ещё не синхронизировались';
+
+  @override
+  String deviceHealthLastSynced(String time) {
+    return 'Последняя синхронизация: $time';
+  }
+
+  @override
+  String get deviceHealthSync => 'Синхронизировать данные о здоровье';
+
+  @override
+  String get deviceHealthSyncing => 'Синхронизация';
+
+  @override
+  String get deviceHealthConnectFirst =>
+      'Подключите устройство, чтобы синхронизировать данные о здоровье';
+
+  @override
+  String get deviceHealthPartialSync =>
+      'Не удалось синхронизировать часть данных о здоровье';
+
+  @override
+  String get deviceHealthToday => 'Сегодня';
+
+  @override
+  String get deviceHealthSteps => 'Шаги';
+
+  @override
+  String get deviceHealthDistance => 'Расстояние';
+
+  @override
+  String get deviceHealthCalories => 'Калории';
+
+  @override
+  String get deviceHealthHeartRate => 'Пульс';
+
+  @override
+  String get deviceHealthSleep => 'Последний сон';
+
+  @override
+  String deviceHealthAverageHeartRate(int value) {
+    return 'Средний пульс: $value уд/мин';
+  }
+
+  @override
+  String get deviceHealthNoData => 'Нет данных';
+
+  @override
+  String get deviceHealthLoadFailed => 'Не удалось загрузить данные о здоровье';
 
   @override
   String get deviceMusicUpload => 'Загрузка музыки на устройство';

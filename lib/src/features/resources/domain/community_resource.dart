@@ -2,7 +2,13 @@ import 'dart:typed_data';
 
 import 'package:oronbox/src/data/community/community_source.dart';
 
-enum CommunityResourceType { quickApp, miniprogram, watchface, firmware }
+enum CommunityResourceType {
+  quickApp,
+  miniprogram,
+  watchface,
+  firmware,
+  canopus,
+}
 
 enum CommunityPaidType { free, paid, forcePaid }
 
@@ -89,6 +95,7 @@ class CommunityResourceFile {
     this.downloadUrl,
     this.size,
     this.supportedDevices = const {},
+    this.encrypted = false,
   });
 
   final String id;
@@ -98,6 +105,10 @@ class CommunityResourceFile {
   final Uri? downloadUrl;
   final int? size;
   final Set<String> supportedDevices;
+
+  /// The payload is encrypted by the source and must be unlocked before it
+  /// can be passed to the device installer.
+  final bool encrypted;
 
   String get label =>
       displayName?.trim().isNotEmpty == true ? displayName!.trim() : fileName;

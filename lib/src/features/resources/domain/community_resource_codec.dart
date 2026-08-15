@@ -10,6 +10,7 @@ Map<String, Object?> communityResourceFileToJson(CommunityResourceFile file) =>
       if (file.downloadUrl != null) 'downloadUrl': file.downloadUrl.toString(),
       if (file.size != null) 'size': file.size,
       'devices': file.supportedDevices.toList(growable: false),
+      if (file.encrypted) 'encrypted': true,
     };
 
 CommunityResourceFile communityResourceFileFromJson(
@@ -22,6 +23,7 @@ CommunityResourceFile communityResourceFileFromJson(
   downloadUrl: _uri(json['downloadUrl']),
   size: (json['size'] as num?)?.toInt(),
   supportedDevices: _strings(json['devices']).toSet(),
+  encrypted: json['encrypted'] == true,
 );
 
 Map<String, Object?> communityResourceToJson(CommunityResource resource) => {

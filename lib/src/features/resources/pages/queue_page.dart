@@ -467,7 +467,9 @@ IconData _statusIcon(ResourceTaskStatus status, IconData fallback) {
 }
 
 String _installTaskDescription(AppLocalizations l10n, InstallTask task) {
-  if (task.resource != null) return task.description;
+  if (task.resource != null) {
+    return resourceTargetDeviceDisplayName(task.description);
+  }
   return switch (task.description) {
     'Read failed' => l10n.installQueueReadFailed,
     'Unsupported file' => l10n.installQueueUnsupportedFile,

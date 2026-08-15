@@ -20,6 +20,7 @@ import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/devices/domain/device_connection_endpoint.dart';
 import 'package:oronbox/src/features/devices/utils/device_address.dart';
 import 'package:oronbox/src/features/devices/widgets/device_connection_text.dart';
+import 'package:oronbox/src/features/devices/widgets/xiaomi_fitness_logo.dart';
 import 'package:oronbox/src/features/devices/services/device_share_link.dart';
 import 'package:oronbox/src/features/devices/providers/pending_shared_device_provider.dart';
 import 'package:oronbox/src/features/settings/pages/about_software_page.dart';
@@ -553,7 +554,7 @@ class _DeviceImportActions extends StatelessWidget {
             ),
           if (supportsWearableLogImport)
             _DeviceImportActionCard(
-              leading: const _XiaomiFitnessLogo(),
+              leading: const XiaomiFitnessLogo(),
               title: l10n.deviceSwitchWearableLogImport,
               onTap: onWearableLogImport,
             ),
@@ -593,44 +594,6 @@ class _DeviceImportActionCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _XiaomiFitnessLogo extends StatelessWidget {
-  const _XiaomiFitnessLogo();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: 24,
-      child: CustomPaint(
-        painter: _XiaomiFitnessLogoPainter(
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-      ),
-    );
-  }
-}
-
-class _XiaomiFitnessLogoPainter extends CustomPainter {
-  const _XiaomiFitnessLogoPainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final ring = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 5
-      ..strokeCap = StrokeCap.round;
-    final center = size.center(Offset.zero);
-    final radius = (size.shortestSide - ring.strokeWidth) / 2;
-    canvas.drawCircle(center, radius, ring);
-  }
-
-  @override
-  bool shouldRepaint(covariant _XiaomiFitnessLogoPainter oldDelegate) =>
-      oldDelegate.color != color;
 }
 
 class _SavedDeviceList extends ConsumerWidget {

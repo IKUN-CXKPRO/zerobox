@@ -58,6 +58,14 @@ class ResourceInstallService {
     onUpdate,
   }) async {
     onUpdate(ResourceTaskStatus.downloading, 0, null);
+    if (!resource.canDownload) {
+      onUpdate(
+        ResourceTaskStatus.failed,
+        0,
+        'This resource is not available for download with the current account',
+      );
+      return null;
+    }
     if (resource.downloadRestriction ==
         CommunityResourceDownloadRestriction.astroBoxCreatorEncrypted) {
       onUpdate(
@@ -339,6 +347,7 @@ class ResourceInstallService {
         CommunityResourceType.miniprogram => LocalDeviceInstallType.app,
         CommunityResourceType.watchface => LocalDeviceInstallType.watchface,
         CommunityResourceType.firmware => LocalDeviceInstallType.firmware,
+        CommunityResourceType.canopus => LocalDeviceInstallType.watchface,
       };
 
   String _guessPackageName(String fileName) {
@@ -364,6 +373,7 @@ extension ResourceTypeLabel on CommunityResourceType {
       CommunityResourceType.miniprogram => 'zpk/zab/zip',
       CommunityResourceType.watchface => 'bin/face/mwz/zip',
       CommunityResourceType.firmware => 'zip/bin',
+      CommunityResourceType.canopus => 'bin/face/mwz/zip',
     };
   }
 }

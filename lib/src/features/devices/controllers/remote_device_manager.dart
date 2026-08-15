@@ -13,6 +13,7 @@ import 'package:oronbox/src/device/zeppos/systems/zeppos_app_side_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_voice_memos_system.dart';
 import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/devices/health/health_models.dart';
 import 'package:oronbox/src/features/devices/controllers/interconnect_event_codec.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart';
@@ -608,6 +609,22 @@ class HostDeviceManager extends DeviceManager {
       const OronBoxCommand(method: 'device.xiaomi.music.library'),
     );
     return DeviceMusicLibrary.fromJson((result.value as Map).cast());
+  }
+
+  @override
+  Future<XiaomiHealthData> loadXiaomiHealthData() async {
+    final result = await _execute(
+      const OronBoxCommand(method: 'device.xiaomi.health.data'),
+    );
+    return XiaomiHealthData.fromJson((result.value as Map).cast());
+  }
+
+  @override
+  Future<XiaomiHealthSyncResult> syncXiaomiHealth() async {
+    final result = await _execute(
+      const OronBoxCommand(method: 'device.xiaomi.health.sync'),
+    );
+    return XiaomiHealthSyncResult.fromJson((result.value as Map).cast());
   }
 
   Future<void> _musicCommand(String method, Map<String, Object?> params) async {

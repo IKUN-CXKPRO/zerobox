@@ -19,6 +19,7 @@ import 'package:oronbox/src/core/utils/layout.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/devices/widgets/device_connection_text.dart';
+import 'package:oronbox/src/features/devices/widgets/xiaomi_fitness_logo.dart';
 import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
 import 'package:oronbox/src/features/resources/widgets/resource_install_confirmation.dart';
 import 'package:oronbox/src/features/devices/pages/install/local_file_picker_policy.dart';
@@ -770,6 +771,13 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
                   description: Text(l10n.zeppOsMoreFeaturesDescription),
                 )
               else ...[
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/devices/velaos-health'),
+                  enabled: enabled,
+                  leading: const XiaomiFitnessLogo(),
+                  title: Text(l10n.deviceHealthTitle),
+                  description: Text(l10n.deviceHealthDescription),
+                ),
                 SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/velaos-music'),
                   enabled: enabled,

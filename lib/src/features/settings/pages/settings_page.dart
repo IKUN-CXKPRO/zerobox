@@ -1404,7 +1404,7 @@ class _AccountLeading extends StatelessWidget {
 }
 
 class MiLogo extends StatelessWidget {
-  const MiLogo({super.key, this.width = 32, this.height = 32});
+  const MiLogo({super.key, this.width = 24, this.height = 32});
 
   final double width;
   final double height;

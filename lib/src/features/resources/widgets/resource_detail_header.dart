@@ -297,6 +297,7 @@ String _typeLabel(
   CommunityResourceType.miniprogram => l10n.miniprogram,
   CommunityResourceType.watchface => l10n.watchface,
   CommunityResourceType.firmware => l10n.firmwareTool,
+  CommunityResourceType.canopus => l10n.module,
 };
 
 String _paidLabel(AppLocalizations l10n, CommunityPaidType type) =>

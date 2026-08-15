@@ -123,6 +123,7 @@
   "currentDevice": "Current device",
   "all": "All",
   "watchfaces": "Watchface",
+  "module": "Module",
   "quickApps": "Quickapps",
   "firmwareTools": "Firmware / Tools",
   "oronBox": "OronBox",
@@ -562,6 +563,38 @@
   "zeppOsAppDebug": "App debugging",
   "zeppOsAppDebugDescription": "Debug app-side scripts and device communication",
   "deviceMusicSync": "Music sync",
+  "deviceHealthTitle": "Health",
+  "deviceHealthDescription": "Sync activity and sleep data from the device",
+  "deviceHealthSyncCardTitle": "Health data",
+  "deviceHealthNeverSynced": "No health data has been synchronized yet",
+  "deviceHealthLastSynced": "Last synchronized {time}",
+  "@deviceHealthLastSynced": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "deviceHealthSync": "Synchronize health data",
+  "deviceHealthSyncing": "Synchronizing",
+  "deviceHealthConnectFirst": "Connect the device to synchronize health data",
+  "deviceHealthPartialSync": "Some health data could not be synchronized",
+  "deviceHealthToday": "Today",
+  "deviceHealthSteps": "Steps",
+  "deviceHealthDistance": "Distance",
+  "deviceHealthCalories": "Calories",
+  "deviceHealthHeartRate": "Heart rate",
+  "deviceHealthSleep": "Recent sleep",
+  "deviceHealthAverageHeartRate": "Average heart rate {value} bpm",
+  "@deviceHealthAverageHeartRate": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "deviceHealthNoData": "No data available",
+  "deviceHealthLoadFailed": "Unable to load health data",
   "deviceMusicUpload": "Transfer music",
   "deviceMusicSyncDescription": "Sync MP3 files to the device",
   "deviceMusicChooseDialog": "Select an MP3 file to sync to the device",
