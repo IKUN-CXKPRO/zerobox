@@ -43,8 +43,15 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
 
     ref.listen<DeviceManagerState>(deviceManagerProvider, (previous, next) {
       if (next.error == null) _lastErrorToast = null;
-      if (next.error == null || next.error == previous?.error) return;
+      if (next.error == null) return;
       if (ModalRoute.of(context)?.isCurrent != true) return;
+      final wasConnecting = previous?.connecting == true;
+      if (next.connecting ||
+          (wasConnecting && next.connectStatus != 3) ||
+          (next.error == previous?.error &&
+              !(wasConnecting && next.connectStatus == 3))) {
+        return;
+      }
       final message = localizedErrorMessage(l10n, next.error);
       if (message == _lastErrorToast) return;
       _lastErrorToast = message;
@@ -323,7 +330,7 @@ class _DeviceInfoPanel extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '↑ ${_formatRate(downloadBytesPerSecond)}',
+                            '↑ ${_formatRate(uploadBytesPerSecond)}',
                             style: textTheme.bodySmall?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                               fontFeatures: const [
@@ -333,7 +340,7 @@ class _DeviceInfoPanel extends StatelessWidget {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            '↓ ${_formatRate(uploadBytesPerSecond)}',
+                            '↓ ${_formatRate(downloadBytesPerSecond)}',
                             style: textTheme.bodySmall?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                               fontFeatures: const [

@@ -135,7 +135,7 @@ final themeSettingsProvider =
       ThemeSettingsNotifier.new,
     );
 
-enum AppLocale { system, en, zh }
+enum AppLocale { system, en, zh, zhHant, ja, ru }
 
 class LocaleSettings {
   const LocaleSettings({required this.locale});
@@ -164,6 +164,9 @@ class LocaleSettings {
     return switch (locale) {
       AppLocale.en => const Locale('en'),
       AppLocale.zh => const Locale('zh'),
+      AppLocale.zhHant => const Locale('zh', 'TW'),
+      AppLocale.ja => const Locale('ja'),
+      AppLocale.ru => const Locale('ru'),
       _ => null,
     };
   }

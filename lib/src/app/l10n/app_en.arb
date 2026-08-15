@@ -118,6 +118,8 @@
   "resourceAstroBoxEncryptedMessage": "This resource uses AstroBox Creator Console's private encrypted upload. OronBox cannot decrypt, download, or install it. Please open it with AstroBox instead.",
   "resourceAstroBoxEncryptedAction": "Got it",
   "filter": "Filter",
+  "resourceTypeFilter": "Resource type",
+  "resourceCompatibleDevicesFilter": "Compatible devices",
   "currentDevice": "Current device",
   "all": "All",
   "watchfaces": "Watchface",

@@ -311,6 +311,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filter => 'Filter';
 
   @override
+  String get resourceTypeFilter => 'Resource type';
+
+  @override
+  String get resourceCompatibleDevicesFilter => 'Compatible devices';
+
+  @override
   String get currentDevice => 'Current device';
 
   @override

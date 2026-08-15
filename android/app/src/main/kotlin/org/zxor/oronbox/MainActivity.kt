@@ -22,6 +22,7 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
 import android.view.ViewGroup
 import android.view.Window
 import android.webkit.CookieManager
@@ -39,7 +40,10 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
+import java.io.PrintWriter
+import java.io.StringWriter
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.ExecutorService
@@ -52,7 +56,6 @@ class MainActivity : FlutterActivity() {
     @Volatile
     private var sppSocket: BluetoothSocket? = null
     @Volatile
-    private var connectingSocket: BluetoothSocket? = null
     private var readThread: Thread? = null
     private var eventSink: EventChannel.EventSink? = null
     private var scanEventSink: EventChannel.EventSink? = null
@@ -63,6 +66,8 @@ class MainActivity : FlutterActivity() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val sppUuid: UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb")
     private val sendLock = Object()
+    private val sppStateLock = Any()
+    private val activeConnectingSockets = mutableSetOf<BluetoothSocket>()
     private val sendExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private val connectGeneration = AtomicLong(0)
     private val backgroundTaskIds = mutableSetOf<Int>()
@@ -78,11 +83,115 @@ class MainActivity : FlutterActivity() {
     private var pendingOpenFilePath: String? = null
     private var pendingWearableLogResult: MethodChannel.Result? = null
     private val wearableLogExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+    private var sessionMarker: File? = null
 
     companion object {
         private const val WEARABLE_LOG_DIRECTORY_REQUEST = 0x5A11
         private const val WEARABLE_LOG_DIRECTORY_PREF = "wearable_log_directory"
         private const val MAX_WEARABLE_LOG_BYTES = 64 * 1024 * 1024
+        @Volatile
+        private var nativeCrashHandlerInstalled = false
+        private var previousUncaughtExceptionHandler: Thread.UncaughtExceptionHandler? = null
+    }
+
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        installNativeCrashLogging()
+        super.onCreate(savedInstanceState)
+    }
+
+    private fun installNativeCrashLogging() {
+        val logDirectory = File(filesDir, "logs")
+        recoverUnexpectedSessions(logDirectory)
+        val marker = File(
+            logDirectory,
+            "oronbox-session-${Process.myPid()}-${UUID.randomUUID()}.running",
+        )
+        writeNativeLog(
+            marker,
+            "OronBox process ${Process.myPid()} started at ${System.currentTimeMillis()}\n",
+        )
+        sessionMarker = marker
+
+        synchronized(MainActivity::class.java) {
+            if (nativeCrashHandlerInstalled) return
+            previousUncaughtExceptionHandler =
+                Thread.getDefaultUncaughtExceptionHandler()
+            Thread.setDefaultUncaughtExceptionHandler { thread, error ->
+                val stack = StringWriter().also { writer ->
+                    error.printStackTrace(PrintWriter(writer))
+                }
+                val report = File(
+                    logDirectory,
+                    "oronbox-native-crash-${System.currentTimeMillis()}-${Process.myPid()}.log",
+                )
+                writeNativeLog(
+                    report,
+                    buildString {
+                        appendLine("OronBox native uncaught exception")
+                        appendLine("time: ${System.currentTimeMillis()}")
+                        appendLine("process: ${Process.myPid()}")
+                        appendLine("thread: ${thread.name}")
+                        appendLine()
+                        append(stack.toString())
+                    },
+                )
+                val previous = previousUncaughtExceptionHandler
+                if (previous != null) {
+                    previous.uncaughtException(thread, error)
+                } else {
+                    Process.killProcess(Process.myPid())
+                    Runtime.getRuntime().exit(10)
+                }
+            }
+            nativeCrashHandlerInstalled = true
+        }
+    }
+
+    private fun recoverUnexpectedSessions(logDirectory: File) {
+        try {
+            if (!logDirectory.exists()) logDirectory.mkdirs()
+            val currentProcessMarker = "oronbox-session-${Process.myPid()}"
+            logDirectory.listFiles()
+                ?.filter {
+                    it.isFile && it.name.startsWith("oronbox-session-") &&
+                        it.name.endsWith(".running") &&
+                        it.name != "$currentProcessMarker.running" &&
+                        !it.name.startsWith("$currentProcessMarker-")
+                }
+                ?.forEach { marker ->
+                    val report = File(
+                        logDirectory,
+                        "oronbox-unexpected-exit-${marker.nameWithoutExtension}-" +
+                            "${System.currentTimeMillis()}.log",
+                    )
+                    writeNativeLog(
+                        report,
+                        buildString {
+                            appendLine("OronBox previous process ended unexpectedly")
+                            appendLine("detected: ${System.currentTimeMillis()}")
+                            appendLine("session marker: ${marker.name}")
+                            appendLine(
+                                "possible causes: native crash, ANR, force-stop, or system kill",
+                            )
+                        },
+                    )
+                    marker.delete()
+                }
+        } catch (_: Exception) {
+            // Crash reporting must never prevent the application from starting.
+        }
+    }
+
+    private fun writeNativeLog(file: File, content: String) {
+        try {
+            file.parentFile?.mkdirs()
+            FileOutputStream(file, false).use { output ->
+                output.write(content.toByteArray(Charsets.UTF_8))
+                output.fd.sync()
+            }
+        } catch (_: Exception) {
+            // The process may be in a failing state; do not throw from logging.
+        }
     }
 
     private fun startBackgroundService(label: String, mode: String) {
@@ -921,6 +1030,7 @@ class MainActivity : FlutterActivity() {
             ?.mapNotNull { it.takeIf { channel -> channel in 1..30 } }
             ?.distinct()
             ?: listOf(5, 1)
+        val removeBond = call.argument<Boolean>("removeBond") ?: false
         if (!hasBluetoothConnectPermission()) {
             requestBluetoothPermissionsIfNeeded()
             result.error("MISSING_PERMISSION", "Bluetooth permission is required", null)
@@ -928,15 +1038,22 @@ class MainActivity : FlutterActivity() {
         }
 
         Thread {
-            disconnect()
+            // Invalidate and close the previous attempt before starting a new
+            // one.  The UI can issue a second connect while the first socket
+            // is still blocked in BluetoothSocket.connect().
             val generation = connectGeneration.incrementAndGet()
+            closeSppTransport()
             try {
                 val adapter = BluetoothAdapter.getDefaultAdapter()
                     ?: throw IOException("BluetoothAdapter is unavailable")
                 val device = adapter.getRemoteDevice(addr)
 
                 if (adapter.isDiscovering) adapter.cancelDiscovery()
+                if (removeBond) resetBond(device)
                 ensureBonded(device)
+                if (generation != connectGeneration.get()) {
+                    throw IOException("SPP connect was cancelled")
+                }
 
                 val connected = serviceUuid?.let { tryUuid(device, it, generation) }
                     ?: fallbackChannels.firstNotNullOfOrNull { channel ->
@@ -949,15 +1066,35 @@ class MainActivity : FlutterActivity() {
                     connected.socket.close()
                     throw IOException("SPP connect was cancelled")
                 }
-                sppSocket = connected.socket
-                startReadThread()
+                synchronized(sppStateLock) {
+                    if (generation != connectGeneration.get()) {
+                        connected.socket.close()
+                        throw IOException("SPP connect was cancelled")
+                    }
+                    sppSocket = connected.socket
+                }
+                if (!startReadThread(connected.socket, generation)) {
+                    throw IOException("SPP connect was cancelled")
+                }
                 mainHandler.post {
                     result.success(mapOf("channel" to connected.channel))
                 }
             } catch (e: Exception) {
-                disconnect(cancelConnect = false)
+                // A stale attempt must never tear down the socket established
+                // by a newer attempt.
+                if (generation == connectGeneration.get()) {
+                    closeSppTransport()
+                }
                 mainHandler.post {
-                    result.error("CONNECT_FAILED", e.message ?: e.toString(), null)
+                    result.error(
+                        if (generation == connectGeneration.get()) {
+                            "CONNECT_FAILED"
+                        } else {
+                            "CONNECT_CANCELLED"
+                        },
+                        e.message ?: e.toString(),
+                        null,
+                    )
                 }
             }
         }.start()
@@ -977,6 +1114,9 @@ class MainActivity : FlutterActivity() {
 
         sendExecutor.execute {
             try {
+                if (sppSocket !== socket || !socket.isConnected) {
+                    throw IOException("SPP socket is no longer connected")
+                }
                 val out = socket.outputStream
                 synchronized(sendLock) {
                     var offset = 0
@@ -992,6 +1132,60 @@ class MainActivity : FlutterActivity() {
                 mainHandler.post {
                     result.error("SEND_FAILED", e.message ?: e.toString(), null)
                 }
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun resetBond(device: BluetoothDevice) {
+        if (device.bondState == BluetoothDevice.BOND_NONE) return
+
+        val latch = CountDownLatch(1)
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action != BluetoothDevice.ACTION_BOND_STATE_CHANGED) return
+                val changed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getParcelableExtra(
+                        BluetoothDevice.EXTRA_DEVICE,
+                        BluetoothDevice::class.java,
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                }
+                if (changed?.address == device.address &&
+                    changed.bondState == BluetoothDevice.BOND_NONE
+                ) {
+                    latch.countDown()
+                }
+            }
+        }
+
+        val filter = IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(receiver, filter, RECEIVER_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            registerReceiver(receiver, filter)
+        }
+        try {
+            val removed = runCatching {
+                val method = device.javaClass.getMethod("removeBond")
+                method.invoke(device) as? Boolean ?: false
+            }.getOrDefault(false)
+            if (!removed && device.bondState != BluetoothDevice.BOND_NONE) {
+                throw IOException("removeBond() failed")
+            }
+            if (device.bondState == BluetoothDevice.BOND_NONE) {
+                latch.countDown()
+            }
+            if (!latch.await(10, TimeUnit.SECONDS)) {
+                throw IOException("Unpairing timed out")
+            }
+        } finally {
+            try {
+                unregisterReceiver(receiver)
+            } catch (_: IllegalArgumentException) {
             }
         }
     }
@@ -1024,10 +1218,22 @@ class MainActivity : FlutterActivity() {
             }
         }
 
-        registerReceiver(receiver, IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED))
+        val filter = IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(receiver, filter, RECEIVER_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            registerReceiver(receiver, filter)
+        }
         try {
-            if (!device.createBond()) {
+            if (device.bondState != BluetoothDevice.BOND_BONDING &&
+                !device.createBond() &&
+                device.bondState != BluetoothDevice.BOND_BONDED
+            ) {
                 throw IOException("createBond() failed")
+            }
+            if (device.bondState == BluetoothDevice.BOND_BONDED) {
+                latch.countDown()
             }
             if (!latch.await(15, TimeUnit.SECONDS)) {
                 throw IOException("Bonding timed out")
@@ -1114,11 +1320,13 @@ class MainActivity : FlutterActivity() {
         timeoutMs: Long,
         generation: Long,
     ): Boolean {
-        if (generation != connectGeneration.get()) {
-            socket.close()
-            return false
+        synchronized(sppStateLock) {
+            if (generation != connectGeneration.get()) {
+                socket.close()
+                return false
+            }
+            activeConnectingSockets += socket
         }
-        connectingSocket = socket
         val latch = CountDownLatch(1)
         val connected = AtomicReference(false)
         val connector = Thread {
@@ -1131,24 +1339,27 @@ class MainActivity : FlutterActivity() {
             }
         }
         connector.start()
-        val ok = latch.await(timeoutMs, TimeUnit.MILLISECONDS) &&
-            connected.get() &&
-            generation == connectGeneration.get()
-        if (!ok) {
-            try {
-                socket.close()
-            } catch (_: IOException) {
+        return try {
+            val ok = latch.await(timeoutMs, TimeUnit.MILLISECONDS) &&
+                connected.get() &&
+                generation == connectGeneration.get()
+            if (!ok) {
+                try {
+                    socket.close()
+                } catch (_: IOException) {
+                }
+                false
+            } else {
+                true
             }
-            return false
+        } finally {
+            synchronized(sppStateLock) {
+                activeConnectingSockets.remove(socket)
+            }
         }
-        if (connectingSocket == socket) {
-            connectingSocket = null
-        }
-        return true
     }
 
-    private fun startReadThread() {
-        val socket = sppSocket ?: return
+    private fun startReadThread(socket: BluetoothSocket, generation: Long): Boolean {
         val thread = Thread {
             val buffer = ByteArray(1024)
             try {
@@ -1162,33 +1373,58 @@ class MainActivity : FlutterActivity() {
             } catch (e: IOException) {
                 mainHandler.post { eventSink?.error("READ_FAILED", e.message, null) }
             } finally {
-                if (readThread == Thread.currentThread()) {
-                    disconnect()
+                val isCurrent = readThread == Thread.currentThread() &&
+                    sppSocket === socket &&
+                    generation == connectGeneration.get()
+                if (isCurrent) {
+                    closeSppTransport()
+                    mainHandler.post {
+                        eventSink?.success(mapOf("event" to "disconnected"))
+                    }
                 }
             }
-        }.also { it.start() }
-        readThread = thread
+        }
+        synchronized(sppStateLock) {
+            if (sppSocket !== socket || generation != connectGeneration.get()) {
+                socket.close()
+                return false
+            }
+            readThread = thread
+        }
+        thread.start()
+        return true
     }
 
     private fun disconnect(cancelConnect: Boolean = true) {
         if (cancelConnect) {
             connectGeneration.incrementAndGet()
         }
-        val thread = readThread
-        readThread = null
+        closeSppTransport()
+    }
+
+    private fun closeSppTransport() {
+        val (thread, socket, sockets) = synchronized(sppStateLock) {
+            val currentThread = readThread
+            readThread = null
+            val currentSocket = sppSocket
+            sppSocket = null
+            val pending = activeConnectingSockets.toList()
+            activeConnectingSockets.clear()
+            Triple(currentThread, currentSocket, pending)
+        }
         if (thread != null && thread != Thread.currentThread()) {
             thread.interrupt()
         }
+        for (socket in sockets) {
+            try {
+                socket.close()
+            } catch (_: IOException) {
+            }
+        }
         try {
-            connectingSocket?.close()
+            socket?.close()
         } catch (_: IOException) {
         }
-        connectingSocket = null
-        try {
-            sppSocket?.close()
-        } catch (_: IOException) {
-        }
-        sppSocket = null
     }
 
     private fun hasBluetoothConnectPermission(): Boolean {
@@ -1230,6 +1466,11 @@ class MainActivity : FlutterActivity() {
     )
 
     override fun onDestroy() {
+        disconnect()
+        sessionMarker?.let { marker ->
+            if (isFinishing || isChangingConfigurations) marker.delete()
+        }
+        sessionMarker = null
         XmsWearableBridge.detach(xmsWearableChannel)
         xmsWearableChannel = null
         closeZeppSettings(notify = false)

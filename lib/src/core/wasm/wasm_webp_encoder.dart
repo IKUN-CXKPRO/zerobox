@@ -8,7 +8,7 @@ import 'package:oronbox/src/core/wasm/wasm_runtime.dart';
 final class WasmWebpEncoder {
   WasmWebpEncoder._(this._instance, this._memory);
 
-  static const _assetPath = 'assets/wasm/webp_encoder.wasm';
+  static const assetPath = 'assets/wasm/webp_encoder.wasm';
   static Future<WasmWebpEncoder>? _shared;
 
   final ScopedWasmInstance _instance;
@@ -16,20 +16,32 @@ final class WasmWebpEncoder {
 
   static Future<WasmWebpEncoder> instance() => _shared ??= _create();
 
-  static Future<WasmWebpEncoder> _create() async {
+  /// Creates an encoder from bytes already loaded by another isolate.
+  ///
+  /// A worker isolate cannot use Flutter's [rootBundle], so callers that run
+  /// outside the main isolate must load [assetPath] themselves and pass the
+  /// bytes here.
+  static Future<WasmWebpEncoder> fromBytes(Uint8List bytes) =>
+      _create(bytes: bytes);
+
+  static Future<WasmWebpEncoder> _create({Uint8List? bytes}) async {
     final scope = WasmRuntime.shared.openScope('system.webp-encoder');
     try {
-      final instance = await scope.instantiateAsset(
-        _assetPath,
-        configure: (builder) => builder.addImport(
-          'wasi_snapshot_preview1',
-          'proc_exit',
-          WasmFunction.voidReturn(
-            (int code) => throw StateError('libwebp exited with code $code'),
-            params: const [ValueTy.i32],
-          ),
+      void configure(WasmInstanceBuilder builder) => builder.addImport(
+        'wasi_snapshot_preview1',
+        'proc_exit',
+        WasmFunction.voidReturn(
+          (int code) => throw StateError('libwebp exited with code $code'),
+          params: const [ValueTy.i32],
         ),
       );
+      final instance = bytes == null
+          ? await scope.instantiateAsset(assetPath, configure: configure)
+          : await scope.instantiate(
+              bytes,
+              cacheKey: 'asset:$assetPath',
+              configure: configure,
+            );
       return WasmWebpEncoder._(instance, instance.memory('memory'));
     } catch (_) {
       scope.dispose();
@@ -58,6 +70,8 @@ final class WasmWebpEncoder {
     _instance.call('zb_free', [output]);
     return bytes;
   }
+
+  void dispose() => _instance.dispose();
 
   static int _intResult(List<Object?> results) {
     final value = results.firstOrNull;

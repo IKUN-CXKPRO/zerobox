@@ -855,6 +855,11 @@ class LocalDeviceManager extends DeviceManager {
             bleAttemptPair: profile.bleAttemptPair,
             sppServiceUuid: profile.classicServiceUuid,
             sppFallbackChannels: profile.classicFallbackChannels,
+            sppRemoveBond:
+                defaultTargetPlatform == TargetPlatform.android &&
+                profile.kind == DeviceKind.xiaomi &&
+                connectType == ConnectType.spp &&
+                attempt == 2,
           ),
         );
         _log.info(

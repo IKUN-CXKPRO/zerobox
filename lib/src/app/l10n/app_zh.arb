@@ -118,6 +118,8 @@
   "resourceAstroBoxEncryptedMessage": "此资源使用 AstroBox Creator Console 的私有加密上传\nOronBox 无法解密、下载或安装它\n请改用 AstroBox 打开",
   "resourceAstroBoxEncryptedAction": "知道了",
   "filter": "筛选",
+  "resourceTypeFilter": "资源类型",
+  "resourceCompatibleDevicesFilter": "适配设备",
   "currentDevice": "当前设备",
   "all": "全部",
   "watchfaces": "表盘",

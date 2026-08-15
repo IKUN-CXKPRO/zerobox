@@ -7,6 +7,8 @@ import 'package:oronbox/src/data/bandbbs/bandbbs_resource_provider.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/data/huami/huami_app_store_resource_provider.dart';
 import 'package:oronbox/src/data/oronbox/oronbox_resource_provider.dart';
+import 'package:oronbox/src/device/core/device_profile.dart';
+import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 import 'package:oronbox/src/features/accounts/services/huami_auth_service.dart';
 import 'package:oronbox/src/features/resources/application/command_resource_catalog.dart';
@@ -133,10 +135,18 @@ final bandbbsCategoryTreeProvider =
                 .map((row) => decode(row.cast<String, Object?>()))
                 .toList(),
           );
-      return (result.value as List)
+      final roots = (result.value as List)
           .whereType<Map>()
           .map((row) => decode(row.cast<String, Object?>()))
           .toList();
+      final currentDevice = ref.watch(deviceManagerProvider).currentDevice;
+      final currentDeviceKind = currentDevice == null
+          ? null
+          : DeviceRegistry.resolveIdentity(
+              name: currentDevice.name,
+              codename: currentDevice.codename,
+            ).kind;
+      return filterBandBbsCategoryTreeForDevice(roots, currentDeviceKind);
     });
 
 final huamiPublisherResourcesProvider = FutureProvider.autoDispose

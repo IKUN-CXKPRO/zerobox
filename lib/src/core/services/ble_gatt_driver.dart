@@ -475,6 +475,24 @@ class BleGattDriver {
     // replayed by every UniversalBle backend and must not gate initialization.
     _log.info('[$effectiveDeviceId] platform connection established');
 
+    // Android otherwise leaves the link at the balanced connection interval,
+    // which makes an active wearable session easier for another companion app
+    // to preempt. Keep the negotiated link responsive while OronBox owns it.
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      try {
+        await UniversalBle.requestConnectionPriority(
+          effectiveDeviceId,
+          BleConnectionPriority.highPerformance,
+        );
+        _log.info('[$effectiveDeviceId] Android BLE priority set to high');
+      } catch (e) {
+        _log.warning(
+          '[$effectiveDeviceId] Android BLE priority request failed (ignored)',
+          e,
+        );
+      }
+    }
+
     if (attemptPair && !kIsWeb) {
       try {
         _log.info('[$effectiveDeviceId] attempting pair');

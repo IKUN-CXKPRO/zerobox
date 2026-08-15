@@ -27,6 +27,7 @@ abstract class RfcommDriver {
     String deviceName, {
     String? serviceUuid,
     List<int> fallbackChannels = const [5, 1],
+    bool removeBond = false,
   });
   Future<void> send(Uint8List data);
   Future<void> disconnect();

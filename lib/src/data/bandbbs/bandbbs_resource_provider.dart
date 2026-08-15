@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pointycastle/export.dart';
 import 'package:oronbox/src/data/bandbbs/bandbbs_api_client.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
+import 'package:oronbox/src/device/core/device_kind.dart';
 import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
 import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
@@ -194,6 +195,11 @@ class BandBbsCatalog implements CommunityResourceCatalog {
 
   static bool _isRemovedCategory(String title) {
     final normalized = title.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+    if (RegExp(
+      r'^(?:amazfitstratos|amazfit智能手表青春版|华米amazfitgts)(?:系列|series)?$',
+    ).hasMatch(normalized)) {
+      return true;
+    }
     return RegExp(
       r'^(?:小米手环7pro|xiaomismartband7pro|小米手环8|xiaomismartband8)(?:系列|series)?$',
     ).hasMatch(normalized);
@@ -423,9 +429,7 @@ class BandBbsCatalog implements CommunityResourceCatalog {
       downloadCount: _intValue(resource['download_count']),
       version: resource['version']?.toString(),
       priceLabel: _priceLabelFromResource(resource),
-      sourceSectionId: _intValue(
-        category['resource_category_id'],
-      )?.toString(),
+      sourceSectionId: _intValue(category['resource_category_id'])?.toString(),
     );
   }
 
@@ -757,6 +761,89 @@ class BandBbsCatalog implements CommunityResourceCatalog {
     }
   }
 }
+
+/// Filters the already-pruned BandBBS tree for the platform of the active
+/// device. Hidden Xiaomi roots promote the Xiaomi Smart Band 7 branch so the
+/// ZeppOS exception remains selectable.
+List<BandBbsCategoryNode> filterBandBbsCategoryTreeForDevice(
+  Iterable<BandBbsCategoryNode> roots,
+  DeviceKind? currentDeviceKind,
+) {
+  if (currentDeviceKind == null) return roots.toList(growable: false);
+
+  List<BandBbsCategoryNode> visit(
+    BandBbsCategoryNode node, {
+    required bool? inheritedXiaomi,
+  }) {
+    final title = _compactBandBbsCategoryTitle(node.title);
+    final miBand7 = _isBandBbsMiBand7Title(title);
+    final nodeXiaomi = _isBandBbsXiaomiTitle(title);
+    final nodeZepp = _isBandBbsZeppTitle(title) || miBand7;
+    final branchXiaomi = (nodeXiaomi || nodeZepp)
+        ? nodeXiaomi
+        : inheritedXiaomi;
+    final children = [
+      for (final child in node.children)
+        ...visit(child, inheritedXiaomi: branchXiaomi),
+    ];
+    final hide = switch (currentDeviceKind) {
+      DeviceKind.xiaomi =>
+        nodeZepp || (!nodeXiaomi && inheritedXiaomi == false),
+      DeviceKind.zepp => branchXiaomi == true && !miBand7,
+    };
+    if (hide) return children;
+    return [
+      BandBbsCategoryNode(
+        id: node.id,
+        title: node.title,
+        resourceCount: node.resourceCount,
+        children: children,
+      ),
+    ];
+  }
+
+  return [for (final root in roots) ...visit(root, inheritedXiaomi: null)];
+}
+
+Set<String> bandBbsVisibleCategoryFilterIds(
+  Iterable<BandBbsCategoryNode> roots,
+) {
+  final visible = <String>{};
+  void collect(BandBbsCategoryNode node) {
+    visible.add('bandbbs-category:${node.id}');
+    for (final child in node.children) {
+      collect(child);
+    }
+  }
+
+  for (final root in roots) {
+    collect(root);
+  }
+  return visible;
+}
+
+String _compactBandBbsCategoryTitle(String value) => value
+    .trim()
+    .toLowerCase()
+    .replaceAll(RegExp(r'[^a-z0-9\u4e00-\u9fff]+'), '');
+
+bool _isBandBbsXiaomiTitle(String title) =>
+    title.startsWith('小米') ||
+    title.startsWith('xiaomi') ||
+    title.startsWith('红米') ||
+    title.startsWith('redmi');
+
+bool _isBandBbsZeppTitle(String title) =>
+    title.startsWith('amazfit') ||
+    title.startsWith('华米') ||
+    title.startsWith('米动') ||
+    title.startsWith('zepp');
+
+bool _isBandBbsMiBand7Title(String title) =>
+    title == '小米手环7' ||
+    title == 'xiaomismartband7' ||
+    title == 'xiaomismartband7nfc' ||
+    title == 'miband7';
 
 class _BandBbsCategory {
   const _BandBbsCategory({

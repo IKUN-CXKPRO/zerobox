@@ -80,6 +80,7 @@ class BluetoothConnectOptions {
     this.bleAttemptPair = true,
     this.sppServiceUuid,
     this.sppFallbackChannels = const [5, 1],
+    this.sppRemoveBond = false,
   });
 
   final ConnectType connectType;
@@ -88,6 +89,7 @@ class BluetoothConnectOptions {
   final bool bleAttemptPair;
   final String? sppServiceUuid;
   final List<int> sppFallbackChannels;
+  final bool sppRemoveBond;
 }
 
 abstract class BluetoothConnection {

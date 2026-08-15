@@ -221,6 +221,7 @@ class WebSerialRfcommDriver implements RfcommDriver {
     String deviceName, {
     String? serviceUuid,
     List<int> fallbackChannels = const [5, 1],
+    bool removeBond = false,
   }) async {
     if (serviceUuid != null || fallbackChannels.isNotEmpty) {
       _log.fine(

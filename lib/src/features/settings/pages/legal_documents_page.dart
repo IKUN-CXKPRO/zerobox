@@ -14,6 +14,10 @@ Future<String> loadLegalDocument(
   return rootBundle.loadString('assets/legal/$id.$language.md', cache: false);
 }
 
+String legalDocumentLanguage(Locale locale) {
+  return locale.languageCode == 'zh' ? 'zh' : 'en';
+}
+
 class LegalDocumentPage extends ConsumerWidget {
   const LegalDocumentPage({super.key, required this.id, required this.title});
 
@@ -42,9 +46,7 @@ class LegalDocumentPage extends ConsumerWidget {
                   future: loadLegalDocument(
                     ref,
                     id,
-                    Localizations.localeOf(context).languageCode == 'en'
-                        ? 'en'
-                        : 'zh',
+                    legalDocumentLanguage(Localizations.localeOf(context)),
                   ),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {

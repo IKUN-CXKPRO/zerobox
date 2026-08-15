@@ -642,31 +642,44 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
   }
 
   Widget _actionChoices(AppLocalizations l10n) {
-    return ListView(
-      shrinkWrap: false,
-      children: [
-        const SizedBox(height: 8),
-        _ActionCard(
-          icon: Icons.add_box_outlined,
-          title: l10n.creatorNewResource,
-          description: l10n.creatorNewResourceDescription,
-          onTap: () => _chooseAction(_WizardAction.resource),
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: (constraints.maxHeight - 16)
+                .clamp(0, double.infinity)
+                .toDouble(),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _ActionCard(
+                  icon: Icons.add_box_outlined,
+                  title: l10n.creatorNewResource,
+                  description: l10n.creatorNewResourceDescription,
+                  onTap: () => _chooseAction(_WizardAction.resource),
+                ),
+                const SizedBox(height: 12),
+                _ActionCard(
+                  icon: Icons.collections_bookmark_outlined,
+                  title: l10n.creatorNewCollection,
+                  description: l10n.creatorNewCollectionDescription,
+                  onTap: () => _chooseAction(_WizardAction.collection),
+                ),
+                const SizedBox(height: 12),
+                _ActionCard(
+                  icon: Icons.input_outlined,
+                  title: l10n.creatorImportExternal,
+                  description: l10n.creatorImportExternalDescription,
+                  onTap: () => _chooseAction(_WizardAction.import),
+                ),
+              ],
+            ),
+          ),
         ),
-        const SizedBox(height: 12),
-        _ActionCard(
-          icon: Icons.collections_bookmark_outlined,
-          title: l10n.creatorNewCollection,
-          description: l10n.creatorNewCollectionDescription,
-          onTap: () => _chooseAction(_WizardAction.collection),
-        ),
-        const SizedBox(height: 12),
-        _ActionCard(
-          icon: Icons.input_outlined,
-          title: l10n.creatorImportExternal,
-          description: l10n.creatorImportExternalDescription,
-          onTap: () => _chooseAction(_WizardAction.import),
-        ),
-      ],
+      ),
     );
   }
 

@@ -89,10 +89,8 @@ class SettingsPage extends ConsumerWidget {
               title: l10n.settingsAccount,
               tiles: [
                 SegmentedTile.navigation(
-                  onPressed: (_) => SettingsPage.showMiAccountLoginDialog(
-                    context,
-                    ref,
-                  ),
+                  onPressed: (_) =>
+                      SettingsPage.showMiAccountLoginDialog(context, ref),
                   leading: const MiLogo(),
                   title: Text(l10n.settingsMiAccount),
                   description: Text(l10n.settingsMiAccountDesc),
@@ -512,7 +510,10 @@ class SettingsPage extends ConsumerWidget {
   String _localeLabel(AppLocalizations l10n, AppLocale locale) {
     return switch (locale) {
       AppLocale.en => 'English',
-      AppLocale.zh => '中文',
+      AppLocale.zh => '简体中文',
+      AppLocale.zhHant => '繁體中文',
+      AppLocale.ja => '日本語',
+      AppLocale.ru => 'Русский',
       _ => l10n.settingsSystem,
     };
   }

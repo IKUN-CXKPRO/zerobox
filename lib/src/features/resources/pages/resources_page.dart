@@ -18,6 +18,7 @@ import 'package:oronbox/src/data/oronbox/oronbox_home_api.dart';
 import 'package:oronbox/src/device/core/device_kind.dart';
 import 'package:oronbox/src/device/core/device_profile.dart';
 import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
+import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
@@ -189,11 +190,34 @@ class _InboxAction extends StatelessWidget {
   );
 }
 
-class _ResourceHomeView extends ConsumerWidget {
+class _ResourceHomeView extends ConsumerStatefulWidget {
   const _ResourceHomeView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ResourceHomeView> createState() => _ResourceHomeViewState();
+}
+
+class _ResourceHomeViewState extends ConsumerState<_ResourceHomeView> {
+  String? _activeHeroOccurrence;
+
+  void _openResource(CommunityResource resource, String occurrence) {
+    if (_activeHeroOccurrence != null) return;
+    setState(() => _activeHeroOccurrence = occurrence);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final path = resource.isCollection
+          ? '/resources/collection/${resource.ref.id}'
+          : '/resources/detail/${resource.ref.id}';
+      unawaited(
+        context.push(path, extra: resource).whenComplete(() {
+          if (mounted) setState(() => _activeHeroOccurrence = null);
+        }),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final clean = ref.watch(appSettingsProvider.select((state) => state.clean));
     final home = ref.watch(homeFeedProvider);
@@ -233,37 +257,6 @@ class _ResourceHomeView extends ConsumerWidget {
         sections.every(
           (section) => section.$3.hasValue && section.$3.value!.isEmpty,
         );
-
-    final editorHeroKeysBySection = <Set<String>>[];
-    final seenHeroKeys = <String>{};
-    if (clean.homeEditorSectionsEnabled && curated != null) {
-      for (final section in curated.sections) {
-        final sectionHeroKeys = <String>{};
-        for (final card in section.cards) {
-          final resource = card.resource;
-          final resourceKey = resource == null
-              ? null
-              : ResourceRef(
-                  source: CommunitySourceId.oronBox,
-                  id: resource.id,
-                ).key;
-          if (resourceKey != null && seenHeroKeys.add(resourceKey)) {
-            sectionHeroKeys.add(resourceKey);
-          }
-        }
-        editorHeroKeysBySection.add(sectionHeroKeys);
-      }
-    }
-    final sectionHeroKeys = <Set<String>>[];
-    for (final section in sections) {
-      final heroKeys = <String>{};
-      for (final resource in section.$3.value ?? const <CommunityResource>[]) {
-        if (seenHeroKeys.add(resource.ref.key)) {
-          heroKeys.add(resource.ref.key);
-        }
-      }
-      sectionHeroKeys.add(heroKeys);
-    }
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -313,14 +306,22 @@ class _ResourceHomeView extends ConsumerWidget {
                       if (curated.sections[index].cards.isNotEmpty)
                         _HomeEditorSection(
                           section: curated.sections[index],
-                          heroKeys: editorHeroKeysBySection[index],
+                          heroOccurrencePrefix: 'editor:$index',
+                          heroOccurrence: _activeHeroOccurrence,
+                          onResourceTap: (resource, itemIndex) => _openResource(
+                            resource,
+                            'editor:$index:$itemIndex',
+                          ),
                         ),
                   for (var index = 0; index < sections.length; index++)
                     _HomeSection(
                       title: sections[index].$1,
                       sort: sections[index].$2,
                       feed: sections[index].$3,
-                      heroKeys: sectionHeroKeys[index],
+                      heroOccurrencePrefix: 'feed:$index',
+                      heroOccurrence: _activeHeroOccurrence,
+                      onResourceTap: (resource, itemIndex) =>
+                          _openResource(resource, 'feed:$index:$itemIndex'),
                     ),
                   const SizedBox(height: StyleConstants.pagePadding),
                 ],
@@ -337,13 +338,17 @@ class _HomeSection extends ConsumerWidget {
     required this.title,
     required this.sort,
     required this.feed,
-    required this.heroKeys,
+    required this.heroOccurrencePrefix,
+    required this.heroOccurrence,
+    required this.onResourceTap,
   });
 
   final String title;
   final CommunitySortRule sort;
   final AsyncValue<List<CommunityResource>> feed;
-  final Set<String> heroKeys;
+  final String heroOccurrencePrefix;
+  final String? heroOccurrence;
+  final void Function(CommunityResource resource, int index) onResourceTap;
 
   static const _cardSpacing = 12.0;
   static const _cardTargetWidth = 190.0;
@@ -418,9 +423,11 @@ class _HomeSection extends ConsumerWidget {
                                     child: _ResourceCard(
                                       item: value[index],
                                       coverHeight: coverHeight,
-                                      heroEnabled: heroKeys.contains(
-                                        value[index].ref.key,
-                                      ),
+                                      heroEnabled:
+                                          heroOccurrence ==
+                                          '$heroOccurrencePrefix:$index',
+                                      onTap: () =>
+                                          onResourceTap(value[index], index),
                                     ),
                                   ),
                                 ),
@@ -805,10 +812,17 @@ class _HomeBannerCarouselState extends ConsumerState<_HomeBannerCarousel> {
 }
 
 class _HomeEditorSection extends StatelessWidget {
-  const _HomeEditorSection({required this.section, required this.heroKeys});
+  const _HomeEditorSection({
+    required this.section,
+    required this.heroOccurrencePrefix,
+    required this.heroOccurrence,
+    required this.onResourceTap,
+  });
 
   final HomeSection section;
-  final Set<String> heroKeys;
+  final String heroOccurrencePrefix;
+  final String? heroOccurrence;
+  final void Function(CommunityResource resource, int index) onResourceTap;
 
   @override
   Widget build(BuildContext context) {
@@ -839,19 +853,18 @@ class _HomeEditorSection extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 12),
-          for (final card in section.cards) ...[
-            if (card.resource != null)
+          for (var index = 0; index < section.cards.length; index++) ...[
+            if (section.cards[index].resource != null)
               _WideResourceCard(
-                card: card.resource!,
-                heroEnabled: heroKeys.contains(
-                  ResourceRef(
-                    source: CommunitySourceId.oronBox,
-                    id: card.resource!.id,
-                  ).key,
-                ),
+                card: section.cards[index].resource!,
+                heroEnabled: heroOccurrence == '$heroOccurrencePrefix:$index',
+                onResourceTap: (resource) => onResourceTap(resource, index),
               )
-            else if (card.blog != null)
-              _HomeBlogCard(card: card.blog!, heroEnabled: false),
+            else if (section.cards[index].blog != null)
+              _HomeBlogCard(
+                card: section.cards[index].blog!,
+                heroEnabled: false,
+              ),
             const SizedBox(height: 12),
           ],
         ],
@@ -900,10 +913,15 @@ CommunityResourceType _homeCardKind(String kind) => switch (kind) {
 };
 
 class _WideResourceCard extends StatelessWidget {
-  const _WideResourceCard({required this.card, this.heroEnabled = true});
+  const _WideResourceCard({
+    required this.card,
+    this.heroEnabled = true,
+    this.onResourceTap,
+  });
 
   final HomeResourceCard card;
   final bool heroEnabled;
+  final ValueChanged<CommunityResource>? onResourceTap;
 
   @override
   Widget build(BuildContext context) {
@@ -929,8 +947,13 @@ class _WideResourceCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       color: colors.surfaceContainerHighest.withValues(alpha: .5),
       child: InkWell(
-        onTap: () =>
-            context.push('/resources/detail/${card.id}', extra: resource),
+        onTap: () {
+          if (onResourceTap != null) {
+            onResourceTap!(resource);
+          } else {
+            context.push('/resources/detail/${card.id}', extra: resource);
+          }
+        },
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -1692,15 +1715,18 @@ class _NoStretchScrollBehavior extends MaterialScrollBehavior {
   ) => child;
 }
 
-bool _isCurrentDeviceZepp(DeviceManagerState state) {
+DeviceKind? _currentDeviceKind(DeviceManagerState state) {
   final device = state.currentDevice;
-  if (device == null) return false;
-  return DeviceRegistry.resolveIdentity(
-        name: device.name,
-        codename: device.codename,
-      ).kind ==
-      DeviceKind.zepp;
+  if (device == null) return null;
+  final kind = DeviceRegistry.resolveIdentity(
+    name: device.name,
+    codename: device.codename,
+  ).kind;
+  return kind == DeviceKind.zepp ? DeviceKind.zepp : DeviceKind.xiaomi;
 }
+
+bool _isCurrentDeviceZepp(DeviceManagerState state) =>
+    _currentDeviceKind(state) == DeviceKind.zepp;
 
 List<CommunitySourceId> enabledCommunitySources(
   List<CommunitySourceId>? loadedSources,
@@ -1847,6 +1873,8 @@ class _OtherSourcesFooter extends ConsumerWidget {
   }
 }
 
+enum _ResourceFilterSection { type, devices, paid }
+
 class _FilterBar extends ConsumerWidget {
   const _FilterBar();
   @override
@@ -1854,191 +1882,137 @@ class _FilterBar extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final filters = ref.watch(resourceFiltersProvider);
     final source = ref.watch(selectedCommunitySourceProvider);
-    final devices =
-        ref.watch(communityCatalogDevicesProvider).value ??
-        const <CommunityResourceDevice>[];
-    final deviceOptions = _buildDeviceFilterOptions(devices);
-    final resourceAttributes = source == CommunitySourceId.oronBox
-        ? ref.watch(oronBoxResourceAttributesProvider).value ?? const []
-        : const <OronBoxResourceAttribute>[];
-    final selectedDeviceOptions = deviceOptions
-        .where((option) => option.ids.any(filters.selectedDevices.contains))
-        .toList();
-    final knownDeviceIds = deviceOptions.expand((option) => option.ids).toSet();
-    final unknownSelectedDevices = filters.selectedDevices
-        .where((id) => !knownDeviceIds.contains(id))
-        .toList();
-    final categoryTitles = <String, String>{};
-    final attributeLabels = {
-      for (final attribute in resourceAttributes)
-        attribute.id: attribute.labelFor(Localizations.localeOf(context)),
-    };
+    // Keep the device catalog warm while the resource page is visible. This
+    // prevents the device sheet from opening at one height and resizing when
+    // its options arrive from the provider.
+    ref.watch(communityCatalogDevicesProvider);
     if (source == CommunitySourceId.bandbbs) {
-      void collect(List<BandBbsCategoryNode> nodes) {
-        for (final node in nodes) {
-          categoryTitles['${BandBbsCategorySidebar.categoryFilterPrefix}${node.id}'] =
-              node.title;
-          collect(node.children);
-        }
-      }
-
-      collect(ref.watch(bandbbsCategoryTreeProvider).value ?? const []);
+      ref.watch(bandbbsCategoryTreeProvider);
     }
-    final hasActiveFilters =
+    final hasTypeFilters =
         filters.type != null ||
-        filters.hidePaid ||
         filters.featured ||
-        (source == CommunitySourceId.astroboxRepo && filters.hideForcePaid) ||
-        filters.selectedDevices.isNotEmpty ||
         filters.selectedAttributes.isNotEmpty;
+    final hasDeviceFilters = filters.selectedDevices.isNotEmpty;
+    final hasPaidFilters =
+        filters.hidePaid ||
+        ((source == CommunitySourceId.oronBox ||
+                source == CommunitySourceId.astroboxRepo) &&
+            filters.hideForcePaid);
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _FilterChip(
-            label: Text(l10n.filter),
-            selected: hasActiveFilters,
-            onPressed: () => _showFilters(context),
+          _FilterButton(
+            icon: Icons.category_outlined,
+            label: l10n.resourceTypeFilter,
+            selected: hasTypeFilters,
+            onPressed: () => unawaited(
+              _showFilters(context, ref, _ResourceFilterSection.type),
+            ),
           ),
           const SizedBox(width: 8),
-          ...selectedDeviceOptions.map(
-            (option) => Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(option.label),
-                selected: true,
-                onSelected: (_) => ref
-                    .read(resourceFiltersProvider.notifier)
-                    .toggleDeviceGroup(option.ids),
-              ),
+          _FilterButton(
+            icon: Icons.devices_other_outlined,
+            label: l10n.resourceCompatibleDevicesFilter,
+            selected: hasDeviceFilters,
+            onPressed: () => unawaited(
+              _showFilters(context, ref, _ResourceFilterSection.devices),
             ),
           ),
-          ...unknownSelectedDevices.map(
-            (codename) => Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(
-                  source == CommunitySourceId.huamiAppStore &&
-                          int.tryParse(codename) != null
-                      ? '\u8bbe\u5907\u6e90 $codename'
-                      : categoryTitles[codename] ?? codename,
-                ),
-                selected: true,
-                onSelected: (_) => ref
-                    .read(resourceFiltersProvider.notifier)
-                    .toggleDevice(codename),
-              ),
+          const SizedBox(width: 8),
+          _FilterButton(
+            icon: Icons.payments_outlined,
+            label: l10n.creatorPaidType,
+            selected: hasPaidFilters,
+            onPressed: () => unawaited(
+              _showFilters(context, ref, _ResourceFilterSection.paid),
             ),
           ),
-          if (filters.type != null) ...[
-            const SizedBox(width: 8),
-            Padding(
-              padding: EdgeInsets.zero,
-              child: FilterChip(
-                label: Text(_typeLabel(l10n, filters.type!, source: source)),
-                selected: true,
-                onSelected: (_) =>
-                    ref.read(resourceFiltersProvider.notifier).setType(null),
-              ),
-            ),
-          ],
-          if (source == CommunitySourceId.oronBox)
-            for (final attribute in filters.selectedAttributes)
-              Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: FilterChip(
-                  label: Text(attributeLabels[attribute] ?? attribute),
-                  selected: true,
-                  onSelected: (_) => ref
-                      .read(resourceFiltersProvider.notifier)
-                      .toggleAttribute(attribute),
-                ),
-              ),
-          if (filters.hidePaid)
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: FilterChip(
-                label: Text(l10n.paid),
-                selected: true,
-                onSelected: (_) => ref
-                    .read(resourceFiltersProvider.notifier)
-                    .setHidePaid(false),
-              ),
-            ),
-          if (filters.featured)
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: FilterChip(
-                label: Text(l10n.resourceHomeFeatured),
-                selected: true,
-                onSelected: (_) => ref
-                    .read(resourceFiltersProvider.notifier)
-                    .setFeatured(false),
-              ),
-            ),
-          if (source == CommunitySourceId.astroboxRepo && filters.hideForcePaid)
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: FilterChip(
-                label: Text(l10n.forcePaid),
-                selected: true,
-                onSelected: (_) => ref
-                    .read(resourceFiltersProvider.notifier)
-                    .setHideForcePaid(false),
-              ),
-            ),
+          const SizedBox(width: 8),
         ],
       ),
     );
   }
 
-  void _showFilters(BuildContext context) {
+  Future<void> _showFilters(
+    BuildContext context,
+    WidgetRef ref,
+    _ResourceFilterSection section,
+  ) async {
+    if (section == _ResourceFilterSection.devices) {
+      try {
+        await ref.read(communityCatalogDevicesProvider.future);
+        if (ref.read(selectedCommunitySourceProvider) ==
+            CommunitySourceId.bandbbs) {
+          await ref.read(bandbbsCategoryTreeProvider.future);
+        }
+      } catch (_) {
+        // The sheet can still show the numeric Huami source input or an empty
+        // state when the catalog request fails.
+      }
+      if (!context.mounted) return;
+    }
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        minChildSize: 0.3,
-        maxChildSize: 0.9,
-        builder: (context, scrollController) {
-          return _FilterSheet(scrollController: scrollController);
-        },
+      useSafeArea: true,
+      builder: (context) => ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.45,
+        ),
+        child: _FilterSheet(section: section),
       ),
     );
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
+class _FilterButton extends StatelessWidget {
+  const _FilterButton({
+    required this.icon,
     required this.label,
     required this.selected,
     required this.onPressed,
   });
 
-  final Widget label;
+  final IconData icon;
+  final String label;
   final bool selected;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return ActionChip(
-      label: label,
-      avatar: Icon(
-        selected ? Icons.filter_list_off : Icons.filter_list,
-        size: 18,
-      ),
+    final colors = Theme.of(context).colorScheme;
+    return FilledButton.icon(
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        minimumSize: const Size(0, 36),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+        backgroundColor: selected
+            ? colors.secondaryContainer
+            : colors.surfaceContainerHighest,
+        foregroundColor: selected
+            ? colors.onSecondaryContainer
+            : colors.onSurfaceVariant,
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        overlayColor: Colors.transparent,
+      ).copyWith(elevation: const WidgetStatePropertyAll(0)),
       onPressed: onPressed,
+      icon: Icon(selected ? Icons.check : icon, size: 18),
+      label: Text(label),
     );
   }
 }
 
 class _FilterSheet extends ConsumerWidget {
-  const _FilterSheet({required this.scrollController});
+  const _FilterSheet({required this.section});
 
-  final ScrollController scrollController;
+  final _ResourceFilterSection section;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2048,162 +2022,194 @@ class _FilterSheet extends ConsumerWidget {
     final devices =
         ref.watch(communityCatalogDevicesProvider).value ??
         const <CommunityResourceDevice>[];
-    final deviceOptions = _buildDeviceFilterOptions(devices);
+    final categoryTree = source == CommunitySourceId.bandbbs
+        ? ref.watch(bandbbsCategoryTreeProvider).value
+        : null;
+    final currentDeviceKind = _currentDeviceKind(
+      ref.watch(deviceManagerProvider),
+    );
+    final deviceOptions = _buildDeviceFilterOptions(
+      devices,
+      currentDeviceKind: currentDeviceKind,
+      visibleDeviceIds: categoryTree == null
+          ? null
+          : bandBbsVisibleCategoryFilterIds(categoryTree),
+    );
     final resourceAttributes = source == CommunitySourceId.oronBox
         ? ref.watch(oronBoxResourceAttributesProvider).value ??
               const <OronBoxResourceAttribute>[]
         : const <OronBoxResourceAttribute>[];
-    final deviceSectionTitle = source == CommunitySourceId.bandbbs
-        ? l10n.categories
-        : l10n.devices;
+    final title = switch (section) {
+      _ResourceFilterSection.type => l10n.resourceTypeFilter,
+      _ResourceFilterSection.devices => l10n.resourceCompatibleDevicesFilter,
+      _ResourceFilterSection.paid => l10n.creatorPaidType,
+    };
 
-    return ListView(
-      controller: scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      children: [
-        Text(l10n.filter, style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 16),
-        Text(l10n.all, style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            if (source != CommunitySourceId.huamiAppStore)
-              FilterChip(
-                label: Text(
-                  _typeLabel(
-                    l10n,
-                    CommunityResourceType.quickApp,
-                    source: source,
-                  ),
-                ),
-                selected: filters.type == CommunityResourceType.quickApp,
-                onSelected: (_) => ref
-                    .read(resourceFiltersProvider.notifier)
-                    .setType(
-                      filters.type == CommunityResourceType.quickApp
-                          ? null
-                          : CommunityResourceType.quickApp,
-                    ),
-              ),
-            if (source == CommunitySourceId.oronBox ||
-                source == CommunitySourceId.huamiAppStore ||
-                source.isPlugin)
-              FilterChip(
-                label: Text(l10n.miniprograms),
-                selected: filters.type == CommunityResourceType.miniprogram,
-                onSelected: (_) => ref
-                    .read(resourceFiltersProvider.notifier)
-                    .setType(
-                      filters.type == CommunityResourceType.miniprogram
-                          ? null
-                          : CommunityResourceType.miniprogram,
-                    ),
-              ),
-            FilterChip(
-              label: Text(l10n.watchfaces),
-              selected: filters.type == CommunityResourceType.watchface,
-              onSelected: (_) => ref
-                  .read(resourceFiltersProvider.notifier)
-                  .setType(
-                    filters.type == CommunityResourceType.watchface
-                        ? null
-                        : CommunityResourceType.watchface,
-                  ),
-            ),
-            FilterChip(
-              label: Text(l10n.firmwareTools),
-              selected: filters.type == CommunityResourceType.firmware,
-              onSelected: (_) => ref
-                  .read(resourceFiltersProvider.notifier)
-                  .setType(
-                    filters.type == CommunityResourceType.firmware
-                        ? null
-                        : CommunityResourceType.firmware,
-                  ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Text(deviceSectionTitle, style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: deviceOptions
-              .map(
-                (option) => FilterChip(
-                  label: Text(option.label),
-                  selected: option.ids.any(filters.selectedDevices.contains),
-                  onSelected: (_) {
-                    ref
-                        .read(resourceFiltersProvider.notifier)
-                        .toggleDeviceGroup(option.ids);
-                  },
-                ),
-              )
-              .toList(),
-        ),
-        if (source == CommunitySourceId.huamiAppStore) ...[
-          const SizedBox(height: 12),
-          _HuamiDeviceSourceInput(filters: filters),
-        ],
-        if (source == CommunitySourceId.oronBox) ...[
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
-          Text(
-            l10n.creatorContentAttributes,
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              FilterChip(
-                label: Text(l10n.resourceHomeFeatured),
-                selected: filters.featured,
-                onSelected: (value) => ref
-                    .read(resourceFiltersProvider.notifier)
-                    .setFeatured(value),
-              ),
-              for (final attribute in resourceAttributes)
-                FilterChip(
-                  label: Text(
-                    attribute.labelFor(Localizations.localeOf(context)),
+          if (section == _ResourceFilterSection.type) ...[
+            Text(l10n.all, style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (source != CommunitySourceId.huamiAppStore)
+                  FilterChip(
+                    showCheckmark: false,
+                    label: Text(
+                      _typeLabel(
+                        l10n,
+                        CommunityResourceType.quickApp,
+                        source: source,
+                      ),
+                    ),
+                    selected: filters.type == CommunityResourceType.quickApp,
+                    onSelected: (_) => ref
+                        .read(resourceFiltersProvider.notifier)
+                        .setType(
+                          filters.type == CommunityResourceType.quickApp
+                              ? null
+                              : CommunityResourceType.quickApp,
+                        ),
                   ),
-                  selected: filters.selectedAttributes.contains(attribute.id),
+                if (source == CommunitySourceId.huamiAppStore ||
+                    source.isPlugin)
+                  FilterChip(
+                    showCheckmark: false,
+                    label: Text(l10n.miniprograms),
+                    selected: filters.type == CommunityResourceType.miniprogram,
+                    onSelected: (_) => ref
+                        .read(resourceFiltersProvider.notifier)
+                        .setType(
+                          filters.type == CommunityResourceType.miniprogram
+                              ? null
+                              : CommunityResourceType.miniprogram,
+                        ),
+                  ),
+                FilterChip(
+                  showCheckmark: false,
+                  label: Text(l10n.watchfaces),
+                  selected: filters.type == CommunityResourceType.watchface,
                   onSelected: (_) => ref
                       .read(resourceFiltersProvider.notifier)
-                      .toggleAttribute(attribute.id),
+                      .setType(
+                        filters.type == CommunityResourceType.watchface
+                            ? null
+                            : CommunityResourceType.watchface,
+                      ),
                 ),
-            ],
-          ),
-        ],
-        const SizedBox(height: 16),
-        Text(l10n.paid, style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            FilterChip(
-              label: Text('${l10n.hide}${l10n.paid}'),
-              selected: filters.hidePaid,
-              onSelected: (value) =>
-                  ref.read(resourceFiltersProvider.notifier).setHidePaid(value),
+                if (source != CommunitySourceId.oronBox &&
+                    source != CommunitySourceId.astroboxRepo)
+                  FilterChip(
+                    showCheckmark: false,
+                    label: Text(l10n.firmwareTools),
+                    selected: filters.type == CommunityResourceType.firmware,
+                    onSelected: (_) => ref
+                        .read(resourceFiltersProvider.notifier)
+                        .setType(
+                          filters.type == CommunityResourceType.firmware
+                              ? null
+                              : CommunityResourceType.firmware,
+                        ),
+                  ),
+              ],
             ),
-            if (source == CommunitySourceId.astroboxRepo)
-              FilterChip(
-                label: Text('${l10n.hide}${l10n.forcePaid}'),
-                selected: filters.hideForcePaid,
-                onSelected: (value) => ref
-                    .read(resourceFiltersProvider.notifier)
-                    .setHideForcePaid(value),
+            if (source == CommunitySourceId.oronBox) ...[
+              const SizedBox(height: 16),
+              Text(
+                l10n.creatorContentAttributes,
+                style: Theme.of(context).textTheme.titleSmall,
               ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilterChip(
+                    showCheckmark: false,
+                    label: Text(l10n.resourceHomeFeatured),
+                    selected: filters.featured,
+                    onSelected: (value) => ref
+                        .read(resourceFiltersProvider.notifier)
+                        .setFeatured(value),
+                  ),
+                  for (final attribute in resourceAttributes)
+                    FilterChip(
+                      showCheckmark: false,
+                      label: Text(
+                        attribute.labelFor(Localizations.localeOf(context)),
+                      ),
+                      selected: filters.selectedAttributes.contains(
+                        attribute.id,
+                      ),
+                      onSelected: (_) => ref
+                          .read(resourceFiltersProvider.notifier)
+                          .toggleAttribute(attribute.id),
+                    ),
+                ],
+              ),
+            ],
           ],
-        ),
-      ],
+          if (section == _ResourceFilterSection.devices) ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: deviceOptions
+                  .map(
+                    (option) => FilterChip(
+                      showCheckmark: false,
+                      label: Text(option.label),
+                      selected: option.ids.any(
+                        filters.selectedDevices.contains,
+                      ),
+                      onSelected: (_) {
+                        ref
+                            .read(resourceFiltersProvider.notifier)
+                            .toggleDeviceGroup(option.ids);
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
+            if (source == CommunitySourceId.huamiAppStore) ...[
+              const SizedBox(height: 12),
+              _HuamiDeviceSourceInput(filters: filters),
+            ],
+          ],
+          if (section == _ResourceFilterSection.paid) ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilterChip(
+                  showCheckmark: false,
+                  label: Text('${l10n.hide}${l10n.paid}'),
+                  selected: filters.hidePaid,
+                  onSelected: (value) => ref
+                      .read(resourceFiltersProvider.notifier)
+                      .setHidePaid(value),
+                ),
+                if (source == CommunitySourceId.oronBox ||
+                    source == CommunitySourceId.astroboxRepo)
+                  FilterChip(
+                    showCheckmark: false,
+                    label: Text('${l10n.hide}${l10n.forcePaid}'),
+                    selected: filters.hideForcePaid,
+                    onSelected: (value) => ref
+                        .read(resourceFiltersProvider.notifier)
+                        .setHideForcePaid(value),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -2312,11 +2318,19 @@ class _DeviceFilterOption {
 }
 
 List<_DeviceFilterOption> _buildDeviceFilterOptions(
-  Iterable<CommunityResourceDevice> devices,
-) {
+  Iterable<CommunityResourceDevice> devices, {
+  DeviceKind? currentDeviceKind,
+  Set<String>? visibleDeviceIds,
+}) {
   final grouped = <String, Set<String>>{};
   for (final device in devices) {
     final rawId = device.codename.trim();
+    if ((visibleDeviceIds != null &&
+            rawId.startsWith('bandbbs-category:') &&
+            !visibleDeviceIds.contains(rawId)) ||
+        _shouldHideDeviceFilterOption(device, currentDeviceKind)) {
+      continue;
+    }
     final identity = normalizeXiaomiWearableIdentity(rawId);
     final id = identity?.codename ?? rawId;
     if (id.isEmpty) continue;
@@ -2332,6 +2346,69 @@ List<_DeviceFilterOption> _buildDeviceFilterOptions(
       .toList()
     ..sort((a, b) => a.label.compareTo(b.label));
 }
+
+bool _shouldHideDeviceFilterOption(
+  CommunityResourceDevice device,
+  DeviceKind? currentDeviceKind,
+) {
+  final name = _compactDeviceFilterText(device.name);
+  final description = _compactDeviceFilterText(device.description);
+  const permanentlyHidden = {
+    'amazfitstratos',
+    'amazfit智能手表青春版',
+    '华米amazfitgts',
+  };
+  if (permanentlyHidden.contains(name) ||
+      permanentlyHidden.contains(description)) {
+    return true;
+  }
+
+  final isXiaomi = _isXiaomiDeviceFilterOption(device, name);
+  final isZepp = _isZeppDeviceFilterOption(device, name);
+  return switch (currentDeviceKind) {
+    DeviceKind.xiaomi => isZepp,
+    DeviceKind.zepp => isXiaomi && !_isMiBand7FilterOption(device, name),
+    null => false,
+  };
+}
+
+bool _isXiaomiDeviceFilterOption(
+  CommunityResourceDevice device,
+  String compactName,
+) {
+  return normalizeXiaomiWearableIdentity(device.name) != null ||
+      compactName.startsWith('小米') ||
+      compactName.startsWith('xiaomi') ||
+      compactName.startsWith('红米') ||
+      compactName.startsWith('redmi');
+}
+
+bool _isZeppDeviceFilterOption(
+  CommunityResourceDevice device,
+  String compactName,
+) {
+  return zeppOsDeviceForBluetoothName(device.name) != null ||
+      compactName.startsWith('amazfit') ||
+      compactName.startsWith('华米') ||
+      compactName.startsWith('米动') ||
+      compactName.startsWith('zepp');
+}
+
+bool _isMiBand7FilterOption(
+  CommunityResourceDevice device,
+  String compactName,
+) {
+  return compactName == '小米手环7' ||
+      compactName == 'xiaomismartband7' ||
+      compactName == 'xiaomismartband7nfc' ||
+      compactName == 'miband7' ||
+      device.codename.trim().toLowerCase() == 'mi-band-7';
+}
+
+String _compactDeviceFilterText(String value) => value
+    .trim()
+    .toLowerCase()
+    .replaceAll(RegExp(r'[^a-z0-9\u4e00-\u9fff]+'), '');
 
 String _typeLabel(
   AppLocalizations l10n,
@@ -2467,10 +2544,12 @@ class _ResourceCard extends ConsumerWidget {
     required this.item,
     required this.coverHeight,
     this.heroEnabled = true,
+    this.onTap,
   });
   final CommunityResource item;
   final double coverHeight;
   final bool heroEnabled;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2489,9 +2568,14 @@ class _ResourceCard extends ConsumerWidget {
       clipBehavior: Clip.antiAlias,
       color: color.surfaceContainerHighest.withValues(alpha: .5),
       child: InkWell(
-        onTap: () => item.isCollection
-            ? context.push('/resources/collection/${item.ref.id}', extra: item)
-            : context.push('/resources/detail/${item.ref.id}', extra: item),
+        onTap:
+            onTap ??
+            () => item.isCollection
+                ? context.push(
+                    '/resources/collection/${item.ref.id}',
+                    extra: item,
+                  )
+                : context.push('/resources/detail/${item.ref.id}', extra: item),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

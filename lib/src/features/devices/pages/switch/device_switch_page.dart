@@ -144,7 +144,11 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
         if (context.mounted) {
           context.pop();
         }
-      } else if (next.error != null && next.error != previous?.error) {
+      } else if (next.error != null &&
+          !next.connecting &&
+          (next.connectStatus == 3 || !wasConnecting) &&
+          (next.error != previous?.error ||
+              (wasConnecting && next.connectStatus == 3))) {
         // The same failure can surface twice with different wording (daemon
         // state push vs. command wrapper); toast once per distinct message.
         final message = localizedErrorMessage(l10n, next.error);
@@ -176,13 +180,18 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
         final isWide = useWideLayout(constraints.maxWidth);
         final savedList = _SavedDeviceList(
           selectedAddr: currentAddr,
-          onComplete: () => setState(() {}),
+          onComplete: () {
+            if (mounted) setState(() {});
+          },
           onMiAccountLogin: () =>
               SettingsPage.showMiAccountLoginDialog(context, ref),
-          onWearableLogImport: () =>
-              showWearableLogSyncDialog(context, ref),
+          onWearableLogImport: () => showWearableLogSyncDialog(context, ref),
         );
-        final scanList = _ScanDeviceList(onComplete: () => setState(() {}));
+        final scanList = _ScanDeviceList(
+          onComplete: () {
+            if (mounted) setState(() {});
+          },
+        );
 
         return PageContainer(
           padding: const EdgeInsets.fromLTRB(
@@ -233,7 +242,9 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
                           ),
                           _SliverSavedDeviceList(
                             selectedAddr: currentAddr,
-                            onComplete: () => setState(() {}),
+                            onComplete: () {
+                              if (mounted) setState(() {});
+                            },
                             onMiAccountLogin: () =>
                                 SettingsPage.showMiAccountLoginDialog(
                                   context,
@@ -250,11 +261,15 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
                           ),
                           SliverToBoxAdapter(
                             child: _ScanSectionHeader(
-                              onComplete: () => setState(() {}),
+                              onComplete: () {
+                                if (mounted) setState(() {});
+                              },
                             ),
                           ),
                           _SliverScanDeviceList(
-                            onComplete: () => setState(() {}),
+                            onComplete: () {
+                              if (mounted) setState(() {});
+                            },
                           ),
                         ],
                       ),
@@ -277,11 +292,12 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
         final isWide = useWideLayout(constraints.maxWidth);
         final savedList = _SavedDeviceList(
           selectedAddr: currentAddr,
-          onComplete: () => setState(() {}),
+          onComplete: () {
+            if (mounted) setState(() {});
+          },
           onMiAccountLogin: () =>
               SettingsPage.showMiAccountLoginDialog(context, ref),
-          onWearableLogImport: () =>
-              showWearableLogSyncDialog(context, ref),
+          onWearableLogImport: () => showWearableLogSyncDialog(context, ref),
         );
 
         return PageContainer(
@@ -654,8 +670,7 @@ class _SavedDeviceList extends ConsumerWidget {
           const Flexible(
             child: SizedBox(height: 240, child: _EmptyState(message: '')),
           ),
-        ]
-        else
+        ] else
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.only(top: 8),
@@ -781,10 +796,7 @@ class _SliverSavedDeviceList extends ConsumerWidget {
               onMiAccountLogin: onMiAccountLogin,
               onWearableLogImport: onWearableLogImport,
             ),
-            const SizedBox(
-              height: 240,
-              child: _EmptyState(message: ''),
-            ),
+            const SizedBox(height: 240, child: _EmptyState(message: '')),
           ],
         ),
       );
@@ -1005,6 +1017,7 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
           authKey,
           connectType: _connectType,
         );
+    if (!mounted) return;
     widget.onComplete?.call();
     if (mounted) {
       final state = ref.read(deviceManagerProvider);
@@ -1229,7 +1242,7 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
                             connectType: selected,
                           );
                         }
-                        widget.onComplete?.call();
+                        if (mounted) widget.onComplete?.call();
                       },
                       itemBuilder: (context) => [
                         PopupMenuItem(

@@ -19,6 +19,7 @@ import 'package:oronbox/src/core/network/github_cdn.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/accounts/services/mi_account_two_factor_resolver.dart';
 import 'package:oronbox/src/features/oobe/oobe_state.dart';
+import 'package:oronbox/src/features/settings/pages/legal_documents_page.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
 /// First-run experience: welcome → terms → privacy → optional account sign-in
@@ -415,9 +416,7 @@ class _AgreementStepState extends State<_AgreementStep> {
   }
 
   Future<void> _load() async {
-    final language = Localizations.localeOf(context).languageCode == 'en'
-        ? 'en'
-        : 'zh';
+    final language = legalDocumentLanguage(Localizations.localeOf(context));
     final data = await rootBundle.loadString(
       'assets/legal/${widget.documentId}.$language.md',
       // Widget tests hang on the second cached load of the same asset key.

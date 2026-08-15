@@ -154,6 +154,7 @@ class DefaultBluetoothPlatform implements BluetoothPlatform {
           name,
           serviceUuid: options.sppServiceUuid,
           fallbackChannels: options.sppFallbackChannels,
+          removeBond: options.sppRemoveBond,
         );
         connection = _SppBluetoothConnection(sppConnection);
     }

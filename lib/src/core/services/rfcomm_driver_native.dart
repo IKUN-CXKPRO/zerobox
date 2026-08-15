@@ -213,6 +213,7 @@ class NativeRfcommDriver implements RfcommDriver {
     String deviceName, {
     String? serviceUuid,
     List<int> fallbackChannels = const [5, 1],
+    bool removeBond = false,
   }) async {
     _ensureEventSubscription();
     _log.info('[$deviceId] initiating SPP connection');
@@ -222,6 +223,7 @@ class NativeRfcommDriver implements RfcommDriver {
         'addr': deviceId,
         if (serviceUuid != null) 'serviceUuid': serviceUuid,
         'fallbackChannels': fallbackChannels,
+        'removeBond': removeBond,
       });
     } on PlatformException catch (e) {
       // Normalize the platform-specific native error (Android Java exception
@@ -233,6 +235,7 @@ class NativeRfcommDriver implements RfcommDriver {
     _log.info(
       '[$deviceId] SPP connected '
       'channel=${result?['channel']} '
+      'channels=${result?['channels']} '
       'mode=${result?['connectionMode']} '
       'discoveryMs=${result?['discoveryMs']} '
       'connectMs=${result?['connectMs']}',
