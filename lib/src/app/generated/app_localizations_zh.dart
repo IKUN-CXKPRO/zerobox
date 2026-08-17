@@ -1716,7 +1716,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get desktopCloseExit => '退出 OronBox';
 
   @override
-  String get settingsDesktopCloseBehavior => '关闭按钮行为';
+  String get settingsDesktopCloseBehavior => '窗口关闭';
 
   @override
   String get settingsDesktopCloseBehaviorDesc => '选择关闭主窗口时执行的操作';
@@ -2993,6 +2993,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsCategoryAdvanced => '高级设置';
 
   @override
+  String get settingsAdvancedDescription => '查看日志、开发者工具与实验性功能';
+
+  @override
+  String get settingsHealthFeatures => '运动健康功能';
+
+  @override
+  String get settingsHealthFeaturesDescription => '启用正在开发中的运动健康相关功能';
+
+  @override
   String get xmsDeveloperMode => 'XMS 开发模式';
 
   @override
@@ -3306,6 +3315,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get creatorImportSameResourceHint => '每次导入请只选择同一个资源';
+
+  @override
+  String get creatorFullVersionExternalPurchase => '完整版外部购买';
+
+  @override
+  String get creatorExternalPurchaseLink => '外部购买链接';
+
+  @override
+  String get creatorExternalPurchaseAmount => '金额（CNY）';
+
+  @override
+  String get creatorExternalPurchaseLinkRequired => '请输入有效的外部购买链接';
+
+  @override
+  String get creatorExternalPurchaseAmountRequired => '请输入有效的 CNY 金额';
+
+  @override
+  String get resourcePurchaseFullVersion => '购买链接';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -5019,7 +5046,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get desktopCloseExit => '結束 OronBox';
 
   @override
-  String get settingsDesktopCloseBehavior => '關閉按鈕行為';
+  String get settingsDesktopCloseBehavior => '視窗關閉';
 
   @override
   String get settingsDesktopCloseBehaviorDesc => '選擇關閉主視窗時的行為';
@@ -6301,6 +6328,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsCategoryAdvanced => '進階設定';
 
   @override
+  String get settingsAdvancedDescription => '檢視日誌、開發者工具與實驗性功能';
+
+  @override
+  String get settingsHealthFeatures => '運動健康功能';
+
+  @override
+  String get settingsHealthFeaturesDescription => '啟用仍在開發中的運動健康相關功能';
+
+  @override
   String get xmsDeveloperMode => 'XMS 開發者模式';
 
   @override
@@ -6613,4 +6649,22 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get creatorImportSameResourceHint => '每次匯入請只選擇同一項資源';
+
+  @override
+  String get creatorFullVersionExternalPurchase => '完整版外部購買';
+
+  @override
+  String get creatorExternalPurchaseLink => '外部購買連結';
+
+  @override
+  String get creatorExternalPurchaseAmount => '金額（CNY）';
+
+  @override
+  String get creatorExternalPurchaseLinkRequired => '請輸入有效的外部購買連結';
+
+  @override
+  String get creatorExternalPurchaseAmountRequired => '請輸入有效的 CNY 金額';
+
+  @override
+  String get resourcePurchaseFullVersion => '購買連結';
 }

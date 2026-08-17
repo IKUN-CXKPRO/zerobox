@@ -1725,7 +1725,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get desktopCloseExit => '終了';
 
   @override
-  String get settingsDesktopCloseBehavior => 'ウィンドウを閉じる動作';
+  String get settingsDesktopCloseBehavior => 'ウィンドウを閉じる';
 
   @override
   String get settingsDesktopCloseBehaviorDesc => '閉じるボタンを押したときの動作';
@@ -3014,6 +3014,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsCategoryAdvanced => '詳細設定';
 
   @override
+  String get settingsAdvancedDescription => 'ログ、開発者ツール、試験的な機能を表示します';
+
+  @override
+  String get settingsHealthFeatures => 'ヘルスケア機能';
+
+  @override
+  String get settingsHealthFeaturesDescription => '開発中のヘルスケア関連機能を有効にします';
+
+  @override
   String get xmsDeveloperMode => 'XMS開発者モード';
 
   @override
@@ -3328,4 +3337,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get creatorImportSameResourceHint => '1回のインポートでは同じリソースだけを選択してください';
+
+  @override
+  String get creatorFullVersionExternalPurchase => '完全版を外部購入';
+
+  @override
+  String get creatorExternalPurchaseLink => '外部購入リンク';
+
+  @override
+  String get creatorExternalPurchaseAmount => '金額（CNY）';
+
+  @override
+  String get creatorExternalPurchaseLinkRequired => '有効な外部購入リンクを入力してください';
+
+  @override
+  String get creatorExternalPurchaseAmountRequired => '有効な CNY 金額を入力してください';
+
+  @override
+  String get resourcePurchaseFullVersion => '購入リンク';
 }

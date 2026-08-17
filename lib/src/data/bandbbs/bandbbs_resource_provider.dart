@@ -498,6 +498,11 @@ class BandBbsCatalog implements CommunityResourceCatalog {
     final html = resource['description_parsed']?.toString().trim() ?? '';
     final raw = resource['description']?.toString().trim() ?? '';
     final previewImages = _previews(resource);
+    final externalCurrency =
+        resource['currency']?.toString().trim().toUpperCase() ?? '';
+    final purchaseLink = externalCurrency.isEmpty || externalCurrency == 'CNY'
+        ? _uri(resource['external_purchase_url'])
+        : null;
     return CommunityResourceDetail(
       ref: summary.ref,
       name: summary.name,
@@ -514,6 +519,11 @@ class BandBbsCatalog implements CommunityResourceCatalog {
       downloadCount: summary.downloadCount,
       version: summary.version,
       priceLabel: summary.priceLabel,
+      purchaseLink: purchaseLink,
+      purchasePrice: purchaseLink == null
+          ? null
+          : double.tryParse(resource['price']?.toString() ?? ''),
+      purchaseCurrency: purchaseLink == null ? '' : 'CNY',
       sourceSectionId: summary.sourceSectionId,
       content: CommunityResourceContent(
         format: html.isNotEmpty
@@ -538,12 +548,6 @@ class BandBbsCatalog implements CommunityResourceCatalog {
     CommunityResource summary,
   ) {
     final links = <CommunityResourceLink>[];
-    final purchase = _uri(resource['external_purchase_url']);
-    if (purchase != null) {
-      links.add(
-        CommunityResourceLink(title: '购买 (${purchase.host})', url: purchase),
-      );
-    }
     final external = _uri(resource['external_url']);
     if (external != null) {
       links.add(CommunityResourceLink(title: external.host, url: external));

@@ -1794,7 +1794,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get desktopCloseExit => 'Exit OronBox';
 
   @override
-  String get settingsDesktopCloseBehavior => 'Close button behavior';
+  String get settingsDesktopCloseBehavior => 'Window closing';
 
   @override
   String get settingsDesktopCloseBehaviorDesc =>
@@ -3135,6 +3135,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsCategoryAdvanced => 'Advanced settings';
 
   @override
+  String get settingsAdvancedDescription =>
+      'View logs, developer tools, and experimental features';
+
+  @override
+  String get settingsHealthFeatures => 'Health features';
+
+  @override
+  String get settingsHealthFeaturesDescription =>
+      'Enable health-related features that are still in development';
+
+  @override
   String get xmsDeveloperMode => 'XMS developer mode';
 
   @override
@@ -3460,4 +3471,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get creatorImportSameResourceHint =>
       'Select only one resource for each import';
+
+  @override
+  String get creatorFullVersionExternalPurchase =>
+      'External purchase for full version';
+
+  @override
+  String get creatorExternalPurchaseLink => 'External purchase link';
+
+  @override
+  String get creatorExternalPurchaseAmount => 'Amount (CNY)';
+
+  @override
+  String get creatorExternalPurchaseLinkRequired =>
+      'Enter a valid external purchase link';
+
+  @override
+  String get creatorExternalPurchaseAmountRequired =>
+      'Enter a valid CNY amount';
+
+  @override
+  String get resourcePurchaseFullVersion => 'Purchase link';
 }

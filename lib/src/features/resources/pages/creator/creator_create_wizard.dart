@@ -47,6 +47,7 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
   var _listLoading = false;
   Object? _listError;
   var _githubConnecting = false;
+  var _externalItemsRequestGeneration = 0;
 
   // Import plan and run.
   CommunityImportPlan? _plan;
@@ -117,6 +118,9 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
   }
 
   Future<void> _loadExternalItems() async {
+    final requestGeneration = ++_externalItemsRequestGeneration;
+    final source = _source;
+    final githubLogin = _githubLogin.toLowerCase();
     setState(() {
       _listLoading = true;
       _listError = null;
@@ -124,7 +128,7 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
     });
     try {
       final List<CommunityResource> items;
-      if (_source == CommunitySourceId.bandbbs) {
+      if (source == CommunitySourceId.bandbbs) {
         final auth = ref.read(bandBbsAuthProvider.notifier);
         await auth.restoreCredentials();
         await auth.reloadCredentials();
@@ -136,8 +140,7 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
             ? const []
             : await (catalog as BandBbsCatalog).myResources(userId);
       } else {
-        final login = _githubLogin.toLowerCase();
-        if (login.isEmpty) {
+        if (githubLogin.isEmpty) {
           items = const [];
         } else {
           final catalog = ref.read(
@@ -151,7 +154,7 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
             collected.addAll(
               result.items.where(
                 (item) => item.authors.any(
-                  (author) => author.name.toLowerCase() == login,
+                  (author) => author.name.toLowerCase() == githubLogin,
                 ),
               ),
             );
@@ -160,13 +163,19 @@ class _CreatorCreateWizardState extends ConsumerState<CreatorCreateWizard> {
           items = collected;
         }
       }
-      if (!mounted) return;
+      if (!mounted || requestGeneration != _externalItemsRequestGeneration) {
+        return;
+      }
       setState(() {
         _items = items;
+        final availableKeys = items.map((item) => item.ref.key).toSet();
+        _selected.removeWhere((key, _) => !availableKeys.contains(key));
         _listLoading = false;
       });
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted || requestGeneration != _externalItemsRequestGeneration) {
+        return;
+      }
       setState(() {
         _listError = error;
         _listLoading = false;

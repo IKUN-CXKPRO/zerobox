@@ -147,6 +147,91 @@ void main() {
     expect(item.coverUrl?.pathSegments.last, iconDigest);
   });
 
+  test('falls back to the local blob line when R2 size probing fails', () async {
+    final requestedLines = <String>[];
+    final dio = Dio();
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          final line = options.uri.queryParameters['line'] ?? '';
+          requestedLines.add(line);
+          if (line == 'r2') {
+            handler.reject(
+              DioException(
+                requestOptions: options,
+                type: DioExceptionType.badResponse,
+                response: Response<Object?>(
+                  requestOptions: options,
+                  statusCode: 503,
+                ),
+              ),
+            );
+            return;
+          }
+          handler.resolve(
+            Response<Object?>(
+              requestOptions: options,
+              statusCode: 200,
+              headers: Headers.fromMap({
+                Headers.contentLengthHeader: ['1234'],
+              }),
+            ),
+          );
+        },
+      ),
+    );
+
+    final size = await OronBoxResourceCatalog(dio: dio).probeDownloadSize(
+      CommunityResourceFile(
+        id: 'artifact',
+        fileName: 'app.rpk',
+        version: '1.0.0',
+        downloadUrl: Uri.parse(
+          'https://ob-api.example/api/blobs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        ),
+      ),
+    );
+
+    expect(size, 1234);
+    expect(requestedLines, ['r2', 'local']);
+  });
+
+  test('uses the R2 blob line when size probing succeeds', () async {
+    final requestedLines = <String>[];
+    final dio = Dio();
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          final line = options.uri.queryParameters['line'] ?? '';
+          requestedLines.add(line);
+          handler.resolve(
+            Response<Object?>(
+              requestOptions: options,
+              statusCode: 200,
+              headers: Headers.fromMap({
+                Headers.contentLengthHeader: ['5678'],
+              }),
+            ),
+          );
+        },
+      ),
+    );
+
+    final size = await OronBoxResourceCatalog(dio: dio).probeDownloadSize(
+      CommunityResourceFile(
+        id: 'artifact',
+        fileName: 'app.rpk',
+        version: '1.0.0',
+        downloadUrl: Uri.parse(
+          'https://ob-api.example/api/blobs/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        ),
+      ),
+    );
+
+    expect(size, 5678);
+    expect(requestedLines, ['r2']);
+  });
+
   test('parses preview media using the server sha256 field', () {
     final digest = List.filled(64, 'a').join();
     final images = parseOronBoxPreviewImages([

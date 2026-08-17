@@ -78,6 +78,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (uri.path.startsWith('/plugins') && !clean.pluginsEnabled) {
         return clean.exploreEnabled ? '/resources' : '/devices';
       }
+      if (uri.path == '/devices/velaos-health' &&
+          !ref.read(appSettingsProvider).healthFeaturesEnabled) {
+        return '/devices';
+      }
       if (uri.path.startsWith('/resources')) {
         if (!clean.exploreEnabled) return '/devices';
         if (uri.path.startsWith('/resources/creator') &&

@@ -145,6 +145,7 @@ class AppSettings {
     required this.wideNavigationRailPosition,
     required this.bandbbsLoadPreviews,
     required this.bandbbsShowAllCategories,
+    this.healthFeaturesEnabled = false,
     this.checkUpdateOnLaunch = true,
     this.clean = const CleanSettings(),
   });
@@ -158,6 +159,7 @@ class AppSettings {
   final WideNavigationRailPosition wideNavigationRailPosition;
   final bool bandbbsLoadPreviews;
   final bool bandbbsShowAllCategories;
+  final bool healthFeaturesEnabled;
   final bool checkUpdateOnLaunch;
   final CleanSettings clean;
 
@@ -172,6 +174,7 @@ class AppSettings {
     bool? bandbbsLoadPreviews,
     bool? checkUpdateOnLaunch,
     bool? bandbbsShowAllCategories,
+    bool? healthFeaturesEnabled,
     CleanSettings? clean,
   }) {
     return AppSettings(
@@ -186,6 +189,8 @@ class AppSettings {
       bandbbsLoadPreviews: bandbbsLoadPreviews ?? this.bandbbsLoadPreviews,
       bandbbsShowAllCategories:
           bandbbsShowAllCategories ?? this.bandbbsShowAllCategories,
+      healthFeaturesEnabled:
+          healthFeaturesEnabled ?? this.healthFeaturesEnabled,
       checkUpdateOnLaunch: checkUpdateOnLaunch ?? this.checkUpdateOnLaunch,
       clean: clean ?? this.clean,
     );
@@ -203,6 +208,7 @@ class AppSettings {
   static const String _keyCheckUpdateOnLaunch = 'check_update_on_launch';
   static const String _keyBandBbsShowAllCategories =
       'bandbbs_show_all_categories';
+  static const String _keyHealthFeaturesEnabled = 'health_features_enabled';
 
   static AppSettings load() {
     final prefs = SharedPrefsService.instance;
@@ -229,6 +235,7 @@ class AppSettings {
       bandbbsLoadPreviews: prefs.getBool(_keyBandBbsLoadPreviews) ?? false,
       bandbbsShowAllCategories:
           prefs.getBool(_keyBandBbsShowAllCategories) ?? false,
+      healthFeaturesEnabled: prefs.getBool(_keyHealthFeaturesEnabled) ?? false,
       checkUpdateOnLaunch: prefs.getBool(_keyCheckUpdateOnLaunch) ?? true,
       clean: CleanSettings(
         exploreEntry: prefs.getBool('clean_explore_entry') ?? true,
@@ -280,6 +287,7 @@ class AppSettings {
     );
     await prefs.setBool(_keyBandBbsLoadPreviews, bandbbsLoadPreviews);
     await prefs.setBool(_keyBandBbsShowAllCategories, bandbbsShowAllCategories);
+    await prefs.setBool(_keyHealthFeaturesEnabled, healthFeaturesEnabled);
     await prefs.setBool(_keyCheckUpdateOnLaunch, checkUpdateOnLaunch);
     await prefs.setBool('clean_explore_entry', clean.exploreEntry);
     await prefs.setBool('clean_plugins_entry', clean.pluginsEntry);
@@ -325,6 +333,7 @@ abstract class AppSettingsNotifier extends Notifier<AppSettings> {
   Future<void> setWideNavigationRailPosition(WideNavigationRailPosition value);
   Future<void> setBandBbsLoadPreviews(bool value);
   Future<void> setBandBbsShowAllCategories(bool value);
+  Future<void> setHealthFeaturesEnabled(bool value);
   Future<void> setCheckUpdateOnLaunch(bool value);
   Future<void> setClean(CleanSettings value);
 }
@@ -415,6 +424,12 @@ class LocalAppSettingsNotifier extends AppSettingsNotifier {
   }
 
   @override
+  Future<void> setHealthFeaturesEnabled(bool value) async {
+    state = state.copyWith(healthFeaturesEnabled: value);
+    await state.save();
+  }
+
+  @override
   Future<void> setCheckUpdateOnLaunch(bool value) async {
     state = state.copyWith(checkUpdateOnLaunch: value);
     await state.save();
@@ -468,6 +483,7 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
       bandbbsLoadPreviews: json['bandbbs_load_previews'] as bool? ?? false,
       bandbbsShowAllCategories:
           json['bandbbs_show_all_categories'] as bool? ?? false,
+      healthFeaturesEnabled: state.healthFeaturesEnabled,
       clean: state.clean,
     );
   }
@@ -555,6 +571,15 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
     value,
     state.copyWith(bandbbsShowAllCategories: value),
   );
+  @override
+  Future<void> setHealthFeaturesEnabled(bool value) async {
+    state = state.copyWith(healthFeaturesEnabled: value);
+    await SharedPrefsService.instance.setBool(
+      AppSettings._keyHealthFeaturesEnabled,
+      value,
+    );
+  }
+
   @override
   Future<void> setCheckUpdateOnLaunch(bool value) => _set(
     'check_update_on_launch',

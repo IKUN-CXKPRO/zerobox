@@ -222,6 +222,26 @@ class CommunityImportPlan {
 
   String get title => primary.name.trim();
 
+  CommunityPaidType get paidType {
+    if (details.any(
+      (detail) => detail.paidType == CommunityPaidType.forcePaid,
+    )) {
+      return CommunityPaidType.forcePaid;
+    }
+    if (details.any((detail) => detail.paidType == CommunityPaidType.paid)) {
+      return CommunityPaidType.paid;
+    }
+    return CommunityPaidType.free;
+  }
+
+  Uri? get purchaseLink =>
+      details.map((detail) => detail.purchaseLink).whereType<Uri>().firstOrNull;
+
+  double? get purchasePrice => details
+      .map((detail) => detail.purchasePrice)
+      .whereType<double>()
+      .firstOrNull;
+
   bool get hasAstroBox => details.any(
     (detail) => detail.ref.source == CommunitySourceId.astroboxRepo,
   );
@@ -607,12 +627,15 @@ class CommunityImportService {
         kind: kind,
         name: name,
         summary: summary,
+        paidType: plan.paidType,
         links: _importLinks(plan),
         icon: media.$1,
         cover: media.$2,
         previews: media.$3,
         artifacts: artifacts,
         bindings: plan.bindings,
+        purchaseLink: plan.purchaseLink,
+        purchasePrice: plan.purchasePrice,
       );
       onProgress?.call(
         CommunityImportStage.uploading,
@@ -1199,12 +1222,15 @@ Uint8List buildCommunityImportBundle({
   required CreatorResourceKind kind,
   required String name,
   required String summary,
+  CommunityPaidType paidType = CommunityPaidType.free,
   required List<Map<String, String>> links,
   required List<CommunityImportArtifact> artifacts,
   CommunityImportMedia? icon,
   CommunityImportMedia? cover,
   List<CommunityImportMedia> previews = const [],
   List<CommunityImportBinding> bindings = const [],
+  Uri? purchaseLink,
+  double? purchasePrice,
 }) {
   final archive = Archive();
   void addFile(String path, Uint8List bytes) =>
@@ -1241,6 +1267,11 @@ Uint8List buildCommunityImportBundle({
       'kind': kind == CreatorResourceKind.watchface ? 'watchface' : 'quickapp',
       'name': name,
       'summary': summary,
+      'paid_type': communityPaidTypeToWire(paidType),
+      if (purchaseLink != null) 'purchase_link': purchaseLink.toString(),
+      if (purchaseLink != null && purchasePrice != null)
+        'purchase_price': purchasePrice,
+      if (purchaseLink != null) 'purchase_currency': 'CNY',
       'attributes': const <String>[],
       'links': links,
       'media': media,

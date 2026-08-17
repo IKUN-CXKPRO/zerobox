@@ -117,4 +117,81 @@ void main() {
     });
     expect(legacy.paidType, CommunityPaidType.free);
   });
+
+  test('external purchase validation separates drafts from submissions', () {
+    expect(
+      validateCreatorExternalPurchase(
+        enabled: true,
+        paidType: CommunityPaidType.paid,
+        link: 'https://example.com/full',
+        amount: '',
+        requireAmount: false,
+        requireHttps: true,
+      ),
+      isNull,
+    );
+    expect(
+      validateCreatorExternalPurchase(
+        enabled: true,
+        paidType: CommunityPaidType.paid,
+        link: 'https://example.com/full',
+        amount: '',
+        requireAmount: true,
+        requireHttps: true,
+      ),
+      CreatorExternalPurchaseIssue.amount,
+    );
+  });
+
+  test('external purchase validation matches CNY and AstroBox limits', () {
+    CreatorExternalPurchaseIssue? validate({
+      required String link,
+      required String amount,
+      bool requireHttps = true,
+    }) => validateCreatorExternalPurchase(
+      enabled: true,
+      paidType: CommunityPaidType.forcePaid,
+      link: link,
+      amount: amount,
+      requireAmount: true,
+      requireHttps: requireHttps,
+    );
+
+    expect(validate(link: 'https://example.com', amount: '0.01'), isNull);
+    expect(
+      validate(link: 'https://example.com', amount: '9999999999.99'),
+      isNull,
+    );
+    expect(
+      validate(link: 'https://example.com', amount: '0.001'),
+      CreatorExternalPurchaseIssue.amount,
+    );
+    expect(
+      validate(link: 'https://example.com', amount: '10000000000.00'),
+      CreatorExternalPurchaseIssue.amount,
+    );
+    expect(
+      validate(link: 'http://example.com', amount: '1.00'),
+      CreatorExternalPurchaseIssue.link,
+    );
+    expect(
+      validate(link: 'http://example.com', amount: '1.00', requireHttps: false),
+      isNull,
+    );
+    expect(
+      validate(link: 'https:///missing-host', amount: '1.00'),
+      CreatorExternalPurchaseIssue.link,
+    );
+    expect(
+      validateCreatorExternalPurchase(
+        enabled: true,
+        paidType: CommunityPaidType.paid,
+        link: 'https://example.com/${'a' * 2030}',
+        amount: '1.00',
+        requireAmount: true,
+        requireHttps: true,
+      ),
+      CreatorExternalPurchaseIssue.link,
+    );
+  });
 }

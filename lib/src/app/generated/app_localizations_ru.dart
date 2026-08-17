@@ -1803,7 +1803,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get desktopCloseExit => 'Выйти';
 
   @override
-  String get settingsDesktopCloseBehavior => 'Поведение при закрытии окна';
+  String get settingsDesktopCloseBehavior => 'Закрытие окна';
 
   @override
   String get settingsDesktopCloseBehaviorDesc =>
@@ -3152,6 +3152,17 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsCategoryAdvanced => 'Расширенные настройки';
 
   @override
+  String get settingsAdvancedDescription =>
+      'Журналы, инструменты разработчика и экспериментальные функции';
+
+  @override
+  String get settingsHealthFeatures => 'Здоровье и активность';
+
+  @override
+  String get settingsHealthFeaturesDescription =>
+      'Включить функции здоровья и активности, которые ещё находятся в разработке';
+
+  @override
   String get xmsDeveloperMode => 'Режим разработчика XMS';
 
   @override
@@ -3476,4 +3487,25 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get creatorImportSameResourceHint =>
       'При каждом импорте выбирайте только один ресурс';
+
+  @override
+  String get creatorFullVersionExternalPurchase =>
+      'Покупка полной версии на внешнем сайте';
+
+  @override
+  String get creatorExternalPurchaseLink => 'Ссылка на внешнюю покупку';
+
+  @override
+  String get creatorExternalPurchaseAmount => 'Сумма (CNY)';
+
+  @override
+  String get creatorExternalPurchaseLinkRequired =>
+      'Введите действительную ссылку на внешнюю покупку';
+
+  @override
+  String get creatorExternalPurchaseAmountRequired =>
+      'Введите действительную сумму в CNY';
+
+  @override
+  String get resourcePurchaseFullVersion => 'Ссылка на покупку';
 }

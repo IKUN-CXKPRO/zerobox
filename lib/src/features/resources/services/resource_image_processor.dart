@@ -87,11 +87,12 @@ ProcessedResourceImage? _encodeResourceImage(
     );
   }
 
-  // Avoid materializing a second Image just to add alpha. For RGB sources,
-  // getBytes performs the one required channel conversion directly.
-  final rgba = processed.numChannels == 4
-      ? processed.toUint8List()
-      : processed.getBytes(order: img.ChannelOrder.rgba);
+  // Always materialize a non-palette 8-bit RGBA image first. Palette images
+  // report the palette's channel count even though their backing data contains
+  // one-byte indices; even getBytes(rgba) can therefore pass those indices on
+  // unchanged. Optimizers such as TinyPNG commonly produce this indexed PNG
+  // representation.
+  final rgba = materializeResourceImageRgba(processed);
   final webp = encoder.encode(
     rgba,
     processed.width,
@@ -104,6 +105,21 @@ ProcessedResourceImage? _encodeResourceImage(
     width: processed.width,
     height: processed.height,
   );
+}
+
+@visibleForTesting
+Uint8List materializeResourceImageRgba(img.Image image) {
+  if (!image.hasPalette &&
+      image.format == img.Format.uint8 &&
+      image.numChannels == 4) {
+    return image.getBytes(order: img.ChannelOrder.rgba);
+  }
+  final rgbaImage = image.convert(
+    format: img.Format.uint8,
+    numChannels: 4,
+    withPalette: false,
+  );
+  return rgbaImage.getBytes(order: img.ChannelOrder.rgba);
 }
 
 final class _ResourceImageWorker {

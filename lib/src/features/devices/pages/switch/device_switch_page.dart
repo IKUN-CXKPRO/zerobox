@@ -548,7 +548,7 @@ class _DeviceImportActions extends StatelessWidget {
         children: [
           if (supportsMiAccountImport)
             _DeviceImportActionCard(
-              leading: const MiLogo(width: 24, height: 32),
+              leading: const MiLogo(),
               title: l10n.deviceSwitchMiAccountImport,
               onTap: onMiAccountLogin,
             ),

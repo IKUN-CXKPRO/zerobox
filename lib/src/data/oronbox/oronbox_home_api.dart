@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:dio/dio.dart';
 import 'package:oronbox/src/core/constants/oronbox_server.dart';
 import 'package:oronbox/src/core/network/app_http_transport.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
+import 'package:oronbox/src/data/oronbox/oronbox_resource_provider.dart';
 
 enum HomeBannerType { resource, blog, link }
 
@@ -110,21 +113,47 @@ class HomeSection {
   final List<HomeSectionCard> cards;
 }
 
+class HomeResourceFeed {
+  const HomeResourceFeed({
+    required this.featured,
+    required this.recommended,
+    required this.latest,
+    this.available = true,
+  });
+
+  const HomeResourceFeed.unavailable()
+    : featured = const [],
+      recommended = const [],
+      latest = const [],
+      available = false;
+
+  final List<CommunityResource> featured;
+  final List<CommunityResource> recommended;
+  final List<CommunityResource> latest;
+  final bool available;
+}
+
 class HomeFeed {
   const HomeFeed({
     required this.banners,
     required this.blogs,
     required this.sections,
+    required this.resourceFeed,
   });
 
   final List<HomeBanner> banners;
   final List<BlogCard> blogs;
   final List<HomeSection> sections;
+  final HomeResourceFeed resourceFeed;
 
   bool get isEmpty =>
       banners.isEmpty &&
       blogs.isEmpty &&
-      sections.every((section) => section.cards.isEmpty);
+      sections.every((section) => section.cards.isEmpty) &&
+      (!resourceFeed.available ||
+          (resourceFeed.featured.isEmpty &&
+              resourceFeed.recommended.isEmpty &&
+              resourceFeed.latest.isEmpty));
 }
 
 class OronBoxHomeApi {
@@ -132,13 +161,25 @@ class OronBoxHomeApi {
 
   final Dio _dio;
 
-  Future<HomeFeed> fetchHome() async {
-    final responses = await Future.wait([
-      _dio.get<Object?>('$oronBoxServerBaseUrl/api/home'),
-      _dio.get<Object?>('$oronBoxServerBaseUrl/api/blog'),
-    ]);
-    final root = _map(responses[0].data);
-    final blogRoot = _map(responses[1].data);
+  Future<HomeFeed> fetchHome({int? seed}) async {
+    final feedSeed = seed ?? math.Random.secure().nextInt(0x7fffffff);
+    final homeFuture = _dio.get<Object?>(
+      '$oronBoxServerBaseUrl/api/home',
+      queryParameters: {'seed': feedSeed},
+    );
+    final blogFuture = _fetchBlogRoot();
+    final homeResponse = await homeFuture;
+    final blogRoot = await blogFuture;
+    final root = _map(homeResponse.data);
+    final resourceCatalog = OronBoxResourceCatalog(dio: _dio);
+    final feedValue = root['resource_feed'];
+    final resourceFeed = feedValue is Map
+        ? _resourceFeed(
+            feedValue.cast<String, Object?>(),
+            resourceCatalog,
+            explicitlyAvailable: root['resource_feed_available'] as bool?,
+          )
+        : const HomeResourceFeed.unavailable();
     return HomeFeed(
       banners: (root['banners'] as List? ?? const [])
           .whereType<Map>()
@@ -152,7 +193,21 @@ class OronBoxHomeApi {
           .whereType<Map>()
           .map((value) => _section(value.cast<String, Object?>()))
           .toList(),
+      resourceFeed: resourceFeed,
     );
+  }
+
+  Future<Map<String, Object?>> _fetchBlogRoot() async {
+    try {
+      final response = await _dio.get<Object?>(
+        '$oronBoxServerBaseUrl/api/blog?limit=5',
+      );
+      return _map(response.data);
+    } catch (_) {
+      // Articles are supplementary to the resource feed. A temporary blog
+      // endpoint failure must not hide the homepage's resource sections.
+      return const {};
+    }
   }
 
   Future<BlogPost> fetchBlogPost(String slug) async {
@@ -202,6 +257,33 @@ class OronBoxHomeApi {
           .toList(),
     );
   }
+
+  HomeResourceFeed _resourceFeed(
+    Map<String, Object?> json,
+    OronBoxResourceCatalog catalog, {
+    bool? explicitlyAvailable,
+  }) {
+    final featured = _resourceList(json['featured'], catalog);
+    final recommended = _resourceList(json['recommended'], catalog);
+    final latest = _resourceList(json['latest'], catalog);
+    return HomeResourceFeed(
+      featured: featured,
+      recommended: recommended,
+      latest: latest,
+      available:
+          explicitlyAvailable ??
+          (featured.isNotEmpty || recommended.isNotEmpty || latest.isNotEmpty),
+    );
+  }
+
+  List<CommunityResource> _resourceList(
+    Object? value,
+    OronBoxResourceCatalog catalog,
+  ) => (value as List? ?? const [])
+      .whereType<Map>()
+      .map((item) => catalog.summaryFromWire(item.cast<String, Object?>()))
+      .where((item) => item.ref.id.isNotEmpty)
+      .toList();
 
   HomeSectionCard? _card(Map<String, Object?> json) {
     final id = json['id']?.toString() ?? '';

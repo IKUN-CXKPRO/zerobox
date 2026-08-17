@@ -2,6 +2,47 @@ import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 
 enum CreatorResourceKind { quickApp, watchface }
 
+enum CreatorExternalPurchaseIssue { link, amount }
+
+const creatorExternalPurchaseMaximumCny = 9999999999.99;
+const creatorExternalPurchaseLinkMaximumLength = 2048;
+
+CreatorExternalPurchaseIssue? validateCreatorExternalPurchase({
+  required bool enabled,
+  required CommunityPaidType paidType,
+  required String link,
+  required String amount,
+  required bool requireAmount,
+  required bool requireHttps,
+}) {
+  if (!enabled) return null;
+  final purchaseUrl = Uri.tryParse(link.trim());
+  final validScheme = requireHttps
+      ? purchaseUrl?.scheme == 'https'
+      : purchaseUrl?.scheme == 'http' || purchaseUrl?.scheme == 'https';
+  if (paidType == CommunityPaidType.free ||
+      purchaseUrl == null ||
+      link.trim().length > creatorExternalPurchaseLinkMaximumLength ||
+      purchaseUrl.host.isEmpty ||
+      !validScheme) {
+    return CreatorExternalPurchaseIssue.link;
+  }
+
+  final rawAmount = amount.trim();
+  if (rawAmount.isEmpty && !requireAmount) return null;
+  if (!RegExp(r'^(?:0|[1-9]\d*)(?:\.\d{1,2})?$').hasMatch(rawAmount)) {
+    return CreatorExternalPurchaseIssue.amount;
+  }
+  final parsedAmount = double.tryParse(rawAmount);
+  if (parsedAmount == null ||
+      !parsedAmount.isFinite ||
+      parsedAmount < 0.01 ||
+      parsedAmount > creatorExternalPurchaseMaximumCny) {
+    return CreatorExternalPurchaseIssue.amount;
+  }
+  return null;
+}
+
 class CreatorWorkspace {
   const CreatorWorkspace({
     required this.resource,
@@ -121,6 +162,9 @@ class CreatorRevision {
     required this.summary,
     required this.state,
     this.paidType = CommunityPaidType.free,
+    this.purchaseLink = '',
+    this.purchasePrice,
+    this.purchaseCurrency = '',
     this.attributes = const [],
     this.publicationPlan,
   });
@@ -130,6 +174,9 @@ class CreatorRevision {
   final String summary;
   final String state;
   final CommunityPaidType paidType;
+  final String purchaseLink;
+  final double? purchasePrice;
+  final String purchaseCurrency;
   final List<String> attributes;
 
   /// Saved publish intent ({target, config} entries); editor baseline, never
@@ -145,6 +192,12 @@ class CreatorRevision {
         summary: json['summary']?.toString() ?? '',
         state: json['state']?.toString() ?? '',
         paidType: communityPaidTypeFromWire(json['paid_type']),
+        purchaseLink: json['purchase_link']?.toString() ?? '',
+        purchasePrice: (json['purchase_price'] as num?)?.toDouble(),
+        purchaseCurrency:
+            (json['purchase_link']?.toString().trim().isNotEmpty ?? false)
+            ? 'CNY'
+            : '',
         attributes: (json['attributes'] as List? ?? const [])
             .map((value) => value.toString())
             .toList(),

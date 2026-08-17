@@ -61,6 +61,71 @@ void main() {
     expect(find.text('Select resources'), findsOneWidget);
     expect(find.text('Next'), findsOneWidget);
   });
+
+  testWidgets(
+    'ignores a stale AstroBox import list response after switching tabs',
+    (tester) async {
+      tester.view.physicalSize = const Size(752, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final host = _RacingWizardHost();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [applicationHostProvider.overrideWithValue(host)],
+          child: const MaterialApp(
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: CreatorCreateWizard(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.text('Import existing resources from other platforms'),
+      );
+      await tester.pump();
+      await tester.tap(find.text('Continue import'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.text('BandBBS Community'));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.text('AstroBox Repo'));
+      await tester.pump();
+      await host.firstAstroBoxRequestStarted.future;
+
+      await tester.tap(find.text('BandBBS Community'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('AstroBox Repo'));
+      await tester.pump();
+      await host.secondAstroBoxRequestStarted.future;
+
+      host.secondAstroBoxResponse.complete(_astroBoxListResult);
+      await tester.pumpAndSettle();
+      expect(find.text('Astro resource'), findsOneWidget);
+
+      host.firstAstroBoxResponse.complete(
+        const CommandResult.failure(
+          CommandError('invalid_request', 'stale request'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'Some submitted information is invalid. Check it and try again',
+        ),
+        findsNothing,
+      );
+    },
+  );
 }
 
 class _WizardHost implements OronBoxCommandBus {
@@ -88,3 +153,68 @@ class _WizardHost implements OronBoxCommandBus {
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+class _RacingWizardHost implements OronBoxCommandBus {
+  final _events = StreamController<CommandEvent>.broadcast();
+  final firstAstroBoxRequestStarted = Completer<void>();
+  final secondAstroBoxRequestStarted = Completer<void>();
+  final firstAstroBoxResponse = Completer<CommandResult>();
+  final secondAstroBoxResponse = Completer<CommandResult>();
+  var _astroBoxRequests = 0;
+
+  @override
+  Stream<CommandEvent> get events => _events.stream;
+
+  @override
+  Future<CommandResult> execute(OronBoxCommand command) async {
+    if (command.method == 'resource.list' &&
+        command.params['source'] == 'astrobox-repo') {
+      _astroBoxRequests++;
+      final request = _astroBoxRequests;
+      if (request == 1) {
+        firstAstroBoxRequestStarted.complete();
+        return firstAstroBoxResponse.future;
+      }
+      secondAstroBoxRequestStarted.complete();
+      return secondAstroBoxResponse.future;
+    }
+    return switch (command.method) {
+      'creator.list' => const CommandResult.success({'resources': <Object?>[]}),
+      'creator.collections.list' => const CommandResult.success({
+        'collections': <Object?>[],
+      }),
+      'creator.devices' => const CommandResult.success({
+        'devices': <Object?>[],
+      }),
+      'creator.grants' => const CommandResult.success({
+        'github_login': 'OrPudding',
+      }),
+      'account.list' => const CommandResult.success(<String, Object?>{
+        'accounts': <Object?>[],
+      }),
+      _ => CommandResult.failure(CommandError('unexpected', command.method)),
+    };
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+const CommandResult _astroBoxListResult = CommandResult.success({
+  'page': 0,
+  'hasMore': false,
+  'total': 1,
+  'items': [
+    {
+      'ref': 'astrobox-repo:demo',
+      'name': 'Astro resource',
+      'type': 'watchface',
+      'paidType': 'free',
+      'authors': [
+        {'name': 'OrPudding'},
+      ],
+      'devices': <String>[],
+      'tags': <String>[],
+    },
+  ],
+});

@@ -37,6 +37,14 @@ import 'package:oronbox/src/features/resources/widgets/resource_media_hero.dart'
 
 final _homeFeedProvider = FutureProvider.autoDispose
     .family<List<CommunityResource>, CommunitySortRule>((ref, sort) async {
+      final home = await _tryLoadHomeFeed(ref);
+      if (home?.resourceFeed.available == true) {
+        return switch (sort) {
+          CommunitySortRule.recommendation => home!.resourceFeed.recommended,
+          CommunitySortRule.time => home!.resourceFeed.latest,
+          _ => home!.resourceFeed.recommended,
+        };
+      }
       ref.watch(resourceRefreshProvider);
       final page = await ref
           .watch(communityCatalogProviderForSource(CommunitySourceId.oronBox))
@@ -46,6 +54,10 @@ final _homeFeedProvider = FutureProvider.autoDispose
 
 final _featuredFeedProvider =
     FutureProvider.autoDispose<List<CommunityResource>>((ref) async {
+      final home = await _tryLoadHomeFeed(ref);
+      if (home?.resourceFeed.available == true) {
+        return home!.resourceFeed.featured;
+      }
       ref.watch(resourceRefreshProvider);
       final page = await ref
           .watch(communityCatalogProviderForSource(CommunitySourceId.oronBox))
@@ -58,6 +70,16 @@ final _featuredFeedProvider =
           );
       return page.items;
     });
+
+Future<HomeFeed?> _tryLoadHomeFeed(Ref ref) async {
+  try {
+    return await ref.watch(homeFeedProvider.future);
+  } catch (_) {
+    // The curated homepage is supplementary. Keep the resource rows usable
+    // when the aggregate endpoint is temporarily unavailable.
+    return null;
+  }
+}
 
 class ResourcesPage extends ConsumerWidget {
   const ResourcesPage({super.key});

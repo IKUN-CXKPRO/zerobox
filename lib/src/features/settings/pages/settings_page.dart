@@ -22,6 +22,7 @@ import 'package:oronbox/src/features/resources/application/creator/creator_works
 import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/accounts/services/mi_account_two_factor_resolver.dart';
+import 'package:oronbox/src/features/devices/widgets/xiaomi_fitness_logo.dart';
 
 final _desktopExitBehaviorProvider = Provider<int?>((ref) {
   return SharedPrefsService.instance.getInt('desktop.exit_behavior');
@@ -276,12 +277,6 @@ class SettingsPage extends ConsumerWidget {
                     title: Text(l10n.settingsDynamicColor),
                     description: Text(l10n.settingsDynamicColorDesc),
                   ),
-                SegmentedTile.navigation(
-                  onPressed: (context) => context.push('/settings/clean-mode'),
-                  leading: const Icon(Icons.filter_alt_outlined),
-                  title: Text(l10n.cleanMode),
-                  description: Text(l10n.cleanModeDescription),
-                ),
                 if (!kIsWeb && !themeSettings.useDynamicColor)
                   SegmentedTile.navigation(
                     onPressed: (context) =>
@@ -325,6 +320,26 @@ class SettingsPage extends ConsumerWidget {
                       },
                     ),
                   ),
+                if (showDesktopWindowSettings)
+                  SegmentedTile.navigation(
+                    onPressed: (context) =>
+                        _showDesktopExitBehaviorMenu(context, ref),
+                    leading: const Icon(Icons.close_fullscreen_outlined),
+                    title: Text(l10n.settingsDesktopCloseBehavior),
+                    description: Text(l10n.settingsDesktopCloseBehaviorDesc),
+                    value: Text(
+                      _desktopExitBehaviorLabel(
+                        l10n,
+                        ref.watch(_desktopExitBehaviorProvider),
+                      ),
+                    ),
+                  ),
+                SegmentedTile.navigation(
+                  onPressed: (context) => context.push('/settings/clean-mode'),
+                  leading: const Icon(Icons.filter_alt_outlined),
+                  title: Text(l10n.cleanMode),
+                  description: Text(l10n.cleanModeDescription),
+                ),
               ],
             ),
           if (category == null || category == SettingsCategory.connection)
@@ -404,27 +419,19 @@ class SettingsPage extends ConsumerWidget {
                   title: Text(l10n.feedbackTitle),
                   description: Text(l10n.feedbackDesc),
                 ),
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/settings/advanced'),
+                  leading: const Icon(Icons.tune_outlined),
+                  title: Text(l10n.settingsCategoryAdvanced),
+                  description: Text(l10n.settingsAdvancedDescription),
+                ),
               ],
             ),
-          if (category == null || category == SettingsCategory.advanced)
+          if (category == SettingsCategory.advanced)
             _buildSection(
               context,
-              title: l10n.settingsCategoryAdvanced,
+              title: null,
               tiles: [
-                if (showDesktopWindowSettings)
-                  SegmentedTile.navigation(
-                    onPressed: (context) =>
-                        _showDesktopExitBehaviorMenu(context, ref),
-                    leading: const Icon(Icons.close_fullscreen_outlined),
-                    title: Text(l10n.settingsDesktopCloseBehavior),
-                    description: Text(l10n.settingsDesktopCloseBehaviorDesc),
-                    value: Text(
-                      _desktopExitBehaviorLabel(
-                        l10n,
-                        ref.watch(_desktopExitBehaviorProvider),
-                      ),
-                    ),
-                  ),
                 SegmentedTile.navigation(
                   onPressed: (_) => context.push('/oobe?replay=1'),
                   leading: const Icon(Icons.waving_hand_outlined),
@@ -460,6 +467,17 @@ class SettingsPage extends ConsumerWidget {
                     title: Text(l10n.xmsDeveloperMode),
                     description: Text(l10n.xmsDeveloperModeDescription),
                   ),
+                SegmentedTile.switchTile(
+                  onToggle: (value) => ref
+                      .read(appSettingsProvider.notifier)
+                      .setHealthFeaturesEnabled(value ?? false),
+                  initialValue: ref
+                      .watch(appSettingsProvider)
+                      .healthFeaturesEnabled,
+                  leading: const XiaomiFitnessLogo(),
+                  title: Text(l10n.settingsHealthFeatures),
+                  description: Text(l10n.settingsHealthFeaturesDescription),
+                ),
               ],
             ),
         ],
@@ -469,10 +487,13 @@ class SettingsPage extends ConsumerWidget {
 
   SegmentedSection _buildSection(
     BuildContext context, {
-    required String title,
+    required String? title,
     required List<AbstractSegmentedTile> tiles,
   }) {
-    return SegmentedSection(title: Text(title), tiles: tiles);
+    return SegmentedSection(
+      title: title == null ? null : Text(title),
+      tiles: tiles,
+    );
   }
 
   Future<void> _setDebugWindowEnabled(
@@ -1399,32 +1420,18 @@ class _AccountLeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.square(dimension: 32, child: Center(child: child));
+    return SizedBox.square(dimension: 24, child: Center(child: child));
   }
 }
 
 class MiLogo extends StatelessWidget {
-  const MiLogo({super.key, this.width = 24, this.height = 32});
-
-  final double width;
-  final double height;
+  const MiLogo({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: height,
-      child: Center(
-        child: SvgPicture.asset(
-          'assets/images/brands/xiaomi.svg',
-          width: width,
-          height: width,
-          colorFilter: ColorFilter.mode(
-            Theme.of(context).colorScheme.onSurface,
-            BlendMode.srcIn,
-          ),
-          semanticsLabel: 'Xiaomi',
-        ),
-      ),
+    return _SettingsSvgLogo(
+      asset: 'assets/images/brands/xiaomi.svg',
+      semanticsLabel: 'Xiaomi',
     );
   }
 }
@@ -1437,19 +1444,28 @@ class _AccountBrandLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return _SettingsSvgLogo(asset: asset, semanticsLabel: semanticsLabel);
+  }
+}
+
+class _SettingsSvgLogo extends StatelessWidget {
+  const _SettingsSvgLogo({required this.asset, required this.semanticsLabel});
+
+  final String asset;
+  final String semanticsLabel;
+
+  @override
+  Widget build(BuildContext context) {
     return SizedBox.square(
-      dimension: 32,
-      child: Center(
-        child: SvgPicture.asset(
-          asset,
-          width: 27,
-          height: 27,
-          colorFilter: ColorFilter.mode(
-            Theme.of(context).colorScheme.onSurface,
-            BlendMode.srcIn,
-          ),
-          semanticsLabel: semanticsLabel,
+      dimension: 24,
+      child: SvgPicture.asset(
+        asset,
+        fit: BoxFit.contain,
+        colorFilter: ColorFilter.mode(
+          Theme.of(context).colorScheme.onSurface,
+          BlendMode.srcIn,
         ),
+        semanticsLabel: semanticsLabel,
       ),
     );
   }

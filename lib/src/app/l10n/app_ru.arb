@@ -856,7 +856,7 @@
   "desktopCloseRemember": "Запомнить выбор",
   "desktopCloseToTray": "Свернуть в область уведомлений",
   "desktopCloseExit": "Выйти",
-  "settingsDesktopCloseBehavior": "Поведение при закрытии окна",
+  "settingsDesktopCloseBehavior": "Закрытие окна",
   "settingsDesktopCloseBehaviorDesc": "Выберите действие при закрытии главного окна",
   "desktopCloseBehaviorAsk": "Спрашивать",
   "desktopCloseBehaviorExit": "Выход",
@@ -1442,6 +1442,9 @@
   "settingsCategoryConnection": "Подключения и загрузки",
   "settingsCategorySupport": "Поддержка и информация",
   "settingsCategoryAdvanced": "Расширенные настройки",
+  "settingsAdvancedDescription": "Журналы, инструменты разработчика и экспериментальные функции",
+  "settingsHealthFeatures": "Здоровье и активность",
+  "settingsHealthFeaturesDescription": "Включить функции здоровья и активности, которые ещё находятся в разработке",
   "xmsDeveloperMode": "Режим разработчика XMS",
   "xmsDeveloperModeDescription": "Разрешить Android-подписям приложений отличаться",
   "oronBoxCoinsTitle": "Монеты ресурсов",
@@ -1623,5 +1626,11 @@
   "creatorImportNoticeTitle": "Импорт существующих ресурсов",
   "creatorImportNoticeMessage": "Ресурсы для нескольких устройств могут публиковаться в нескольких разделах BandBBS\\nПри импорте можно выбрать несколько записей BandBBS, но выбирайте записи одного ресурса\\nНажмите «Импортировать», чтобы объединить их в один ресурс\\nЕсли импорт завершится ошибкой, откройте соответствующий черновик и удалите его\\nУдаление черновика не удаляет связанные ресурсы на других платформах",
   "creatorImportNoticeConfirm": "Продолжить импорт",
-  "creatorImportSameResourceHint": "При каждом импорте выбирайте только один ресурс"
+  "creatorImportSameResourceHint": "При каждом импорте выбирайте только один ресурс",
+  "creatorFullVersionExternalPurchase": "Покупка полной версии на внешнем сайте",
+  "creatorExternalPurchaseLink": "Ссылка на внешнюю покупку",
+  "creatorExternalPurchaseAmount": "Сумма (CNY)",
+  "creatorExternalPurchaseLinkRequired": "Введите действительную ссылку на внешнюю покупку",
+  "creatorExternalPurchaseAmountRequired": "Введите действительную сумму в CNY",
+  "resourcePurchaseFullVersion": "Ссылка на покупку"
 }

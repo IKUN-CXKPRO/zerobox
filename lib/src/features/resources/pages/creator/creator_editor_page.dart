@@ -11,7 +11,6 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
-import 'package:oronbox/src/app/widgets/smooth_linear_progress_indicator.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
@@ -87,9 +86,12 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
   final _astroAuthor = TextEditingController();
   final _bandBbsVersionTitle = TextEditingController();
   final _bandBbsVersionMessage = TextEditingController();
+  final _externalPurchaseLink = TextEditingController();
+  final _externalPurchaseAmount = TextEditingController();
   bool _publishBandBbs = false;
   bool _publishAstroBox = false;
   bool _astroBindABAccount = true;
+  bool _externalPurchaseEnabled = false;
   String _astroPaidType = '';
   CommunityPaidType _paidType = CommunityPaidType.free;
   List<Map<String, Object?>>? _publicationCategories;
@@ -136,6 +138,14 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     final baselineRevision = draft ?? widget.workspace.latestRevision;
     if (baselineRevision != null) {
       _paidType = baselineRevision.paidType;
+      _externalPurchaseLink.text = baselineRevision.purchaseLink;
+      if (baselineRevision.purchasePrice != null) {
+        _externalPurchaseAmount.text = baselineRevision.purchasePrice!
+            .toStringAsFixed(2);
+      }
+      _externalPurchaseEnabled = baselineRevision.purchaseLink
+          .trim()
+          .isNotEmpty;
     }
     final planned = draftPlan ?? widget.workspace.publications;
     for (final publication in planned) {
@@ -148,6 +158,11 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
           _bandBbsVersionTitle.text = config['version_title']?.toString() ?? '';
           _bandBbsVersionMessage.text =
               config['version_message']?.toString() ?? '';
+          if (_externalPurchaseAmount.text.trim().isEmpty &&
+              config['price'] is num) {
+            _externalPurchaseAmount.text = (config['price'] as num)
+                .toStringAsFixed(2);
+          }
         case 'astrobox':
           _publishAstroBox = true;
           _astroItemId.text = config['item_id']?.toString() ?? '';
@@ -327,6 +342,8 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     _astroAuthor.dispose();
     _bandBbsVersionTitle.dispose();
     _bandBbsVersionMessage.dispose();
+    _externalPurchaseLink.dispose();
+    _externalPurchaseAmount.dispose();
     for (final link in _links) {
       link.dispose();
     }
@@ -338,6 +355,21 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     final l10n = AppLocalizations.of(context)!;
     final workspace = widget.workspace;
     final colors = Theme.of(context).colorScheme;
+    final publishIndicatorValue = _publishStage.isNotEmpty
+        ? (_publishStageProgress > 0 ? _publishStageProgress : null)
+        : switch (widget.state.publishProgress) {
+            null => null,
+            final progress => progress >= 1 ? null : progress,
+          };
+    final publishIndicatorLabel = _publishStage.isNotEmpty
+        ? _publishStage
+        : switch (widget.state.publishProgress) {
+            null => '',
+            final progress =>
+              progress >= 1
+                  ? l10n.creatorPublishServer
+                  : l10n.creatorPublishUploading((progress * 100).round()),
+          };
     return Column(
       children: [
         Expanded(
@@ -521,7 +553,12 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                             ],
                             onChanged: (value) {
                               if (value != null) {
-                                setState(() => _paidType = value);
+                                setState(() {
+                                  _paidType = value;
+                                  if (value == CommunityPaidType.free) {
+                                    _externalPurchaseEnabled = false;
+                                  }
+                                });
                               }
                             },
                           ),
@@ -705,6 +742,52 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                         label: Text(l10n.creatorAddArtifact),
                       ),
                     ),
+                    if (_paidType != CommunityPaidType.free) ...[
+                      const SizedBox(height: 16),
+                      CreatorEditorCard(
+                        child: Column(
+                          children: [
+                            CheckboxListTile(
+                              value: _externalPurchaseEnabled,
+                              onChanged: widget.state.loading
+                                  ? null
+                                  : (value) => setState(
+                                      () => _externalPurchaseEnabled =
+                                          value == true,
+                                    ),
+                              contentPadding: EdgeInsets.zero,
+                              controlAffinity: ListTileControlAffinity.leading,
+                              title: Text(
+                                l10n.creatorFullVersionExternalPurchase,
+                              ),
+                            ),
+                            if (_externalPurchaseEnabled) ...[
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: _externalPurchaseLink,
+                                keyboardType: TextInputType.url,
+                                onChanged: (_) => setState(() {}),
+                                decoration: InputDecoration(
+                                  labelText: l10n.creatorExternalPurchaseLink,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _externalPurchaseAmount,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                onChanged: (_) => setState(() {}),
+                                decoration: InputDecoration(
+                                  labelText: l10n.creatorExternalPurchaseAmount,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     CreatorSectionTitle(
                       icon: Icons.publish_outlined,
@@ -752,40 +835,30 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
             const Spacer(),
             if (_publishStage.isNotEmpty ||
                 widget.state.publishProgress != null)
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 120,
-                      child: SmoothLinearProgressIndicator(
-                        value: _publishStage.isNotEmpty
-                            ? (_publishStageProgress > 0
-                                  ? _publishStageProgress
-                                  : null)
-                            : switch (widget.state.publishProgress) {
-                                null => null,
-                                final progress =>
-                                  progress >= 1 ? null : progress,
-                              },
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          publishIndicatorLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _publishStage.isNotEmpty
-                          ? _publishStage
-                          : switch (widget.state.publishProgress) {
-                              null => '',
-                              final progress =>
-                                progress >= 1
-                                    ? l10n.creatorPublishServer
-                                    : l10n.creatorPublishUploading(
-                                        (progress * 100).round(),
-                                      ),
-                            },
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(
+                          value: publishIndicatorValue,
+                          strokeWidth: 2.2,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             FilledButton.icon(
@@ -816,6 +889,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     if (_name.text.trim().isEmpty || _summary.text.trim().isEmpty) {
       return false;
     }
+    if (_externalPurchaseIssue(requireAmount: true) != null) return false;
     if (_artifacts.isEmpty || _previews.isEmpty) return false;
     for (final artifact in _artifacts) {
       if ((_deviceSelections[artifact.key] ?? const <String>{}).isEmpty) {
@@ -838,6 +912,28 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     }
     return true;
   }
+
+  CreatorExternalPurchaseIssue? _externalPurchaseIssue({
+    required bool requireAmount,
+  }) => validateCreatorExternalPurchase(
+    enabled: _externalPurchaseEnabled,
+    paidType: _paidType,
+    link: _externalPurchaseLink.text,
+    amount: _externalPurchaseAmount.text,
+    requireAmount: requireAmount,
+    requireHttps: _publishAstroBox,
+  );
+
+  String? _externalPurchaseValidationMessage(
+    AppLocalizations l10n, {
+    required bool requireAmount,
+  }) => switch (_externalPurchaseIssue(requireAmount: requireAmount)) {
+    CreatorExternalPurchaseIssue.link =>
+      l10n.creatorExternalPurchaseLinkRequired,
+    CreatorExternalPurchaseIssue.amount =>
+      l10n.creatorExternalPurchaseAmountRequired,
+    null => null,
+  };
 
   bool get _bandBbsPublishingAuthorized =>
       widget.state.grants['bandbbs_publish'] == true;
@@ -1114,6 +1210,8 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
             'version_title': _bandBbsVersionTitle.text.trim(),
           if (_bandBbsVersionMessage.text.trim().isNotEmpty)
             'version_message': _bandBbsVersionMessage.text.trim(),
+          if (_externalPurchaseEnabled)
+            'price': double.tryParse(_externalPurchaseAmount.text.trim()),
           'targets': [
             for (final target
                 in _publicationPlan?.bandBbsTargets ??
@@ -1146,6 +1244,14 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     final l10n = AppLocalizations.of(context)!;
     if (_name.text.trim().isEmpty || _summary.text.trim().isEmpty) {
       _showFailure(l10n.creatorResourceMetadataRequired);
+      return;
+    }
+    final purchaseError = _externalPurchaseValidationMessage(
+      l10n,
+      requireAmount: true,
+    );
+    if (purchaseError != null) {
+      _showFailure(purchaseError);
       return;
     }
     final plans = <Map<String, Object?>>[
@@ -1205,6 +1311,14 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     final l10n = AppLocalizations.of(context)!;
     if (_name.text.trim().isEmpty || _summary.text.trim().isEmpty) {
       _showFailure(l10n.creatorResourceMetadataRequired);
+      return Future<void>.value();
+    }
+    final purchaseError = _externalPurchaseValidationMessage(
+      l10n,
+      requireAmount: false,
+    );
+    if (purchaseError != null) {
+      _showFailure(purchaseError);
       return Future<void>.value();
     }
     return _run(() async {
@@ -1346,6 +1460,13 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
         'name': _name.text.trim(),
         'summary': _summary.text.trim(),
         'paid_type': communityPaidTypeToWire(_paidType),
+        if (_externalPurchaseEnabled) ...{
+          'purchase_link': _externalPurchaseLink.text.trim(),
+          'purchase_price': double.tryParse(
+            _externalPurchaseAmount.text.trim(),
+          ),
+          'purchase_currency': 'CNY',
+        },
         'attributes': _attributes.toList()..sort(),
         'links': [
           for (final link in _links)
@@ -1823,28 +1944,19 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
       widget.workspace.bindings,
       'astrobox',
     );
+    final colors = Theme.of(context).colorScheme;
     return CreatorEditorCard(
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          ListTile(
+          _publicationTargetRow(
             leading: const CreatorOronBoxLogo(),
-            title: const Text('OronBox'),
+            title: Text(l10n.oronBox),
             subtitle: Text(l10n.creatorOronBoxRequired),
             trailing: const Switch(value: true, onChanged: null),
           ),
-          SwitchListTile(
-            value: _publishBandBbs,
-            onChanged: bandAuthorized
-                ? (value) async {
-                    if (value && !await _confirmTargetTerms('bandbbs')) {
-                      return;
-                    }
-                    setState(() => _publishBandBbs = value);
-                    if (value) _loadPublicationPlan();
-                  }
-                : null,
-            secondary: const CreatorBrandLogo(
+          _publicationTargetRow(
+            leading: const CreatorBrandLogo(
               asset: 'assets/images/brands/bandbbs.svg',
               label: 'BandBBS',
             ),
@@ -1854,106 +1966,101 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                   ? l10n.creatorBandBbsBoundUpdate
                   : l10n.creatorBandBbsDirectPublish,
             ),
+            trailing: Switch(
+              value: _publishBandBbs,
+              onChanged: bandAuthorized
+                  ? (value) async {
+                      if (value && !await _confirmTargetTerms('bandbbs')) {
+                        return;
+                      }
+                      setState(() => _publishBandBbs = value);
+                      if (value) _loadPublicationPlan();
+                    }
+                  : null,
+            ),
           ),
           if (!bandAuthorized)
-            ListTile(
-              title: Text(l10n.creatorBandBbsAuthorizationRequired),
-              trailing: FilledButton.tonal(
+            _publicationNotice(
+              icon: Icons.lock_outline,
+              message: l10n.creatorBandBbsAuthorizationRequired,
+              action: FilledButton.tonal(
                 onPressed: _authorizeBandBbs,
                 child: Text(l10n.creatorAuthorize),
               ),
             ),
           if (_publishBandBbs) ...[
             if (bandEntries.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+              _publicationDetails(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      l10n.creatorLinkedSections(bandEntries.length),
-                      style: Theme.of(context).textTheme.labelLarge,
+                    _publicationSubheading(
+                      icon: Icons.link,
+                      label: l10n.creatorLinkedSections(bandEntries.length),
                     ),
+                    const SizedBox(height: 8),
                     for (final entry in bandEntries)
-                      ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.link, size: 18),
-                        title: Text(
-                          _publicationPlan?.bandBbsTargets
-                                  .where(
-                                    (target) =>
-                                        target.categoryId.toString() ==
-                                        entry.categoryId,
-                                  )
-                                  .firstOrNull
-                                  ?.categoryName ??
-                              'BandBBS',
-                        ),
-                        subtitle: Text(
-                          l10n.creatorBandBbsBindingIds(
-                            entry.categoryId,
-                            entry.resourceId,
-                          ),
+                      _publicationBindingRow(
+                        title:
+                            _publicationPlan?.bandBbsTargets
+                                .where(
+                                  (target) =>
+                                      target.categoryId.toString() ==
+                                      entry.categoryId,
+                                )
+                                .firstOrNull
+                                ?.categoryName ??
+                            'BandBBS',
+                        subtitle: l10n.creatorBandBbsBindingIds(
+                          entry.categoryId,
+                          entry.resourceId,
                         ),
                       ),
-                    const Divider(),
-                    Text(
-                      l10n.creatorThisCommit,
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
                   ],
                 ),
               ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+            _publicationDetails(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _publicationSubheading(
+                    icon: Icons.alt_route_outlined,
+                    label: l10n.creatorThisCommit,
+                    trailing: IconButton(
+                      tooltip: l10n.refresh,
+                      onPressed: () => _loadPublicationPlan(refresh: true),
+                      icon: const Icon(Icons.refresh),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   if (_loadingPublicationPlan)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.hourglass_top_rounded),
-                      title: Text(l10n.creatorResolvingPublicationTarget),
+                    _publicationStateRow(
+                      icon: Icons.hourglass_top_rounded,
+                      message: l10n.creatorResolvingPublicationTarget,
                     )
                   else if (_publicationPlan?.bandBbsProblem case final problem?)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.error_outline),
-                      title: Text(l10n.creatorBandBbsUnresolved),
-                      subtitle: Text(_bandBbsProblemText(l10n, problem)),
-                      trailing: IconButton(
-                        onPressed: () => _loadPublicationPlan(refresh: true),
-                        icon: const Icon(Icons.refresh),
-                      ),
+                    _publicationStateRow(
+                      icon: Icons.error_outline,
+                      message:
+                          '${l10n.creatorBandBbsUnresolved}: ${_bandBbsProblemText(l10n, problem)}',
+                      color: colors.error,
                     )
                   else if (_publicationPlan case final plan?)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.auto_awesome_outlined),
-                      title: Text(
-                        plan.bandBbsTargets
-                            .map((target) => target.categoryName)
-                            .join(' / '),
-                      ),
-                      subtitle: Text(
-                        plan.bandBbsTargets
-                            .map(
-                              (target) =>
-                                  '${target.categoryName}: ${target.packageName} (${target.deviceNames.join(', ')})',
-                            )
-                            .join('\n'),
-                      ),
-                      trailing: IconButton(
-                        onPressed: () => _loadPublicationPlan(refresh: true),
-                        icon: const Icon(Icons.refresh),
-                      ),
+                    for (final target in plan.bandBbsTargets)
+                      _publicationBindingRow(
+                        title: target.categoryName,
+                        subtitle:
+                            '${target.packageName}\n${target.deviceNames.join(', ')}',
+                      )
+                  else
+                    _publicationStateRow(
+                      icon: Icons.info_outline,
+                      message: l10n.creatorResolvingPublicationTarget,
                     ),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            _publicationDetails(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -1976,13 +2083,8 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
               ),
             ),
           ],
-          SwitchListTile(
-            value: _publishAstroBox,
-            onChanged: (value) async {
-              if (value && !await _confirmTargetTerms('astrobox')) return;
-              setState(() => _publishAstroBox = value);
-            },
-            secondary: const CreatorBrandLogo(
+          _publicationTargetRow(
+            leading: const CreatorBrandLogo(
               asset: 'assets/images/brands/astrobox.svg',
               label: 'AstroBox',
             ),
@@ -1995,11 +2097,18 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                     : l10n.creatorAstroBoxBoundSync,
               ),
             ),
+            trailing: Switch(
+              value: _publishAstroBox,
+              onChanged: (value) async {
+                if (value && !await _confirmTargetTerms('astrobox')) return;
+                setState(() => _publishAstroBox = value);
+              },
+            ),
           ),
           if (_publishAstroBox) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            _publicationDetails(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   TextField(
                     controller: _astroItemId,
@@ -2038,11 +2147,11 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                     title: Text(l10n.creatorAstroBoxBindAccount),
                   ),
                   if (githubLogin.isEmpty)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.error_outline),
-                      title: Text(l10n.creatorGitHubOwnPublishMissing),
-                      trailing: FilledButton.tonal(
+                    _publicationNotice(
+                      icon: Icons.error_outline,
+                      message: l10n.creatorGitHubOwnPublishMissing,
+                      padding: EdgeInsets.zero,
+                      action: FilledButton.tonal(
                         onPressed: _authorizeGitHub,
                         child: Text(l10n.creatorConnect),
                       ),
@@ -2055,6 +2164,115 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
       ),
     );
   }
+
+  Widget _publicationTargetRow({
+    required Widget leading,
+    required Widget title,
+    required Widget subtitle,
+    required Widget trailing,
+  }) => ListTile(
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    minVerticalPadding: 8,
+    leading: SizedBox(width: 32, child: Center(child: leading)),
+    title: title,
+    subtitle: subtitle,
+    trailing: SizedBox(width: 52, child: Center(child: trailing)),
+  );
+
+  Widget _publicationDetails({required Widget child}) =>
+      Padding(padding: const EdgeInsets.fromLTRB(64, 0, 16, 16), child: child);
+
+  Widget _publicationNotice({
+    required IconData icon,
+    required String message,
+    required Widget action,
+    EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(64, 0, 16, 12),
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: padding,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(icon, size: 20, color: colors.onSurfaceVariant),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(message, style: Theme.of(context).textTheme.bodySmall),
+          ),
+          const SizedBox(width: 12),
+          action,
+        ],
+      ),
+    );
+  }
+
+  Widget _publicationSubheading({
+    required IconData icon,
+    required String label,
+    Widget? trailing,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: colors.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(label, style: Theme.of(context).textTheme.labelLarge),
+        ),
+        if (trailing != null) trailing,
+      ],
+    );
+  }
+
+  Widget _publicationBindingRow({
+    required String title,
+    required String subtitle,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest.withValues(alpha: .45),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.link_outlined, size: 18, color: colors.onSurfaceVariant),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _publicationStateRow({
+    required IconData icon,
+    required String message,
+    Color? color,
+  }) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, size: 18, color: color),
+      const SizedBox(width: 10),
+      Expanded(child: Text(message)),
+    ],
+  );
 
   String _bandBbsProblemText(
     AppLocalizations l10n,

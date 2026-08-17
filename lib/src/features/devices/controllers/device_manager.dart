@@ -1030,6 +1030,16 @@ class LocalDeviceManager extends DeviceManager {
       if (transportType == ConnectType.spp) {
         await _disconnectOtherPooledSpp(addr);
         _throwIfConnectCancelled(generation);
+        // Android Xiaomi SPP ownership is established by a fresh system bond.
+        // Never restore a pooled socket for this path: close it first so the
+        // native connect always performs removeBond -> createBond -> RFCOMM.
+        if (defaultTargetPlatform == TargetPlatform.android &&
+            profile.kind == DeviceKind.xiaomi &&
+            (_pooledConnections.containsKey(addr) ||
+                _pooledEntities.containsKey(addr))) {
+          await _disconnectPooledDevice(addr);
+          _throwIfConnectCancelled(generation);
+        }
       }
       state = state.copyWith(
         connectionPhase: DeviceConnectionPhase.connectingTransport,
@@ -2107,7 +2117,9 @@ class LocalDeviceManager extends DeviceManager {
     }
     final connectType = _bluetoothConnection?.connectType;
     if (connectType != ConnectType.ble && connectType != ConnectType.spp) {
-      throw UnsupportedError('Offline maps require a BLE or BT Classic connection');
+      throw UnsupportedError(
+        'Offline maps require a BLE or BT Classic connection',
+      );
     }
     if (connectType == ConnectType.ble && bytes.length > 2 * 1024 * 1024) {
       throw UnsupportedError(
@@ -2116,7 +2128,9 @@ class LocalDeviceManager extends DeviceManager {
       );
     }
     final system = entity.system<ZeppOsMapUploadSystem>();
-    if (system == null) throw UnsupportedError('Map transfer service is unavailable');
+    if (system == null) {
+      throw UnsupportedError('Map transfer service is unavailable');
+    }
     _activeTransfers += 1;
     try {
       await system.upload(bytes, fileName: fileName, onProgress: onProgress);
@@ -2139,10 +2153,14 @@ class LocalDeviceManager extends DeviceManager {
     }
     final connectType = _bluetoothConnection?.connectType;
     if (connectType != ConnectType.ble && connectType != ConnectType.spp) {
-      throw UnsupportedError('Music upload requires a BLE or BT Classic connection');
+      throw UnsupportedError(
+        'Music upload requires a BLE or BT Classic connection',
+      );
     }
     final system = entity.system<ZeppOsMusicUploadSystem>();
-    if (system == null) throw UnsupportedError('Music transfer service is unavailable');
+    if (system == null) {
+      throw UnsupportedError('Music transfer service is unavailable');
+    }
     _activeTransfers++;
     try {
       await system.upload(
@@ -2173,7 +2191,9 @@ class LocalDeviceManager extends DeviceManager {
       throw UnsupportedError('Music upload requires a BLE or SPP connection');
     }
     final system = entity.system<XiaomiMediaSystem>();
-    if (system == null) throw UnsupportedError('Music transfer service is unavailable');
+    if (system == null) {
+      throw UnsupportedError('Music transfer service is unavailable');
+    }
     final id = crypto.md5.convert(bytes).bytes;
     _activeTransfers += 1;
     try {
@@ -2286,7 +2306,9 @@ class LocalDeviceManager extends DeviceManager {
       mediaId,
     );
     if (response.code != pb_media_enum.Songlist_Response_Code.NO_ERROR) {
-      throw ProtocolException('Playlist operation failed: ${response.code.name}');
+      throw ProtocolException(
+        'Playlist operation failed: ${response.code.name}',
+      );
     }
   }
 
@@ -2327,7 +2349,9 @@ class LocalDeviceManager extends DeviceManager {
     final response = await _requireXiaomiMediaSystem().requestRemoveSong(
       Uint8List.fromList(id),
     );
-    if (!response.success) throw ProtocolException('The device could not delete the song');
+    if (!response.success) {
+      throw ProtocolException('The device could not delete the song');
+    }
   }
 
   @override
@@ -2349,7 +2373,9 @@ class LocalDeviceManager extends DeviceManager {
           : pb_media_enum.Media_MediaID.REMOVE_SONG_FROM_SONGLIST,
     );
     if (response.code != pb_media_enum.Songlist_Response_Code.NO_ERROR) {
-      throw ProtocolException('Failed to update playlist: ${response.code.name}');
+      throw ProtocolException(
+        'Failed to update playlist: ${response.code.name}',
+      );
     }
   }
 

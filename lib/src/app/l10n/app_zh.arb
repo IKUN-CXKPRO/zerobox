@@ -856,7 +856,7 @@
   "desktopCloseRemember": "下次不再询问",
   "desktopCloseToTray": "最小化到托盘",
   "desktopCloseExit": "退出 OronBox",
-  "settingsDesktopCloseBehavior": "关闭按钮行为",
+  "settingsDesktopCloseBehavior": "窗口关闭",
   "settingsDesktopCloseBehaviorDesc": "选择关闭主窗口时执行的操作",
   "desktopCloseBehaviorAsk": "每次询问",
   "desktopCloseBehaviorExit": "直接退出",
@@ -1443,6 +1443,9 @@
   "settingsCategoryConnection": "连接与下载",
   "settingsCategorySupport": "支持与信息",
   "settingsCategoryAdvanced": "高级设置",
+  "settingsAdvancedDescription": "查看日志、开发者工具与实验性功能",
+  "settingsHealthFeatures": "运动健康功能",
+  "settingsHealthFeaturesDescription": "启用正在开发中的运动健康相关功能",
   "xmsDeveloperMode": "XMS 开发模式",
   "xmsDeveloperModeDescription": "允许不一致的安卓应用签名",
   "oronBoxCoinsTitle": "资源投币",
@@ -1624,5 +1627,11 @@
   "creatorImportNoticeTitle": "导入已有资源",
   "creatorImportNoticeMessage": "考虑到多设备适配的资源可能被发布到米坛的多个分区\n导入时支持多选米坛资源项，但请只选择同一个资源\n选择完毕后点击导入会把这些资源合并为同一个\n如果导入出错，可以进入对应草稿进行删除\n删除草稿不会删除关联的其它平台资源",
   "creatorImportNoticeConfirm": "继续导入",
-  "creatorImportSameResourceHint": "每次导入请只选择同一个资源"
+  "creatorImportSameResourceHint": "每次导入请只选择同一个资源",
+  "creatorFullVersionExternalPurchase": "完整版外部购买",
+  "creatorExternalPurchaseLink": "外部购买链接",
+  "creatorExternalPurchaseAmount": "金额（CNY）",
+  "creatorExternalPurchaseLinkRequired": "请输入有效的外部购买链接",
+  "creatorExternalPurchaseAmountRequired": "请输入有效的 CNY 金额",
+  "resourcePurchaseFullVersion": "购买链接"
 }

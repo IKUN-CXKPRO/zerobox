@@ -149,6 +149,9 @@
   "settingsCategoryConnection": "接続とダウンロード",
   "settingsCategorySupport": "サポートと情報",
   "settingsCategoryAdvanced": "詳細設定",
+  "settingsAdvancedDescription": "ログ、開発者ツール、試験的な機能を表示します",
+  "settingsHealthFeatures": "ヘルスケア機能",
+  "settingsHealthFeaturesDescription": "開発中のヘルスケア関連機能を有効にします",
   "cleanMode": "機能スイッチ",
   "cleanModeDescription": "メインナビゲーション、コミュニティ機能、リソースソースを管理",
   "settingsGithubCdnAuto": "自動",
@@ -567,7 +570,7 @@
   "desktopCloseRemember": "今後もこの設定を使用",
   "desktopCloseToTray": "トレイに最小化",
   "desktopCloseExit": "終了",
-  "settingsDesktopCloseBehavior": "ウィンドウを閉じる動作",
+  "settingsDesktopCloseBehavior": "ウィンドウを閉じる",
   "settingsDesktopCloseBehaviorDesc": "閉じるボタンを押したときの動作",
   "desktopCloseBehaviorAsk": "毎回確認",
   "desktopCloseBehaviorExit": "アプリを終了",
@@ -1618,10 +1621,16 @@
     }
   },
   "@updateNoApkForAbi": {
-    "placeholders": {
-      "abi": {
-        "type": "String"
+      "placeholders": {
+        "abi": {
+          "type": "String"
+        }
       }
-    }
-  }
+    },
+  "creatorFullVersionExternalPurchase": "完全版を外部購入",
+  "creatorExternalPurchaseLink": "外部購入リンク",
+  "creatorExternalPurchaseAmount": "金額（CNY）",
+  "creatorExternalPurchaseLinkRequired": "有効な外部購入リンクを入力してください",
+  "creatorExternalPurchaseAmountRequired": "有効な CNY 金額を入力してください",
+  "resourcePurchaseFullVersion": "購入リンク"
 }

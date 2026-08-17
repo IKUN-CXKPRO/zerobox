@@ -15,6 +15,7 @@ import 'package:oronbox/src/daemon/daemon_task_models.dart';
 import 'package:oronbox/src/daemon/daemon_task_monitor.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 import 'package:oronbox/src/features/resources/services/download_queue_notifier.dart';
+import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/services/install_queue_notifier.dart';
 import 'package:oronbox/src/features/resources/services/resource_task_status.dart';
 
@@ -116,7 +117,7 @@ class _DownloadQueuePanel extends ConsumerWidget {
             icon: Icons.downloading,
             iconUrl: task.resource.iconUrl?.toString(),
             title: task.title,
-            subtitle: task.subtitle,
+            subtitle: _downloadTaskDescription(l10n, task),
             status: task.status,
             progress: task.progress,
             error: task.error,
@@ -479,6 +480,22 @@ String _installTaskDescription(AppLocalizations l10n, InstallTask task) {
       LocalDeviceInstallType.firmware => l10n.localFirmwareInstall,
     },
   };
+}
+
+String _downloadTaskDescription(AppLocalizations l10n, ResourceTask task) {
+  final type = switch (task.resource.type) {
+    CommunityResourceType.quickApp => l10n.resourceTypeQuickApp,
+    CommunityResourceType.miniprogram => l10n.resourceTypeApp,
+    CommunityResourceType.watchface => l10n.resourceTypeWatchface,
+    CommunityResourceType.firmware => l10n.resourceTypeFirmware,
+    CommunityResourceType.canopus => l10n.module,
+  };
+  return [
+    type,
+    if (task.resource.authorName.trim().isNotEmpty)
+      task.resource.authorName.trim(),
+    resourceTargetDeviceDisplayName(task.codename),
+  ].where((part) => part.isNotEmpty).join(' · ');
 }
 
 String _statusLabel(

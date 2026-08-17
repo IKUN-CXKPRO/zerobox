@@ -44,8 +44,6 @@ class ResourceTask {
   final String? installType;
 
   String get title => resource.name;
-  String get subtitle =>
-      '${resource.authorName} · ${resourceTargetDeviceDisplayName(codename)}';
 }
 
 String resourceTargetDeviceDisplayName(String value) {

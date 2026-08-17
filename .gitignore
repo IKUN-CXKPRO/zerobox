@@ -4,6 +4,7 @@
 *.log
 *.pyc
 *.swp
+.DS_Store
 .buildlog/
 .history
 .example_tmp/
@@ -157,3 +158,4 @@ skills-lock.json
 server
 /.kimi-code/
 CONTEXT.md
+tmp/script.md

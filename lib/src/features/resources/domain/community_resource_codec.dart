@@ -83,6 +83,11 @@ Map<String, Object?> communityResourceDetailToJson(
   'files': detail.files
       .map(communityResourceFileToJson)
       .toList(growable: false),
+  if (detail.purchaseLink != null)
+    'purchaseLink': detail.purchaseLink.toString(),
+  if (detail.purchasePrice != null) 'purchasePrice': detail.purchasePrice,
+  if (detail.purchaseCurrency.isNotEmpty)
+    'purchaseCurrency': detail.purchaseCurrency,
   'previews': detail.previews.map((uri) => uri.toString()).toList(),
   'previewImages': detail.previewImages
       .map(
@@ -141,6 +146,7 @@ CommunityResourceDetail communityResourceDetailFromJson(
 ) {
   final common = _common(json);
   final content = _map(json['content']);
+  final purchaseLink = _uri(json['purchaseLink']);
   return CommunityResourceDetail(
     ref: common.ref,
     name: common.name,
@@ -167,6 +173,9 @@ CommunityResourceDetail communityResourceDetailFromJson(
     sourceRepoOwner: common.sourceRepoOwner,
     sourceRepoName: common.sourceRepoName,
     sourceRepoCommitHash: common.sourceRepoCommitHash,
+    purchaseLink: purchaseLink,
+    purchasePrice: (json['purchasePrice'] as num?)?.toDouble(),
+    purchaseCurrency: purchaseLink == null ? '' : 'CNY',
     content: CommunityResourceContent(
       format: _enum(ResourceContentFormat.values, content['format']),
       value: content['value']?.toString() ?? '',

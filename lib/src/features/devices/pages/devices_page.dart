@@ -15,6 +15,7 @@ import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/core/models/device.dart';
+import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/core/utils/layout.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
@@ -729,6 +730,9 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(deviceManagerProvider);
+    final healthFeaturesEnabled = ref.watch(
+      appSettingsProvider.select((settings) => settings.healthFeaturesEnabled),
+    );
     final appCount = state.apps
         .where((app) => !app.packageName.startsWith('com.xiaomi.miwear.'))
         .length;
@@ -771,13 +775,14 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
                   description: Text(l10n.zeppOsMoreFeaturesDescription),
                 )
               else ...[
-                SegmentedTile.navigation(
-                  onPressed: (_) => context.push('/devices/velaos-health'),
-                  enabled: enabled,
-                  leading: const XiaomiFitnessLogo(),
-                  title: Text(l10n.deviceHealthTitle),
-                  description: Text(l10n.deviceHealthDescription),
-                ),
+                if (healthFeaturesEnabled)
+                  SegmentedTile.navigation(
+                    onPressed: (_) => context.push('/devices/velaos-health'),
+                    enabled: enabled,
+                    leading: const XiaomiFitnessLogo(),
+                    title: Text(l10n.deviceHealthTitle),
+                    description: Text(l10n.deviceHealthDescription),
+                  ),
                 SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/velaos-music'),
                   enabled: enabled,

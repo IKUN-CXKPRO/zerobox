@@ -93,6 +93,7 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
         ? (json['source'] as Map).cast<String, Object?>()
         : const <String, Object?>{};
     final sourceUrl = Uri.tryParse(source['source_url']?.toString() ?? '');
+    final purchaseLink = Uri.tryParse(json['purchase_link']?.toString() ?? '');
     return CommunityResourceDetail(
       ref: summary.ref,
       name: summary.name,
@@ -105,6 +106,9 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
       summary: summary.summary,
       updatedAt: summary.updatedAt,
       version: summary.version,
+      purchaseLink: purchaseLink?.hasScheme == true ? purchaseLink : null,
+      purchasePrice: (json['purchase_price'] as num?)?.toDouble(),
+      purchaseCurrency: purchaseLink?.hasScheme == true ? 'CNY' : '',
       downloadCount: summary.downloadCount,
       coinCount: summary.coinCount,
       curationGrade: summary.curationGrade,
@@ -311,6 +315,11 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
     if (total > 0) request.onProgress?.call(received / total, status: line);
   }
 
+  /// Converts the compact resource payload used by both the catalog and the
+  /// home feed into the shared community model.
+  CommunityResource summaryFromWire(Map<String, Object?> json) =>
+      _summary(json);
+
   CommunityResource _summary(Map<String, Object?> json) {
     final id = json['id']?.toString() ?? '';
     final preview = json['preview_sha256']?.toString() ?? '';
@@ -356,7 +365,11 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
           : null,
       isCollection: json['card_type']?.toString() == 'collection',
       resourceCount: (json['resource_count'] as num?)?.toInt() ?? 0,
-      updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? ''),
+      updatedAt: DateTime.tryParse(
+        json['published_at']?.toString() ??
+            json['updated_at']?.toString() ??
+            '',
+      ),
     );
   }
 

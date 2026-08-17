@@ -149,6 +149,9 @@
   "settingsCategoryConnection": "連線與下載",
   "settingsCategorySupport": "支援與資訊",
   "settingsCategoryAdvanced": "進階設定",
+  "settingsAdvancedDescription": "檢視日誌、開發者工具與實驗性功能",
+  "settingsHealthFeatures": "運動健康功能",
+  "settingsHealthFeaturesDescription": "啟用仍在開發中的運動健康相關功能",
   "cleanMode": "功能開關",
   "cleanModeDescription": "管理主要導覽、社群功能與資源來源",
   "settingsGithubCdnAuto": "自動",
@@ -1125,7 +1128,7 @@
   "desktopCloseRemember": "不再詢問",
   "desktopCloseToTray": "縮小至系統匣",
   "desktopCloseExit": "結束 OronBox",
-  "settingsDesktopCloseBehavior": "關閉按鈕行為",
+  "settingsDesktopCloseBehavior": "視窗關閉",
   "settingsDesktopCloseBehaviorDesc": "選擇關閉主視窗時的行為",
   "desktopCloseBehaviorAsk": "每次詢問",
   "desktopCloseBehaviorExit": "立即結束",
@@ -1623,5 +1626,11 @@
     }
   },
   "deviceHealthNoData": "暫無資料",
-  "deviceHealthLoadFailed": "無法讀取運動健康資料"
+  "deviceHealthLoadFailed": "無法讀取運動健康資料",
+  "creatorFullVersionExternalPurchase": "完整版外部購買",
+  "creatorExternalPurchaseLink": "外部購買連結",
+  "creatorExternalPurchaseAmount": "金額（CNY）",
+  "creatorExternalPurchaseLinkRequired": "請輸入有效的外部購買連結",
+  "creatorExternalPurchaseAmountRequired": "請輸入有效的 CNY 金額",
+  "resourcePurchaseFullVersion": "購買連結"
 }

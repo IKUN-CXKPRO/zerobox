@@ -3256,7 +3256,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsDesktopCloseBehavior.
   ///
   /// In en, this message translates to:
-  /// **'Close button behavior'**
+  /// **'Window closing'**
   String get settingsDesktopCloseBehavior;
 
   /// No description provided for @settingsDesktopCloseBehaviorDesc.
@@ -5658,6 +5658,24 @@ abstract class AppLocalizations {
   /// **'Advanced settings'**
   String get settingsCategoryAdvanced;
 
+  /// No description provided for @settingsAdvancedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'View logs, developer tools, and experimental features'**
+  String get settingsAdvancedDescription;
+
+  /// No description provided for @settingsHealthFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Health features'**
+  String get settingsHealthFeatures;
+
+  /// No description provided for @settingsHealthFeaturesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable health-related features that are still in development'**
+  String get settingsHealthFeaturesDescription;
+
   /// No description provided for @xmsDeveloperMode.
   ///
   /// In en, this message translates to:
@@ -6227,6 +6245,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select only one resource for each import'**
   String get creatorImportSameResourceHint;
+
+  /// No description provided for @creatorFullVersionExternalPurchase.
+  ///
+  /// In en, this message translates to:
+  /// **'External purchase for full version'**
+  String get creatorFullVersionExternalPurchase;
+
+  /// No description provided for @creatorExternalPurchaseLink.
+  ///
+  /// In en, this message translates to:
+  /// **'External purchase link'**
+  String get creatorExternalPurchaseLink;
+
+  /// No description provided for @creatorExternalPurchaseAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount (CNY)'**
+  String get creatorExternalPurchaseAmount;
+
+  /// No description provided for @creatorExternalPurchaseLinkRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid external purchase link'**
+  String get creatorExternalPurchaseLinkRequired;
+
+  /// No description provided for @creatorExternalPurchaseAmountRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid CNY amount'**
+  String get creatorExternalPurchaseAmountRequired;
+
+  /// No description provided for @resourcePurchaseFullVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase link'**
+  String get resourcePurchaseFullVersion;
 }
 
 class _AppLocalizationsDelegate

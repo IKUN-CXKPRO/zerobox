@@ -856,7 +856,7 @@
   "desktopCloseRemember": "Do not ask again",
   "desktopCloseToTray": "Minimize to tray",
   "desktopCloseExit": "Exit OronBox",
-  "settingsDesktopCloseBehavior": "Close button behavior",
+  "settingsDesktopCloseBehavior": "Window closing",
   "settingsDesktopCloseBehaviorDesc": "Choose what happens when the main window is closed",
   "desktopCloseBehaviorAsk": "Ask every time",
   "desktopCloseBehaviorExit": "Exit immediately",
@@ -1442,6 +1442,9 @@
   "settingsCategoryConnection": "Connections and downloads",
   "settingsCategorySupport": "Support and information",
   "settingsCategoryAdvanced": "Advanced settings",
+  "settingsAdvancedDescription": "View logs, developer tools, and experimental features",
+  "settingsHealthFeatures": "Health features",
+  "settingsHealthFeaturesDescription": "Enable health-related features that are still in development",
   "xmsDeveloperMode": "XMS developer mode",
   "xmsDeveloperModeDescription": "Allow Android app signatures to differ",
   "oronBoxCoinsTitle": "Resource coins",
@@ -1623,5 +1626,11 @@
   "creatorImportNoticeTitle": "Import existing resources",
   "creatorImportNoticeMessage": "Resources supporting multiple devices may be published to multiple BandBBS sections\nYou can select multiple BandBBS entries when importing, but select entries from the same resource\nClick Import to merge the selected entries into one resource\nIf the import fails, open the corresponding draft and delete it\nDeleting a draft will not delete resources linked on other platforms",
   "creatorImportNoticeConfirm": "Continue import",
-  "creatorImportSameResourceHint": "Select only one resource for each import"
+  "creatorImportSameResourceHint": "Select only one resource for each import",
+  "creatorFullVersionExternalPurchase": "External purchase for full version",
+  "creatorExternalPurchaseLink": "External purchase link",
+  "creatorExternalPurchaseAmount": "Amount (CNY)",
+  "creatorExternalPurchaseLinkRequired": "Enter a valid external purchase link",
+  "creatorExternalPurchaseAmountRequired": "Enter a valid CNY amount",
+  "resourcePurchaseFullVersion": "Purchase link"
 }

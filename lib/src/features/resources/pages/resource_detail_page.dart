@@ -993,7 +993,10 @@ class _Actions extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final files = detail.files;
     final choices = buildResourceInstallChoices(detail);
-    if (files.isEmpty) return const SizedBox.shrink();
+    final purchaseLink = detail.purchaseLink;
+    if (files.isEmpty && purchaseLink == null) {
+      return const SizedBox.shrink();
+    }
     final preferred = preferredResourceInstallChoice(
       detail,
       choices,
@@ -1045,6 +1048,16 @@ class _Actions extends ConsumerWidget {
           runSpacing: 10,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
+            if (purchaseLink != null)
+              SizedBox(
+                width: expand ? double.infinity : 190,
+                child: FilledButton.icon(
+                  onPressed: () =>
+                      openResourceExternalLink(context, purchaseLink),
+                  icon: const Icon(Icons.shopping_bag_outlined),
+                  label: Text(l10n.resourcePurchaseFullVersion),
+                ),
+              ),
             if (files.isNotEmpty)
               SizedBox(
                 width: expand ? double.infinity : 190,

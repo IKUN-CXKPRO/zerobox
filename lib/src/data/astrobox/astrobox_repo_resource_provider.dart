@@ -115,6 +115,16 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
       );
     }
     final manifestItem = manifest.item;
+    final purchase = manifest.links
+        .where(
+          (link) =>
+              link.title.trim() == '购买链接' ||
+              link.title.trim() == '购买完整版' ||
+              link.title.trim().toLowerCase() == 'purchase full version',
+        )
+        .map((link) => Uri.tryParse(_resolveAssetUrl(item, link.url)))
+        .whereType<Uri>()
+        .firstOrNull;
     return CommunityResourceDetail(
       ref: ref,
       name: manifestItem.name,
@@ -132,6 +142,7 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
       sourceRepoOwner: item.repoOwner,
       sourceRepoName: item.repoName,
       sourceRepoCommitHash: item.repoCommitHash,
+      purchaseLink: purchase,
       summary: manifestItem.description,
       content: CommunityResourceContent(
         format: ResourceContentFormat.plainText,
@@ -147,6 +158,12 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
           .map((url) => CommunityResourceImage(url: url))
           .toList(),
       links: manifest.links
+          .where(
+            (link) =>
+                link.title.trim() != '购买链接' &&
+                link.title.trim() != '购买完整版' &&
+                link.title.trim().toLowerCase() != 'purchase full version',
+          )
           .map(
             (link) => CommunityResourceLink(
               title: link.title,

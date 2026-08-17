@@ -121,6 +121,8 @@ void main() {
       kind: CreatorResourceKind.watchface,
       name: 'EdgeUI',
       summary: 'summary',
+      paidType: CommunityPaidType.paid,
+      purchaseLink: Uri.parse('https://example.com/full'),
       links: const [
         {'title': '米坛社区', 'url': 'https://www.bandbbs.cn/resources/1/'},
       ],
@@ -176,6 +178,10 @@ void main() {
     expect(manifest['version'], 1);
     expect(manifest['kind'], 'watchface');
     expect(manifest['name'], 'EdgeUI');
+    expect(manifest['paid_type'], 'paid');
+    expect(manifest['purchase_link'], 'https://example.com/full');
+    expect(manifest.containsKey('purchase_price'), isFalse);
+    expect(manifest['purchase_currency'], 'CNY');
     expect(manifest['attributes'], isEmpty);
     // No publications key: the server stores a null plan so the editor derives
     // publish targets from the imported bindings.

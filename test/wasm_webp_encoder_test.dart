@@ -2,11 +2,36 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
+import 'package:oronbox/src/features/resources/services/resource_image_processor.dart';
 import 'package:wasm_run_flutter/wasm_run_flutter.dart';
 import 'package:oronbox/src/core/wasm/wasm_runtime.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('indexed PNG pixels are expanded to RGBA before WebP encoding', () {
+    final palette = img.PaletteUint8(2, 4)
+      ..setRgba(0, 12, 34, 56, 255)
+      ..setRgba(1, 210, 180, 90, 128);
+    final indexed =
+        img.Image(
+            width: 2,
+            height: 1,
+            numChannels: 1,
+            withPalette: true,
+            palette: palette,
+          )
+          ..setPixelIndex(0, 0, 0)
+          ..setPixelIndex(1, 0, 1);
+    final decoded = img.decodePng(img.encodePng(indexed));
+    expect(decoded, isNotNull);
+
+    expect(
+      materializeResourceImageRgba(decoded!),
+      Uint8List.fromList([12, 34, 56, 255, 210, 180, 90, 128]),
+    );
+  });
 
   test('libwebp wasm encodes RGBA into a valid WebP payload', () async {
     final bytes = await File('assets/wasm/webp_encoder.wasm').readAsBytes();

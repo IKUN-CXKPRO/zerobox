@@ -234,6 +234,9 @@ class CommunityResourceDetail extends CommunityResource {
     super.sourceRepoOwner,
     super.sourceRepoName,
     super.sourceRepoCommitHash,
+    this.purchaseLink,
+    this.purchasePrice,
+    this.purchaseCurrency = '',
     this.previews = const [],
     this.previewImages = const [],
     this.links = const [],
@@ -243,6 +246,9 @@ class CommunityResourceDetail extends CommunityResource {
 
   final CommunityResourceContent content;
   final List<CommunityResourceFile> files;
+  final Uri? purchaseLink;
+  final double? purchasePrice;
+  final String purchaseCurrency;
   final List<Uri> previews;
   final List<CommunityResourceImage> previewImages;
   final List<CommunityResourceLink> links;
