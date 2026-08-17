@@ -1043,24 +1043,11 @@ class _Actions extends ConsumerWidget {
         final foreground = canInstall
             ? color.onPrimaryContainer
             : color.onSurface.withValues(alpha: .38);
-        return Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            if (purchaseLink != null)
-              SizedBox(
-                width: expand ? double.infinity : 190,
-                child: FilledButton.icon(
-                  onPressed: () =>
-                      openResourceExternalLink(context, purchaseLink),
-                  icon: const Icon(Icons.shopping_bag_outlined),
-                  label: Text(l10n.resourcePurchaseFullVersion),
-                ),
-              ),
-            if (files.isNotEmpty)
-              SizedBox(
-                width: expand ? double.infinity : 190,
+        final buttonWidth = expand ? double.infinity : 190.0;
+        final installButton = files.isEmpty
+            ? null
+            : SizedBox(
+                width: buttonWidth,
                 child: MenuAnchor(
                   style: const MenuStyle(
                     alignment: AlignmentDirectional.topEnd,
@@ -1131,11 +1118,51 @@ class _Actions extends ConsumerWidget {
                     ),
                   ),
                 ),
-              ),
+              );
+        final purchaseButton = purchaseLink == null
+            ? null
+            : SizedBox(
+                width: buttonWidth,
+                child: FilledButton.icon(
+                  onPressed: () =>
+                      openResourceExternalLink(context, purchaseLink),
+                  icon: const Icon(Icons.shopping_bag_outlined),
+                  label: Text(_purchaseLabel(l10n, detail)),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    alignment: Alignment.centerLeft,
+                    backgroundColor: color.primaryContainer.withValues(
+                      alpha: .58,
+                    ),
+                    foregroundColor: color.onPrimaryContainer,
+                  ),
+                ),
+              );
+        return Column(
+          crossAxisAlignment: expand
+              ? CrossAxisAlignment.stretch
+              : CrossAxisAlignment.start,
+          children: [
+            if (installButton != null) installButton,
+            if (installButton != null && purchaseButton != null)
+              const SizedBox(height: 10),
+            if (purchaseButton != null) purchaseButton,
           ],
         );
       },
     );
+  }
+
+  String _purchaseLabel(
+    AppLocalizations l10n,
+    CommunityResourceDetail detail,
+  ) {
+    final price = detail.purchasePrice;
+    if (price == null) return l10n.resourcePurchaseFullVersion;
+    final amount = price.toStringAsFixed(2);
+    final base = l10n.resourcePurchaseFullVersion;
+    return '$base (¥$amount)';
   }
 
   void _toggleMenu(MenuController controller) {

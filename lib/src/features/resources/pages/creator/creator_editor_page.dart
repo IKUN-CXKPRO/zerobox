@@ -92,6 +92,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
   bool _publishAstroBox = false;
   bool _astroBindABAccount = true;
   bool _externalPurchaseEnabled = false;
+  bool _overwritePreviousBandBbs = false;
   String _astroPaidType = '';
   CommunityPaidType _paidType = CommunityPaidType.free;
   List<Map<String, Object?>>? _publicationCategories;
@@ -155,6 +156,8 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
       switch (publication['target']) {
         case 'bandbbs':
           _publishBandBbs = true;
+          _overwritePreviousBandBbs =
+              config['overwrite_previous_version'] == true;
           _bandBbsVersionTitle.text = config['version_title']?.toString() ?? '';
           _bandBbsVersionMessage.text =
               config['version_message']?.toString() ?? '';
@@ -498,6 +501,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                     ),
                     const SizedBox(height: 8),
                     CreatorEditorCard(
+                      padding: const EdgeInsets.all(14),
                       child: Column(
                         children: [
                           TextField(
@@ -609,7 +613,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     CreatorSectionTitle(
                       icon: Icons.link_outlined,
                       title: l10n.creatorAdditionalLinks,
@@ -617,6 +621,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                     const SizedBox(height: 8),
                     for (var index = 0; index < _links.length; index++) ...[
                       CreatorEditorCard(
+                        padding: const EdgeInsets.all(14),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -662,7 +667,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                         label: Text(l10n.creatorAddLink),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     CreatorSectionTitle(
                       icon: Icons.collections_outlined,
                       title: l10n.creatorIconCover,
@@ -697,7 +702,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                         );
                       },
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     CreatorSectionTitle(
                       icon: Icons.photo_library_outlined,
                       title: l10n.previewImages,
@@ -724,7 +729,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                         label: Text(l10n.add),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     CreatorSectionTitle(
                       icon: Icons.folder_zip_outlined,
                       title: l10n.packageFiles,
@@ -745,6 +750,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                     if (_paidType != CommunityPaidType.free) ...[
                       const SizedBox(height: 16),
                       CreatorEditorCard(
+                        padding: const EdgeInsets.all(14),
                         child: Column(
                           children: [
                             CheckboxListTile(
@@ -759,6 +765,9 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                               controlAffinity: ListTileControlAffinity.leading,
                               title: Text(
                                 l10n.creatorFullVersionExternalPurchase,
+                              ),
+                              subtitle: Text(
+                                l10n.creatorExternalPurchaseDescription,
                               ),
                             ),
                             if (_externalPurchaseEnabled) ...[
@@ -788,7 +797,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     CreatorSectionTitle(
                       icon: Icons.publish_outlined,
                       title: l10n.publishTargets,
@@ -1158,14 +1167,12 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     _rebuildPlan();
   }
 
-  Future<void> _loadPublicationPlan({bool refresh = false}) async {
+  Future<void> _loadPublicationPlan() async {
     if (_loadingPublicationPlan) return;
     setState(() => _loadingPublicationPlan = true);
     try {
-      if (refresh || _publicationCategories == null) {
-        _publicationCategories = await widget.controller
-            .bandBbsPublicationCategories();
-      }
+      _publicationCategories ??= await widget.controller
+          .bandBbsPublicationCategories();
       _rebuildPlan();
     } catch (error) {
       if (mounted) showCreatorFailure(context, error);
@@ -1210,6 +1217,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
             'version_title': _bandBbsVersionTitle.text.trim(),
           if (_bandBbsVersionMessage.text.trim().isNotEmpty)
             'version_message': _bandBbsVersionMessage.text.trim(),
+          if (_overwritePreviousBandBbs) 'overwrite_previous_version': true,
           if (_externalPurchaseEnabled)
             'price': double.tryParse(_externalPurchaseAmount.text.trim()),
           'targets': [
@@ -1805,7 +1813,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
         color: colors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1991,6 +1999,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
           if (_publishBandBbs) ...[
             if (bandEntries.isNotEmpty)
               _publicationDetails(
+                bottomPadding: 4,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -2026,11 +2035,6 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                   _publicationSubheading(
                     icon: Icons.alt_route_outlined,
                     label: l10n.creatorThisCommit,
-                    trailing: IconButton(
-                      tooltip: l10n.refresh,
-                      onPressed: () => _loadPublicationPlan(refresh: true),
-                      icon: const Icon(Icons.refresh),
-                    ),
                   ),
                   const SizedBox(height: 8),
                   if (_loadingPublicationPlan)
@@ -2079,6 +2083,23 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                       labelText: l10n.creatorBandBbsVersionMessage,
                     ),
                   ),
+                  if (boundToBandBbs && !_externalPurchaseEnabled) ...[
+                    const SizedBox(height: 4),
+                    CheckboxListTile(
+                      value: _overwritePreviousBandBbs,
+                      onChanged: widget.state.loading
+                          ? null
+                          : (value) => setState(
+                                () => _overwritePreviousBandBbs = value == true,
+                              ),
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: Text(l10n.creatorBandBbsOverwritePrevious),
+                      subtitle: Text(
+                        l10n.creatorBandBbsOverwritePreviousDescription,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -2171,22 +2192,27 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     required Widget subtitle,
     required Widget trailing,
   }) => ListTile(
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-    minVerticalPadding: 8,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+    minVerticalPadding: 6,
     leading: SizedBox(width: 32, child: Center(child: leading)),
     title: title,
     subtitle: subtitle,
     trailing: SizedBox(width: 52, child: Center(child: trailing)),
   );
 
-  Widget _publicationDetails({required Widget child}) =>
-      Padding(padding: const EdgeInsets.fromLTRB(64, 0, 16, 16), child: child);
+  Widget _publicationDetails({
+    required Widget child,
+    double bottomPadding = 12,
+  }) => Padding(
+    padding: EdgeInsets.fromLTRB(64, 0, 16, bottomPadding),
+    child: child,
+  );
 
   Widget _publicationNotice({
     required IconData icon,
     required String message,
     required Widget action,
-    EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(64, 0, 16, 12),
+    EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(64, 0, 16, 10),
   }) {
     final colors = Theme.of(context).colorScheme;
     return Padding(

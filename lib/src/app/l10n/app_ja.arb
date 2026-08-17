@@ -1627,10 +1627,13 @@
         }
       }
     },
-  "creatorFullVersionExternalPurchase": "完全版を外部購入",
-  "creatorExternalPurchaseLink": "外部購入リンク",
+  "creatorFullVersionExternalPurchase": "外部購入が必要",
+  "creatorExternalPurchaseDescription": "OronBox と AstroBox ではリソースファイルを試用版として公開し、購入ボタンを表示します。BandBBS では「第三者購入」リソースとして公開され、支払いに関する手続きはご自身で行ってください",
+  "creatorExternalPurchaseLink": "購入リンク",
   "creatorExternalPurchaseAmount": "金額（CNY）",
   "creatorExternalPurchaseLinkRequired": "有効な外部購入リンクを入力してください",
   "creatorExternalPurchaseAmountRequired": "有効な CNY 金額を入力してください",
-  "resourcePurchaseFullVersion": "購入リンク"
+  "resourcePurchaseFullVersion": "外部購入",
+  "creatorBandBbsOverwritePrevious": "前回の投稿を上書き",
+  "creatorBandBbsOverwritePreviousDescription": "新しいバージョンを作成してから、BandBBS の前回の投稿を削除します"
 }

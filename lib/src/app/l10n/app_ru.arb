@@ -1627,10 +1627,13 @@
   "creatorImportNoticeMessage": "Ресурсы для нескольких устройств могут публиковаться в нескольких разделах BandBBS\\nПри импорте можно выбрать несколько записей BandBBS, но выбирайте записи одного ресурса\\nНажмите «Импортировать», чтобы объединить их в один ресурс\\nЕсли импорт завершится ошибкой, откройте соответствующий черновик и удалите его\\nУдаление черновика не удаляет связанные ресурсы на других платформах",
   "creatorImportNoticeConfirm": "Продолжить импорт",
   "creatorImportSameResourceHint": "При каждом импорте выбирайте только один ресурс",
-  "creatorFullVersionExternalPurchase": "Покупка полной версии на внешнем сайте",
-  "creatorExternalPurchaseLink": "Ссылка на внешнюю покупку",
+  "creatorFullVersionExternalPurchase": "Требуется внешняя покупка",
+  "creatorExternalPurchaseDescription": "OronBox и AstroBox опубликуют файлы ресурса как пробную версию с кнопкой покупки, а BandBBS — как ресурс «Покупка у третьей стороны». Все вопросы, связанные с оплатой, вы решаете самостоятельно",
+  "creatorExternalPurchaseLink": "Ссылка для покупки",
   "creatorExternalPurchaseAmount": "Сумма (CNY)",
   "creatorExternalPurchaseLinkRequired": "Введите действительную ссылку на внешнюю покупку",
   "creatorExternalPurchaseAmountRequired": "Введите действительную сумму в CNY",
-  "resourcePurchaseFullVersion": "Ссылка на покупку"
+  "resourcePurchaseFullVersion": "Внешняя покупка",
+  "creatorBandBbsOverwritePrevious": "Перезаписать предыдущую публикацию",
+  "creatorBandBbsOverwritePreviousDescription": "Сначала создать новую версию, затем удалить предыдущую публикацию на BandBBS"
 }

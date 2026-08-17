@@ -6249,13 +6249,19 @@ abstract class AppLocalizations {
   /// No description provided for @creatorFullVersionExternalPurchase.
   ///
   /// In en, this message translates to:
-  /// **'External purchase for full version'**
+  /// **'Requires external purchase'**
   String get creatorFullVersionExternalPurchase;
+
+  /// No description provided for @creatorExternalPurchaseDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'OronBox and AstroBox will publish the resource files as a trial version with a purchase button, while BandBBS publishes it as a \"Third-party purchase\" resource. You are responsible for handling payment-related matters yourself'**
+  String get creatorExternalPurchaseDescription;
 
   /// No description provided for @creatorExternalPurchaseLink.
   ///
   /// In en, this message translates to:
-  /// **'External purchase link'**
+  /// **'Purchase link'**
   String get creatorExternalPurchaseLink;
 
   /// No description provided for @creatorExternalPurchaseAmount.
@@ -6279,8 +6285,20 @@ abstract class AppLocalizations {
   /// No description provided for @resourcePurchaseFullVersion.
   ///
   /// In en, this message translates to:
-  /// **'Purchase link'**
+  /// **'External purchase'**
   String get resourcePurchaseFullVersion;
+
+  /// No description provided for @creatorBandBbsOverwritePrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite previous submission'**
+  String get creatorBandBbsOverwritePrevious;
+
+  /// No description provided for @creatorBandBbsOverwritePreviousDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Create the new version first, then delete the previous BandBBS submission'**
+  String get creatorBandBbsOverwritePreviousDescription;
 }
 
 class _AppLocalizationsDelegate

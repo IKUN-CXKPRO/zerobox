@@ -3339,10 +3339,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get creatorImportSameResourceHint => '1回のインポートでは同じリソースだけを選択してください';
 
   @override
-  String get creatorFullVersionExternalPurchase => '完全版を外部購入';
+  String get creatorFullVersionExternalPurchase => '外部購入が必要';
 
   @override
-  String get creatorExternalPurchaseLink => '外部購入リンク';
+  String get creatorExternalPurchaseDescription =>
+      'OronBox と AstroBox ではリソースファイルを試用版として公開し、購入ボタンを表示します。BandBBS では「第三者購入」リソースとして公開され、支払いに関する手続きはご自身で行ってください';
+
+  @override
+  String get creatorExternalPurchaseLink => '購入リンク';
 
   @override
   String get creatorExternalPurchaseAmount => '金額（CNY）';
@@ -3354,5 +3358,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get creatorExternalPurchaseAmountRequired => '有効な CNY 金額を入力してください';
 
   @override
-  String get resourcePurchaseFullVersion => '購入リンク';
+  String get resourcePurchaseFullVersion => '外部購入';
+
+  @override
+  String get creatorBandBbsOverwritePrevious => '前回の投稿を上書き';
+
+  @override
+  String get creatorBandBbsOverwritePreviousDescription =>
+      '新しいバージョンを作成してから、BandBBS の前回の投稿を削除します';
 }

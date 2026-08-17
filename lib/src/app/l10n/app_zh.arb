@@ -1628,10 +1628,13 @@
   "creatorImportNoticeMessage": "考虑到多设备适配的资源可能被发布到米坛的多个分区\n导入时支持多选米坛资源项，但请只选择同一个资源\n选择完毕后点击导入会把这些资源合并为同一个\n如果导入出错，可以进入对应草稿进行删除\n删除草稿不会删除关联的其它平台资源",
   "creatorImportNoticeConfirm": "继续导入",
   "creatorImportSameResourceHint": "每次导入请只选择同一个资源",
-  "creatorFullVersionExternalPurchase": "完整版外部购买",
-  "creatorExternalPurchaseLink": "外部购买链接",
+  "creatorFullVersionExternalPurchase": "需要外部购买",
+  "creatorExternalPurchaseDescription": "在 OronBox 和 AstroBox 将会发布资源文件作为试用版并显示购买按钮，在 BandBBS 发布为“第三方购买”资源，您需自行处理支付相关事务",
+  "creatorExternalPurchaseLink": "购买链接",
   "creatorExternalPurchaseAmount": "金额（CNY）",
   "creatorExternalPurchaseLinkRequired": "请输入有效的外部购买链接",
   "creatorExternalPurchaseAmountRequired": "请输入有效的 CNY 金额",
-  "resourcePurchaseFullVersion": "购买链接"
+  "resourcePurchaseFullVersion": "外部购买",
+  "creatorBandBbsOverwritePrevious": "覆盖上次提交",
+  "creatorBandBbsOverwritePreviousDescription": "创建新版本后删除米坛上一次提交的版本"
 }

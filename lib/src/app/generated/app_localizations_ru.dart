@@ -3489,11 +3489,14 @@ class AppLocalizationsRu extends AppLocalizations {
       'При каждом импорте выбирайте только один ресурс';
 
   @override
-  String get creatorFullVersionExternalPurchase =>
-      'Покупка полной версии на внешнем сайте';
+  String get creatorFullVersionExternalPurchase => 'Требуется внешняя покупка';
 
   @override
-  String get creatorExternalPurchaseLink => 'Ссылка на внешнюю покупку';
+  String get creatorExternalPurchaseDescription =>
+      'OronBox и AstroBox опубликуют файлы ресурса как пробную версию с кнопкой покупки, а BandBBS — как ресурс «Покупка у третьей стороны». Все вопросы, связанные с оплатой, вы решаете самостоятельно';
+
+  @override
+  String get creatorExternalPurchaseLink => 'Ссылка для покупки';
 
   @override
   String get creatorExternalPurchaseAmount => 'Сумма (CNY)';
@@ -3507,5 +3510,13 @@ class AppLocalizationsRu extends AppLocalizations {
       'Введите действительную сумму в CNY';
 
   @override
-  String get resourcePurchaseFullVersion => 'Ссылка на покупку';
+  String get resourcePurchaseFullVersion => 'Внешняя покупка';
+
+  @override
+  String get creatorBandBbsOverwritePrevious =>
+      'Перезаписать предыдущую публикацию';
+
+  @override
+  String get creatorBandBbsOverwritePreviousDescription =>
+      'Сначала создать новую версию, затем удалить предыдущую публикацию на BandBBS';
 }

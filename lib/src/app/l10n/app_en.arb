@@ -1627,10 +1627,13 @@
   "creatorImportNoticeMessage": "Resources supporting multiple devices may be published to multiple BandBBS sections\nYou can select multiple BandBBS entries when importing, but select entries from the same resource\nClick Import to merge the selected entries into one resource\nIf the import fails, open the corresponding draft and delete it\nDeleting a draft will not delete resources linked on other platforms",
   "creatorImportNoticeConfirm": "Continue import",
   "creatorImportSameResourceHint": "Select only one resource for each import",
-  "creatorFullVersionExternalPurchase": "External purchase for full version",
-  "creatorExternalPurchaseLink": "External purchase link",
+  "creatorFullVersionExternalPurchase": "Requires external purchase",
+  "creatorExternalPurchaseDescription": "OronBox and AstroBox will publish the resource files as a trial version with a purchase button, while BandBBS publishes it as a \"Third-party purchase\" resource. You are responsible for handling payment-related matters yourself",
+  "creatorExternalPurchaseLink": "Purchase link",
   "creatorExternalPurchaseAmount": "Amount (CNY)",
   "creatorExternalPurchaseLinkRequired": "Enter a valid external purchase link",
   "creatorExternalPurchaseAmountRequired": "Enter a valid CNY amount",
-  "resourcePurchaseFullVersion": "Purchase link"
+  "resourcePurchaseFullVersion": "External purchase",
+  "creatorBandBbsOverwritePrevious": "Overwrite previous submission",
+  "creatorBandBbsOverwritePreviousDescription": "Create the new version first, then delete the previous BandBBS submission"
 }

@@ -3317,10 +3317,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorImportSameResourceHint => '每次导入请只选择同一个资源';
 
   @override
-  String get creatorFullVersionExternalPurchase => '完整版外部购买';
+  String get creatorFullVersionExternalPurchase => '需要外部购买';
 
   @override
-  String get creatorExternalPurchaseLink => '外部购买链接';
+  String get creatorExternalPurchaseDescription =>
+      '在 OronBox 和 AstroBox 将会发布资源文件作为试用版并显示购买按钮，在 BandBBS 发布为“第三方购买”资源，您需自行处理支付相关事务';
+
+  @override
+  String get creatorExternalPurchaseLink => '购买链接';
 
   @override
   String get creatorExternalPurchaseAmount => '金额（CNY）';
@@ -3332,7 +3336,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorExternalPurchaseAmountRequired => '请输入有效的 CNY 金额';
 
   @override
-  String get resourcePurchaseFullVersion => '购买链接';
+  String get resourcePurchaseFullVersion => '外部购买';
+
+  @override
+  String get creatorBandBbsOverwritePrevious => '覆盖上次提交';
+
+  @override
+  String get creatorBandBbsOverwritePreviousDescription => '创建新版本后删除米坛上一次提交的版本';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -6651,10 +6661,14 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get creatorImportSameResourceHint => '每次匯入請只選擇同一項資源';
 
   @override
-  String get creatorFullVersionExternalPurchase => '完整版外部購買';
+  String get creatorFullVersionExternalPurchase => '需要外部購買';
 
   @override
-  String get creatorExternalPurchaseLink => '外部購買連結';
+  String get creatorExternalPurchaseDescription =>
+      '在 OronBox 和 AstroBox 將會發布資源檔案作為試用版並顯示購買按鈕，在 BandBBS 發布為「第三方購買」資源，您需自行處理付款相關事務';
+
+  @override
+  String get creatorExternalPurchaseLink => '購買連結';
 
   @override
   String get creatorExternalPurchaseAmount => '金額（CNY）';
@@ -6666,5 +6680,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get creatorExternalPurchaseAmountRequired => '請輸入有效的 CNY 金額';
 
   @override
-  String get resourcePurchaseFullVersion => '購買連結';
+  String get resourcePurchaseFullVersion => '外部購買';
+
+  @override
+  String get creatorBandBbsOverwritePrevious => '覆蓋上次提交';
+
+  @override
+  String get creatorBandBbsOverwritePreviousDescription => '建立新版本後刪除米壇上一次提交的版本';
 }

@@ -1627,10 +1627,13 @@
   },
   "deviceHealthNoData": "暫無資料",
   "deviceHealthLoadFailed": "無法讀取運動健康資料",
-  "creatorFullVersionExternalPurchase": "完整版外部購買",
-  "creatorExternalPurchaseLink": "外部購買連結",
+  "creatorFullVersionExternalPurchase": "需要外部購買",
+  "creatorExternalPurchaseDescription": "在 OronBox 和 AstroBox 將會發布資源檔案作為試用版並顯示購買按鈕，在 BandBBS 發布為「第三方購買」資源，您需自行處理付款相關事務",
+  "creatorExternalPurchaseLink": "購買連結",
   "creatorExternalPurchaseAmount": "金額（CNY）",
   "creatorExternalPurchaseLinkRequired": "請輸入有效的外部購買連結",
   "creatorExternalPurchaseAmountRequired": "請輸入有效的 CNY 金額",
-  "resourcePurchaseFullVersion": "購買連結"
+  "resourcePurchaseFullVersion": "外部購買",
+  "creatorBandBbsOverwritePrevious": "覆蓋上次提交",
+  "creatorBandBbsOverwritePreviousDescription": "建立新版本後刪除米壇上一次提交的版本"
 }

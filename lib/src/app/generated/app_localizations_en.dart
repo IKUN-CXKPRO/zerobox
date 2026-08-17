@@ -3473,11 +3473,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Select only one resource for each import';
 
   @override
-  String get creatorFullVersionExternalPurchase =>
-      'External purchase for full version';
+  String get creatorFullVersionExternalPurchase => 'Requires external purchase';
 
   @override
-  String get creatorExternalPurchaseLink => 'External purchase link';
+  String get creatorExternalPurchaseDescription =>
+      'OronBox and AstroBox will publish the resource files as a trial version with a purchase button, while BandBBS publishes it as a \"Third-party purchase\" resource. You are responsible for handling payment-related matters yourself';
+
+  @override
+  String get creatorExternalPurchaseLink => 'Purchase link';
 
   @override
   String get creatorExternalPurchaseAmount => 'Amount (CNY)';
@@ -3491,5 +3494,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enter a valid CNY amount';
 
   @override
-  String get resourcePurchaseFullVersion => 'Purchase link';
+  String get resourcePurchaseFullVersion => 'External purchase';
+
+  @override
+  String get creatorBandBbsOverwritePrevious => 'Overwrite previous submission';
+
+  @override
+  String get creatorBandBbsOverwritePreviousDescription =>
+      'Create the new version first, then delete the previous BandBBS submission';
 }
