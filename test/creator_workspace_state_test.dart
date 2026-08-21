@@ -143,6 +143,14 @@ void main() {
     );
   });
 
+  test('BandBBS version fields must be both filled or both empty', () {
+    expect(creatorBandBbsVersionFieldsComplete('', ''), isTrue);
+    expect(creatorBandBbsVersionFieldsComplete('  ', '\n'), isTrue);
+    expect(creatorBandBbsVersionFieldsComplete('版本 2', '修复问题'), isTrue);
+    expect(creatorBandBbsVersionFieldsComplete('版本 2', ''), isFalse);
+    expect(creatorBandBbsVersionFieldsComplete('', '修复问题'), isFalse);
+  });
+
   test('external purchase validation matches CNY and AstroBox limits', () {
     CreatorExternalPurchaseIssue? validate({
       required String link,

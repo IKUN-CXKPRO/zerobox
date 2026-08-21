@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -277,7 +278,10 @@ class ZeppOsScreenshotSystem extends System {
       if (offset >= payload.length) {
         throw const FormatException('Bad file name');
       }
-      final value = String.fromCharCodes(payload.sublist(start, offset));
+      final value = utf8.decode(
+        payload.sublist(start, offset),
+        allowMalformed: true,
+      );
       offset++;
       return value;
     }

@@ -98,16 +98,18 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
   StreamSubscription<CommandEvent>? _events;
   final _records = <DiagnosticEvent>[];
   final _plugins = <String, Map<String, Object?>>{};
+  final _rawPackets = <Map<String, Object?>>[];
   final _search = TextEditingController();
   String _source = 'all';
   String _level = 'ALL';
   bool _paused = false;
+  bool _rawBluetoothEnabled = false;
   Object? _error;
 
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 4, vsync: this);
+    _tabs = TabController(length: 5, vsync: this);
     _host = ref.read(applicationHostProvider);
     _events = _host.events.listen(_onEvent);
     unawaited(_load());
@@ -151,6 +153,7 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
           _source = 'all';
         }
         _error = null;
+        _rawBluetoothEnabled = snapshot['rawBluetoothEnabled'] == true;
       });
     } catch (error) {
       if (mounted) setState(() => _error = error);
@@ -170,7 +173,28 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
       if (value is! Map || !mounted) return;
       final plugin = value.cast<String, Object?>();
       setState(() => _plugins[plugin['id'].toString()] = plugin);
+    } else if (event.event == 'debug.raw_packet' &&
+        _rawBluetoothEnabled &&
+        mounted) {
+      setState(() {
+        _rawPackets.add(event.data);
+        if (_rawPackets.length > 500) _rawPackets.removeAt(0);
+      });
     }
+  }
+
+  Future<void> _setRawBluetooth(bool enabled) async {
+    final result = await _host.execute(
+      OronBoxCommand(
+        method: 'debug.rawBluetooth.set',
+        params: {'enabled': enabled},
+      ),
+    );
+    if (!mounted || !result.ok) return;
+    setState(() {
+      _rawBluetoothEnabled = enabled;
+      if (!enabled) _rawPackets.clear();
+    });
   }
 
   List<DiagnosticEvent> get _visibleRecords {
@@ -216,6 +240,7 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
             Tab(icon: Icon(Icons.account_tree_outlined), text: 'Layout'),
             Tab(icon: Icon(Icons.memory), text: 'Runtime'),
             Tab(icon: Icon(Icons.folder_outlined), text: 'Storage'),
+            Tab(icon: Icon(Icons.bluetooth_searching), text: 'Bluetooth Raw'),
           ],
         ),
         const Divider(height: 1),
@@ -238,6 +263,11 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
                       host: _host,
                       source: _source,
                       plugin: _selectedPlugin,
+                    ),
+                    _RawBluetoothInspector(
+                      enabled: _rawBluetoothEnabled,
+                      packets: _rawPackets,
+                      onToggle: _setRawBluetooth,
                     ),
                   ],
                 ),
@@ -352,6 +382,64 @@ class _SourceChips extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _RawBluetoothInspector extends StatelessWidget {
+  const _RawBluetoothInspector({
+    required this.enabled,
+    required this.packets,
+    required this.onToggle,
+  });
+
+  final bool enabled;
+  final List<Map<String, Object?>> packets;
+  final Future<void> Function(bool enabled) onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SwitchListTile(
+          title: const Text('Bluetooth raw listener'),
+          subtitle: const Text(
+            'Observe incoming and outgoing protocol frames without consuming them',
+          ),
+          value: enabled,
+          onChanged: (value) => onToggle(value),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: packets.isEmpty
+              ? const Center(child: Text('No raw frames captured'))
+              : SelectionArea(
+                  child: ListView.builder(
+                    itemCount: packets.length,
+                    itemBuilder: (context, index) {
+                      final packet = packets[packets.length - index - 1];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 5,
+                        ),
+                        child: Text(
+                          '${packet['time'] ?? ''}  '
+                          '${packet['direction'] ?? 'in'}  '
+                          '${packet['size'] ?? 0} bytes\n'
+                          '${packet['hex'] ?? ''}',
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                            height: 1.35,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }

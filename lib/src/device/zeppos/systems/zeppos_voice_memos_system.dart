@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:oronbox/src/core/logging/logging_service.dart';
@@ -16,6 +17,7 @@ class ZeppOsVoiceMemo {
     required this.durationMs,
     required this.timestamp,
     this.bytes,
+    this.requestNameBytes,
   });
 
   final String filename;
@@ -23,6 +25,7 @@ class ZeppOsVoiceMemo {
   final int durationMs;
   final DateTime timestamp;
   final Uint8List? bytes;
+  final Uint8List? requestNameBytes;
 
   ZeppOsVoiceMemo withBytes(Uint8List value) => ZeppOsVoiceMemo(
     filename: filename,
@@ -30,6 +33,7 @@ class ZeppOsVoiceMemo {
     durationMs: durationMs,
     timestamp: timestamp,
     bytes: value,
+    requestNameBytes: requestNameBytes,
   );
 }
 
@@ -66,7 +70,9 @@ class ZeppOsVoiceMemosSystem extends System {
     try {
       final servicesSystem = entity.system<ZeppOsServicesSystem>();
       if (servicesSystem == null) {
-        throw StateError('Zepp OS service discovery has not been initialized; please reconnect the watch');
+        throw StateError(
+          'Zepp OS service discovery has not been initialized; please reconnect the watch',
+        );
       }
       final services = await servicesSystem.fetchSupportedServices();
       if (!services.containsKey(endpoint)) {
@@ -75,7 +81,9 @@ class ZeppOsVoiceMemosSystem extends System {
       _encrypted = services[endpoint] ?? false;
       final transfer = entity.system<ZeppOsScreenshotSystem>();
       if (transfer == null) {
-        throw StateError('Zepp OS file receive system has not been initialized; please reconnect the watch');
+        throw StateError(
+          'Zepp OS file receive system has not been initialized; please reconnect the watch',
+        );
       }
       await transfer.initialize();
       final memos = await _requestList();
@@ -91,7 +99,7 @@ class ZeppOsVoiceMemosSystem extends System {
         await _send(
           Uint8List.fromList([
             _downloadStartRequest,
-            ...memo.filename.codeUnits,
+            ...(memo.requestNameBytes ?? utf8.encode(memo.filename)),
           ]),
         );
         final file = await fileFuture;
@@ -166,7 +174,8 @@ class ZeppOsVoiceMemosSystem extends System {
         if (offset >= payload.length) {
           throw const FormatException('Unterminated memo filename');
         }
-        final filename = String.fromCharCodes(payload.sublist(start, offset));
+        final rawFilename = Uint8List.fromList(payload.sublist(start, offset));
+        final filename = utf8.decode(rawFilename, allowMalformed: true);
         offset++;
         if (offset + 16 > payload.length) {
           throw const FormatException('Truncated memo metadata');
@@ -181,6 +190,7 @@ class ZeppOsVoiceMemosSystem extends System {
             size: size,
             durationMs: duration,
             timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp),
+            requestNameBytes: rawFilename,
           ),
         );
       }

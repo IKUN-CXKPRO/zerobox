@@ -251,6 +251,7 @@ void main() {
         onRequest: (options, handler) {
           expect(options.queryParameters['hide_paid'], '1');
           expect(options.queryParameters['hide_force_paid'], '1');
+          expect(options.queryParameters['seed'], 987654);
           handler.resolve(
             Response<Object?>(
               requestOptions: options,
@@ -263,7 +264,11 @@ void main() {
     );
 
     await OronBoxResourceCatalog(dio: dio).getPage(
-      const CommunityResourceQuery(hidePaid: true, hideForcePaid: true),
+      const CommunityResourceQuery(
+        hidePaid: true,
+        hideForcePaid: true,
+        seed: 987654,
+      ),
     );
   });
 

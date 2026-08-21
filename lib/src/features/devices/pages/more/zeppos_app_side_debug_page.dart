@@ -290,301 +290,314 @@ class _ZeppOsAppSideDebugPageState
           ),
         ],
       ),
-      body: PageContainer(
+      body: ListView(
         padding: EdgeInsets.zero,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            StyleConstants.pagePadding,
-            8,
-            StyleConstants.pagePadding,
-            StyleConstants.pagePadding,
-          ),
-          children: [
-            if (_refreshError != null) ...[
-              Card(
-                color: Theme.of(context).colorScheme.errorContainer,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(_refreshError!),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-            SectionHeader(title: l10n.zeppOsDebugAppList),
-            if (_observed.isEmpty)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(l10n.zeppOsDebugNoApps),
-                ),
-              )
-            else
-              SegmentedSection(
-                margin: EdgeInsetsDirectional.zero,
-                tiles: [
-                  for (final id in _observed)
-                    SegmentedTile<int>.radioTile(
-                      radioValue: id,
-                      groupValue: selected,
-                      onChanged: (value) =>
-                          value == null ? null : _select(value),
-                      leading: Icon(
-                        _cached.contains(id) ? Icons.code : Icons.code_off,
+        children: [
+          PageContainer(
+            padding: const EdgeInsets.fromLTRB(
+              StyleConstants.pagePadding,
+              8,
+              StyleConstants.pagePadding,
+              StyleConstants.pagePadding,
+            ),
+            child: Column(
+              children: [
+                if (_refreshError != null) ...[
+                  Card(
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(_refreshError!),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                SectionHeader(title: l10n.zeppOsDebugAppList),
+                if (_observed.isEmpty)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(l10n.zeppOsDebugNoApps),
+                    ),
+                  )
+                else
+                  SegmentedSection(
+                    margin: EdgeInsetsDirectional.zero,
+                    tiles: [
+                      for (final id in _observed)
+                        SegmentedTile<int>.radioTile(
+                          radioValue: id,
+                          groupValue: selected,
+                          onChanged: (value) =>
+                              value == null ? null : _select(value),
+                          leading: Icon(
+                            _cached.contains(id) ? Icons.code : Icons.code_off,
+                          ),
+                          title: Text(_formatId(id)),
+                          description: Text(
+                            '${_cached.contains(id) ? l10n.zeppOsDebugCached : l10n.zeppOsDebugNotCached} · '
+                            '${_sessions.any((e) => e.appId == id) ? l10n.zeppOsDebugRuntimeRunning : l10n.zeppOsDebugRuntimeStopped}',
+                          ),
+                        ),
+                    ],
+                  ),
+                if (selected != null) ...[
+                  const SizedBox(height: StyleConstants.sectionSpacing),
+                  _SessionCard(
+                    session: session,
+                    cached: cached,
+                    events: _events,
+                  ),
+                  const SizedBox(height: StyleConstants.sectionSpacing),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SectionHeader(title: l10n.zeppOsDebugLocalRuntime),
+                          Text(
+                            !cached
+                                ? l10n.zeppOsDebugCannotStart
+                                : session == null
+                                ? l10n.zeppOsDebugCanStart
+                                : l10n.zeppOsDebugScriptRunning,
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: FilledButton.icon(
+                                  onPressed: _busy || session != null || !cached
+                                      ? null
+                                      : () => _run(manager.startZeppOsAppSide),
+                                  icon: const Icon(Icons.play_arrow),
+                                  label: Text(l10n.zeppOsDebugStartQuickJs),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: _busy || session == null
+                                      ? null
+                                      : () => _run(manager.stopZeppOsAppSide),
+                                  icon: const Icon(Icons.stop),
+                                  label: Text(l10n.stop),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      title: Text(_formatId(id)),
-                      description: Text(
-                        '${_cached.contains(id) ? l10n.zeppOsDebugCached : l10n.zeppOsDebugNotCached} · '
-                        '${_sessions.any((e) => e.appId == id) ? l10n.zeppOsDebugRuntimeRunning : l10n.zeppOsDebugRuntimeStopped}',
+                    ),
+                  ),
+                  const SizedBox(height: StyleConstants.sectionSpacing),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SectionHeader(title: l10n.zeppOsDebugMessageEditor),
+                          SegmentedButton<_MessageMode>(
+                            segments: [
+                              ButtonSegment(
+                                value: _MessageMode.text,
+                                label: Text(l10n.zeppOsDebugUtf8Text),
+                              ),
+                              ButtonSegment(
+                                value: _MessageMode.json,
+                                label: Text('JSON'),
+                              ),
+                              ButtonSegment(
+                                value: _MessageMode.hex,
+                                label: Text('HEX'),
+                              ),
+                            ],
+                            selected: {_mode},
+                            onSelectionChanged: (value) =>
+                                setState(() => _mode = value.first),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _message,
+                            minLines: 2,
+                            maxLines: 6,
+                            decoration: InputDecoration(
+                              labelText: switch (_mode) {
+                                _MessageMode.text => l10n.zeppOsDebugUtf8Text,
+                                _MessageMode.json =>
+                                  l10n.zeppOsDebugJsonCompact,
+                                _MessageMode.hex => l10n.zeppOsDebugHexBytes,
+                              },
+                              hintText: _mode == _MessageMode.hex
+                                  ? '01 02, 0xA0 FF'
+                                  : null,
+                              errorText: preview == null
+                                  ? l10n.zeppOsDebugEncodingFailed
+                                  : null,
+                              border: const OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            preview == null
+                                ? l10n.zeppOsDebugByteCountUnavailable
+                                : l10n.zeppOsDebugBytePreview(
+                                    preview.length,
+                                    _hex(preview, limit: 96),
+                                  ),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton.tonalIcon(
+                            onPressed:
+                                _busy || session == null || preview == null
+                                ? null
+                                : () => _run(
+                                    (id) => manager.injectZeppOsAppSideMessage(
+                                      id,
+                                      _parseMessage(),
+                                    ),
+                                  ),
+                            icon: const Icon(Icons.input),
+                            label: Text(l10n.zeppOsDebugInjectLocal),
+                          ),
+                          const SizedBox(height: 8),
+                          OutlinedButton.icon(
+                            onPressed:
+                                _busy ||
+                                    session?.watchSessionOpen != true ||
+                                    preview == null
+                                ? null
+                                : () => _run(
+                                    (id) => manager.sendZeppOsAppSideMessage(
+                                      id,
+                                      _parseMessage(),
+                                    ),
+                                  ),
+                            icon: const Icon(Icons.watch),
+                            label: Text(
+                              session?.watchSessionOpen == true
+                                  ? l10n.zeppOsDebugSendToWatch
+                                  : l10n.zeppOsDebugWaitingForWatch,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SectionHeader(
+                    title: l10n.zeppOsDebugEvents,
+                    action: TextButton.icon(
+                      onPressed: _busy || _events.isEmpty ? null : _clearEvents,
+                      icon: const Icon(Icons.delete_sweep_outlined),
+                      label: Text(l10n.zeppOsDebugClearCurrentApp),
+                    ),
+                  ),
+                  TextField(
+                    controller: _search,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.search),
+                      labelText: l10n.zeppOsDebugSearch,
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (final item in _EventFilter.values)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: ChoiceChip(
+                              label: Text(_filterLabel(l10n, item)),
+                              selected: _filter == item,
+                              onSelected: (_) => setState(() => _filter = item),
+                            ),
+                          ),
+                        FilterChip(
+                          label: Text(l10n.zeppOsDebugWatchOnly),
+                          selected: _watchOnly,
+                          onSelected: (value) =>
+                              setState(() => _watchOnly = value),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (events.isEmpty)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(l10n.zeppOsDebugNoEvents),
+                      ),
+                    )
+                  else
+                    Card(
+                      child: Column(
+                        children: [
+                          for (final event in events)
+                            ListTile(
+                              dense: true,
+                              leading: Icon(_eventIcon(event)),
+                              title: Text(_eventText(event)),
+                              subtitle: Text(
+                                '${_time(event.timestamp)} · ${event.type}'
+                                '${event.direction == null ? '' : ' · ${event.direction}'}'
+                                '${event.source == null ? '' : ' · ${event.source}'}',
+                              ),
+                              trailing: event.payload == null
+                                  ? null
+                                  : PopupMenuButton<String>(
+                                      tooltip: l10n.zeppOsDebugMessageActions,
+                                      onSelected: (value) {
+                                        final payload = event.payload!;
+                                        if (value == 'load') _loadEvent(event);
+                                        if (value == 'hex') {
+                                          Clipboard.setData(
+                                            ClipboardData(text: _hex(payload)),
+                                          );
+                                        }
+                                        if (value == 'text') {
+                                          Clipboard.setData(
+                                            ClipboardData(
+                                              text: utf8.decode(
+                                                payload,
+                                                allowMalformed: true,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      itemBuilder: (_) => [
+                                        PopupMenuItem(
+                                          value: 'load',
+                                          child: Text(
+                                            l10n.zeppOsDebugLoadEditor,
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'hex',
+                                          child: Text(l10n.zeppOsDebugCopyHex),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'text',
+                                          child: Text(l10n.zeppOsDebugCopyText),
+                                        ),
+                                      ],
+                                    ),
+                            ),
+                        ],
                       ),
                     ),
                 ],
-              ),
-            if (selected != null) ...[
-              const SizedBox(height: StyleConstants.sectionSpacing),
-              _SessionCard(session: session, cached: cached, events: _events),
-              const SizedBox(height: StyleConstants.sectionSpacing),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SectionHeader(title: l10n.zeppOsDebugLocalRuntime),
-                      Text(
-                        !cached
-                            ? l10n.zeppOsDebugCannotStart
-                            : session == null
-                            ? l10n.zeppOsDebugCanStart
-                            : l10n.zeppOsDebugScriptRunning,
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: FilledButton.icon(
-                              onPressed: _busy || session != null || !cached
-                                  ? null
-                                  : () => _run(manager.startZeppOsAppSide),
-                              icon: const Icon(Icons.play_arrow),
-                              label: Text(l10n.zeppOsDebugStartQuickJs),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: _busy || session == null
-                                  ? null
-                                  : () => _run(manager.stopZeppOsAppSide),
-                              icon: const Icon(Icons.stop),
-                              label: Text(l10n.stop),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: StyleConstants.sectionSpacing),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SectionHeader(title: l10n.zeppOsDebugMessageEditor),
-                      SegmentedButton<_MessageMode>(
-                        segments: [
-                          ButtonSegment(
-                            value: _MessageMode.text,
-                            label: Text(l10n.zeppOsDebugUtf8Text),
-                          ),
-                          ButtonSegment(
-                            value: _MessageMode.json,
-                            label: Text('JSON'),
-                          ),
-                          ButtonSegment(
-                            value: _MessageMode.hex,
-                            label: Text('HEX'),
-                          ),
-                        ],
-                        selected: {_mode},
-                        onSelectionChanged: (value) =>
-                            setState(() => _mode = value.first),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _message,
-                        minLines: 2,
-                        maxLines: 6,
-                        decoration: InputDecoration(
-                          labelText: switch (_mode) {
-                            _MessageMode.text => l10n.zeppOsDebugUtf8Text,
-                            _MessageMode.json => l10n.zeppOsDebugJsonCompact,
-                            _MessageMode.hex => l10n.zeppOsDebugHexBytes,
-                          },
-                          hintText: _mode == _MessageMode.hex
-                              ? '01 02, 0xA0 FF'
-                              : null,
-                          errorText: preview == null
-                              ? l10n.zeppOsDebugEncodingFailed
-                              : null,
-                          border: const OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        preview == null
-                            ? l10n.zeppOsDebugByteCountUnavailable
-                            : l10n.zeppOsDebugBytePreview(
-                                preview.length,
-                                _hex(preview, limit: 96),
-                              ),
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton.tonalIcon(
-                        onPressed: _busy || session == null || preview == null
-                            ? null
-                            : () => _run(
-                                (id) => manager.injectZeppOsAppSideMessage(
-                                  id,
-                                  _parseMessage(),
-                                ),
-                              ),
-                        icon: const Icon(Icons.input),
-                        label: Text(l10n.zeppOsDebugInjectLocal),
-                      ),
-                      const SizedBox(height: 8),
-                      OutlinedButton.icon(
-                        onPressed:
-                            _busy ||
-                                session?.watchSessionOpen != true ||
-                                preview == null
-                            ? null
-                            : () => _run(
-                                (id) => manager.sendZeppOsAppSideMessage(
-                                  id,
-                                  _parseMessage(),
-                                ),
-                              ),
-                        icon: const Icon(Icons.watch),
-                        label: Text(
-                          session?.watchSessionOpen == true
-                              ? l10n.zeppOsDebugSendToWatch
-                              : l10n.zeppOsDebugWaitingForWatch,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SectionHeader(
-                title: l10n.zeppOsDebugEvents,
-                action: TextButton.icon(
-                  onPressed: _busy || _events.isEmpty ? null : _clearEvents,
-                  icon: const Icon(Icons.delete_sweep_outlined),
-                  label: Text(l10n.zeppOsDebugClearCurrentApp),
-                ),
-              ),
-              TextField(
-                controller: _search,
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  labelText: l10n.zeppOsDebugSearch,
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final item in _EventFilter.values)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: ChoiceChip(
-                          label: Text(_filterLabel(l10n, item)),
-                          selected: _filter == item,
-                          onSelected: (_) => setState(() => _filter = item),
-                        ),
-                      ),
-                    FilterChip(
-                      label: Text(l10n.zeppOsDebugWatchOnly),
-                      selected: _watchOnly,
-                      onSelected: (value) => setState(() => _watchOnly = value),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (events.isEmpty)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(l10n.zeppOsDebugNoEvents),
-                  ),
-                )
-              else
-                Card(
-                  child: Column(
-                    children: [
-                      for (final event in events)
-                        ListTile(
-                          dense: true,
-                          leading: Icon(_eventIcon(event)),
-                          title: Text(_eventText(event)),
-                          subtitle: Text(
-                            '${_time(event.timestamp)} · ${event.type}'
-                            '${event.direction == null ? '' : ' · ${event.direction}'}'
-                            '${event.source == null ? '' : ' · ${event.source}'}',
-                          ),
-                          trailing: event.payload == null
-                              ? null
-                              : PopupMenuButton<String>(
-                                  tooltip: l10n.zeppOsDebugMessageActions,
-                                  onSelected: (value) {
-                                    final payload = event.payload!;
-                                    if (value == 'load') _loadEvent(event);
-                                    if (value == 'hex') {
-                                      Clipboard.setData(
-                                        ClipboardData(text: _hex(payload)),
-                                      );
-                                    }
-                                    if (value == 'text') {
-                                      Clipboard.setData(
-                                        ClipboardData(
-                                          text: utf8.decode(
-                                            payload,
-                                            allowMalformed: true,
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  itemBuilder: (_) => [
-                                    PopupMenuItem(
-                                      value: 'load',
-                                      child: Text(l10n.zeppOsDebugLoadEditor),
-                                    ),
-                                    PopupMenuItem(
-                                      value: 'hex',
-                                      child: Text(l10n.zeppOsDebugCopyHex),
-                                    ),
-                                    PopupMenuItem(
-                                      value: 'text',
-                                      child: Text(l10n.zeppOsDebugCopyText),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                    ],
-                  ),
-                ),
-            ],
-          ],
-        ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -51,6 +51,7 @@ class BleTransport
   final _incomingController = StreamController<Uint8List>.broadcast();
   final _trafficMeter = LinkTrafficMeter();
   StreamSubscription<Uint8List>? _valueSubscription;
+  bool _protocolNotificationsActive = false;
   Completer<void>? _exclusiveWriteGate;
   Set<String> _exclusiveCharacteristics = const {};
   final _characteristicSubscriptions = <StreamSubscription<Uint8List>>[];
@@ -119,6 +120,7 @@ class BleTransport
         onData: _onProtocolData,
       );
     }
+    _protocolNotificationsActive = true;
     _connectionSubscription = connectionState.listen(
       (connected) {
         _log.info('[$deviceId] transport connection state: $connected');
@@ -135,20 +137,43 @@ class BleTransport
   /// firmware characteristics own the BLE link exclusively.
   Future<void> suspendProtocolNotifications() async {
     final connection = _bleConnection;
-    if (connection == null || _valueSubscription == null) return;
-    await _valueSubscription?.cancel();
-    _valueSubscription = null;
-    await connection.unsubscribe(_serviceUuid, _recvCharUuid);
+    if (connection != null) {
+      if (_valueSubscription == null) return;
+      await _valueSubscription?.cancel();
+      _valueSubscription = null;
+      await connection.unsubscribe(_serviceUuid, _recvCharUuid);
+    } else {
+      if (!_protocolNotificationsActive) return;
+      await _bluetoothConnection!.unsubscribe(
+        characteristic: BleRequiredCharacteristic(
+          serviceUuid: _serviceUuid,
+          characteristicUuid: _recvCharUuid,
+        ),
+      );
+    }
+    _protocolNotificationsActive = false;
   }
 
   Future<void> resumeProtocolNotifications() async {
     final connection = _bleConnection;
-    if (connection == null || _valueSubscription != null) return;
-    _valueSubscription = await connection.subscribe(
-      _serviceUuid,
-      _recvCharUuid,
-      _onProtocolData,
-    );
+    if (connection != null) {
+      if (_valueSubscription != null) return;
+      _valueSubscription = await connection.subscribe(
+        _serviceUuid,
+        _recvCharUuid,
+        _onProtocolData,
+      );
+    } else {
+      if (_protocolNotificationsActive) return;
+      await _bluetoothConnection!.subscribe(
+        characteristic: BleRequiredCharacteristic(
+          serviceUuid: _serviceUuid,
+          characteristicUuid: _recvCharUuid,
+        ),
+        onData: _onProtocolData,
+      );
+    }
+    _protocolNotificationsActive = true;
   }
 
   Future<int?> requestMtu(int desiredMtu) async {

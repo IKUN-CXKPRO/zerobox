@@ -61,6 +61,10 @@ class _ResourceCollectionPageState extends State<ResourceCollectionPage> {
             iconUrl: mediaResource.iconUrl,
             coverUrl: mediaResource.coverUrl,
             summary: _loaded!.summary,
+            // The collection endpoint does not return listing tags. Keep the
+            // tags from the tapped card so the header does not change height
+            // after the detail request completes.
+            tags: widget.collection.tags,
             // The collection detail API carries no download count, so keep the
             // list card's value to avoid the stat disappearing after the hero
             // animation hands over to the loaded header.

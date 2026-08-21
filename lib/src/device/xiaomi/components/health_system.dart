@@ -11,6 +11,124 @@ import 'package:oronbox/src/protocols/generated/xiaomi/wear_fitness.pb.dart'
     as pb_fitness;
 import 'package:oronbox/src/protocols/generated/xiaomi/wear_system.pb.dart'
     as pb_system;
+import 'package:oronbox/src/protocols/common/device_protocol.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
+
+class XiaomiActivityFileSyncResult {
+  const XiaomiActivityFileSyncResult({
+    required this.daily,
+    required this.samples,
+    required this.sleep,
+    required this.workouts,
+    required this.filesReceived,
+  });
+
+  final List<XiaomiActivityDailyRecord> daily;
+  final List<XiaomiActivitySampleRecord> samples;
+  final List<XiaomiActivitySleepRecord> sleep;
+  final List<XiaomiActivityWorkoutRecord> workouts;
+  final int filesReceived;
+}
+
+class XiaomiActivityDailyRecord {
+  const XiaomiActivityDailyRecord({
+    required this.date,
+    this.steps,
+    this.activeCalories,
+    this.calories,
+    this.restingHeartRate,
+    this.minHeartRate,
+    this.maxHeartRate,
+    this.averageHeartRate,
+    this.minStress,
+    this.maxStress,
+    this.averageStress,
+    this.standingBitmap,
+    this.minBloodOxygen,
+    this.maxBloodOxygen,
+    this.averageBloodOxygen,
+    this.vitalityIncreaseLight,
+    this.vitalityIncreaseModerate,
+    this.vitalityIncreaseHigh,
+    this.vitalityCurrent,
+  });
+
+  final DateTime date;
+  final int? steps;
+  final int? activeCalories;
+  final int? calories;
+  final int? restingHeartRate;
+  final int? minHeartRate;
+  final int? maxHeartRate;
+  final int? averageHeartRate;
+  final int? minStress;
+  final int? maxStress;
+  final int? averageStress;
+  final int? standingBitmap;
+  final int? minBloodOxygen;
+  final int? maxBloodOxygen;
+  final int? averageBloodOxygen;
+  final int? vitalityIncreaseLight;
+  final int? vitalityIncreaseModerate;
+  final int? vitalityIncreaseHigh;
+  final int? vitalityCurrent;
+}
+
+class XiaomiActivitySampleRecord {
+  const XiaomiActivitySampleRecord({
+    required this.timestamp,
+    this.steps,
+    this.activeCalories,
+    this.distanceMeters,
+    this.heartRate,
+    this.energy,
+    this.bloodOxygen,
+    this.stress,
+  });
+
+  final DateTime timestamp;
+  final int? steps;
+  final int? activeCalories;
+  final int? distanceMeters;
+  final int? heartRate;
+  final int? energy;
+  final int? bloodOxygen;
+  final int? stress;
+}
+
+class XiaomiActivitySleepRecord {
+  const XiaomiActivitySleepRecord({
+    required this.startedAt,
+    required this.endedAt,
+    required this.durationSeconds,
+    this.averageHeartRate,
+    this.averageBloodOxygen,
+    this.quality,
+  });
+
+  final DateTime startedAt;
+  final DateTime endedAt;
+  final int durationSeconds;
+  final int? averageHeartRate;
+  final int? averageBloodOxygen;
+  final int? quality;
+}
+
+class XiaomiActivityWorkoutRecord {
+  const XiaomiActivityWorkoutRecord({
+    required this.startedAt,
+    required this.endedAt,
+    required this.activityType,
+    this.distanceMeters,
+    this.calories,
+  });
+
+  final DateTime startedAt;
+  final DateTime endedAt;
+  final int activityType;
+  final int? distanceMeters;
+  final int? calories;
+}
 
 /// Xiaomi's health domain, including both real-time wearable state and the
 /// historical/measurement messages carried by the FITNESS packet type.
@@ -25,10 +143,31 @@ class XiaomiHealthSystem extends XiaomiPbSystem {
   final Logger _log;
   final _fitnessPackets = StreamController<pb_fitness.Fitness>.broadcast();
   XiaomiHealthState _state = const XiaomiHealthState();
+  Completer<Uint8List>? _activityFileCompleter;
+  BytesBuilder? _activityFileBuffer;
+  Timer? _activityWatchdog;
+  int _activityTotalChunks = 0;
+  int _activityNextChunk = 1;
 
   XiaomiHealthState get state => _state;
 
   Stream<pb_fitness.Fitness> get fitnessPackets => _fitnessPackets.stream;
+
+  @override
+  Future<void> dispose() async {
+    _activityWatchdog?.cancel();
+    _activityWatchdog = null;
+    final completer = _activityFileCompleter;
+    if (completer != null && !completer.isCompleted) {
+      completer.completeError(
+        StateError('Xiaomi health system disposed during activity transfer'),
+      );
+    }
+    _activityFileCompleter = null;
+    _activityFileBuffer = null;
+    await _fitnessPackets.close();
+    await super.dispose();
+  }
 
   Stream<pb_fitness.BasicData> get basicDataReports => fitnessPackets
       .where((packet) => packet.hasBasicData())
@@ -163,6 +302,11 @@ class XiaomiHealthSystem extends XiaomiPbSystem {
     id: history
         ? pb_fitness.Fitness_FitnessID.GET_HISTORY_FITNESS_IDS
         : pb_fitness.Fitness_FitnessID.GET_TODAY_FITNESS_IDS,
+    payload: history
+        ? pb_fitness.Fitness()
+        : pb_fitness.Fitness(syncParam: pb_fitness.SyncParam(reason: 0)),
+    timeout: const Duration(seconds: 30),
+    hasResponse: (_) => true,
   );
 
   Future<Uint8List> requestFitnessIds(Uint8List ids) => _requestBytes(
@@ -171,14 +315,731 @@ class XiaomiHealthSystem extends XiaomiPbSystem {
   );
 
   Future<Uint8List> requestFitnessId(Uint8List id) => _requestBytes(
-    id: pb_fitness.Fitness_FitnessID.REQUEST_FITNESS_ID,
-    payload: pb_fitness.Fitness(id: id),
+    id: pb_fitness.Fitness_FitnessID.REQUEST_FITNESS_IDS,
+    // Xiaomi's activity-file request uses the repeated-id wire slot (field 2)
+    // even when it contains exactly one seven-byte file id.
+    payload: pb_fitness.Fitness(ids: id),
   );
 
   Future<void> confirmFitnessId(Uint8List id) => _sendFitness(
     pb_fitness.Fitness_FitnessID.CONFIRM_FITNESS_ID,
     payload: pb_fitness.Fitness(id: id),
   );
+
+  /// Synchronizes the activity files used by Xiaomi's stable health protocol.
+  ///
+  /// The newer aggregate requests (41/44) are not implemented by all Vela
+  /// firmwares.  Activity files are the compatible path used by Gadgetbridge:
+  /// request ids, request each seven-byte file, receive a separate fitness
+  /// channel stream, then acknowledge the file.
+  Future<XiaomiActivityFileSyncResult> syncActivityFiles() async {
+    final ids = <String, Uint8List>{};
+    for (final history in [false, true]) {
+      final raw = await fetchFitnessIds(history: history);
+      if (raw.length % 7 != 0) {
+        throw ProtocolException(
+          'Invalid Xiaomi activity id list length ${raw.length}',
+        );
+      }
+      for (var offset = 0; offset < raw.length; offset += 7) {
+        final id = Uint8List.fromList(raw.sublist(offset, offset + 7));
+        final timestamp = id[0] | (id[1] << 8) | (id[2] << 16) | (id[3] << 24);
+        if (timestamp == 0 && id[5] == 0) {
+          _log.warning('[${entity.id}] ignoring empty Xiaomi activity file id');
+          continue;
+        }
+        ids[_activityIdKey(id)] = id;
+      }
+    }
+
+    final daily = <XiaomiActivityDailyRecord>[];
+    final samples = <XiaomiActivitySampleRecord>[];
+    final sleep = <XiaomiActivitySleepRecord>[];
+    final workouts = <XiaomiActivityWorkoutRecord>[];
+    var received = 0;
+    for (final id in ids.values) {
+      final file = await _requestActivityFile(id);
+      final parsed = _parseActivityFile(file);
+      if (parsed.daily != null) daily.add(parsed.daily!);
+      samples.addAll(parsed.samples);
+      if (parsed.sleep != null) sleep.add(parsed.sleep!);
+      workouts.addAll(parsed.workouts);
+      received++;
+      await confirmFitnessId(id);
+    }
+
+    return XiaomiActivityFileSyncResult(
+      daily: daily,
+      samples: samples,
+      sleep: sleep,
+      workouts: workouts,
+      filesReceived: received,
+    );
+  }
+
+  String _activityIdKey(Uint8List id) =>
+      id.map((v) => v.toRadixString(16).padLeft(2, '0')).join();
+
+  Future<Uint8List> _requestActivityFile(Uint8List id) async {
+    if (_activityFileCompleter != null) {
+      throw StateError('Xiaomi activity file request already in progress');
+    }
+    final completer = Completer<Uint8List>();
+    _activityFileCompleter = completer;
+    _activityFileBuffer = BytesBuilder(copy: false);
+    _activityTotalChunks = 0;
+    _activityNextChunk = 1;
+    _armActivityWatchdog();
+    try {
+      await _sendFitness(
+        // Gadgetbridge and the Xiaomi firmware use FITNESS command 3 for the
+        // concrete activity-file request.  Command 4 is a different Vela
+        // extension and does not trigger the file channel on these devices.
+        pb_fitness.Fitness_FitnessID.REQUEST_FITNESS_IDS,
+        payload: pb_fitness.Fitness(ids: id),
+      );
+      return await completer.future;
+    } finally {
+      _activityWatchdog?.cancel();
+      _activityWatchdog = null;
+      _activityFileCompleter = null;
+      _activityFileBuffer = null;
+    }
+  }
+
+  void _armActivityWatchdog() {
+    _activityWatchdog?.cancel();
+    final waitingForFirstChunk = _activityNextChunk == 1;
+    _activityWatchdog = Timer(
+      waitingForFirstChunk
+          ? const Duration(seconds: 45)
+          : const Duration(seconds: 10),
+      () {
+        final completer = _activityFileCompleter;
+        if (completer == null || completer.isCompleted) return;
+        completer.completeError(
+          ProtocolException(
+            waitingForFirstChunk
+                ? 'Xiaomi activity file preparation timed out before the first chunk'
+                : 'Xiaomi activity file transfer stalled at chunk '
+                      '${_activityNextChunk - 1}/$_activityTotalChunks',
+          ),
+        );
+      },
+    );
+  }
+
+  /// Receives one raw activity-file chunk from SPP activity or L2 fileFitness.
+  void onActivityPayload(Uint8List payload) {
+    final completer = _activityFileCompleter;
+    if (completer == null || completer.isCompleted) {
+      _log.warning(
+        '[${entity.id}] unsolicited Xiaomi activity payload '
+        '(${payload.length} bytes)',
+      );
+      return;
+    }
+    if (payload.length < 4) {
+      _log.warning(
+        '[${entity.id}] dropping Xiaomi activity chunk shorter than header '
+        '(${payload.length} bytes)',
+      );
+      completer.completeError(
+        ProtocolException('Xiaomi activity chunk too short'),
+      );
+      return;
+    }
+    final view = ByteData.sublistView(payload);
+    final total = view.getUint16(0, Endian.little);
+    final number = view.getUint16(2, Endian.little);
+    if (total == 0 || number == 0 || number > total) {
+      _log.warning(
+        '[${entity.id}] dropping invalid Xiaomi activity chunk '
+        '$number/$total',
+      );
+      completer.completeError(
+        ProtocolException('Invalid Xiaomi activity chunk $number/$total'),
+      );
+      return;
+    }
+    if (number == 1) {
+      _activityFileBuffer = BytesBuilder(copy: false);
+      _activityTotalChunks = total;
+      _activityNextChunk = 1;
+    }
+    if (total != _activityTotalChunks || number != _activityNextChunk) {
+      _log.warning(
+        '[${entity.id}] unexpected Xiaomi activity chunk '
+        '$number/$total, expected $_activityNextChunk/$_activityTotalChunks',
+      );
+      completer.completeError(
+        ProtocolException(
+          'Unexpected Xiaomi activity chunk $number/$total '
+          '(expected $_activityNextChunk/$_activityTotalChunks)',
+        ),
+      );
+      return;
+    }
+    _activityFileBuffer!.add(payload.sublist(4));
+    _activityNextChunk++;
+    _armActivityWatchdog();
+    _log.fine(
+      '[${entity.id}] Xiaomi activity chunk $number/$total '
+      '(${payload.length - 4} bytes)',
+    );
+    if (number == total) {
+      final data = _activityFileBuffer!.toBytes();
+      try {
+        _validateActivityFile(data);
+        completer.complete(data);
+      } catch (error, stackTrace) {
+        _log.warning(
+          '[${entity.id}] Xiaomi activity file validation failed',
+          error,
+          stackTrace,
+        );
+        completer.completeError(error, stackTrace);
+      }
+    }
+  }
+
+  void _validateActivityFile(Uint8List data) {
+    if (data.length < 13) {
+      throw ProtocolException('Xiaomi activity file is too short');
+    }
+    final view = ByteData.sublistView(data);
+    final expected = view.getUint32(data.length - 4, Endian.little);
+    final actual = _crc32(Uint8List.sublistView(data, 0, data.length - 4));
+    if (expected != actual) {
+      throw ProtocolException(
+        'Xiaomi activity CRC mismatch: ${actual.toRadixString(16)} != '
+        '${expected.toRadixString(16)}',
+      );
+    }
+  }
+
+  _ParsedActivityFile _parseActivityFile(Uint8List data) {
+    final view = ByteData.sublistView(data);
+    final timestamp = view.getUint32(0, Endian.little);
+    final version = data[5];
+    final flags = data[6];
+    final type = (flags >> 7) & 1;
+    final subtype = (flags & 0x7f) >> 2;
+    final detail = flags & 3;
+    if (type == 0 && subtype == 0 && detail == 1) {
+      return _ParsedActivityFile(daily: _parseDaily(data, timestamp, version));
+    }
+    if (type == 0 && subtype == 0 && detail == 0) {
+      return _ParsedActivityFile(
+        samples: _parseDailyDetails(data, timestamp, version),
+      );
+    }
+    if (type == 0 && (subtype == 3 || subtype == 8)) {
+      return _ParsedActivityFile(
+        sleep: _parseSleep(data, timestamp, version, subtype),
+      );
+    }
+    if (type == 1 && detail == 1) {
+      final workout = _parseWorkoutSummary(data, timestamp, subtype, version);
+      return _ParsedActivityFile(
+        workouts: workout == null ? const [] : [workout],
+      );
+    }
+    _log.fine(
+      '[${entity.id}] unsupported Xiaomi activity file '
+      'type=$type subtype=$subtype detail=$detail version=$version',
+    );
+    return const _ParsedActivityFile();
+  }
+
+  XiaomiActivityDailyRecord? _parseDaily(
+    Uint8List data,
+    int timestamp,
+    int version,
+  ) {
+    final headerSize = switch (version) {
+      3 || 4 => 3,
+      5 => 4,
+      _ => 0,
+    };
+    final slots = switch (version) {
+      3 || 4 => 21,
+      5 => 32,
+      _ => 0,
+    };
+    final limit = data.length - 4;
+    if (headerSize == 0 || limit < 8 + headerSize) return null;
+    final view = ByteData.sublistView(data);
+    var offset = 8 + headerSize;
+    int? steps;
+    int? activeCalories;
+    int? calories;
+    int? restingHeartRate;
+    int? minHeartRate;
+    int? maxHeartRate;
+    int? averageHeartRate;
+    int? minStress;
+    int? maxStress;
+    int? averageStress;
+    int? standingBitmap;
+    int? minBloodOxygen;
+    int? maxBloodOxygen;
+    int? averageBloodOxygen;
+    int? vitalityIncreaseLight;
+    int? vitalityIncreaseModerate;
+    int? vitalityIncreaseHigh;
+    int? vitalityCurrent;
+    bool valid(int slot) => (data[8 + slot ~/ 8] & (1 << (7 - slot % 8))) != 0;
+    for (var slot = 0; slot < slots; slot++) {
+      switch (slot) {
+        case 0:
+          if (offset + 4 > limit) return null;
+          final value = view.getInt32(offset, Endian.little);
+          if (valid(slot)) steps = value;
+          offset += 4;
+        case 1:
+          if (offset + 2 > limit) return null;
+          final value = view.getUint16(offset, Endian.little);
+          if (valid(slot)) activeCalories = value;
+          offset += 2;
+        case 2:
+          offset += 1;
+        case 3:
+          if (offset >= limit) return null;
+          if (valid(slot)) restingHeartRate = data[offset];
+          offset += 1;
+        case 4:
+          if (offset >= limit) return null;
+          if (valid(slot)) maxHeartRate = data[offset];
+          offset += 1;
+        case 5:
+          if (offset + 4 > limit) return null;
+          offset += 4;
+        case 6:
+          if (offset >= limit) return null;
+          if (valid(slot)) minHeartRate = data[offset];
+          offset += 1;
+        case 7:
+          if (offset + 4 > limit) return null;
+          offset += 4;
+        case 8:
+          if (offset >= limit) return null;
+          if (valid(slot)) averageHeartRate = data[offset];
+          offset += 1;
+        case 9:
+          if (offset >= limit) return null;
+          if (valid(slot)) averageStress = data[offset];
+          offset += 1;
+        case 10:
+          if (offset >= limit) return null;
+          if (valid(slot)) maxStress = data[offset];
+          offset += 1;
+        case 11:
+          if (offset >= limit) return null;
+          if (valid(slot)) minStress = data[offset];
+          offset += 1;
+        case 12:
+          if (offset + 3 > limit) return null;
+          if (valid(slot)) {
+            standingBitmap =
+                data[offset] |
+                (data[offset + 1] << 8) |
+                (data[offset + 2] << 16);
+          }
+          offset += 3;
+        case 13:
+          if (offset + 2 > limit) return null;
+          final value = view.getUint16(offset, Endian.little);
+          if (valid(slot)) calories = value;
+          offset += 2;
+        case 14:
+          offset += 2;
+        case 15:
+          offset += 1;
+        case 16:
+          if (offset >= limit) return null;
+          if (valid(slot)) maxBloodOxygen = data[offset];
+          offset += 1;
+        case 17:
+          if (offset + 4 > limit) return null;
+          offset += 4;
+        case 18:
+          if (offset >= limit) return null;
+          if (valid(slot)) minBloodOxygen = data[offset];
+          offset += 1;
+        case 19:
+          if (offset + 4 > limit) return null;
+          offset += 4;
+        case 20:
+          if (offset >= limit) return null;
+          if (valid(slot)) averageBloodOxygen = data[offset];
+          offset += 1;
+        case 21 || 22:
+          offset += 2;
+        case 23:
+          offset += 1;
+        case 24:
+          if (offset >= limit) return null;
+          if (valid(slot)) vitalityIncreaseLight = data[offset];
+          offset += 1;
+        case 25:
+          if (offset >= limit) return null;
+          if (valid(slot)) vitalityIncreaseModerate = data[offset];
+          offset += 1;
+        case 26:
+          if (offset >= limit) return null;
+          if (valid(slot)) vitalityIncreaseHigh = data[offset];
+          offset += 1;
+        case 27:
+          if (offset + 2 > limit) return null;
+          if (valid(slot)) {
+            vitalityCurrent = view.getUint16(offset, Endian.little);
+          }
+          offset += 2;
+        case 28 || 29:
+          offset += 1;
+        case 30 || 31:
+          offset += 2;
+      }
+      if (offset > limit) return null;
+    }
+    return XiaomiActivityDailyRecord(
+      date: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+      steps: steps,
+      activeCalories: activeCalories,
+      calories: calories,
+      restingHeartRate: restingHeartRate,
+      minHeartRate: minHeartRate,
+      maxHeartRate: maxHeartRate,
+      averageHeartRate: averageHeartRate,
+      minStress: minStress,
+      maxStress: maxStress,
+      averageStress: averageStress,
+      standingBitmap: standingBitmap,
+      minBloodOxygen: minBloodOxygen,
+      maxBloodOxygen: maxBloodOxygen,
+      averageBloodOxygen: averageBloodOxygen,
+      vitalityIncreaseLight: vitalityIncreaseLight,
+      vitalityIncreaseModerate: vitalityIncreaseModerate,
+      vitalityIncreaseHigh: vitalityIncreaseHigh,
+      vitalityCurrent: vitalityCurrent,
+    );
+  }
+
+  List<XiaomiActivitySampleRecord> _parseDailyDetails(
+    Uint8List data,
+    int timestamp,
+    int version,
+  ) {
+    final headerSize = switch (version) {
+      1 || 2 => 4,
+      3 => 5,
+      4 => 6,
+      _ => 0,
+    };
+    final limit = data.length - 4;
+    if (headerSize == 0 || limit < 8 + headerSize) return const [];
+
+    final parser = _XiaomiComplexActivityParser(
+      data: data,
+      offset: 8 + headerSize,
+      limit: limit,
+      header: data.sublist(8, 8 + headerSize),
+    );
+    final samples = <XiaomiActivitySampleRecord>[];
+    var sampleTimestamp = timestamp;
+    while (parser.hasRemaining) {
+      parser.reset();
+      int? steps;
+      int? activeCalories;
+      int? distanceMeters;
+      int? heartRate;
+      int? energy;
+      int? bloodOxygen;
+      int? stress;
+      var includeExtraEntry = false;
+
+      if (parser.nextGroup(16)) {
+        if (parser.hasSecond) includeExtraEntry = parser.get(1, 1) == 1;
+        if (parser.hasThird) steps = parser.get(2, 14);
+      }
+      if (parser.nextGroup(8) && parser.hasSecond) {
+        // The value occupies the low six bits of this group. This matches
+        // Gadgetbridge's XiaomiComplexActivityParser.get(2, 6).
+        activeCalories = parser.get(2, 6);
+      }
+      parser.nextGroup(8);
+      if (parser.nextGroup(16) && parser.hasFirst) {
+        distanceMeters = (parser.get(0, 16) / 100).round();
+      }
+      if (parser.nextGroup(8) && parser.hasFirst) {
+        final value = parser.get(0, 8);
+        if (value != 255) heartRate = value;
+      }
+      if (parser.nextGroup(8) && parser.hasFirst) {
+        energy = parser.get(0, 8);
+      }
+      parser.nextGroup(16);
+      if (version >= 3) {
+        if (parser.nextGroup(8) && parser.hasFirst) {
+          final value = parser.get(0, 8);
+          if (value != 255) bloodOxygen = value;
+        }
+        if (parser.nextGroup(8) && parser.hasFirst) {
+          final value = parser.get(0, 8);
+          if (value != 255) stress = value;
+        }
+      }
+      if (includeExtraEntry) parser.consumeByte();
+      if (version >= 4) {
+        parser.nextGroup(16);
+        parser.nextGroup(16);
+      }
+      if (!parser.progressed) break;
+      samples.add(
+        XiaomiActivitySampleRecord(
+          timestamp: DateTime.fromMillisecondsSinceEpoch(
+            sampleTimestamp * 1000,
+          ),
+          steps: steps,
+          activeCalories: activeCalories,
+          distanceMeters: distanceMeters,
+          heartRate: heartRate,
+          energy: energy,
+          bloodOxygen: bloodOxygen,
+          stress: stress,
+        ),
+      );
+      sampleTimestamp += 60;
+    }
+    return samples;
+  }
+
+  XiaomiActivityWorkoutRecord? _parseWorkoutSummary(
+    Uint8List data,
+    int timestamp,
+    int subtype,
+    int version,
+  ) {
+    final headerSize = _workoutHeaderSize(subtype, version);
+    final limit = data.length - 4;
+    if (headerSize == 0 || limit < 8 + headerSize + 8) return null;
+    final view = ByteData.sublistView(data);
+    var offset = 8 + headerSize;
+    if (subtype == 0x16 || subtype == 0x17) {
+      if (offset + 2 > limit) return null;
+      offset += 2;
+    }
+    if (offset + 8 > limit) return null;
+    final started = view.getUint32(offset, Endian.little);
+    final ended = view.getUint32(offset + 4, Endian.little);
+    if (started == 0 || ended <= started) return null;
+
+    int? distanceMeters;
+    int? calories;
+    final commonOffset = offset + 8;
+    if (subtype == 0x16 || subtype == 0x17) {
+      if (commonOffset + 14 <= limit) {
+        distanceMeters = view.getUint32(commonOffset + 8, Endian.little);
+        calories = view.getUint16(commonOffset + 12, Endian.little);
+      }
+    } else if (commonOffset + 6 <= limit) {
+      if (subtype == 0x01 || subtype == 0x02) {
+        if (commonOffset + 8 <= limit) {
+          distanceMeters = view.getUint32(commonOffset + 4, Endian.little);
+        }
+        if (commonOffset + 10 <= limit) {
+          calories = view.getUint16(commonOffset + 8, Endian.little);
+        }
+      } else {
+        calories = view.getUint16(commonOffset + 4, Endian.little);
+      }
+    }
+    return XiaomiActivityWorkoutRecord(
+      startedAt: DateTime.fromMillisecondsSinceEpoch(started * 1000),
+      endedAt: DateTime.fromMillisecondsSinceEpoch(ended * 1000),
+      activityType: subtype,
+      distanceMeters: distanceMeters,
+      calories: calories,
+    );
+  }
+
+  int _workoutHeaderSize(int subtype, int version) => switch (subtype) {
+    0x01 || 0x02 => version == 4 ? 4 : 0,
+    0x03 => switch (version) {
+      5 => 4,
+      9 => 6,
+      10 => 8,
+      11 => 9,
+      _ => 0,
+    },
+    0x06 || 0x07 => switch (version) {
+      8 => 7,
+      9 => 8,
+      _ => 0,
+    },
+    0x08 => switch (version) {
+      5 => 3,
+      7 => 5,
+      8 || 9 || 10 => 6,
+      _ => 0,
+    },
+    0x09 => switch (version) {
+      6 => 4,
+      7 => 5,
+      8 => 8,
+      _ => 0,
+    },
+    0x0b => version >= 3 && version <= 6 ? 4 : 0,
+    0x0d => switch (version) {
+      4 => 4,
+      6 || 7 => 5,
+      _ => 0,
+    },
+    0x0e => version == 3 || version == 5 ? 5 : 0,
+    0x10 => version == 5 ? 4 : 0,
+    0x16 => switch (version) {
+      1 => 5,
+      4 => 7,
+      5 || 6 => 9,
+      9 => 13,
+      _ => 0,
+    },
+    0x17 => version == 4 ? 5 : 0,
+    _ => 0,
+  };
+
+  XiaomiActivitySleepRecord? _parseSleep(
+    Uint8List data,
+    int timestamp,
+    int version,
+    int subtype,
+  ) {
+    final limit = data.length - 4;
+    if (subtype == 8) {
+      return _parseSleepDetails(data, version, limit);
+    }
+    if (limit < 37) return null;
+    final view = ByteData.sublistView(data);
+    final offset = 8 + 7;
+    final durationMinutes = view.getUint16(offset, Endian.little);
+    final started = view.getUint32(offset + 2, Endian.little);
+    final ended = view.getUint32(offset + 6, Endian.little);
+    if (started == 0 || ended == 0 || durationMinutes == 0) return null;
+    return XiaomiActivitySleepRecord(
+      startedAt: DateTime.fromMillisecondsSinceEpoch(started * 1000),
+      endedAt: DateTime.fromMillisecondsSinceEpoch(ended * 1000),
+      durationSeconds: durationMinutes * 60,
+    );
+  }
+
+  XiaomiActivitySleepRecord? _parseSleepDetails(
+    Uint8List data,
+    int version,
+    int limit,
+  ) {
+    final headerSize = version >= 5 ? 2 : 1;
+    if (version < 1 || version > 5 || limit < 8 + headerSize + 9) {
+      return null;
+    }
+    final view = ByteData.sublistView(data);
+    final header = data.sublist(8, 8 + headerSize);
+    var offset = 8 + headerSize;
+    offset += 1; // awake flag
+    final started = view.getUint32(offset, Endian.little);
+    offset += 4;
+    final ended = view.getUint32(offset, Endian.little);
+    offset += 4;
+    if (started == 0 || ended <= started) return null;
+
+    int? quality;
+    var headerIndex = 3;
+    if (version >= 4) {
+      if (_validHeaderBit(header, headerIndex) && offset < limit) {
+        quality = view.getUint8(offset);
+      }
+      offset += 1;
+      headerIndex++;
+    }
+
+    final heartRate = _readSleepByteSeries(
+      view,
+      data,
+      limit,
+      offset,
+      version,
+      _validHeaderBit(header, headerIndex),
+    );
+    offset = heartRate.offset;
+    headerIndex++;
+    final bloodOxygen = _readSleepByteSeries(
+      view,
+      data,
+      limit,
+      offset,
+      version,
+      _validHeaderBit(header, headerIndex),
+    );
+    final duration = ended - started;
+    return XiaomiActivitySleepRecord(
+      startedAt: DateTime.fromMillisecondsSinceEpoch(started * 1000),
+      endedAt: DateTime.fromMillisecondsSinceEpoch(ended * 1000),
+      durationSeconds: duration,
+      averageHeartRate: heartRate.average,
+      averageBloodOxygen: bloodOxygen.average,
+      quality: quality,
+    );
+  }
+
+  _SleepByteSeries _readSleepByteSeries(
+    ByteData view,
+    Uint8List data,
+    int limit,
+    int offset,
+    int version,
+    bool valid,
+  ) {
+    if (offset + 4 > limit) return _SleepByteSeries(offset: limit);
+    offset += 2; // sample interval
+    final count = view.getUint16(offset, Endian.little);
+    offset += 2;
+    if (version >= 2) {
+      if (offset + 4 > limit) return _SleepByteSeries(offset: limit);
+      offset += 4;
+    }
+    final available = (limit - offset).clamp(0, count);
+    if (!valid || available == 0) {
+      return _SleepByteSeries(offset: offset + available);
+    }
+    var total = 0;
+    var samples = 0;
+    for (var index = 0; index < available; index++) {
+      final value = data[offset + index];
+      if (value == 0 || value == 255) continue;
+      total += value;
+      samples++;
+    }
+    return _SleepByteSeries(
+      offset: offset + available,
+      average: samples == 0 ? null : (total / samples).round(),
+    );
+  }
+
+  bool _validHeaderBit(Uint8List header, int index) =>
+      index >= 0 && index < header.length * 8
+      ? (header[index ~/ 8] & (1 << (7 - index % 8))) != 0
+      : false;
+
+  int _crc32(Uint8List data) {
+    var crc = 0xffffffff;
+    for (final byte in data) {
+      crc ^= byte;
+      for (var bit = 0; bit < 8; bit++) {
+        crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xedb88320 : crc >> 1;
+      }
+    }
+    return (crc ^ 0xffffffff) & 0xffffffff;
+  }
 
   Future<pb_fitness.RemainingSportData_List> fetchRemainingSportData() =>
       _requestFitness(
@@ -507,11 +1368,12 @@ class XiaomiHealthSystem extends XiaomiPbSystem {
     pb_fitness.Fitness? payload,
     Set<int>? responseIds,
     Duration? timeout,
+    bool Function(pb_fitness.Fitness fitness)? hasResponse,
   }) => _requestFitness<Uint8List>(
     id: id,
     payload: payload ?? pb_fitness.Fitness(),
     responseIds: responseIds,
-    hasResponse: (fitness) => fitness.hasIds(),
+    hasResponse: hasResponse ?? (fitness) => fitness.hasIds(),
     response: (fitness) => Uint8List.fromList(fitness.ids),
     timeout: timeout,
   );
@@ -538,6 +1400,15 @@ class XiaomiHealthSystem extends XiaomiPbSystem {
   );
 
   @override
+  void onLayer2Packet(L2Channel channel, L2OpCode opcode, Uint8List payload) {
+    if (channel == L2Channel.fileFitness) {
+      onActivityPayload(payload);
+      return;
+    }
+    super.onLayer2Packet(channel, opcode, payload);
+  }
+
+  @override
   void onWearPacket(pb.WearPacket packet) {
     if (packet.whichPayload() == pb.WearPacket_Payload.system) {
       final system = packet.system;
@@ -554,6 +1425,15 @@ class XiaomiHealthSystem extends XiaomiPbSystem {
     }
 
     if (packet.whichPayload() != pb.WearPacket_Payload.fitness) return;
+    final knownId = pb_fitness.Fitness_FitnessID.values.any(
+      (value) => value.value == packet.id,
+    );
+    if (!knownId) {
+      _log.warning(
+        '[${entity.id}] unsupported Xiaomi FITNESS packet id=${packet.id} '
+        'payload=${packet.fitness.whichPayload()}',
+      );
+    }
     _fitnessPackets.add(packet.fitness);
   }
 
@@ -657,11 +1537,104 @@ class XiaomiHealthSystem extends XiaomiPbSystem {
       left.warningStatus == right.warningStatus &&
       left.sportType == right.sportType &&
       left.sportState == right.sportState;
+}
 
-  @override
-  Future<void> dispose() async {
-    await _fitnessPackets.close();
-    await super.dispose();
+class _ParsedActivityFile {
+  const _ParsedActivityFile({
+    this.daily,
+    this.samples = const [],
+    this.sleep,
+    this.workouts = const [],
+  });
+
+  final XiaomiActivityDailyRecord? daily;
+  final List<XiaomiActivitySampleRecord> samples;
+  final XiaomiActivitySleepRecord? sleep;
+  final List<XiaomiActivityWorkoutRecord> workouts;
+}
+
+class _SleepByteSeries {
+  const _SleepByteSeries({required this.offset, this.average});
+
+  final int offset;
+  final int? average;
+}
+
+/// Bit-packed daily detail reader matching Gadgetbridge's
+/// XiaomiComplexActivityParser semantics.
+class _XiaomiComplexActivityParser {
+  _XiaomiComplexActivityParser({
+    required this.data,
+    required this.offset,
+    required this.limit,
+    required this.header,
+  });
+
+  final Uint8List data;
+  final int limit;
+  final Uint8List header;
+  int offset;
+  int _group = -1;
+  int _groupBits = 0;
+  int _value = 0;
+  int _startOffset = 0;
+
+  bool get hasRemaining => offset < limit;
+  bool get progressed => offset > _startOffset;
+  bool get hasFirst => _isValid(0);
+  bool get hasSecond => _isValid(1);
+  bool get hasThird => _isValid(2);
+
+  void reset() {
+    _startOffset = offset;
+    _group = -1;
+    _groupBits = 0;
+    _value = 0;
+  }
+
+  bool nextGroup(int bits) {
+    _group++;
+    if (_group >= header.length * 2) {
+      consume(bits);
+      return false;
+    }
+    if ((_currentNibble & 8) == 0) return false;
+    _groupBits = bits;
+    _value = consume(bits);
+    return (_currentNibble & 8) != 0;
+  }
+
+  int get(int index, int bits) {
+    final shift = _groupBits - index - bits;
+    return (_value & (((1 << bits) - 1) << shift)) >> shift;
+  }
+
+  void consumeByte() => consume(8);
+
+  int consume(int bits) {
+    if (offset + bits ~/ 8 > limit) {
+      offset = limit;
+      return 0;
+    }
+    final view = ByteData.sublistView(data);
+    final result = switch (bits) {
+      8 => view.getUint8(offset),
+      16 => view.getUint16(offset, Endian.little),
+      32 => view.getUint32(offset, Endian.little),
+      _ => throw ArgumentError.value(bits, 'bits'),
+    };
+    offset += bits ~/ 8;
+    return result;
+  }
+
+  bool _isValid(int index) {
+    if (index < 0 || index > 2) return false;
+    return (_currentNibble & (1 << (2 - index))) != 0;
+  }
+
+  int get _currentNibble {
+    final byte = header[_group ~/ 2];
+    return _group.isEven ? (byte & 0xf0) >> 4 : byte & 0x0f;
   }
 }
 

@@ -13,9 +13,9 @@ import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/core/models/device.dart';
-import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/core/utils/layout.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
@@ -149,47 +149,50 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
             isZeppOs: isZeppOs,
           );
 
-          return PageContainer(
-            padding: EdgeInsets.symmetric(
-              horizontal: isWide ? StyleConstants.pagePadding : 0,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  infoPanel,
-                  const SizedBox(height: StyleConstants.sectionSpacing),
-                  _DeviceStatusGrid(
-                    compact: !isWide,
-                    showStorage: !isZeppOs,
-                    enabled: isReady,
-                    battery: state.battery,
-                    storage: state.systemInfo?.storageInfo,
-                    appCount: state.apps
-                        .where(
-                          (app) =>
-                              !app.packageName.startsWith('com.xiaomi.miwear.'),
-                        )
-                        .length,
-                    watchfaceCount: state.watchfaces.length,
-                    onManageApps: () => context.push('/devices/apps'),
-                    onManageWatchfaces: () =>
-                        context.push('/devices/watchfaces'),
-                    onInstallApp: () => _pickAndEnqueueResource(
-                      context,
-                      ref,
-                      LocalDeviceInstallType.app,
+          return ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              PageContainer(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    infoPanel,
+                    const SizedBox(height: StyleConstants.sectionSpacing),
+                    _DeviceStatusGrid(
+                      compact: !isWide,
+                      showStorage: !isZeppOs,
+                      enabled: isReady,
+                      battery: state.battery,
+                      storage: state.systemInfo?.storageInfo,
+                      appCount: state.apps
+                          .where(
+                            (app) => !app.packageName.startsWith(
+                              'com.xiaomi.miwear.',
+                            ),
+                          )
+                          .length,
+                      watchfaceCount: state.watchfaces.length,
+                      onManageApps: () => context.push('/devices/apps'),
+                      onManageWatchfaces: () =>
+                          context.push('/devices/watchfaces'),
+                      onInstallApp: () => _pickAndEnqueueResource(
+                        context,
+                        ref,
+                        LocalDeviceInstallType.app,
+                      ),
+                      onInstallWatchface: () => _pickAndEnqueueResource(
+                        context,
+                        ref,
+                        LocalDeviceInstallType.watchface,
+                      ),
                     ),
-                    onInstallWatchface: () => _pickAndEnqueueResource(
-                      context,
-                      ref,
-                      LocalDeviceInstallType.watchface,
-                    ),
-                  ),
-                  const SizedBox(height: StyleConstants.sectionSpacing),
-                  featuresPanel,
-                ],
+                    const SizedBox(height: StyleConstants.sectionSpacing),
+                    featuresPanel,
+                  ],
+                ),
               ),
-            ),
+            ],
           );
         },
       ),
@@ -711,7 +714,7 @@ class _DeviceMetricCard extends StatelessWidget {
   }
 }
 
-class _DeviceFeaturesPanel extends ConsumerWidget {
+class _DeviceFeaturesPanel extends ConsumerStatefulWidget {
   const _DeviceFeaturesPanel({
     required this.compact,
     required this.showInstall,
@@ -727,26 +730,60 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
   final bool isZeppOs;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_DeviceFeaturesPanel> createState() =>
+      _DeviceFeaturesPanelState();
+}
+
+class _DeviceFeaturesPanelState extends ConsumerState<_DeviceFeaturesPanel> {
+  bool _finding = false;
+  bool _findingBusy = false;
+
+  Future<void> _setFinding(bool finding) async {
+    if (_findingBusy) return;
+    final previousValue = _finding;
+    setState(() => _findingBusy = true);
+    try {
+      await ref
+          .read(deviceManagerProvider.notifier)
+          .setFindingXiaomiWearable(finding);
+      if (mounted) setState(() => _finding = finding);
+    } catch (error) {
+      if (mounted) {
+        setState(() => _finding = previousValue);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              localizedErrorMessage(AppLocalizations.of(context)!, error),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _findingBusy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(deviceManagerProvider);
-    final healthFeaturesEnabled = ref.watch(
-      appSettingsProvider.select((settings) => settings.healthFeaturesEnabled),
-    );
+    final experimentalFeatures = ref
+        .watch(appSettingsProvider)
+        .healthFeaturesEnabled;
     final appCount = state.apps
         .where((app) => !app.packageName.startsWith('com.xiaomi.miwear.'))
         .length;
-    final isNarrow = compact;
+    final isNarrow = widget.compact;
 
     return Padding(
       padding: EdgeInsets.symmetric(vertical: isNarrow ? 0 : 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showInstall)
+          if (widget.showInstall)
             _InstallSection(
-              compact: compact,
-              enabled: enabled,
+              compact: widget.compact,
+              enabled: widget.enabled,
               appCount: appCount,
               watchfaceCount: state.watchfaces.length,
               onManageApps: () => context.push('/devices/apps'),
@@ -766,42 +803,94 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
               bottom: 16,
             ),
             tiles: [
-              if (isZeppOs)
+              if (widget.isZeppOs)
                 SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/zeppos-more'),
-                  enabled: enabled,
+                  enabled: widget.enabled,
                   leading: const Icon(Icons.functions),
                   title: Text(l10n.zeppOsMoreFeatures),
                   description: Text(l10n.zeppOsMoreFeaturesDescription),
                 )
               else ...[
-                if (healthFeaturesEnabled)
+                if (experimentalFeatures)
                   SegmentedTile.navigation(
                     onPressed: (_) => context.push('/devices/velaos-health'),
-                    enabled: enabled,
+                    enabled: widget.enabled,
                     leading: const XiaomiFitnessLogo(),
                     title: Text(l10n.deviceHealthTitle),
-                    description: Text(l10n.deviceHealthDescription),
+                    description: const Text('查看活动、心率、血氧、压力和睡眠数据'),
                   ),
                 SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/velaos-music'),
-                  enabled: enabled,
+                  enabled: widget.enabled,
                   leading: const Icon(Icons.music_note_outlined),
                   title: Text(l10n.deviceMusicSync),
                   description: Text(l10n.deviceMusicSyncDescription),
                 ),
                 SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/velaos-recordings'),
-                  enabled: enabled,
+                  enabled: widget.enabled,
                   leading: const Icon(Icons.mic_none),
                   title: Text(l10n.deviceRecordingsTitle),
                   description: Text(l10n.deviceRecordingsDescription),
                 ),
+                if (experimentalFeatures)
+                  SegmentedTile.navigation(
+                    onPressed: (_) => context.push('/devices/velaos-weather'),
+                    enabled: widget.enabled,
+                    leading: const Icon(Icons.cloud_outlined),
+                    title: const Text('天气同步'),
+                    description: const Text('选择城市并同步当前天气与预报'),
+                  ),
+                if (experimentalFeatures)
+                  SegmentedTile.navigation(
+                    onPressed: (_) => context.push('/devices/velaos-alarms'),
+                    enabled: widget.enabled,
+                    leading: const Icon(Icons.alarm_outlined),
+                    title: const Text('闹钟管理'),
+                    description: const Text('添加、编辑、启用或删除设备闹钟'),
+                  ),
+                SegmentedTile.switchTile(
+                  leading: const Icon(Icons.vibration),
+                  title: Text(l10n.zeppOsFindDevice),
+                  description: const Text('让设备持续振动或响铃'),
+                  initialValue: _finding,
+                  enabled: widget.enabled && !_findingBusy,
+                  onToggle: (value) => _setFinding(value ?? false),
+                ),
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/devices/velaos-app-order'),
+                  enabled: widget.enabled,
+                  leading: const Icon(Icons.swap_vert_outlined),
+                  title: const Text('应用顺序管理'),
+                  description: const Text('拖动调整设备启动器中的应用顺序'),
+                ),
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/devices/velaos-app-layout'),
+                  enabled: widget.enabled,
+                  leading: const Icon(Icons.grid_view_outlined),
+                  title: const Text('应用布局设置'),
+                  description: const Text('选择设备应用列表的显示方式'),
+                ),
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/devices/firmware'),
+                  enabled: widget.enabled,
+                  leading: const Icon(Icons.memory_outlined),
+                  title: Text(l10n.deviceFeaturesInstallFirmware),
+                  description: const Text('检查更新或安装本地固件'),
+                ),
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/devices/info'),
+                  enabled: widget.hasDevice,
+                  leading: const Icon(Icons.info_outline),
+                  title: const Text('关于设备'),
+                  description: const Text('查看型号、固件、存储空间和设备标识'),
+                ),
               ],
-              if (isZeppOs) ...[
+              if (widget.isZeppOs) ...[
                 SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/zeppos-more/music'),
-                  enabled: enabled,
+                  enabled: widget.enabled,
                   leading: const Icon(Icons.music_note_outlined),
                   title: Text(l10n.deviceMusicSync),
                   description: Text(l10n.deviceMusicSyncDescription),
@@ -809,26 +898,28 @@ class _DeviceFeaturesPanel extends ConsumerWidget {
                 SegmentedTile.navigation(
                   onPressed: (_) =>
                       context.push('/devices/zeppos-more/voice-memos'),
-                  enabled: enabled,
+                  enabled: widget.enabled,
                   leading: const Icon(Icons.mic_none),
                   title: Text(l10n.deviceRecordingsTitle),
                   description: Text(l10n.deviceRecordingsDescription),
                 ),
               ],
-              SegmentedTile.navigation(
-                onPressed: (_) => context.push('/devices/firmware'),
-                enabled: enabled,
-                leading: const Icon(Icons.memory_outlined),
-                title: Text(l10n.deviceFeaturesInstallFirmware),
-                description: Text(l10n.deviceFeaturesInstallFirmwareDesc),
-              ),
-              SegmentedTile.navigation(
-                onPressed: (_) => context.push('/devices/info'),
-                enabled: hasDevice,
-                leading: const Icon(Icons.info_outline),
-                title: Text(l10n.deviceFeaturesDeviceInfo),
-                description: Text(l10n.deviceFeaturesDeviceInfoDesc),
-              ),
+              if (widget.isZeppOs) ...[
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/devices/firmware'),
+                  enabled: widget.enabled,
+                  leading: const Icon(Icons.memory_outlined),
+                  title: Text(l10n.deviceFeaturesInstallFirmware),
+                  description: Text(l10n.deviceFeaturesInstallFirmwareDesc),
+                ),
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/devices/info'),
+                  enabled: widget.hasDevice,
+                  leading: const Icon(Icons.info_outline),
+                  title: Text(l10n.deviceFeaturesDeviceInfo),
+                  description: Text(l10n.deviceFeaturesDeviceInfoDesc),
+                ),
+              ],
             ],
           ),
         ],

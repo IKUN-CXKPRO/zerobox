@@ -182,6 +182,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Resource name and summary are required';
 
   @override
+  String get creatorSubmitValidationFailed =>
+      'Please fix the following before submitting';
+
+  @override
   String get creatorPaidType => 'Payment type';
 
   @override
@@ -781,6 +785,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get firmwareLatestRelease => 'Latest firmware';
+
+  @override
+  String get firmwareHistoricalReleases => 'Historical firmware';
 
   @override
   String get firmwareUpToDate => 'Your firmware is up to date';
@@ -1566,7 +1573,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get zeppOsFindDeviceDescription =>
-      'Make the device vibrate or ring so you can locate it nearby.';
+      'Make the device vibrate or ring continuously';
 
   @override
   String get deviceFeaturesDeviceInfo => 'Device info';
@@ -1799,6 +1806,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsDesktopCloseBehaviorDesc =>
       'Choose what happens when the main window is closed';
+
+  @override
+  String get settingsRemoveBondBeforeSpp =>
+      'Remove Bluetooth pairing before connection';
+
+  @override
+  String get settingsRemoveBondBeforeSppDesc =>
+      'Remove the existing pairing before each classic Bluetooth connection';
 
   @override
   String get desktopCloseBehaviorAsk => 'Ask every time';
@@ -2194,8 +2209,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAboutSoftwareBuildInfo => 'Build info';
 
   @override
-  String get settingsAboutSoftwareCopyright =>
-      'Copyright © OronBox contributors';
+  String get settingsAboutSoftwareCopyright => 'Copyright © 2026 OrPudding';
 
   @override
   String get acknowledgementsKazumi =>
@@ -2392,6 +2406,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDeviceLogsPulling => 'Pulling device logs';
+
+  @override
+  String get settingsDeviceLogsWaiting => 'Waiting for the device to send logs';
 
   @override
   String settingsDeviceLogsProgress(Object progress) {
@@ -2646,6 +2663,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creatorBandBbsVersionMessage => 'Update notes';
+
+  @override
+  String get creatorBandBbsVersionPairRequired =>
+      'Enter both a version title and update notes, or leave both empty';
 
   @override
   String creatorLinkedSections(int count) {
@@ -3139,11 +3160,63 @@ class AppLocalizationsEn extends AppLocalizations {
       'View logs, developer tools, and experimental features';
 
   @override
-  String get settingsHealthFeatures => 'Health features';
+  String get settingsHealthFeatures => 'Enable experimental features';
 
   @override
   String get settingsHealthFeaturesDescription =>
-      'Enable health-related features that are still in development';
+      'Enable the unfinished health, weather sync, and alarm management features';
+
+  @override
+  String get debugServerTitle => 'Debug service';
+
+  @override
+  String get debugServerDescription =>
+      'Expose a local API for trusted development tools';
+
+  @override
+  String get debugServerEnable => 'Enable debug service';
+
+  @override
+  String get debugServerEnableDescription =>
+      'Allow approved clients on the local network to inspect and control OronBox';
+
+  @override
+  String get debugServerEndpoint => 'Endpoint';
+
+  @override
+  String get debugServerFingerprint => 'Server fingerprint';
+
+  @override
+  String get debugServerPendingClients => 'Pending approvals';
+
+  @override
+  String get debugServerAuthorizedClients => 'Approved clients';
+
+  @override
+  String get debugServerApprove => 'Approve';
+
+  @override
+  String get debugServerReject => 'Reject';
+
+  @override
+  String get debugServerRevoke => 'Revoke access';
+
+  @override
+  String get debugServerNoPendingClients =>
+      'No clients are waiting for approval';
+
+  @override
+  String get debugServerNoAuthorizedClients => 'No approved clients';
+
+  @override
+  String get debugServerSecurityNotice =>
+      'Only enable this service on a trusted network';
+
+  @override
+  String get debugServerStartFailed => 'Could not start the debug service';
+
+  @override
+  String get debugServerStopFailed => 'Could not stop the debug service';
 
   @override
   String get xmsDeveloperMode => 'XMS developer mode';

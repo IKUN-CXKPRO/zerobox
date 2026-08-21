@@ -13,10 +13,14 @@ import 'package:oronbox/src/device/zeppos/systems/zeppos_app_side_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_voice_memos_system.dart';
 import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/devices/services/phone_finder.dart';
 import 'package:oronbox/src/features/devices/health/health_models.dart';
+import 'package:oronbox/src/features/devices/models/xiaomi_device_features.dart';
 import 'package:oronbox/src/features/devices/controllers/interconnect_event_codec.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart';
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_system.pb.dart'
+    as pb_system;
 
 class HostDeviceManager extends DeviceManager {
   static final _log = getLogger('HostDeviceManager');
@@ -401,6 +405,27 @@ class HostDeviceManager extends DeviceManager {
   }
 
   @override
+  Future<void> setFindingXiaomiPhone(bool finding) async {
+    await _execute(
+      OronBoxCommand(
+        method: 'device.xiaomi.findPhone',
+        params: {'finding': finding},
+      ),
+    );
+    if (!finding) await PhoneFinder.setFinding(false);
+  }
+
+  @override
+  Future<void> setFindingXiaomiWearable(bool finding) async {
+    await _execute(
+      OronBoxCommand(
+        method: 'device.xiaomi.findWearable',
+        params: {'finding': finding},
+      ),
+    );
+  }
+
+  @override
   Future<void> sendXiaoAiReply(String text) async {
     await _execute(
       OronBoxCommand(
@@ -445,6 +470,90 @@ class HostDeviceManager extends DeviceManager {
     await _execute(const OronBoxCommand(method: 'app.list'));
     await _refreshSnapshot();
   }
+
+  @override
+  Future<List<AppInfo>> loadXiaomiAppOrder() async {
+    final result = await _execute(
+      const OronBoxCommand(method: 'device.xiaomi.appOrder.list'),
+    );
+    return (result.value as List)
+        .whereType<Map>()
+        .map(
+          (row) => AppInfo(
+            packageName: row['packageName']?.toString() ?? '',
+            appName: row['name']?.toString() ?? '',
+            versionCode: (row['versionCode'] as num?)?.toInt() ?? 0,
+            canRemove: row['canRemove'] as bool? ?? false,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  @override
+  Future<void> setXiaomiAppOrder(List<AppInfo> apps) async {
+    await _execute(
+      OronBoxCommand(
+        method: 'device.xiaomi.appOrder.set',
+        params: {
+          'apps': apps
+              .map(
+                (app) => {
+                  'packageName': app.packageName,
+                  'name': app.appName,
+                  'versionCode': app.versionCode,
+                  'canRemove': app.canRemove,
+                },
+              )
+              .toList(growable: false),
+        },
+      ),
+    );
+  }
+
+  @override
+  Future<List<XiaomiAlarm>> loadXiaomiAlarms() async {
+    final result = await _execute(
+      const OronBoxCommand(method: 'device.xiaomi.alarm.list'),
+    );
+    return (result.value as List)
+        .whereType<Map>()
+        .map((row) => XiaomiAlarm.fromJson(row.cast<String, Object?>()))
+        .toList(growable: false);
+  }
+
+  @override
+  Future<void> addXiaomiAlarm(XiaomiAlarm alarm) => _execute(
+    OronBoxCommand(method: 'device.xiaomi.alarm.add', params: alarm.toJson()),
+  );
+
+  @override
+  Future<void> updateXiaomiAlarm(XiaomiAlarm alarm) => _execute(
+    OronBoxCommand(
+      method: 'device.xiaomi.alarm.update',
+      params: alarm.toJson(),
+    ),
+  );
+
+  @override
+  Future<void> removeXiaomiAlarm(int id) => _execute(
+    OronBoxCommand(method: 'device.xiaomi.alarm.remove', params: {'id': id}),
+  );
+
+  @override
+  Future<void> setXiaomiAlarmEnabled(int id, bool enabled) => _execute(
+    OronBoxCommand(
+      method: 'device.xiaomi.alarm.enable',
+      params: {'id': id, 'enabled': enabled},
+    ),
+  );
+
+  @override
+  Future<void> syncXiaomiWeather(XiaomiWeatherData weather) => _execute(
+    OronBoxCommand(
+      method: 'device.xiaomi.weather.sync',
+      params: weather.toJson(),
+    ),
+  );
 
   @override
   Future<void> fetchWatchfaces() async {
@@ -627,6 +736,30 @@ class HostDeviceManager extends DeviceManager {
     return XiaomiHealthSyncResult.fromJson((result.value as Map).cast());
   }
 
+  @override
+  Future<pb_system.AppLayout> loadXiaomiAppLayout() async {
+    final result = await _execute(
+      const OronBoxCommand(method: 'device.xiaomi.appLayout.get'),
+    );
+    final value = (result.value as Map).cast<String, Object?>();
+    return pb_system.AppLayout(
+      layout: pb_system.AppLayout_Layout.valueOf(
+        (value['layout'] as num?)?.toInt() ?? 0,
+      ),
+      supportLayouts: (value['supportLayouts'] as num?)?.toInt(),
+    );
+  }
+
+  @override
+  Future<void> setXiaomiAppLayout(pb_system.AppLayout_Layout layout) async {
+    await _execute(
+      OronBoxCommand(
+        method: 'device.xiaomi.appLayout.set',
+        params: {'layout': layout.value},
+      ),
+    );
+  }
+
   Future<void> _musicCommand(String method, Map<String, Object?> params) async {
     await _execute(OronBoxCommand(method: method, params: params));
   }
@@ -663,6 +796,7 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<List<DeviceRecording>> downloadXiaomiRecordings({
     void Function(int completed, int total, String fileName)? onProgress,
+    void Function(DeviceRecordingPullProgress progress)? onDetailedProgress,
   }) async {
     StreamSubscription<CommandEvent>? subscription;
     try {
@@ -675,6 +809,23 @@ class HostDeviceManager extends DeviceManager {
             completed.toInt(),
             total.toInt(),
             event.data['fileName']?.toString() ?? '',
+          );
+        }
+        final currentIndex = event.data['currentIndex'];
+        final totalFiles = event.data['totalFiles'];
+        final progress = event.data['progress'];
+        if (currentIndex is num && totalFiles is num && progress is num) {
+          onDetailedProgress?.call(
+            DeviceRecordingPullProgress(
+              progress: progress.toDouble().clamp(0, 1),
+              currentIndex: currentIndex.toInt(),
+              totalFiles: totalFiles.toInt(),
+              fileName: event.data['fileName']?.toString() ?? '',
+              currentPart: (event.data['currentPart'] as num?)?.toInt() ?? 0,
+              totalParts: (event.data['totalParts'] as num?)?.toInt() ?? 0,
+              bytesDone: (event.data['bytesDone'] as num?)?.toInt(),
+              bytesTotal: (event.data['bytesTotal'] as num?)?.toInt(),
+            ),
           );
         }
       });
@@ -697,20 +848,60 @@ class HostDeviceManager extends DeviceManager {
   @override
   Future<DeviceLogPullResult> pullDeviceLogs({
     void Function(double progress, String fileName)? onProgress,
+    void Function(DeviceLogPullProgress progress)? onDetailedProgress,
+    void Function(String stage)? onStage,
   }) async {
-    final result = await _execute(
-      const OronBoxCommand(method: 'device.logs.pull'),
-    );
-    final value = (result.value as Map).cast<String, Object?>();
-    return DeviceLogPullResult(
-      fileName: value['name']?.toString() ?? '',
-      data: Uint8List.fromList(
-        (value['bytes'] as List? ?? const [])
-            .whereType<num>()
-            .map((value) => value.toInt())
-            .toList(growable: false),
-      ),
-    );
+    // Device log progress is emitted by the daemon while the long-running
+    // command is active.  Forward it just like recording synchronization so
+    // the GUI does not remain at an indeterminate 0% state when using the
+    // split frontend/daemon runtime.
+    final subscription = ref.read(applicationHostProvider).events.listen((
+      event,
+    ) {
+      if (event.event != 'device.log.progress') return;
+      final stage = event.data['stage']?.toString();
+      if (stage != null) onStage?.call(stage);
+      final progress = (event.data['progress'] as num?)?.toDouble();
+      if (progress == null) return;
+      onProgress?.call(
+        progress.clamp(0, 1),
+        event.data['fileName']?.toString() ?? '',
+      );
+      onDetailedProgress?.call(
+        DeviceLogPullProgress(
+          progress: progress.clamp(0, 1).toDouble(),
+          fileName: event.data['fileName']?.toString() ?? '',
+          channel: (event.data['channel'] as num?)?.toInt() ?? 0,
+          currentPart: (event.data['currentPart'] as num?)?.toInt() ?? 0,
+          totalParts: (event.data['totalParts'] as num?)?.toInt() ?? 0,
+        ),
+      );
+    });
+    try {
+      final result = await _execute(
+        const OronBoxCommand(method: 'device.logs.pull'),
+      );
+      final value = (result.value as Map).cast<String, Object?>();
+      return DeviceLogPullResult(
+        fileName: value['name']?.toString() ?? '',
+        data: Uint8List.fromList(
+          (value['bytes'] as List? ?? const [])
+              .whereType<num>()
+              .map((value) => value.toInt())
+              .toList(growable: false),
+        ),
+        currentLog: value['currentLogBytes'] is List
+            ? Uint8List.fromList(
+                (value['currentLogBytes'] as List)
+                    .whereType<num>()
+                    .map((value) => value.toInt())
+                    .toList(growable: false),
+              )
+            : null,
+      );
+    } finally {
+      await subscription.cancel();
+    }
   }
 
   @override

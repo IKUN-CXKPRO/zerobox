@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:oronbox/src/core/logging/logging_service.dart';
@@ -86,23 +87,38 @@ class XiaomiMediaSystem extends XiaomiSystem {
     _log.info('[${entity.id}] request media file list');
     final completer = Completer<List<MediaFileDescriptor>>();
     _mediaFileListWaiters.add(completer);
-    await component.sendPbPacket(
-      _buildMediaPacket(pb_media_enum.Media_MediaID.SYNC_MEDIA_FILE_LIST),
-    );
-    return completer.future.timeout(const Duration(seconds: 30));
+    try {
+      await component.sendPbPacket(
+        _buildMediaPacket(pb_media_enum.Media_MediaID.SYNC_MEDIA_FILE_LIST),
+      );
+      return await completer.future.timeout(const Duration(seconds: 30));
+    } finally {
+      // Future.timeout does not cancel the underlying waiter.  Remove it so
+      // a late response from a timed-out request cannot satisfy the next
+      // compatibility request or leave a stale completer in the list.
+      if (!completer.isCompleted) {
+        _mediaFileListWaiters.remove(completer);
+      }
+    }
   }
 
   Future<List<MediaFileDescriptor>> requestMediaFileListCompat() async {
     _log.info('[${entity.id}] request media file list compat');
     final completer = Completer<List<MediaFileDescriptor>>();
     _mediaFileListWaiters.add(completer);
-    await component.sendPbPacket(
-      _buildMediaPacket(
-        pb_media_enum.Media_MediaID.SYNC_MEDIA_FILE_LIST,
-        mediaFileList: pb_media.MediaFile_List(),
-      ),
-    );
-    return completer.future.timeout(const Duration(seconds: 30));
+    try {
+      await component.sendPbPacket(
+        _buildMediaPacket(
+          pb_media_enum.Media_MediaID.SYNC_MEDIA_FILE_LIST,
+          mediaFileList: pb_media.MediaFile_List(),
+        ),
+      );
+      return await completer.future.timeout(const Duration(seconds: 30));
+    } finally {
+      if (!completer.isCompleted) {
+        _mediaFileListWaiters.remove(completer);
+      }
+    }
   }
 
   Future<void> requestMediaFile(
@@ -309,6 +325,10 @@ class XiaomiMediaSystem extends XiaomiSystem {
       case pb_media.Media_Payload.songReportResult:
         _fulfillSingle(_songReportWaiters, media.songReportResult);
       default:
+        _log.warning(
+          '[${entity.id}] unsupported media payload ${media.whichPayload()} '
+          'for packet id=${packet.id}',
+        );
         break;
     }
   }
@@ -440,10 +460,21 @@ MediaFileDescriptor _decodeMediaFileDescriptor(Uint8List raw) {
             if (candidate.id.isNotEmpty) identifier = candidate;
           } catch (_) {}
         }
-        final text = String.fromCharCodes(field);
-        final trimmed = text.trim();
-        if (trimmed.isNotEmpty) {
-          stringFields.add((tag, trimmed));
+        // Media metadata strings are UTF-8 protobuf fields.  Decoding each
+        // byte as a Unicode code point corrupts non-ASCII names and later
+        // causes exported recordings to inherit mojibake filenames.
+        try {
+          final trimmed = utf8
+              .decode(field, allowMalformed: false)
+              .replaceAll('\u0000', '')
+              .trim();
+          if (trimmed.isNotEmpty) {
+            stringFields.add((tag, trimmed));
+          }
+        } on FormatException {
+          // Identifiers and vendor-specific binary fields can also be
+          // length-delimited.  Ignore those instead of presenting garbage as
+          // a filename.
         }
       default:
         // Skip unknown wire types conservatively

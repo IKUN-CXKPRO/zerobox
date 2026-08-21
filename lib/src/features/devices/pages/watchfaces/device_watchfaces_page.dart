@@ -59,26 +59,27 @@ class _DeviceWatchfacesPageState extends ConsumerState<DeviceWatchfacesPage> {
           ),
         ],
       ),
-      body: PageContainer(
-        padding: const EdgeInsets.fromLTRB(
-          StyleConstants.pagePadding,
-          8,
-          StyleConstants.pagePadding,
-          0,
-        ),
-        child: !ready
-            ? Center(child: Text(l10n.deviceNotConnected))
-            : _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-            ? Center(child: Text(localizedErrorMessage(l10n, _error)))
-            : state.watchfaces.isEmpty
-            ? Center(child: Text(l10n.watchfaceManagementNone))
-            : ListView.builder(
-                itemCount: state.watchfaces.length,
-                itemBuilder: (context, index) {
-                  final watchface = state.watchfaces[index];
-                  return SectionCard(
+      body: !ready
+          ? Center(child: Text(l10n.deviceNotConnected))
+          : _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+          ? Center(child: Text(localizedErrorMessage(l10n, _error)))
+          : state.watchfaces.isEmpty
+          ? Center(child: Text(l10n.watchfaceManagementNone))
+          : ListView.builder(
+              padding: EdgeInsets.zero,
+              itemCount: state.watchfaces.length,
+              itemBuilder: (context, index) {
+                final watchface = state.watchfaces[index];
+                return PageContainer(
+                  padding: EdgeInsets.fromLTRB(
+                    StyleConstants.pagePadding,
+                    index == 0 ? 8 : 0,
+                    StyleConstants.pagePadding,
+                    0,
+                  ),
+                  child: SectionCard(
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: EdgeInsets.zero,
                     child: ListTile(
@@ -91,10 +92,10 @@ class _DeviceWatchfacesPageState extends ConsumerState<DeviceWatchfacesPage> {
                         onRefresh: _refresh,
                       ),
                     ),
-                  );
-                },
-              ),
-      ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }

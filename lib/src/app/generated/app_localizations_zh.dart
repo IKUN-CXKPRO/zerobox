@@ -175,6 +175,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatorResourceMetadataRequired => '资源名称和简介不能为空';
 
   @override
+  String get creatorSubmitValidationFailed => '提交前请先处理以下问题';
+
+  @override
   String get creatorPaidType => '付费类型';
 
   @override
@@ -736,6 +739,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get firmwareLatestRelease => '最新固件';
+
+  @override
+  String get firmwareHistoricalReleases => '历史固件';
 
   @override
   String get firmwareUpToDate => '当前已是最新版本';
@@ -1413,7 +1419,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceRecordingsDescription => '从手表同步并导出录音';
 
   @override
-  String get deviceRecordingsHint => '录音通过设备文件通道逐条接收并校验，完成后可单独导出原始文件。';
+  String get deviceRecordingsHint => '录音通过设备文件通道逐条接收并校验\n完成后可单独导出原始文件';
 
   @override
   String get deviceRecordingsSync => '同步录音';
@@ -1489,7 +1495,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get zeppOsFindDevice => '查找设备';
 
   @override
-  String get zeppOsFindDeviceDescription => '让设备持续振动或响铃，方便在附近快速找到它。';
+  String get zeppOsFindDeviceDescription => '让设备持续振动或响铃';
 
   @override
   String get deviceFeaturesDeviceInfo => '设备信息';
@@ -1720,6 +1726,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsDesktopCloseBehaviorDesc => '选择关闭主窗口时执行的操作';
+
+  @override
+  String get settingsRemoveBondBeforeSpp => '连接前解除蓝牙配对';
+
+  @override
+  String get settingsRemoveBondBeforeSppDesc => '每次经典蓝牙连接前解除现有配对并重新建立连接';
 
   @override
   String get desktopCloseBehaviorAsk => '每次询问';
@@ -2089,8 +2101,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAboutSoftwareBuildInfo => '构建信息';
 
   @override
-  String get settingsAboutSoftwareCopyright =>
-      'Copyright © OronBox contributors';
+  String get settingsAboutSoftwareCopyright => 'Copyright © 2026 OrPudding';
 
   @override
   String get acknowledgementsKazumi => 'Material Design 组件与界面设计参考';
@@ -2267,13 +2278,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsDeviceLogsTip =>
-      '开始后将从当前连接的小米穿戴设备拉取日志，过程可能需要较长时间。请勿将应用切换到后台或关闭设备屏幕，以免操作中断。';
+      '开始后将从当前连接的小米穿戴设备拉取日志，过程可能需要较长时间\n请勿将应用切换到后台或关闭屏幕，以免操作中断';
 
   @override
   String get settingsDeviceLogsStart => '开始';
 
   @override
   String get settingsDeviceLogsPulling => '正在拉取设备日志';
+
+  @override
+  String get settingsDeviceLogsWaiting => '等待设备回传';
 
   @override
   String settingsDeviceLogsProgress(Object progress) {
@@ -2291,7 +2305,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get settingsAboutLogsClearConfirm => '将删除当前会话之外的全部日志文件。';
+  String get settingsAboutLogsClearConfirm => '将删除当前会话之外的全部日志文件';
 
   @override
   String get settingsAboutLogsOpen => '打开日志文件夹';
@@ -2522,6 +2536,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get creatorBandBbsVersionMessage => '更新说明';
+
+  @override
+  String get creatorBandBbsVersionPairRequired => '版本标题和更新说明需要同时填写，或同时留空';
 
   @override
   String creatorLinkedSections(int count) {
@@ -2996,10 +3013,58 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAdvancedDescription => '查看日志、开发者工具与实验性功能';
 
   @override
-  String get settingsHealthFeatures => '运动健康功能';
+  String get settingsHealthFeatures => '启用实验性功能';
 
   @override
-  String get settingsHealthFeaturesDescription => '启用正在开发中的运动健康相关功能';
+  String get settingsHealthFeaturesDescription => '启用尚未开发完成的运动健康、天气同步和闹钟管理功能';
+
+  @override
+  String get debugServerTitle => '调试服务';
+
+  @override
+  String get debugServerDescription => '为可信开发工具提供本地调试接口';
+
+  @override
+  String get debugServerEnable => '启用调试服务';
+
+  @override
+  String get debugServerEnableDescription => '允许局域网内已批准的客户端检查和控制 OronBox';
+
+  @override
+  String get debugServerEndpoint => '访问地址';
+
+  @override
+  String get debugServerFingerprint => '服务指纹';
+
+  @override
+  String get debugServerPendingClients => '待批准客户端';
+
+  @override
+  String get debugServerAuthorizedClients => '已批准客户端';
+
+  @override
+  String get debugServerApprove => '批准';
+
+  @override
+  String get debugServerReject => '拒绝';
+
+  @override
+  String get debugServerRevoke => '撤销访问';
+
+  @override
+  String get debugServerNoPendingClients => '没有等待批准的客户端';
+
+  @override
+  String get debugServerNoAuthorizedClients => '暂无已批准客户端';
+
+  @override
+  String get debugServerSecurityNotice => '请只在可信网络中启用此服务';
+
+  @override
+  String get debugServerStartFailed => '调试服务启动失败';
+
+  @override
+  String get debugServerStopFailed => '调试服务停止失败';
 
   @override
   String get xmsDeveloperMode => 'XMS 开发模式';
@@ -3514,6 +3579,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get creatorResourceMetadataRequired => '資源名稱和簡介為必填項目';
+
+  @override
+  String get creatorSubmitValidationFailed => '提交前請先處理以下問題';
 
   @override
   String get creatorPaidType => '付費類型';
@@ -4079,6 +4147,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get firmwareLatestRelease => '最新韌體';
+
+  @override
+  String get firmwareHistoricalReleases => '歷史韌體';
 
   @override
   String get firmwareUpToDate => '你的韌體已是最新版本';
@@ -4754,7 +4825,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get deviceRecordingsDescription => '同步並匯出手錶錄音';
 
   @override
-  String get deviceRecordingsHint => '錄音會逐一接收並驗證。同步後請分別匯出每個原始檔案';
+  String get deviceRecordingsHint => '錄音會逐一接收並驗證\n同步後請分別匯出每個原始檔案';
 
   @override
   String get deviceRecordingsSync => '同步錄音';
@@ -4830,7 +4901,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get zeppOsFindDevice => '尋找裝置';
 
   @override
-  String get zeppOsFindDeviceDescription => '讓裝置震動或響鈴，以便在附近找到它';
+  String get zeppOsFindDeviceDescription => '讓裝置持續震動或響鈴';
 
   @override
   String get deviceFeaturesDeviceInfo => '裝置資訊';
@@ -5060,6 +5131,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get settingsDesktopCloseBehaviorDesc => '選擇關閉主視窗時的行為';
+
+  @override
+  String get settingsRemoveBondBeforeSpp => '連線前解除藍牙配對';
+
+  @override
+  String get settingsRemoveBondBeforeSppDesc => '每次經典藍牙連線前解除現有配對並重新建立連線';
 
   @override
   String get desktopCloseBehaviorAsk => '每次詢問';
@@ -5430,7 +5507,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsAboutSoftwareBuildInfo => '建置資訊';
 
   @override
-  String get settingsAboutSoftwareCopyright => '版權 © OronBox 貢獻者';
+  String get settingsAboutSoftwareCopyright => 'Copyright © 2026 OrPudding';
 
   @override
   String get acknowledgementsKazumi => '參考 Material Design 元件與 UI 模式';
@@ -5616,6 +5693,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get settingsDeviceLogsPulling => '正在取得裝置日誌';
+
+  @override
+  String get settingsDeviceLogsWaiting => '等待裝置回傳';
 
   @override
   String settingsDeviceLogsProgress(Object progress) {
@@ -5864,6 +5944,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get creatorBandBbsVersionMessage => '更新說明';
+
+  @override
+  String get creatorBandBbsVersionPairRequired => '版本標題和更新說明需要同時填寫，或同時留白';
 
   @override
   String creatorLinkedSections(int count) {
@@ -6341,10 +6424,58 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsAdvancedDescription => '檢視日誌、開發者工具與實驗性功能';
 
   @override
-  String get settingsHealthFeatures => '運動健康功能';
+  String get settingsHealthFeatures => '啟用實驗性功能';
 
   @override
-  String get settingsHealthFeaturesDescription => '啟用仍在開發中的運動健康相關功能';
+  String get settingsHealthFeaturesDescription => '啟用尚未開發完成的運動健康、天氣同步與鬧鐘管理功能';
+
+  @override
+  String get debugServerTitle => '除錯服務';
+
+  @override
+  String get debugServerDescription => '為可信任的開發工具提供本機 API';
+
+  @override
+  String get debugServerEnable => '啟用除錯服務';
+
+  @override
+  String get debugServerEnableDescription => '允許區域網路中已核准的用戶端檢視及控制 OronBox';
+
+  @override
+  String get debugServerEndpoint => '連線位址';
+
+  @override
+  String get debugServerFingerprint => '服務指紋';
+
+  @override
+  String get debugServerPendingClients => '待核准用戶端';
+
+  @override
+  String get debugServerAuthorizedClients => '已核准用戶端';
+
+  @override
+  String get debugServerApprove => '核准';
+
+  @override
+  String get debugServerReject => '拒絕';
+
+  @override
+  String get debugServerRevoke => '撤銷存取權';
+
+  @override
+  String get debugServerNoPendingClients => '沒有等待核准的用戶端';
+
+  @override
+  String get debugServerNoAuthorizedClients => '目前沒有已核准的用戶端';
+
+  @override
+  String get debugServerSecurityNotice => '請只在可信任的網路中啟用此服務';
+
+  @override
+  String get debugServerStartFailed => '無法啟動除錯服務';
+
+  @override
+  String get debugServerStopFailed => '無法停止除錯服務';
 
   @override
   String get xmsDeveloperMode => 'XMS 開發者模式';

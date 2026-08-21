@@ -3,10 +3,9 @@ import 'package:oronbox/src/device/xiaomi/components/health_system.dart';
 import 'package:oronbox/src/features/devices/health/health_models.dart';
 import 'package:oronbox/src/features/devices/health/health_store.dart';
 
-/// Xiaomi VelaOS health adapter for the first sync slice.
-///
-/// It fetches non-destructive daily and sleep summaries, commits the merged
-/// result to the local store, and only then reports success to its caller.
+/// Xiaomi health synchronizer based on the activity-file protocol used by
+/// Gadgetbridge. The old aggregate/basic-data fallback is intentionally not
+/// part of this implementation.
 class XiaomiHealthSyncService {
   factory XiaomiHealthSyncService({
     required XiaomiHealthSystem system,
@@ -34,127 +33,160 @@ class XiaomiHealthSyncService {
 
   Future<XiaomiHealthSyncResult> sync() async {
     final previous = await _store.read(_deviceId);
-    HealthDailySummary? daily;
-    List<HealthSleepSummary>? sleep;
-    String? warning;
+    final files = await _system.syncActivityFiles();
 
-    try {
-      final basic = await _system.fetchBasicData();
-      final now = DateTime.now();
-      final date = DateTime(now.year, now.month, now.day);
-      final previousDay = previous.daily
-          .where((value) => _sameDay(value.date, date))
-          .firstOrNull;
-      final hasDailyValue =
-          basic.hasSteps() ||
-          basic.hasCalories() ||
-          basic.hasDistance() ||
-          basic.hasHeartRate() ||
-          basic.hasIntensity() ||
-          basic.hasValidStand();
-      if (hasDailyValue) {
-        daily = HealthDailySummary(
-          date: date,
-          steps: basic.hasSteps() ? basic.steps : previousDay?.steps ?? 0,
-          calories: basic.hasCalories()
-              ? basic.calories
-              : previousDay?.calories ?? 0,
-          distanceMeters: basic.hasDistance()
-              ? basic.distance
-              : previousDay?.distanceMeters ?? 0,
-          heartRate: basic.hasHeartRate()
-              ? basic.heartRate
-              : previousDay?.heartRate ?? 0,
-          intensity: basic.hasIntensity()
-              ? basic.intensity
-              : previousDay?.intensity ?? 0,
-          validStand: basic.hasValidStand()
-              ? basic.validStand
-              : previousDay?.validStand,
-        );
-      } else {
-        warning = 'daily:empty';
-      }
-    } catch (error, stackTrace) {
-      _log.warning(
-        'daily health sync failed for $_deviceId',
-        error,
-        stackTrace,
-      );
-      warning = 'daily:$error';
+    final daily = files.daily.map(_daily).toList(growable: false);
+    final samples = files.samples.expand(_samples).toList(growable: false);
+    final sleep = files.sleep
+        .map(
+          (value) => HealthSleepSummary(
+            startedAt: value.startedAt,
+            endedAt: value.endedAt,
+            durationSeconds: value.durationSeconds,
+            averageHeartRate: value.averageHeartRate,
+            averageBloodOxygen: value.averageBloodOxygen,
+            quality: value.quality,
+          ),
+        )
+        .toList(growable: false);
+    final workouts = files.workouts
+        .map(
+          (value) => HealthWorkoutSummary(
+            startedAt: value.startedAt,
+            endedAt: value.endedAt,
+            activityType: value.activityType,
+            distanceMeters: value.distanceMeters,
+            calories: value.calories,
+          ),
+        )
+        .toList(growable: false);
+
+    if (files.filesReceived == 0 &&
+        daily.isEmpty &&
+        samples.isEmpty &&
+        sleep.isEmpty &&
+        workouts.isEmpty) {
+      throw StateError('No Xiaomi health activity files returned');
     }
 
-    try {
-      final result = await _system.fetchSleepResult();
-      final parsedSleep = result.sectionList
-          .where(
-            (section) =>
-                section.hasSleepTimestamp() && section.hasWakeupTimestamp(),
-          )
-          .map(
-            (section) => HealthSleepSummary(
-              startedAt: _timestamp(section.sleepTimestamp),
-              endedAt: _timestamp(section.wakeupTimestamp),
-              durationSeconds: section.hasValidSleepTime()
-                  ? section.validSleepTime * 60
-                  : section.wakeupTimestamp - section.sleepTimestamp,
-              averageHeartRate: section.hasAverageHeartRate()
-                  ? section.averageHeartRate
-                  : null,
-              averageBloodOxygen: section.hasAverageBloodOxygen()
-                  ? section.averageBloodOxygen
-                  : null,
-              quality:
-                  section.hasExtraData() && section.extraData.hasSleepQuality()
-                  ? section.extraData.sleepQuality
-                  : null,
-            ),
-          )
-          .toList(growable: false);
-      if (parsedSleep.isEmpty) {
-        warning = warning == null ? 'sleep:empty' : '$warning;sleep:empty';
-      } else {
-        sleep = parsedSleep;
-      }
-    } catch (error, stackTrace) {
-      _log.warning(
-        'sleep health sync failed for $_deviceId',
-        error,
-        stackTrace,
-      );
-      warning = warning == null ? 'sleep:$error' : '$warning;sleep:$error';
-    }
-
-    if (daily == null && sleep == null) {
-      throw StateError(warning ?? 'Health synchronization failed');
-    }
-
-    final merged = XiaomiHealthData(
-      daily: [...previous.daily, if (daily != null) daily],
-      sleep: [...previous.sleep, if (sleep != null) ...sleep],
+    final data = XiaomiHealthData(
+      daily: [...previous.daily, ...daily],
+      samples: [...previous.samples, ...samples],
+      sleep: [...previous.sleep, ...sleep],
+      workouts: [...previous.workouts, ...workouts],
+      capabilities: _capabilities(previous, daily, samples, sleep, workouts),
       lastSyncedAt: DateTime.now(),
     );
-    await _store.write(_deviceId, merged);
+    await _store.write(_deviceId, data);
     final saved = await _store.read(_deviceId);
+
+    _log.info(
+      'saved Xiaomi health files for $_deviceId: '
+      'files=${files.filesReceived}, daily=${daily.length}, '
+      'samples=${samples.length}, sleep=${sleep.length}, '
+      'workouts=${workouts.length}',
+    );
     return XiaomiHealthSyncResult(
       data: saved,
-      updatedDaily: daily != null,
-      updatedSleep: sleep != null,
-      warning: warning,
+      updatedDaily: daily.isNotEmpty,
+      updatedSamples: samples.isNotEmpty,
+      updatedSleep: sleep.isNotEmpty,
+      updatedWorkouts: workouts.isNotEmpty,
     );
   }
 
-  DateTime _timestamp(int value) {
-    // Xiaomi timestamps are seconds. Values outside the normal epoch range
-    // are left as milliseconds for firmware variants that use milliseconds.
-    return DateTime.fromMillisecondsSinceEpoch(
-      value > 100000000000 ? value : value * 1000,
+  HealthDailySummary _daily(XiaomiActivityDailyRecord value) =>
+      HealthDailySummary(
+        date: _dateOnly(value.date),
+        steps: value.steps,
+        activeCalories: value.activeCalories,
+        calories: value.calories,
+        restingHeartRate: value.restingHeartRate,
+        minHeartRate: value.minHeartRate,
+        maxHeartRate: value.maxHeartRate,
+        averageHeartRate: value.averageHeartRate,
+        minStress: value.minStress,
+        maxStress: value.maxStress,
+        averageStress: value.averageStress,
+        standingBitmap: value.standingBitmap,
+        minBloodOxygen: value.minBloodOxygen,
+        maxBloodOxygen: value.maxBloodOxygen,
+        averageBloodOxygen: value.averageBloodOxygen,
+        vitalityIncreaseLight: value.vitalityIncreaseLight,
+        vitalityIncreaseModerate: value.vitalityIncreaseModerate,
+        vitalityIncreaseHigh: value.vitalityIncreaseHigh,
+        vitalityCurrent: value.vitalityCurrent,
+      );
+
+  Iterable<HealthSample> _samples(XiaomiActivitySampleRecord value) sync* {
+    if (value.heartRate != null) {
+      yield HealthSample(
+        timestamp: value.timestamp,
+        metric: XiaomiHealthMetric.heartRate,
+        value: value.heartRate!.toDouble(),
+      );
+    }
+    if (value.bloodOxygen != null) {
+      yield HealthSample(
+        timestamp: value.timestamp,
+        metric: XiaomiHealthMetric.bloodOxygen,
+        value: value.bloodOxygen!.toDouble(),
+      );
+    }
+    if (value.stress != null) {
+      yield HealthSample(
+        timestamp: value.timestamp,
+        metric: XiaomiHealthMetric.stress,
+        value: value.stress!.toDouble(),
+      );
+    }
+    if (value.steps != null) {
+      yield HealthSample(
+        timestamp: value.timestamp,
+        metric: XiaomiHealthMetric.activity,
+        value: value.steps!.toDouble(),
+      );
+    }
+    if (value.activeCalories != null) {
+      yield HealthSample(
+        timestamp: value.timestamp,
+        metric: XiaomiHealthMetric.activeCalories,
+        value: value.activeCalories!.toDouble(),
+      );
+    }
+  }
+
+  XiaomiHealthCapabilities _capabilities(
+    XiaomiHealthData previous,
+    List<HealthDailySummary> daily,
+    List<HealthSample> samples,
+    List<HealthSleepSummary> sleep,
+    List<HealthWorkoutSummary> workouts,
+  ) {
+    bool has(XiaomiHealthMetric metric) =>
+        samples.any((value) => value.metric == metric);
+    final latest = daily.firstOrNull;
+    return XiaomiHealthCapabilities(
+      heartRate:
+          previous.capabilities.heartRate ||
+          has(XiaomiHealthMetric.heartRate) ||
+          latest?.averageHeartRate != null,
+      bloodOxygen:
+          previous.capabilities.bloodOxygen ||
+          has(XiaomiHealthMetric.bloodOxygen) ||
+          latest?.averageBloodOxygen != null,
+      stress:
+          previous.capabilities.stress ||
+          has(XiaomiHealthMetric.stress) ||
+          latest?.averageStress != null,
+      vitality:
+          previous.capabilities.vitality ||
+          daily.any((value) => value.vitalityCurrent != null),
+      sleep: previous.capabilities.sleep || sleep.isNotEmpty,
+      workouts: previous.capabilities.workouts || workouts.isNotEmpty,
     );
   }
 
-  bool _sameDay(DateTime? left, DateTime right) =>
-      left != null &&
-      left.year == right.year &&
-      left.month == right.month &&
-      left.day == right.day;
+  DateTime _dateOnly(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
 }

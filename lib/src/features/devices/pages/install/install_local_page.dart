@@ -101,76 +101,86 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
 
     return Scaffold(
       appBar: SysAppBar(secondary: true, title: Text(title)),
-      body: PageContainer(
+      body: ListView(
         padding: EdgeInsets.zero,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            StyleConstants.pagePadding,
-            8,
-            StyleConstants.pagePadding,
-            0,
-          ),
-          children: [
-            SectionCard(
-              margin: EdgeInsets.zero,
-              padding: EdgeInsets.zero,
-              child: InkWell(
-                onTap: _installing ? null : _pickFile,
-                borderRadius: BorderRadius.circular(StyleConstants.cardRadius),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      Icon(
-                        _file == null ? Icons.upload_file : Icons.description,
-                        size: 48,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _fileName ?? l10n.installTapToSelectFile,
-                        style: Theme.of(context).textTheme.titleMedium,
-                        textAlign: TextAlign.center,
-                      ),
-                      if (_fileSize != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            '${(_fileSize! / 1024).toStringAsFixed(1)} KB',
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
+        children: [
+          PageContainer(
+            padding: const EdgeInsets.fromLTRB(
+              StyleConstants.pagePadding,
+              8,
+              StyleConstants.pagePadding,
+              0,
+            ),
+            child: Column(
+              children: [
+                SectionCard(
+                  margin: EdgeInsets.zero,
+                  padding: EdgeInsets.zero,
+                  child: InkWell(
+                    onTap: _installing ? null : _pickFile,
+                    borderRadius: BorderRadius.circular(
+                      StyleConstants.cardRadius,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          Icon(
+                            _file == null
+                                ? Icons.upload_file
+                                : Icons.description,
+                            size: 48,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
-                        ),
-                    ],
+                          const SizedBox(height: 16),
+                          Text(
+                            _fileName ?? l10n.installTapToSelectFile,
+                            style: Theme.of(context).textTheme.titleMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          if (_fileSize != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                '${(_fileSize! / 1024).toStringAsFixed(1)} KB',
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                if (_error != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    localizedErrorMessage(l10n, _error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+                if (_installing) ...[
+                  const SizedBox(height: 24),
+                  SmoothLinearProgressIndicator(
+                    value: _progress > 0 ? _progress : null,
+                  ),
+                  const SizedBox(height: 8),
+                  Text('${(_progress * 100).toStringAsFixed(0)}%'),
+                ],
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: _file != null && !_installing ? _install : null,
+                  child: Text(l10n.install),
+                ),
+              ],
             ),
-            if (_error != null) ...[
-              const SizedBox(height: 16),
-              Text(
-                localizedErrorMessage(l10n, _error),
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
-            if (_installing) ...[
-              const SizedBox(height: 24),
-              SmoothLinearProgressIndicator(
-                value: _progress > 0 ? _progress : null,
-              ),
-              const SizedBox(height: 8),
-              Text('${(_progress * 100).toStringAsFixed(0)}%'),
-            ],
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _file != null && !_installing ? _install : null,
-              child: Text(l10n.install),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

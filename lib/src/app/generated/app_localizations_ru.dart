@@ -180,6 +180,10 @@ class AppLocalizationsRu extends AppLocalizations {
       'Название и описание ресурса обязательны';
 
   @override
+  String get creatorSubmitValidationFailed =>
+      'Перед отправкой исправьте следующие пункты';
+
+  @override
   String get creatorPaidType => 'Тип оплаты';
 
   @override
@@ -781,6 +785,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get firmwareLatestRelease => 'Последняя прошивка';
+
+  @override
+  String get firmwareHistoricalReleases => 'Предыдущие версии прошивки';
 
   @override
   String get firmwareUpToDate => 'Прошивка обновлена до последней версии';
@@ -1575,7 +1582,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get zeppOsFindDeviceDescription =>
-      'Заставить устройство вибрировать или звонить, чтобы найти его рядом';
+      'Заставить устройство непрерывно вибрировать или звонить';
 
   @override
   String get deviceFeaturesDeviceInfo => 'Информация об устройстве';
@@ -1808,6 +1815,14 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get settingsDesktopCloseBehaviorDesc =>
       'Выберите действие при закрытии главного окна';
+
+  @override
+  String get settingsRemoveBondBeforeSpp =>
+      'Удалять сопряжение Bluetooth перед подключением';
+
+  @override
+  String get settingsRemoveBondBeforeSppDesc =>
+      'Перед каждым классическим Bluetooth-подключением удалять существующее сопряжение';
 
   @override
   String get desktopCloseBehaviorAsk => 'Спрашивать';
@@ -2203,8 +2218,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsAboutSoftwareBuildInfo => 'Сведения о сборке';
 
   @override
-  String get settingsAboutSoftwareCopyright =>
-      'Авторские права © участники OronBox';
+  String get settingsAboutSoftwareCopyright => 'Copyright © 2026 OrPudding';
 
   @override
   String get acknowledgementsKazumi => 'Благодарности Kazumi';
@@ -2398,6 +2412,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get settingsDeviceLogsPulling => 'Получение журналов устройства';
+
+  @override
+  String get settingsDeviceLogsWaiting => 'Ожидание передачи с устройства';
 
   @override
   String settingsDeviceLogsProgress(Object progress) {
@@ -2657,6 +2674,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get creatorBandBbsVersionMessage => 'Описание обновления';
+
+  @override
+  String get creatorBandBbsVersionPairRequired =>
+      'Укажите и название версии, и описание обновления или оставьте оба поля пустыми';
 
   @override
   String creatorLinkedSections(int count) {
@@ -3156,11 +3177,62 @@ class AppLocalizationsRu extends AppLocalizations {
       'Журналы, инструменты разработчика и экспериментальные функции';
 
   @override
-  String get settingsHealthFeatures => 'Здоровье и активность';
+  String get settingsHealthFeatures => 'Включить экспериментальные функции';
 
   @override
   String get settingsHealthFeaturesDescription =>
-      'Включить функции здоровья и активности, которые ещё находятся в разработке';
+      'Включить незавершённые функции здоровья, синхронизации погоды и управления будильниками';
+
+  @override
+  String get debugServerTitle => 'Сервис отладки';
+
+  @override
+  String get debugServerDescription =>
+      'Локальный API для доверенных инструментов разработки';
+
+  @override
+  String get debugServerEnable => 'Включить сервис отладки';
+
+  @override
+  String get debugServerEnableDescription =>
+      'Разрешить одобренным клиентам в локальной сети просматривать и управлять OronBox';
+
+  @override
+  String get debugServerEndpoint => 'Адрес';
+
+  @override
+  String get debugServerFingerprint => 'Отпечаток сервера';
+
+  @override
+  String get debugServerPendingClients => 'Ожидают одобрения';
+
+  @override
+  String get debugServerAuthorizedClients => 'Одобренные клиенты';
+
+  @override
+  String get debugServerApprove => 'Одобрить';
+
+  @override
+  String get debugServerReject => 'Отклонить';
+
+  @override
+  String get debugServerRevoke => 'Отозвать доступ';
+
+  @override
+  String get debugServerNoPendingClients => 'Нет клиентов, ожидающих одобрения';
+
+  @override
+  String get debugServerNoAuthorizedClients => 'Нет одобренных клиентов';
+
+  @override
+  String get debugServerSecurityNotice =>
+      'Включайте сервис только в доверенной сети';
+
+  @override
+  String get debugServerStartFailed => 'Не удалось запустить сервис отладки';
+
+  @override
+  String get debugServerStopFailed => 'Не удалось остановить сервис отладки';
 
   @override
   String get xmsDeveloperMode => 'Режим разработчика XMS';

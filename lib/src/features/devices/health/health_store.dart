@@ -4,20 +4,23 @@ import 'package:crypto/crypto.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/features/devices/health/health_models.dart';
 
-/// Persistent local store for the first health-data slice.
+/// Local store for the rewritten Xiaomi health data model.
 ///
-/// The interface is deliberately independent of the backing store so the
-/// capped JSON representation can later migrate to SQLite without changing
-/// the device adapter or UI. Data is keyed by the stable OronBox device
-/// address and never leaves the local application.
+/// This intentionally uses a new key namespace. The previous health model is
+/// not migrated: its entry is removed when this store is first opened for a
+/// device.
 class HealthStore {
-  static const _keyPrefix = 'health_data_v1_';
+  static const _keyPrefix = 'health_data_v2_';
+  static const _legacyKeyPrefix = 'health_data_v1_';
   static const _maxDailyRecords = 90;
+  static const _maxSampleRecords = 30 * 24 * 60;
   static const _maxSleepRecords = 90;
+  static const _maxWorkoutRecords = 90;
 
   final _prefs = SharedPrefsService.instance;
 
   Future<XiaomiHealthData> read(String deviceId) async {
+    await _prefs.remove(_legacyKey(deviceId));
     final value = _prefs.getString(_key(deviceId));
     if (value == null || value.isEmpty) return const XiaomiHealthData();
     try {
@@ -28,19 +31,21 @@ class HealthStore {
   }
 
   Future<void> write(String deviceId, XiaomiHealthData data) async {
-    final dailyByDate = <String, HealthDailySummary>{
-      for (final value in data.daily) _dateKey(value.date): value,
-    };
-    final sleepByStart = <String, HealthSleepSummary>{
-      for (final value in data.sleep) _sleepKey(value): value,
-    };
-    final daily = dailyByDate.values.toList()
-      ..sort((a, b) => b.date.compareTo(a.date));
-    final sleep = sleepByStart.values.toList()
+    final daily = [...data.daily]..sort((a, b) => b.date.compareTo(a.date));
+    final samples = [...data.samples]
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    final sleep = [...data.sleep]
+      ..sort((a, b) => b.startedAt.compareTo(a.startedAt));
+    final workouts = [...data.workouts]
       ..sort((a, b) => b.startedAt.compareTo(a.startedAt));
     final normalized = XiaomiHealthData(
-      daily: daily.take(_maxDailyRecords).toList(growable: false),
-      sleep: sleep.take(_maxSleepRecords).toList(growable: false),
+      daily: _deduplicateDaily(daily).take(_maxDailyRecords).toList(),
+      samples: _deduplicateSamples(samples).take(_maxSampleRecords).toList(),
+      sleep: _deduplicateSleep(sleep).take(_maxSleepRecords).toList(),
+      workouts: _deduplicateWorkouts(
+        workouts,
+      ).take(_maxWorkoutRecords).toList(),
+      capabilities: data.capabilities,
       lastSyncedAt: data.lastSyncedAt,
     );
     final ok = await _prefs.setString(_key(deviceId), normalized.encode());
@@ -50,11 +55,48 @@ class HealthStore {
   String _key(String deviceId) =>
       '$_keyPrefix${sha1.convert(utf8.encode(deviceId)).toString()}';
 
+  String _legacyKey(String deviceId) =>
+      '$_legacyKeyPrefix${sha1.convert(utf8.encode(deviceId)).toString()}';
+
+  List<HealthDailySummary> _deduplicateDaily(List<HealthDailySummary> values) {
+    final result = <String, HealthDailySummary>{};
+    for (final value in values) {
+      result[_dateKey(value.date)] ??= value;
+    }
+    return result.values.toList(growable: false);
+  }
+
+  List<HealthSample> _deduplicateSamples(List<HealthSample> values) {
+    final result = <String, HealthSample>{};
+    for (final value in values) {
+      result['${value.metric.name}|${value.timestamp.toIso8601String()}'] ??=
+          value;
+    }
+    return result.values.toList(growable: false);
+  }
+
+  List<HealthSleepSummary> _deduplicateSleep(List<HealthSleepSummary> values) {
+    final result = <String, HealthSleepSummary>{};
+    for (final value in values) {
+      result['${value.startedAt.toIso8601String()}|${value.endedAt.toIso8601String()}'] ??=
+          value;
+    }
+    return result.values.toList(growable: false);
+  }
+
+  List<HealthWorkoutSummary> _deduplicateWorkouts(
+    List<HealthWorkoutSummary> values,
+  ) {
+    final result = <String, HealthWorkoutSummary>{};
+    for (final value in values) {
+      result['${value.startedAt.toIso8601String()}|${value.activityType}'] ??=
+          value;
+    }
+    return result.values.toList(growable: false);
+  }
+
   String _dateKey(DateTime value) =>
       '${value.year.toString().padLeft(4, '0')}-'
       '${value.month.toString().padLeft(2, '0')}-'
       '${value.day.toString().padLeft(2, '0')}';
-
-  String _sleepKey(HealthSleepSummary value) =>
-      '${value.startedAt.toIso8601String()}|${value.endedAt.toIso8601String()}';
 }

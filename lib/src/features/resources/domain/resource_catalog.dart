@@ -7,6 +7,7 @@ class CommunityResourceQuery {
   const CommunityResourceQuery({
     this.page = 0,
     this.pageSize = 30,
+    this.seed,
     this.query = '',
     this.sort = CommunitySortRule.recommendation,
     this.type,
@@ -19,6 +20,9 @@ class CommunityResourceQuery {
 
   final int page;
   final int pageSize;
+
+  /// Keeps recommendation ordering stable while loading multiple pages.
+  final int? seed;
   final String query;
   final CommunitySortRule sort;
   final CommunityResourceType? type;

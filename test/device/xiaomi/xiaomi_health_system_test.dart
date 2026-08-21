@@ -203,7 +203,7 @@ void main() {
     final future = system.fetchBasicData();
     var completed = false;
     future.then((_) => completed = true);
-    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
 
     component.requestPool.onPacket(
       pb.WearPacket(
@@ -230,6 +230,64 @@ void main() {
     await entity.dispose();
     eventBus.dispose();
   });
+
+  test(
+    'receives and validates an activity file on the dedicated channel',
+    () async {
+      final eventBus = DeviceEventBus();
+      final transport = _RecordingTransport();
+      final entity = DeviceEntity(
+        id: 'device-a',
+        kind: 'xiaomi-spp-v1',
+        transport: transport,
+        eventBus: eventBus,
+      );
+      final component = XiaomiDeviceComponent(
+        transport: transport,
+        sppV1: true,
+      );
+      entity.set(component);
+      entity.registerSystem(XiaomiRequestPoolSystem());
+      final system = XiaomiHealthSystem();
+      entity.registerSystem(system);
+
+      final fileId = Uint8List.fromList(const [1, 0, 0, 0, 0, 5, 0]);
+      final sync = system.syncActivityFiles();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      component.requestPool.onPacket(
+        pb.WearPacket(
+          type: pb.WearPacket_Type.FITNESS,
+          id: pb_fitness.Fitness_FitnessID.GET_TODAY_FITNESS_IDS.value,
+          fitness: pb_fitness.Fitness(ids: fileId),
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      component.requestPool.onPacket(
+        pb.WearPacket(
+          type: pb.WearPacket_Type.FITNESS,
+          id: pb_fitness.Fitness_FitnessID.GET_HISTORY_FITNESS_IDS.value,
+          fitness: pb_fitness.Fitness(ids: fileId),
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      final body = Uint8List.fromList([...fileId, 0, 0, 0, 0, 0]);
+      final withCrc = Uint8List.fromList([...body, ..._crc32(body)]);
+      final chunk = Uint8List(withCrc.length + 4);
+      final header = ByteData.sublistView(chunk);
+      header.setUint16(0, 1, Endian.little);
+      header.setUint16(2, 1, Endian.little);
+      chunk.setRange(4, chunk.length, withCrc);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      system.onActivityPayload(chunk);
+
+      final result = await sync;
+      expect(result.filesReceived, 1);
+      expect(transport.sent, isNotEmpty);
+      await entity.dispose();
+      eventBus.dispose();
+    },
+  );
 }
 
 DeviceEntity _entity(DeviceEventBus eventBus) => DeviceEntity(
@@ -257,4 +315,30 @@ class _UnusedTransport implements Transport {
 
   @override
   Future<void> dispose() async {}
+}
+
+class _RecordingTransport extends _UnusedTransport {
+  final sent = <Uint8List>[];
+
+  @override
+  Future<void> send(Uint8List data) async {
+    sent.add(Uint8List.fromList(data));
+  }
+}
+
+List<int> _crc32(Uint8List data) {
+  var crc = 0xffffffff;
+  for (final byte in data) {
+    crc ^= byte;
+    for (var bit = 0; bit < 8; bit++) {
+      crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xedb88320 : crc >> 1;
+    }
+  }
+  final value = (crc ^ 0xffffffff) & 0xffffffff;
+  return [
+    value & 0xff,
+    (value >> 8) & 0xff,
+    (value >> 16) & 0xff,
+    (value >> 24) & 0xff,
+  ];
 }

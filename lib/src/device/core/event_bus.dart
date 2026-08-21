@@ -50,6 +50,18 @@ final class XiaomiHealthStateUpdated extends DeviceEvent {
   final XiaomiHealthState health;
 }
 
+/// The wearable started or stopped the phone finder through the Xiaomi
+/// private system channel. This is an inbound event: the phone reacts locally
+/// instead of sending the same command back to the wearable.
+final class XiaomiFindPhoneRequested extends DeviceEvent {
+  const XiaomiFindPhoneRequested({
+    required super.deviceId,
+    required this.finding,
+  });
+
+  final bool finding;
+}
+
 final class DeviceInfoUpdated extends DeviceEvent {
   const DeviceInfoUpdated({required super.deviceId, required this.info});
 

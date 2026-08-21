@@ -282,164 +282,179 @@ class _DeviceMusicUploadPageState extends ConsumerState<DeviceMusicUploadPage> {
             widget.xiaomi ? l10n.deviceMusicSync : l10n.deviceMusicUpload,
           ),
         ),
-        body: PageContainer(
-          padding: const EdgeInsets.fromLTRB(
-            StyleConstants.pagePadding,
-            8,
-            StyleConstants.pagePadding,
-            0,
-          ),
-          child: ListView(
-            children: [
-              if (widget.xiaomi) ...[
-                _buildLibraryCard(context, l10n),
-                const SizedBox(height: StyleConstants.sectionSpacing),
-              ],
-              SectionCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SectionHeader(title: l10n.deviceMusicTransferTitle),
-                    Text(
-                      widget.xiaomi
-                          ? l10n.deviceMusicVelaDescription
-                          : l10n.deviceMusicZeppDescription,
-                      style: TextStyle(color: colors.onSurfaceVariant),
-                    ),
-                    const SizedBox(height: 20),
-                    OutlinedButton.icon(
-                      onPressed: _uploading ? null : _chooseFile,
-                      icon: const Icon(Icons.audio_file_outlined),
-                      label: Text(
-                        _pendingFiles.isEmpty
-                            ? l10n.deviceMusicChooseMp3
-                            : l10n.deviceMusicSelectedFiles(
-                                _pendingFiles.length,
-                              ),
-                      ),
-                    ),
-                    if (_pendingFiles.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      for (var index = 0; index < _pendingFiles.length; index++)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Card(
-                            margin: EdgeInsets.zero,
-                            elevation: 0,
-                            color: index == _selectedFileIndex
-                                ? colors.secondaryContainer
-                                : colors.surfaceContainerHighest,
-                            child: ListTile(
-                              onTap: () => _selectPendingFile(index),
-                              leading: const Icon(Icons.audio_file_outlined),
-                              title: Text(_pendingFiles[index].title),
-                              subtitle: Text(
-                                '${_pendingFiles[index].fileName} · '
-                                '${_formatBytes(_pendingFiles[index].bytes.length)}',
-                              ),
-                              trailing: IconButton(
-                                onPressed: _uploading
-                                    ? null
-                                    : () => _removePendingFile(index),
-                                icon: const Icon(Icons.close),
-                              ),
-                            ),
+        body: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            PageContainer(
+              padding: const EdgeInsets.fromLTRB(
+                StyleConstants.pagePadding,
+                8,
+                StyleConstants.pagePadding,
+                0,
+              ),
+              child: Column(
+                children: [
+                  if (widget.xiaomi) ...[
+                    _buildLibraryCard(context, l10n),
+                    const SizedBox(height: StyleConstants.sectionSpacing),
+                  ],
+                  SectionCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SectionHeader(title: l10n.deviceMusicTransferTitle),
+                        Text(
+                          widget.xiaomi
+                              ? l10n.deviceMusicVelaDescription
+                              : l10n.deviceMusicZeppDescription,
+                          style: TextStyle(color: colors.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 20),
+                        OutlinedButton.icon(
+                          onPressed: _uploading ? null : _chooseFile,
+                          icon: const Icon(Icons.audio_file_outlined),
+                          label: Text(
+                            _pendingFiles.isEmpty
+                                ? l10n.deviceMusicChooseMp3
+                                : l10n.deviceMusicSelectedFiles(
+                                    _pendingFiles.length,
+                                  ),
                           ),
                         ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _title,
-                        enabled: !_uploading,
-                        decoration: InputDecoration(
-                          labelText: l10n.deviceMusicSongTitle,
-                          prefixIcon: const Icon(Icons.music_note),
-                        ),
-                        onChanged: (value) {
-                          final file = _selectedFile;
-                          if (file != null) file.title = value;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _artist,
-                        enabled: !_uploading,
-                        decoration: InputDecoration(
-                          labelText: l10n.deviceMusicArtist,
-                          prefixIcon: const Icon(Icons.person_outline),
-                        ),
-                        onChanged: (value) {
-                          final file = _selectedFile;
-                          if (file != null) file.artist = value;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        l10n.deviceMusicFileSize(
-                          _formatBytes(_selectedFile?.bytes.length ?? 0),
-                        ),
-                        style: TextStyle(color: colors.onSurfaceVariant),
-                      ),
-                    ],
-                    if (_uploading || _progress > 0) ...[
-                      const SizedBox(height: 20),
-                      SmoothLinearProgressIndicator(value: _progress),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
+                        if (_pendingFiles.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          for (
+                            var index = 0;
+                            index < _pendingFiles.length;
+                            index++
+                          )
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Card(
+                                margin: EdgeInsets.zero,
+                                elevation: 0,
+                                color: index == _selectedFileIndex
+                                    ? colors.secondaryContainer
+                                    : colors.surfaceContainerHighest,
+                                child: ListTile(
+                                  onTap: () => _selectPendingFile(index),
+                                  leading: const Icon(
+                                    Icons.audio_file_outlined,
+                                  ),
+                                  title: Text(_pendingFiles[index].title),
+                                  subtitle: Text(
+                                    '${_pendingFiles[index].fileName} · '
+                                    '${_formatBytes(_pendingFiles[index].bytes.length)}',
+                                  ),
+                                  trailing: IconButton(
+                                    onPressed: _uploading
+                                        ? null
+                                        : () => _removePendingFile(index),
+                                    icon: const Icon(Icons.close),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _title,
+                            enabled: !_uploading,
+                            decoration: InputDecoration(
+                              labelText: l10n.deviceMusicSongTitle,
+                              prefixIcon: const Icon(Icons.music_note),
+                            ),
+                            onChanged: (value) {
+                              final file = _selectedFile;
+                              if (file != null) file.title = value;
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _artist,
+                            enabled: !_uploading,
+                            decoration: InputDecoration(
+                              labelText: l10n.deviceMusicArtist,
+                              prefixIcon: const Icon(Icons.person_outline),
+                            ),
+                            onChanged: (value) {
+                              final file = _selectedFile;
+                              if (file != null) file.artist = value;
+                            },
+                          ),
+                          const SizedBox(height: 12),
                           Text(
-                            l10n.deviceMusicProgress(
-                              (_progress * 100).toStringAsFixed(1),
+                            l10n.deviceMusicFileSize(
+                              _formatBytes(_selectedFile?.bytes.length ?? 0),
                             ),
+                            style: TextStyle(color: colors.onSurfaceVariant),
                           ),
-                          const Spacer(),
-                          if (_bytesPerSecond > 0)
+                        ],
+                        if (_uploading || _progress > 0) ...[
+                          const SizedBox(height: 20),
+                          SmoothLinearProgressIndicator(value: _progress),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Text(
+                                l10n.deviceMusicProgress(
+                                  (_progress * 100).toStringAsFixed(1),
+                                ),
+                              ),
+                              const Spacer(),
+                              if (_bytesPerSecond > 0)
+                                Text(
+                                  l10n.deviceMusicTransferSpeed(
+                                    _formatBytes(_bytesPerSecond.round()),
+                                  ),
+                                  style: TextStyle(
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          if (_uploading && _activeFileIndex >= 0) ...[
+                            const SizedBox(height: 4),
                             Text(
-                              l10n.deviceMusicTransferSpeed(
-                                _formatBytes(_bytesPerSecond.round()),
+                              l10n.deviceMusicQueueProgress(
+                                _activeFileIndex + 1,
+                                _pendingFiles.length,
+                                _pendingFiles[_activeFileIndex].fileName,
                               ),
                               style: TextStyle(color: colors.onSurfaceVariant),
                             ),
+                          ],
                         ],
-                      ),
-                      if (_uploading && _activeFileIndex >= 0) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          l10n.deviceMusicQueueProgress(
-                            _activeFileIndex + 1,
-                            _pendingFiles.length,
-                            _pendingFiles[_activeFileIndex].fileName,
+                        if (_error != null) ...[
+                          const SizedBox(height: 16),
+                          Text(_error!, style: TextStyle(color: colors.error)),
+                        ],
+                        const SizedBox(height: 20),
+                        FilledButton.icon(
+                          onPressed:
+                              ready && _pendingFiles.isNotEmpty && !_uploading
+                              ? _upload
+                              : null,
+                          icon: _uploading
+                              ? const SizedBox.square(
+                                  dimension: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.send),
+                          label: Text(
+                            _uploading
+                                ? l10n.deviceMusicTransferring
+                                : l10n.deviceMusicSend,
                           ),
-                          style: TextStyle(color: colors.onSurfaceVariant),
                         ),
                       ],
-                    ],
-                    if (_error != null) ...[
-                      const SizedBox(height: 16),
-                      Text(_error!, style: TextStyle(color: colors.error)),
-                    ],
-                    const SizedBox(height: 20),
-                    FilledButton.icon(
-                      onPressed:
-                          ready && _pendingFiles.isNotEmpty && !_uploading
-                          ? _upload
-                          : null,
-                      icon: _uploading
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.send),
-                      label: Text(
-                        _uploading
-                            ? l10n.deviceMusicTransferring
-                            : l10n.deviceMusicSend,
-                      ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

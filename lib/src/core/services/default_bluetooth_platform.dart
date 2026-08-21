@@ -5,6 +5,7 @@ import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/core/services/ble_gatt_driver.dart';
 import 'package:oronbox/src/core/services/rfcomm_driver.dart';
 import 'package:oronbox/src/device/core/bluetooth_platform.dart';
+import 'package:oronbox/src/features/devices/utils/device_address.dart';
 
 class DefaultBluetoothPlatform implements BluetoothPlatform {
   DefaultBluetoothPlatform(this._ble, this._rfcomm)
@@ -28,6 +29,15 @@ class DefaultBluetoothPlatform implements BluetoothPlatform {
   StreamSubscription<BluetoothEndpoint>? _bleSubscription;
   StreamSubscription<BluetoothEndpoint>? _sppSubscription;
   final _connections = <String, BluetoothConnection>{};
+
+  String _connectionKey(String address, ConnectType type) {
+    final trimmed = address.trim();
+    if (type != ConnectType.spp ||
+        !RegExp(r'^[0-9a-fA-F]{2}([:-][0-9a-fA-F]{2}){5}$').hasMatch(trimmed)) {
+      return trimmed;
+    }
+    return trimmed.replaceAll('-', ':').toLowerCase();
+  }
 
   @override
   Stream<BluetoothEndpoint> get scanStream => _scanController.stream;
@@ -128,6 +138,7 @@ class DefaultBluetoothPlatform implements BluetoothPlatform {
     BluetoothConnectOptions options,
   ) async {
     await stopScan();
+    final connectionKey = _connectionKey(address, options.connectType);
     if (options.connectType == ConnectType.spp) {
       for (final entry in _connections.entries.toList()) {
         if (entry.value.connectType == ConnectType.spp) {
@@ -150,7 +161,7 @@ class DefaultBluetoothPlatform implements BluetoothPlatform {
         connection = _BleBluetoothConnection(bleConnection);
       case ConnectType.spp:
         final sppConnection = await _rfcomm.connect(
-          address,
+          formatDeviceAddress(address),
           name,
           serviceUuid: options.sppServiceUuid,
           fallbackChannels: options.sppFallbackChannels,
@@ -158,13 +169,17 @@ class DefaultBluetoothPlatform implements BluetoothPlatform {
         );
         connection = _SppBluetoothConnection(sppConnection);
     }
-    _connections[address] = connection;
+    _connections[connectionKey] = connection;
     return connection;
   }
 
   @override
   Future<void> disconnect(String address) async {
     await _disposeConnection(address);
+    final canonical = _connectionKey(address, ConnectType.spp);
+    if (canonical != address) {
+      await _disposeConnection(canonical);
+    }
   }
 
   @override
@@ -257,6 +272,17 @@ class _BleBluetoothConnection implements BluetoothConnection {
   }
 
   @override
+  Future<void> unsubscribe({BleRequiredCharacteristic? characteristic}) async {
+    final target = characteristic ?? xiaomiRequiredBleCharacteristics.first;
+    final key = '${target.serviceUuid}/${target.characteristicUuid}';
+    await _incomingSubscriptions.remove(key)?.cancel();
+    await _connection.unsubscribe(
+      target.serviceUuid,
+      target.characteristicUuid,
+    );
+  }
+
+  @override
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
@@ -318,6 +344,12 @@ class _SppBluetoothConnection implements BluetoothConnection {
     if (onData != null) {
       _incomingSubscription = _connection.incomingData.listen(onData);
     }
+  }
+
+  @override
+  Future<void> unsubscribe({BleRequiredCharacteristic? characteristic}) async {
+    await _incomingSubscription?.cancel();
+    _incomingSubscription = null;
   }
 
   @override

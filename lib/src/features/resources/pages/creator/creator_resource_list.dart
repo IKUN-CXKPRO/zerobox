@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
 import 'package:oronbox/src/features/resources/domain/creator_workspace.dart';
 import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
@@ -60,21 +61,39 @@ class _CreatorResourceListState extends State<CreatorResourceList> {
         _CreatorListEntry(workspace: workspace),
     ];
     if (state.loading || widget.collectionsLoading) {
-      return LoadingView(message: creatorOperationLabel(l10n, state.operation));
+      return PageContainer(
+        padding: const EdgeInsets.fromLTRB(
+          StyleConstants.pagePadding,
+          8,
+          StyleConstants.pagePadding,
+          0,
+        ),
+        child: LoadingView(
+          message: creatorOperationLabel(l10n, state.operation),
+        ),
+      );
     }
     if (entries.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.edit_outlined,
-              size: 56,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 12),
-            Text(l10n.creatorNoResources),
-          ],
+      return PageContainer(
+        padding: const EdgeInsets.fromLTRB(
+          StyleConstants.pagePadding,
+          8,
+          StyleConstants.pagePadding,
+          0,
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.edit_outlined,
+                size: 56,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 12),
+              Text(l10n.creatorNoResources),
+            ],
+          ),
         ),
       );
     }
@@ -99,50 +118,66 @@ class _CreatorResourceListState extends State<CreatorResourceList> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.only(bottom: widget.bottomPadding),
         children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-            child: Row(
+          PageContainer(
+            padding: const EdgeInsets.fromLTRB(
+              StyleConstants.pagePadding,
+              8,
+              StyleConstants.pagePadding,
+              0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _filterChip(l10n.all, 'all'),
-                for (final value in presentStates)
-                  _filterChip(creatorStateLabel(l10n, value), value),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 4,
+                  ),
+                  child: Row(
+                    children: [
+                      _filterChip(l10n.all, 'all'),
+                      for (final value in presentStates)
+                        _filterChip(creatorStateLabel(l10n, value), value),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                for (final entry in visible)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: CreatorResourceCard(
+                      workspace: entry.workspace,
+                      controller: widget.controller,
+                      isCollection: entry.collection != null,
+                      collectionResourceCount: entry.collectionResourceCount,
+                      selected: widget.selectedResourceIds.contains(
+                        entry.workspace.resource.id,
+                      ),
+                      onLongPress: () {
+                        final collection = entry.collection;
+                        if (collection != null) {
+                          widget.onDissolveCollection?.call(collection);
+                          return;
+                        }
+                        _toggleSelection(entry.workspace.resource.id);
+                      },
+                      onTap: () {
+                        final collection = entry.collection;
+                        if (collection != null) {
+                          widget.onOpenCollection?.call(collection);
+                        } else if (widget.selectedResourceIds.isNotEmpty) {
+                          _toggleSelection(entry.workspace.resource.id);
+                        } else {
+                          widget.controller.select(entry.workspace);
+                          widget.onOpen?.call(entry.workspace);
+                        }
+                      },
+                    ),
+                  ),
               ],
             ),
           ),
-          const SizedBox(height: 8),
-          for (final entry in visible)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: CreatorResourceCard(
-                workspace: entry.workspace,
-                controller: widget.controller,
-                isCollection: entry.collection != null,
-                collectionResourceCount: entry.collectionResourceCount,
-                selected: widget.selectedResourceIds.contains(
-                  entry.workspace.resource.id,
-                ),
-                onLongPress: () {
-                  final collection = entry.collection;
-                  if (collection != null) {
-                    widget.onDissolveCollection?.call(collection);
-                    return;
-                  }
-                  _toggleSelection(entry.workspace.resource.id);
-                },
-                onTap: () {
-                  final collection = entry.collection;
-                  if (collection != null) {
-                    widget.onOpenCollection?.call(collection);
-                  } else if (widget.selectedResourceIds.isNotEmpty) {
-                    _toggleSelection(entry.workspace.resource.id);
-                  } else {
-                    widget.controller.select(entry.workspace);
-                    widget.onOpen?.call(entry.workspace);
-                  }
-                },
-              ),
-            ),
         ],
       ),
     );

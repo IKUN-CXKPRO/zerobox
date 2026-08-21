@@ -151,11 +151,40 @@ Future<String?> saveDeviceLogFile(String name, List<int> bytes) async {
   final safeName = name
       .split(RegExp(r'[/\\]'))
       .last
-      .replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+      .replaceAll(RegExp(r'[\x00-\x1F<>:"/\\|?*]'), '_')
+      .trim()
+      .replaceFirst(RegExp(r'[. ]+$'), '');
   final fileName = safeName.isEmpty ? 'device-logs.zip' : safeName;
-  final file = File('$directoryPath${Platform.pathSeparator}$fileName');
-  await file.writeAsBytes(bytes, flush: true);
+  final file = await _uniqueLogFile(
+    File('$directoryPath${Platform.pathSeparator}$fileName'),
+  );
+  final temporary = File('${file.path}.part');
+  try {
+    await temporary.writeAsBytes(bytes, flush: true);
+    await temporary.rename(file.path);
+  } catch (_) {
+    try {
+      await temporary.delete();
+    } catch (_) {}
+    rethrow;
+  }
   return file.path;
+}
+
+Future<File> _uniqueLogFile(File requested) async {
+  if (!await requested.exists()) return requested;
+  final directory = requested.parent;
+  final name = requested.uri.pathSegments.last;
+  final dot = name.lastIndexOf('.');
+  final stem = dot > 0 ? name.substring(0, dot) : name;
+  final extension = dot > 0 ? name.substring(dot) : '';
+  for (var index = 2; index < 100000; index++) {
+    final candidate = File(
+      '${directory.path}${Platform.pathSeparator}$stem ($index)$extension',
+    );
+    if (!await candidate.exists()) return candidate;
+  }
+  throw StateError('Unable to allocate a unique log file name');
 }
 
 Future<bool> openLogFile(LogFileInfo file) async {

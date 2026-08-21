@@ -11,6 +11,7 @@ add_executable(${BINARY_NAME} WIN32
   "file_open_channel.cpp"
   "flutter_window.cpp"
   "main.cpp"
+  "runner_startup.cpp"
   "mi_account_2fa_channel.cpp"
   "zeppos_app_settings_channel.cpp"
   "utils.cpp"

@@ -433,6 +433,12 @@ abstract class AppLocalizations {
   /// **'Resource name and summary are required'**
   String get creatorResourceMetadataRequired;
 
+  /// No description provided for @creatorSubmitValidationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fix the following before submitting'**
+  String get creatorSubmitValidationFailed;
+
   /// No description provided for @creatorPaidType.
   ///
   /// In en, this message translates to:
@@ -1476,6 +1482,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Latest firmware'**
   String get firmwareLatestRelease;
+
+  /// No description provided for @firmwareHistoricalReleases.
+  ///
+  /// In en, this message translates to:
+  /// **'Historical firmware'**
+  String get firmwareHistoricalReleases;
 
   /// No description provided for @firmwareUpToDate.
   ///
@@ -2824,7 +2836,7 @@ abstract class AppLocalizations {
   /// No description provided for @zeppOsFindDeviceDescription.
   ///
   /// In en, this message translates to:
-  /// **'Make the device vibrate or ring so you can locate it nearby.'**
+  /// **'Make the device vibrate or ring continuously'**
   String get zeppOsFindDeviceDescription;
 
   /// No description provided for @deviceFeaturesDeviceInfo.
@@ -3264,6 +3276,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose what happens when the main window is closed'**
   String get settingsDesktopCloseBehaviorDesc;
+
+  /// No description provided for @settingsRemoveBondBeforeSpp.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Bluetooth pairing before connection'**
+  String get settingsRemoveBondBeforeSpp;
+
+  /// No description provided for @settingsRemoveBondBeforeSppDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the existing pairing before each classic Bluetooth connection'**
+  String get settingsRemoveBondBeforeSppDesc;
 
   /// No description provided for @desktopCloseBehaviorAsk.
   ///
@@ -3982,7 +4006,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAboutSoftwareCopyright.
   ///
   /// In en, this message translates to:
-  /// **'Copyright © OronBox contributors'**
+  /// **'Copyright © 2026 OrPudding'**
   String get settingsAboutSoftwareCopyright;
 
   /// No description provided for @acknowledgementsKazumi.
@@ -4320,6 +4344,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pulling device logs'**
   String get settingsDeviceLogsPulling;
+
+  /// No description provided for @settingsDeviceLogsWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the device to send logs'**
+  String get settingsDeviceLogsWaiting;
 
   /// No description provided for @settingsDeviceLogsProgress.
   ///
@@ -4745,6 +4775,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Update notes'**
   String get creatorBandBbsVersionMessage;
+
+  /// No description provided for @creatorBandBbsVersionPairRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter both a version title and update notes, or leave both empty'**
+  String get creatorBandBbsVersionPairRequired;
 
   /// No description provided for @creatorLinkedSections.
   ///
@@ -5667,14 +5703,110 @@ abstract class AppLocalizations {
   /// No description provided for @settingsHealthFeatures.
   ///
   /// In en, this message translates to:
-  /// **'Health features'**
+  /// **'Enable experimental features'**
   String get settingsHealthFeatures;
 
   /// No description provided for @settingsHealthFeaturesDescription.
   ///
   /// In en, this message translates to:
-  /// **'Enable health-related features that are still in development'**
+  /// **'Enable the unfinished health, weather sync, and alarm management features'**
   String get settingsHealthFeaturesDescription;
+
+  /// No description provided for @debugServerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug service'**
+  String get debugServerTitle;
+
+  /// No description provided for @debugServerDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Expose a local API for trusted development tools'**
+  String get debugServerDescription;
+
+  /// No description provided for @debugServerEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable debug service'**
+  String get debugServerEnable;
+
+  /// No description provided for @debugServerEnableDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow approved clients on the local network to inspect and control OronBox'**
+  String get debugServerEnableDescription;
+
+  /// No description provided for @debugServerEndpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Endpoint'**
+  String get debugServerEndpoint;
+
+  /// No description provided for @debugServerFingerprint.
+  ///
+  /// In en, this message translates to:
+  /// **'Server fingerprint'**
+  String get debugServerFingerprint;
+
+  /// No description provided for @debugServerPendingClients.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending approvals'**
+  String get debugServerPendingClients;
+
+  /// No description provided for @debugServerAuthorizedClients.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved clients'**
+  String get debugServerAuthorizedClients;
+
+  /// No description provided for @debugServerApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get debugServerApprove;
+
+  /// No description provided for @debugServerReject.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get debugServerReject;
+
+  /// No description provided for @debugServerRevoke.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke access'**
+  String get debugServerRevoke;
+
+  /// No description provided for @debugServerNoPendingClients.
+  ///
+  /// In en, this message translates to:
+  /// **'No clients are waiting for approval'**
+  String get debugServerNoPendingClients;
+
+  /// No description provided for @debugServerNoAuthorizedClients.
+  ///
+  /// In en, this message translates to:
+  /// **'No approved clients'**
+  String get debugServerNoAuthorizedClients;
+
+  /// No description provided for @debugServerSecurityNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Only enable this service on a trusted network'**
+  String get debugServerSecurityNotice;
+
+  /// No description provided for @debugServerStartFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not start the debug service'**
+  String get debugServerStartFailed;
+
+  /// No description provided for @debugServerStopFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not stop the debug service'**
+  String get debugServerStopFailed;
 
   /// No description provided for @xmsDeveloperMode.
   ///

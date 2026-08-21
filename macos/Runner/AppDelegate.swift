@@ -71,7 +71,7 @@ final class MacOSZeppSettingsChannel: NSObject, WKScriptMessageHandler, NSWindow
 
   init(messenger: FlutterBinaryMessenger, parentWindow: NSWindow?) {
     self.parentWindow = parentWindow
-    channel = FlutterMethodChannel(name: "oronbox/zeppos_app_settings", binaryMessenger: messenger)
+    channel = FlutterMethodChannel(name: OronBoxChannelNames.zepposAppSettings, binaryMessenger: messenger)
     super.init()
     channel.setMethodCallHandler(handle)
   }
@@ -136,7 +136,7 @@ final class MacOSMiAccountTwoFactorChannel: NSObject {
   init(messenger: FlutterBinaryMessenger, parentWindow: NSWindow?) {
     self.parentWindow = parentWindow
     methodChannel = FlutterMethodChannel(
-      name: "oronbox/mi_account_2fa",
+      name: OronBoxChannelNames.miAccountTwoFactor,
       binaryMessenger: messenger
     )
     super.init()
@@ -344,9 +344,10 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
   private var scanEventSink: FlutterEventSink?
   private var rfcommChannel: IOBluetoothRFCOMMChannel?
   private var inquiry: IOBluetoothDeviceInquiry?
+  private var inquiryLoopRunning = false
   private var scanResults: [String: [String: Any]] = [:]
   private var connectGeneration: UInt64 = 0
-  private var pendingSdpQuery: MacOSSdpQueryState?
+  private var pendingSdpQuery: MacOSSdpQueryRequest?
   private var pendingRfcommOpens: [RfcommOpenState] = []
   private var pendingWrite: RfcommWriteState?
   private let stateQueue = DispatchQueue(label: "org.zxor.oronbox.rfcomm.state")
@@ -354,15 +355,15 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
 
   init(messenger: FlutterBinaryMessenger) {
     methodChannel = FlutterMethodChannel(
-      name: "oronbox/classic_spp",
+      name: OronBoxChannelNames.classicSpp,
       binaryMessenger: messenger
     )
     eventChannel = FlutterEventChannel(
-      name: "oronbox/classic_spp/events",
+      name: OronBoxChannelNames.classicSppEvents,
       binaryMessenger: messenger
     )
     scanEventChannel = FlutterEventChannel(
-      name: "oronbox/classic_spp/scan_events",
+      name: OronBoxChannelNames.classicSppScanEvents,
       binaryMessenger: messenger
     )
     super.init()
@@ -413,24 +414,24 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
   private func startScan(result: @escaping FlutterResult) {
     stopInquiry()
     scanResults.removeAll()
+    inquiryLoopRunning = true
 
     for item in pairedDevices() {
       rememberScanDevice(item)
     }
 
-    let inquiry = IOBluetoothDeviceInquiry(delegate: self)
-    inquiry?.updateNewDeviceNames = true
-    self.inquiry = inquiry
-    let status = inquiry?.start() ?? kIOReturnError
+    let status = startInquiry()
     if status == kIOReturnSuccess {
       result(nil)
     } else {
+      inquiryLoopRunning = false
       self.inquiry = nil
       result(FlutterError(code: "SCAN_FAILED", message: "Bluetooth inquiry failed: \(status)", details: nil))
     }
   }
 
   private func stopScan(result: @escaping FlutterResult) {
+    inquiryLoopRunning = false
     stopInquiry()
     result(Array(scanResults.values))
   }
@@ -438,6 +439,22 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
   private func stopInquiry() {
     inquiry?.stop()
     inquiry = nil
+  }
+
+  /// Classic inquiry is deliberately repeated while the Flutter scan is
+  /// active. A single inquiry can finish before a newly discoverable VelaOS
+  /// device answers, while CoreBluetooth may already have shown its UUID.
+  /// Repeating the inquiry gives us the real address required by SPP.
+  @discardableResult
+  private func startInquiry() -> IOReturn {
+    let next = IOBluetoothDeviceInquiry(delegate: self)
+    next?.updateNewDeviceNames = true
+    inquiry = next
+    let status = next?.start() ?? kIOReturnError
+    if status != kIOReturnSuccess {
+      inquiry = nil
+    }
+    return status
   }
 
   private func pairedDevices() -> [[String: Any]] {
@@ -597,7 +614,7 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
       while offset < bytes.count {
         let length = min(chunkSize, bytes.count - offset)
         let payload = Array(bytes[offset..<(offset + length)])
-        let writeState = RfcommWriteState(payload: payload)
+        let writeState = RfcommWriteState(payload: payload, channel: channel)
         let accepted = self.stateQueue.sync { () -> Bool in
           guard self.pendingWrite == nil else { return false }
           self.pendingWrite = writeState
@@ -676,6 +693,16 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
     stateQueue.sync { connectGeneration == generation }
   }
 
+  private func closeDeviceConnection(_ device: IOBluetoothDevice) {
+    if Thread.isMainThread {
+      _ = device.closeConnection()
+    } else {
+      DispatchQueue.main.async {
+        _ = device.closeConnection()
+      }
+    }
+  }
+
   private func discoverRfcommChannels(
     device: IOBluetoothDevice,
     generation: UInt64,
@@ -683,8 +710,8 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
   ) -> [Int] {
     guard isCurrentGeneration(generation) else { return [] }
     if let previousQuery = stateQueue.sync(execute: { pendingSdpQuery }) {
-      _ = previousQuery.wait()
-      guard previousQuery.isCompleted else {
+      _ = previousQuery.state.wait()
+      guard previousQuery.state.isCompleted else {
         // Do not start another query while an older callback can still arrive
         // and be mistaken for the new request.
         return []
@@ -695,12 +722,18 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
         }
       }
     }
-    let query = MacOSSdpQueryState()
+    let query = MacOSSdpQueryRequest(device: device, generation: generation)
     stateQueue.sync { pendingSdpQuery = query }
     // Query the profile's service UUID when one is available. Xiaomi VelaOS
     // uses the standard Serial Port Profile, while ZeppOS exposes a custom
     // 128-bit service and has no safe channel fallback.
     guard let queryUuid = sdpUuid(serviceUuid) ?? IOBluetoothSDPUUID.uuid16(0x1101) else {
+      query.state.finish(status: kIOReturnBadArgument)
+      stateQueue.sync {
+        if pendingSdpQuery === query {
+          pendingSdpQuery = nil
+        }
+      }
       return []
     }
     var startStatus: IOReturn = kIOReturnError
@@ -711,11 +744,11 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
     }
     _ = startSemaphore.wait(timeout: .now() + 2)
     if startStatus != kIOReturnSuccess {
-      query.finish(status: startStatus)
+      query.state.finish(status: startStatus)
     }
-    let status = query.wait()
+    let status = query.state.wait()
     stateQueue.sync {
-      if pendingSdpQuery === query && query.isCompleted {
+      if pendingSdpQuery === query && query.state.isCompleted {
         pendingSdpQuery = nil
       }
     }
@@ -751,9 +784,18 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
 
   func sdpQueryComplete(_ device: IOBluetoothDevice!, status: IOReturn) {
     let query = stateQueue.sync { pendingSdpQuery }
-    query?.finish(status: status)
+    guard let query,
+          let callbackDevice = device,
+          (query.device === callbackDevice ||
+           query.deviceAddress.caseInsensitiveCompare(
+             callbackDevice.addressString ?? ""
+           ) == .orderedSame),
+          isCurrentGeneration(query.generation) else {
+      return
+    }
+    query.state.finish(status: status)
     stateQueue.sync {
-      if pendingSdpQuery === query && query?.isCompleted == true {
+      if pendingSdpQuery === query && query.state.isCompleted {
         pendingSdpQuery = nil
       }
     }
@@ -790,11 +832,11 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
 
     while !state.wait(timeout: .now() + 0.25) {
       if !isCurrentGeneration(generation) {
-        cancelRfcommOpen(state)
+        cancelRfcommOpen(state, device: device)
         return kIOReturnAborted
       }
       if Date() >= deadline {
-        cancelRfcommOpen(state)
+        cancelRfcommOpen(state, device: device)
         return kIOReturnTimeout
       }
     }
@@ -808,10 +850,19 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
     return snapshot.status
   }
 
-  private func cancelRfcommOpen(_ state: RfcommOpenState) {
+  private func cancelRfcommOpen(
+    _ state: RfcommOpenState,
+    device: IOBluetoothDevice
+  ) {
+    let deviceToClose = device
     state.cancel()
-    stateQueue.sync {
+    let shouldCloseDevice = stateQueue.sync { () -> Bool in
       pendingRfcommOpens.removeAll(where: { $0 === state })
+      return rfcommChannel == nil &&
+        !pendingRfcommOpens.contains(where: { !$0.hasReceivedCallback })
+    }
+    if shouldCloseDevice {
+      closeDeviceConnection(deviceToClose)
     }
   }
 
@@ -840,7 +891,10 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
     status: IOReturn
   ) {
     let writeState = stateQueue.sync { pendingWrite }
-    writeState?.finish(status: status)
+    guard let writeState, writeState.matches(rfcommChannel) else {
+      return
+    }
+    writeState.finish(status: status)
   }
 
   private func emitDisconnected() {
@@ -854,27 +908,50 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
     data dataPointer: UnsafeMutableRawPointer!,
     length dataLength: Int
   ) {
-    guard dataLength > 0, let dataPointer else {
+    guard dataLength > 0, let dataPointer,
+          stateQueue.sync(execute: {
+            !readClosed && self.rfcommChannel === rfcommChannel
+          }) else {
       return
     }
     let data = Data(bytes: dataPointer, count: dataLength)
     DispatchQueue.main.async {
+      guard self.stateQueue.sync(execute: {
+        !self.readClosed && self.rfcommChannel === rfcommChannel
+      }) else {
+        return
+      }
       self.eventSink?(FlutterStandardTypedData(bytes: data))
     }
   }
 
   func rfcommChannelClosed(_ rfcommChannel: IOBluetoothRFCOMMChannel!) {
     _ = rfcommChannel.close()
-    _ = rfcommChannel.getDevice()?.closeConnection()
-    let shouldEmit = stateQueue.sync { () -> Bool in
-      guard self.rfcommChannel === rfcommChannel else {
-        return false
+    let outcome = stateQueue.sync { () -> (emitDisconnected: Bool, closeDevice: Bool) in
+      if self.rfcommChannel === rfcommChannel {
+        readClosed = true
+        self.rfcommChannel = nil
+        return (true, false)
       }
-      readClosed = true
-      self.rfcommChannel = nil
-      return true
+
+      // A late callback from a previous attempt must not tear down a newer
+      // connection. If there is no current channel and no pending open left,
+      // however, closing the device clears the half-open Bluetooth session
+      // left by the failed attempt and allows the next RFCOMM open to start.
+      let hasPendingOpen = pendingRfcommOpens.contains {
+        !$0.hasReceivedCallback
+      }
+      return (false, self.rfcommChannel == nil && !hasPendingOpen)
     }
-    if shouldEmit {
+    if outcome.closeDevice {
+      if let device = rfcommChannel.getDevice() {
+        closeDeviceConnection(device)
+      }
+    }
+    if outcome.emitDisconnected {
+      // The channel itself has already closed. Do not close the device here:
+      // an older timed-out RFCOMM attempt can report this callback after a
+      // newer channel has been accepted for the same device.
       emitDisconnected()
     }
   }
@@ -891,6 +968,18 @@ final class MacOSRfcommChannel: NSObject, FlutterStreamHandler, IOBluetoothRFCOM
       return
     }
     inquiry = nil
+    guard inquiryLoopRunning, !aborted else {
+      return
+    }
+    // The inquiry callback is delivered on the main run loop. Start the next
+    // round asynchronously so the completed inquiry can be released first.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+      guard self.inquiryLoopRunning, self.inquiry == nil else { return }
+      let status = self.startInquiry()
+      if status != kIOReturnSuccess {
+        self.inquiryLoopRunning = false
+      }
+    }
   }
 }
 
@@ -972,6 +1061,19 @@ private final class RfcommOpenState {
   }
 }
 
+private final class MacOSSdpQueryRequest {
+  let state = MacOSSdpQueryState()
+  weak var device: IOBluetoothDevice?
+  let deviceAddress: String
+  let generation: UInt64
+
+  init(device: IOBluetoothDevice, generation: UInt64) {
+    self.device = device
+    self.deviceAddress = device.addressString ?? ""
+    self.generation = generation
+  }
+}
+
 private final class MacOSSdpQueryState {
   private let semaphore = DispatchSemaphore(value: 0)
   private let lock = NSLock()
@@ -1003,13 +1105,21 @@ private final class MacOSSdpQueryState {
 
 private final class RfcommWriteState {
   let payload: [UInt8]
+  private weak var channel: IOBluetoothRFCOMMChannel?
   private let semaphore = DispatchSemaphore(value: 0)
   private let lock = NSLock()
   private var completed = false
   private var status: IOReturn = kIOReturnTimeout
 
-  init(payload: [UInt8]) {
+  init(payload: [UInt8], channel: IOBluetoothRFCOMMChannel) {
     self.payload = payload
+    self.channel = channel
+  }
+
+  func matches(_ callbackChannel: IOBluetoothRFCOMMChannel) -> Bool {
+    lock.lock()
+    defer { lock.unlock() }
+    return !completed && channel === callbackChannel
   }
 
   func finish(status: IOReturn) {

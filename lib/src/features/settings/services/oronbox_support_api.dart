@@ -5,6 +5,7 @@ import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/constants/app_constants.dart';
 import 'package:oronbox/src/core/constants/oronbox_server.dart';
 import 'package:oronbox/src/core/network/dio_provider.dart';
+import 'package:oronbox/src/core/network/github_release.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 
 final oronBoxSupportApiProvider = Provider<OronBoxSupportApi>(
@@ -48,14 +49,13 @@ class OronBoxSupportApi {
         'https://api.github.com/repos/zxor-org/oronbox/releases/latest',
         options: Options(headers: {'Accept': 'application/vnd.github+json'}),
       );
-      final root = _map(response.data);
-      final version = root['tag_name']?.toString() ?? '';
-      if (version.isEmpty) rethrow;
+      final release = GitHubRelease.fromJson(_map(response.data));
+      if (release.tagName.isEmpty) rethrow;
       return AppReleaseInfo(
-        latestVersion: version,
-        releaseNotes: root['body']?.toString() ?? '',
+        latestVersion: release.tagName,
+        releaseNotes: release.body,
         sourceUrl:
-            root['html_url']?.toString() ??
+            _map(response.data)['html_url']?.toString() ??
             '${AppConstants.githubRepoUrl}/releases/latest',
       );
     }

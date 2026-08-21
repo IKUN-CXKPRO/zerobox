@@ -872,9 +872,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
               ),
             FilledButton.icon(
               onPressed:
-                  widget.state.loading ||
-                      !_canPublish ||
-                      widget.workspace.resource.isFrozen
+                  widget.state.loading || widget.workspace.resource.isFrozen
                   ? null
                   : _publish,
               icon: Icon(
@@ -892,34 +890,6 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
         ),
       ],
     );
-  }
-
-  bool get _canPublish {
-    if (_name.text.trim().isEmpty || _summary.text.trim().isEmpty) {
-      return false;
-    }
-    if (_externalPurchaseIssue(requireAmount: true) != null) return false;
-    if (_artifacts.isEmpty || _previews.isEmpty) return false;
-    for (final artifact in _artifacts) {
-      if ((_deviceSelections[artifact.key] ?? const <String>{}).isEmpty) {
-        return false;
-      }
-    }
-    if (_publishBandBbs &&
-        (!_bandBbsPublishingAuthorized ||
-            _publicationPlan?.canPublishToBandBbs != true)) {
-      return false;
-    }
-    if (_publishAstroBox &&
-        (!_githubPublishingAuthorized ||
-            _icon == null ||
-            _cover == null ||
-            _astroItemId.text.trim().isEmpty ||
-            _astroRepository.text.trim().isEmpty ||
-            _astroTags.text.trim().isEmpty)) {
-      return false;
-    }
-    return true;
   }
 
   CreatorExternalPurchaseIssue? _externalPurchaseIssue({
@@ -1250,8 +1220,14 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
 
   Future<void> _publish() async {
     final l10n = AppLocalizations.of(context)!;
-    if (_name.text.trim().isEmpty || _summary.text.trim().isEmpty) {
-      _showFailure(l10n.creatorResourceMetadataRequired);
+    final issues = _publishValidationIssues(l10n);
+    if (issues.isNotEmpty) {
+      _showFailure(
+        [
+          l10n.creatorSubmitValidationFailed,
+          ...issues.map((issue) => '• $issue'),
+        ].join('\n'),
+      );
       return;
     }
     final purchaseError = _externalPurchaseValidationMessage(
@@ -1313,6 +1289,58 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
         }
       }
     });
+  }
+
+  List<String> _publishValidationIssues(AppLocalizations l10n) {
+    final issues = <String>[];
+    if (_name.text.trim().isEmpty) issues.add(l10n.creatorResourceName);
+    if (_summary.text.trim().isEmpty) issues.add(l10n.creatorResourceSummary);
+    final purchaseError = _externalPurchaseValidationMessage(
+      l10n,
+      requireAmount: true,
+    );
+    if (purchaseError != null) issues.add(purchaseError);
+    if (_artifacts.isEmpty) issues.add(l10n.creatorAddArtifact);
+    if (_previews.isEmpty) issues.add(l10n.previewImages);
+    for (final artifact in _artifacts) {
+      if ((_deviceSelections[artifact.key] ?? const <String>{}).isEmpty) {
+        issues.add('${l10n.creatorBindDevices}: ${artifact.name}');
+      }
+    }
+    if (_publishBandBbs) {
+      if (!_bandBbsPublishingAuthorized) {
+        issues.add(l10n.creatorBandBbsAuthorizationRequired);
+      }
+      if (_publicationPlan == null) {
+        issues.add(l10n.creatorResolvingPublicationTarget);
+      } else if (!_publicationPlan!.canPublishToBandBbs) {
+        final problem = _publicationPlan!.bandBbsProblem;
+        if (problem != null) issues.add(_bandBbsProblemText(l10n, problem));
+      }
+      if (!creatorBandBbsVersionFieldsComplete(
+        _bandBbsVersionTitle.text,
+        _bandBbsVersionMessage.text,
+      )) {
+        issues.add(l10n.creatorBandBbsVersionPairRequired);
+      }
+    }
+    if (_publishAstroBox) {
+      if (!_githubPublishingAuthorized) {
+        issues.add(l10n.creatorGitHubOwnPublishMissing);
+      }
+      if (_icon == null) issues.add(l10n.creatorRequiredIcon);
+      if (_cover == null) issues.add(l10n.creatorRequiredCover);
+      if (_astroItemId.text.trim().isEmpty) {
+        issues.add(l10n.creatorAstroBoxItemId);
+      }
+      if (_astroRepository.text.trim().isEmpty) {
+        issues.add(l10n.creatorAstroBoxRepository);
+      }
+      if (_astroTags.text.trim().isEmpty) {
+        issues.add(l10n.creatorAstroBoxTags);
+      }
+    }
+    return issues;
   }
 
   Future<void> _saveDraft() {
@@ -2090,8 +2118,8 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
                       onChanged: widget.state.loading
                           ? null
                           : (value) => setState(
-                                () => _overwritePreviousBandBbs = value == true,
-                              ),
+                              () => _overwritePreviousBandBbs = value == true,
+                            ),
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
                       title: Text(l10n.creatorBandBbsOverwritePrevious),

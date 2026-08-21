@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/features/resources/widgets/community_html_content.dart';
 
 /// Recursively renders a OronBox plugin UI tree.
@@ -10,10 +11,16 @@ import 'package:oronbox/src/features/resources/widgets/community_html_content.da
 /// Accepts either the new tree format `{type, props, children}`
 /// or a legacy flat list (auto-wrapped in Column by the backend).
 class PluginUITree extends StatelessWidget {
-  const PluginUITree({super.key, required this.root, required this.onInvoke});
+  const PluginUITree({
+    super.key,
+    required this.root,
+    required this.onInvoke,
+    this.contentPadding,
+  });
 
   final Object? root;
   final Future<void> Function(String callback, [Object? value]) onInvoke;
+  final EdgeInsetsGeometry? contentPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +30,12 @@ class PluginUITree extends StatelessWidget {
         child: Text(AppLocalizations.of(context)!.pluginNoFeatures),
       );
     }
-    return SingleChildScrollView(child: _buildNode(context, tree));
+    final content = _buildNode(context, tree);
+    return SingleChildScrollView(
+      child: contentPadding == null
+          ? content
+          : PageContainer(padding: contentPadding!, child: content),
+    );
   }
 
   Map<String, Object?>? _unwrap(Object? value) {

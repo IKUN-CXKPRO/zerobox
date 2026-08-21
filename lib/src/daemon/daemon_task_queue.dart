@@ -37,9 +37,10 @@ class DaemonTaskQueue {
   String enqueue(OronBoxCommand command, {bool held = false}) {
     final now = DateTime.now();
     final id = '${now.microsecondsSinceEpoch}';
+    final trackedCommand = _withProgressCorrelation(command, id);
     _tasks[id] = DaemonTask(
       id: id,
-      command: command,
+      command: trackedCommand,
       status: held ? 'held' : 'pending',
       createdAt: now,
     );
@@ -77,7 +78,21 @@ class DaemonTaskQueue {
     task = task.copyWith(status: 'running', startedAt: DateTime.now());
     _tasks[id] = task;
     _notify(task);
+    final expectedOperationId = task.command.params['operationId']?.toString();
+    final expectedPath = task.command.params['path']?.toString();
     final progressSubscription = bus.events.listen((event) {
+      final eventOperationId = event.data['operationId']?.toString();
+      final eventPath = event.data['path']?.toString();
+      if (expectedOperationId != null &&
+          eventOperationId != expectedOperationId) {
+        return;
+      }
+      if (expectedOperationId == null &&
+          expectedPath != null &&
+          expectedPath.isNotEmpty &&
+          eventPath != expectedPath) {
+        return;
+      }
       final raw = event.data['progress'];
       if (raw is! num) return;
       final progress = (raw <= 1 ? raw.toDouble() : raw.toDouble() / 100)
@@ -85,6 +100,7 @@ class DaemonTaskQueue {
           .toDouble();
       final current = _tasks[id];
       if (current == null || current.status != 'running') return;
+      if (progress < current.progress) return;
       if (progress == current.progress) return;
       final updated = current.copyWith(progress: progress);
       _tasks[id] = updated;
@@ -140,6 +156,18 @@ class DaemonTaskQueue {
         await shouldRemoveCompleted?.call(task, result) == true) {
       remove(id);
     }
+  }
+
+  OronBoxCommand _withProgressCorrelation(OronBoxCommand command, String id) {
+    if (command.method != 'install.local' &&
+        command.method != 'resource.download') {
+      return command;
+    }
+    if (command.params['operationId'] != null) return command;
+    return OronBoxCommand(
+      method: command.method,
+      params: {...command.params, 'operationId': '${command.method}:$id'},
+    );
   }
 
   bool cancel(String id) {

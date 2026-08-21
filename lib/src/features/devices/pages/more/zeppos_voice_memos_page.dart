@@ -132,6 +132,11 @@ class _ZeppOsVoiceMemosPageState extends ConsumerState<ZeppOsVoiceMemosPage> {
         title: Text(l10n.deviceRecordingsTitle),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        elevation: 0,
+        focusElevation: 0,
+        hoverElevation: 0,
+        highlightElevation: 0,
+        disabledElevation: 0,
         onPressed: _syncing
             ? (_cancelling ? null : _cancel)
             : (ready ? _sync : null),
@@ -140,81 +145,91 @@ class _ZeppOsVoiceMemosPageState extends ConsumerState<ZeppOsVoiceMemosPage> {
             : const Icon(Icons.sync),
         label: Text(_syncing ? l10n.cancel : l10n.deviceRecordingsSync),
       ),
-      body: PageContainer(
-        padding: const EdgeInsets.fromLTRB(
-          StyleConstants.pagePadding,
-          8,
-          StyleConstants.pagePadding,
-          0,
-        ),
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 88),
-          children: [
-            SectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SectionHeader(title: l10n.deviceRecordingsDescription),
-                  Text(
-                    l10n.deviceRecordingsHint,
-                    style: TextStyle(color: colors.onSurfaceVariant),
-                  ),
-                  if (_syncing) ...[
-                    const SizedBox(height: 16),
-                    SmoothLinearProgressIndicator(
-                      value: _total == 0 ? null : _completed / _total,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _total == 0
-                          ? l10n.deviceRecordingsReading
-                          : l10n.deviceRecordingsProgressCount(
-                              _completed,
-                              _total,
-                            ),
-                    ),
-                  ],
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(_error!, style: TextStyle(color: colors.error)),
-                  ],
-                ],
-              ),
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          PageContainer(
+            padding: const EdgeInsets.fromLTRB(
+              StyleConstants.pagePadding,
+              8,
+              StyleConstants.pagePadding,
+              88,
             ),
-            if (_memos.isEmpty && !_syncing)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 48),
-                child: Center(child: Text(l10n.deviceRecordingsEmpty)),
-              )
-            else
-              ..._memos.map(
-                (memo) => Card(
-                  elevation: 0,
-                  child: ListTile(
-                    leading: const Icon(Icons.graphic_eq),
-                    title: Text(memo.filename.replaceAll('.opus', '')),
-                    subtitle: Text(
-                      '${_formatDate(memo.timestamp)}  ·  '
-                      '${_formatDuration(memo.durationMs)}  ·  '
-                      '${_formatBytes(memo.size)}',
-                    ),
-                    trailing: IconButton(
-                      tooltip: l10n.deviceRecordingsSave,
-                      onPressed: memo.bytes == null ? null : () => _save(memo),
-                      icon: const Icon(Icons.save_alt),
-                    ),
+            child: Column(
+              children: [
+                SectionCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SectionHeader(title: l10n.deviceRecordingsDescription),
+                      Text(
+                        l10n.deviceRecordingsHint,
+                        style: TextStyle(color: colors.onSurfaceVariant),
+                      ),
+                      if (_syncing) ...[
+                        const SizedBox(height: 16),
+                        SmoothLinearProgressIndicator(
+                          value: _total == 0 ? null : _completed / _total,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _total == 0
+                              ? l10n.deviceRecordingsReading
+                              : l10n.deviceRecordingsProgressCount(
+                                  _completed,
+                                  _total,
+                                ),
+                        ),
+                      ],
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(_error!, style: TextStyle(color: colors.error)),
+                      ],
+                    ],
                   ),
                 ),
-              ),
-          ],
-        ),
+                if (_memos.isEmpty && !_syncing)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 48),
+                    child: Center(child: Text(l10n.deviceRecordingsEmpty)),
+                  )
+                else
+                  ..._memos.map(
+                    (memo) => Card(
+                      elevation: 0,
+                      child: ListTile(
+                        leading: const Icon(Icons.graphic_eq),
+                        title: Text(memo.filename.replaceAll('.opus', '')),
+                        subtitle: Text(
+                          '${_formatDate(memo.timestamp)}  ·  '
+                          '${_formatDuration(memo.durationMs)}  ·  '
+                          '${_formatBytes(memo.size)}',
+                        ),
+                        trailing: IconButton(
+                          tooltip: l10n.deviceRecordingsSave,
+                          onPressed: memo.bytes == null
+                              ? null
+                              : () => _save(memo),
+                          icon: const Icon(Icons.save_alt),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
 String _safeFilename(String value) {
-  final safe = value.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+  final sanitized = value
+      .replaceAll(RegExp(r'[\x00-\x1F<>:"/\\|?*]'), '_')
+      .trim()
+      .replaceFirst(RegExp(r'[. ]+$'), '');
+  final safe = sanitized.isEmpty ? 'voice-memo' : sanitized;
   return safe.toLowerCase().endsWith('.opus') ? safe : '$safe.opus';
 }
 

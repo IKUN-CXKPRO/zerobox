@@ -7,6 +7,10 @@ enum CreatorExternalPurchaseIssue { link, amount }
 const creatorExternalPurchaseMaximumCny = 9999999999.99;
 const creatorExternalPurchaseLinkMaximumLength = 2048;
 
+bool creatorBandBbsVersionFieldsComplete(String title, String message) {
+  return title.trim().isEmpty == message.trim().isEmpty;
+}
+
 CreatorExternalPurchaseIssue? validateCreatorExternalPurchase({
   required bool enabled,
   required CommunityPaidType paidType,

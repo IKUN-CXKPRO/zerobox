@@ -31,6 +31,7 @@ class OronBoxResourceCatalog implements CommunityResourceCatalog {
       queryParameters: {
         'limit': query.pageSize,
         'offset': query.page * query.pageSize,
+        if (query.seed != null) 'seed': query.seed,
         if (query.query.trim().isNotEmpty) 'query': query.query.trim(),
         if (query.type != null) 'type': _typeName(query.type!),
         if (query.selectedDevices.isNotEmpty)

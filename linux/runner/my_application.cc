@@ -9,6 +9,7 @@
 #include "file_open_channel.h"
 #include "flutter/generated_plugin_registrant.h"
 #include "mi_account_2fa_channel.h"
+#include "window_setup.h"
 #include "zeppos_app_settings_channel.h"
 
 struct _MyApplication {
@@ -29,30 +30,6 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
 // its FlView receiving key events. Restore the native focus whenever the user
 // clicks back into the Flutter surface. Returning FALSE keeps the event
 // available to Flutter for its normal hit testing and text-field focus.
-static gboolean flutter_view_button_press_cb(GtkWidget* widget,
-                                             GdkEventButton*,
-                                             gpointer) {
-  gtk_widget_grab_focus(widget);
-  return FALSE;
-}
-
-static void set_window_icon(GtkWindow* window) {
-  // Let installed packages resolve the application icon through hicolor first.
-  gtk_window_set_icon_name(window, APPLICATION_ID);
-
-  // A plain `flutter build linux` bundle is not installed into the system icon
-  // theme, so load the bundled Flutter asset as a deterministic fallback.
-  g_autofree gchar* executable = g_file_read_link("/proc/self/exe", nullptr);
-  if (executable == nullptr) return;
-  g_autofree gchar* executable_dir = g_path_get_dirname(executable);
-  g_autofree gchar* icon_path =
-      g_build_filename(executable_dir, "data", "flutter_assets", "assets",
-                       "images", "app_icon.png", nullptr);
-  if (g_file_test(icon_path, G_FILE_TEST_IS_REGULAR)) {
-    gtk_window_set_icon_from_file(window, icon_path, nullptr);
-  }
-}
-
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
@@ -66,7 +43,7 @@ static void my_application_activate(GApplication* application) {
 
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
-  set_window_icon(window);
+  oronbox_set_window_icon(window);
 
   // Use a header bar when running in GNOME as this is the common style used
   // by applications and is the setup most users will be using (e.g. Ubuntu
@@ -109,7 +86,7 @@ static void my_application_activate(GApplication* application) {
   fl_view_set_background_color(view, &background_color);
   gtk_widget_add_events(GTK_WIDGET(view), GDK_BUTTON_PRESS_MASK);
   g_signal_connect(view, "button-press-event",
-                   G_CALLBACK(flutter_view_button_press_cb), nullptr);
+                   G_CALLBACK(oronbox_restore_flutter_focus), nullptr);
   gtk_widget_show(GTK_WIDGET(view));
   GtkOverlay* overlay = GTK_OVERLAY(gtk_overlay_new());
   gtk_widget_show(GTK_WIDGET(overlay));

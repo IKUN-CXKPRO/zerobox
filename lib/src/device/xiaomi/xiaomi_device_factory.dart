@@ -41,6 +41,7 @@ class XiaomiDeviceFactory implements DeviceEntityFactory {
       entity.emit(DeviceError(deviceId: id, error: error.toString()));
       entity.emit(TransportDisconnected(deviceId: id));
     };
+    component.onRawOutgoing = entity.recordRawOutgoing;
     entity.set(component);
 
     final dispatcher = XiaomiDispatcher(component);
@@ -56,7 +57,9 @@ class XiaomiDeviceFactory implements DeviceEntityFactory {
 
     entity.registerSystem(XiaomiInstallSystem());
     entity.registerSystem(XiaomiInfoSystem());
-    entity.registerSystem(XiaomiHealthSystem());
+    final healthSystem = XiaomiHealthSystem();
+    entity.registerSystem(healthSystem);
+    component.onActivityPayload = healthSystem.onActivityPayload;
     entity.registerSystem(XiaomiSyncSystem());
     entity.registerSystem(XiaomiResourceSystem());
     entity.registerSystem(XiaomiWatchfaceSystem());

@@ -36,91 +36,100 @@ class InboxPage extends ConsumerWidget {
           ),
         ],
       ),
-      body: PageContainer(
-        child: state.when(
-          loading: () => LoadingView(message: l10n.inboxLoading),
-          error: (error, _) =>
-              Center(child: Text(localizedErrorMessage(l10n, error))),
-          data: (value) => RefreshIndicator(
-            onRefresh: () => ref.read(messageCenterProvider.notifier).refresh(),
-            child: value.messages.isEmpty
-                ? ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    children: [
-                      SizedBox(
+      body: state.when(
+        loading: () => LoadingView(message: l10n.inboxLoading),
+        error: (error, _) =>
+            Center(child: Text(localizedErrorMessage(l10n, error))),
+        data: (value) => RefreshIndicator(
+          onRefresh: () => ref.read(messageCenterProvider.notifier).refresh(),
+          child: value.messages.isEmpty
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  children: [
+                    PageContainer(
+                      child: SizedBox(
                         height: MediaQuery.sizeOf(context).height * .65,
                         child: _InboxEmpty(message: l10n.inboxEmpty),
                       ),
-                    ],
-                  )
-                : ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    children: value.messages
-                        .map(
-                          (message) => Card(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest
-                                .withValues(alpha: .5),
-                            clipBehavior: Clip.antiAlias,
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              leading: Icon(
-                                message.read
-                                    ? Icons.mail_outline
-                                    : Icons.mark_email_unread,
-                              ),
-                              title: Text(
-                                message.title,
-                                style: TextStyle(
-                                  fontWeight: message.read
-                                      ? null
-                                      : FontWeight.bold,
+                    ),
+                  ],
+                )
+              : ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  children: [
+                    PageContainer(
+                      child: Column(
+                        children: value.messages
+                            .map(
+                              (message) => Card(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest
+                                    .withValues(alpha: .5),
+                                clipBehavior: Clip.antiAlias,
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  leading: Icon(
+                                    message.read
+                                        ? Icons.mail_outline
+                                        : Icons.mark_email_unread,
+                                  ),
+                                  title: Text(
+                                    message.title,
+                                    style: TextStyle(
+                                      fontWeight: message.read
+                                          ? null
+                                          : FontWeight.bold,
+                                    ),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(message.body),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _messageTime(message.createdAt),
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall,
+                                      ),
+                                    ],
+                                  ),
+                                  onTap: () async {
+                                    final read = ref
+                                        .read(messageCenterProvider.notifier)
+                                        .read(message.id);
+                                    if (message.targetResourceId.isEmpty) {
+                                      await read;
+                                      return;
+                                    }
+                                    final query = Uri(
+                                      queryParameters: {
+                                        'source': 'oronBox',
+                                        if (message.targetCommentId.isNotEmpty)
+                                          'comment': message.targetCommentId,
+                                      },
+                                    ).query;
+                                    context.go(
+                                      '/resources/detail/${message.targetResourceId}?$query',
+                                    );
+                                    await read;
+                                  },
                                 ),
                               ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(message.body),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _messageTime(message.createdAt),
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall,
-                                  ),
-                                ],
-                              ),
-                              onTap: () async {
-                                final read = ref
-                                    .read(messageCenterProvider.notifier)
-                                    .read(message.id);
-                                if (message.targetResourceId.isEmpty) {
-                                  await read;
-                                  return;
-                                }
-                                final query = Uri(
-                                  queryParameters: {
-                                    'source': 'oronBox',
-                                    if (message.targetCommentId.isNotEmpty)
-                                      'comment': message.targetCommentId,
-                                  },
-                                ).query;
-                                context.go(
-                                  '/resources/detail/${message.targetResourceId}?$query',
-                                );
-                                await read;
-                              },
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-          ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );

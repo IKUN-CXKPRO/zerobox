@@ -24,6 +24,7 @@ class DaemonTaskFeed<T> {
 
   StreamSubscription<CommandEvent>? _subscription;
   List<T> _tasks = const [];
+  int _eventRevision = 0;
   bool _disposed = false;
 
   Future<void> start() async {
@@ -32,10 +33,15 @@ class DaemonTaskFeed<T> {
   }
 
   Future<void> refresh() async {
+    final revision = _eventRevision;
     final result = await host.execute(
       const OronBoxCommand(method: 'queue.list'),
     );
     if (!result.ok || result.value is! List || _disposed) return;
+    // A task event may arrive while queue.list is in flight. The event has
+    // already applied the newer progress value, so never replace it with the
+    // older snapshot returned by the request.
+    if (revision != _eventRevision) return;
     _tasks = (result.value as List)
         .whereType<Map>()
         .map((row) => DaemonTaskView.fromJson(row.cast<String, Object?>()))
@@ -71,16 +77,19 @@ class DaemonTaskFeed<T> {
 
   void _handleEvent(CommandEvent event) {
     if (event.event == 'host.connected') {
+      _eventRevision += 1;
       unawaited(refresh());
       return;
     }
     if (event.event == 'task.removed') {
+      _eventRevision += 1;
       final id = event.data['id']?.toString();
       _tasks = _tasks.where((task) => taskId(task) != id).toList();
       _publish();
       return;
     }
     if (event.event != 'task') return;
+    _eventRevision += 1;
     final view = DaemonTaskView.fromJson(event.data);
     if (view.method != method) return;
     final task = decode(view);

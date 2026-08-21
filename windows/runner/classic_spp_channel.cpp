@@ -48,6 +48,7 @@ std::atomic_uint64_t g_connect_generation(0);
 std::atomic_uint64_t g_scan_generation(0);
 std::unique_ptr<flutter::EventSink<EncodableValue>> g_event_sink;
 std::unique_ptr<flutter::EventSink<EncodableValue>> g_scan_event_sink;
+std::mutex g_event_sink_mutex;
 constexpr char kZeppBtbrServiceUuid[] =
     "00000022-0000-3512-2118-0009af100700";
 
@@ -289,7 +290,7 @@ int DiscoverRfcommChannelWinRt(BTH_ADDR address, const GUID& service_uuid,
       }
       for (const auto& service : all_services.Services()) {
         const auto discovered_uuid = service.ServiceId().Uuid();
-        if (std::memcmp(&discovered_uuid, &service_uuid, sizeof(GUID)) != 0) {
+        if (!InlineIsEqualGUID(discovered_uuid, service_uuid)) {
           continue;
         }
         const std::wstring service_name =
@@ -342,6 +343,14 @@ int ArgInt(const EncodableMap& args, const char* key, int fallback) {
   return fallback;
 }
 
+bool ArgBool(const EncodableMap& args, const char* key, bool fallback) {
+  auto it = args.find(EncodableValue(key));
+  if (it == args.end() || !std::holds_alternative<bool>(it->second)) {
+    return fallback;
+  }
+  return std::get<bool>(it->second);
+}
+
 EncodableList BluetoothDevices(bool issue_inquiry = false,
                                int timeout_ms = 15000,
                                uint64_t scan_generation = 0) {
@@ -368,6 +377,7 @@ EncodableList BluetoothDevices(bool issue_inquiry = false,
     }
     auto item = DeviceToMap(info);
     devices.emplace_back(item);
+    std::lock_guard<std::mutex> lock(g_event_sink_mutex);
     if (g_scan_event_sink) {
       g_scan_event_sink->Success(EncodableValue(item));
     }
@@ -383,6 +393,7 @@ EncodableList PairedDevices() {
 }
 
 void SendDisconnectedEvent() {
+  std::lock_guard<std::mutex> lock(g_event_sink_mutex);
   if (g_event_sink) {
     g_event_sink->Success(EncodableValue(EncodableMap{
         {EncodableValue("event"), EncodableValue("disconnected")},
@@ -453,6 +464,7 @@ void StartReadThread() {
       if (read <= 0) {
         break;
       }
+      std::lock_guard<std::mutex> lock(g_event_sink_mutex);
       if (g_event_sink) {
         std::vector<uint8_t> packet(buffer.begin(), buffer.begin() + read);
         g_event_sink->Success(EncodableValue(packet));
@@ -797,10 +809,11 @@ void HandleMethodCall(
       return;
     }
     const auto channels = FallbackChannels(args);
+    const bool remove_bond = ArgBool(args, "removeBond", false);
     const uint64_t generation = g_connect_generation.fetch_add(1) + 1;
     StopReadThread();
     std::thread([address, channels, generation, has_service_uuid, is_zepp_btbr,
-                 service_uuid,
+                 service_uuid, remove_bond,
                  result = std::move(result)]() mutable {
       SOCKET connected = INVALID_SOCKET;
       int connected_channel = -1;
@@ -808,6 +821,19 @@ void HandleMethodCall(
       DWORD authentication_error = ERROR_SUCCESS;
       const auto started_at = std::chrono::steady_clock::now();
       auto discovery_finished_at = started_at;
+      if (remove_bond) {
+        BLUETOOTH_ADDRESS bluetooth_address = {};
+        bluetooth_address.ullLong = address;
+        const DWORD remove_status = BluetoothRemoveDevice(&bluetooth_address);
+        if (remove_status != ERROR_SUCCESS &&
+            remove_status != ERROR_NOT_FOUND) {
+          result->Error(
+              "UNPAIR_FAILED",
+              "Windows BluetoothRemoveDevice failed (Win32 error " +
+                  std::to_string(remove_status) + ")");
+          return;
+        }
+      }
       if (has_service_uuid) {
         if (is_zepp_btbr) {
           authentication_error = AuthenticateClassicDevice(address);
@@ -871,6 +897,10 @@ void HandleMethodCall(
         std::lock_guard<std::mutex> lock(g_socket_mutex);
         g_socket = connected;
       }
+      const int send_timeout_ms = 5000;
+      setsockopt(connected, SOL_SOCKET, SO_SNDTIMEO,
+                 reinterpret_cast<const char*>(&send_timeout_ms),
+                 sizeof(send_timeout_ms));
       StartReadThread();
       const auto connected_at = std::chrono::steady_clock::now();
       result->Success(EncodableValue(EncodableMap{
@@ -907,18 +937,27 @@ void HandleMethodCall(
       result->Error("NOT_CONNECTED", "SPP socket is not connected");
       return;
     }
-    const auto& data = std::get<std::vector<uint8_t>>(data_it->second);
-    int offset = 0;
-    while (offset < static_cast<int>(data.size())) {
-      const int sent = send(socket, reinterpret_cast<const char*>(data.data()) + offset,
-                            static_cast<int>(data.size()) - offset, 0);
-      if (sent <= 0) {
-        result->Error("SEND_FAILED", "RFCOMM send failed");
-        return;
+    const auto data = std::get<std::vector<uint8_t>>(data_it->second);
+    const uint64_t generation = g_connect_generation.load();
+    std::thread([socket, data = std::move(data), generation,
+                 result = std::move(result)]() mutable {
+      int offset = 0;
+      while (offset < static_cast<int>(data.size())) {
+        if (generation != g_connect_generation.load()) {
+          result->Error("SEND_CANCELLED", "RFCOMM connection changed");
+          return;
+        }
+        const int sent = send(
+            socket, reinterpret_cast<const char*>(data.data()) + offset,
+            static_cast<int>(data.size()) - offset, 0);
+        if (sent <= 0) {
+          result->Error("SEND_FAILED", "RFCOMM send failed");
+          return;
+        }
+        offset += sent;
       }
-      offset += sent;
-    }
-    result->Success();
+      result->Success();
+    }).detach();
     return;
   }
 
@@ -945,11 +984,13 @@ void RegisterRfcommChannel(flutter::BinaryMessenger* messenger) {
           [](const EncodableValue*,
              std::unique_ptr<flutter::EventSink<EncodableValue>>&& events)
               -> std::unique_ptr<flutter::StreamHandlerError<EncodableValue>> {
+            std::lock_guard<std::mutex> lock(g_event_sink_mutex);
             g_event_sink = std::move(events);
             return nullptr;
           },
           [](const EncodableValue*)
               -> std::unique_ptr<flutter::StreamHandlerError<EncodableValue>> {
+            std::lock_guard<std::mutex> lock(g_event_sink_mutex);
             g_event_sink.reset();
             return nullptr;
           }));
@@ -963,11 +1004,13 @@ void RegisterRfcommChannel(flutter::BinaryMessenger* messenger) {
           [](const EncodableValue*,
              std::unique_ptr<flutter::EventSink<EncodableValue>>&& events)
               -> std::unique_ptr<flutter::StreamHandlerError<EncodableValue>> {
+            std::lock_guard<std::mutex> lock(g_event_sink_mutex);
             g_scan_event_sink = std::move(events);
             return nullptr;
           },
           [](const EncodableValue*)
               -> std::unique_ptr<flutter::StreamHandlerError<EncodableValue>> {
+            std::lock_guard<std::mutex> lock(g_event_sink_mutex);
             g_scan_event_sink.reset();
             return nullptr;
           }));

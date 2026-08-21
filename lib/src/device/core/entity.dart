@@ -23,12 +23,20 @@ class DeviceEntity {
   final _components = <Type, Object>{};
   final _systems = <System>[];
   final _rawIncomingController = StreamController<Uint8List>.broadcast();
+  final _rawOutgoingController = StreamController<Uint8List>.broadcast();
   Dispatcher? _dispatcher;
   StreamSubscription<Uint8List>? _incomingSubscription;
   StreamSubscription<bool>? _connectionSubscription;
   StreamSubscription<LinkTraffic>? _trafficSubscription;
 
   Stream<Uint8List> get rawIncomingData => _rawIncomingController.stream;
+  Stream<Uint8List> get rawOutgoingData => _rawOutgoingController.stream;
+
+  void recordRawOutgoing(Uint8List data) {
+    if (!_rawOutgoingController.isClosed) {
+      _rawOutgoingController.add(Uint8List.fromList(data));
+    }
+  }
 
   T? get<T>() => _components[T] as T?;
   T getRequired<T>() => _components[T] as T;
@@ -109,6 +117,7 @@ class DeviceEntity {
     await _connectionSubscription?.cancel();
     await _trafficSubscription?.cancel();
     await _rawIncomingController.close();
+    await _rawOutgoingController.close();
     for (final system in _systems) {
       try {
         await system.dispose();

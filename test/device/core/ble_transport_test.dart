@@ -69,5 +69,8 @@ class _FakeBluetoothConnection implements BluetoothConnection {
   }) async {}
 
   @override
+  Future<void> unsubscribe({BleRequiredCharacteristic? characteristic}) async {}
+
+  @override
   bool supportsCharacteristic(BleRequiredCharacteristic characteristic) => true;
 }

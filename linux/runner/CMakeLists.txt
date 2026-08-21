@@ -13,6 +13,7 @@ add_executable(${BINARY_NAME}
   "zeppos_app_settings_channel.cc"
   "main.cc"
   "my_application.cc"
+  "window_setup.cc"
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
 )
 

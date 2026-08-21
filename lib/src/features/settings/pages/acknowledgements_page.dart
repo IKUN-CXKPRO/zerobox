@@ -74,17 +74,19 @@ class AcknowledgementsPage extends StatelessWidget {
 
     return Scaffold(
       appBar: SysAppBar(secondary: true, title: Text(l10n.acknowledgements)),
-      body: PageContainer(
+      body: ListView.builder(
         padding: EdgeInsets.zero,
-        child: ListView.builder(
-          padding: const EdgeInsets.symmetric(
-            horizontal: StyleConstants.pagePadding,
-            vertical: StyleConstants.pagePadding,
-          ),
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final item = items[index];
-            return Card(
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final item = items[index];
+          return PageContainer(
+            padding: EdgeInsets.fromLTRB(
+              StyleConstants.pagePadding,
+              index == 0 ? StyleConstants.pagePadding : 0,
+              StyleConstants.pagePadding,
+              index == items.length - 1 ? StyleConstants.pagePadding : 0,
+            ),
+            child: Card(
               margin: const EdgeInsets.only(bottom: StyleConstants.cardSpace),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(StyleConstants.cardRadius),
@@ -125,9 +127,9 @@ class AcknowledgementsPage extends StatelessWidget {
                   ),
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }

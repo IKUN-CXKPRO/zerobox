@@ -61,7 +61,11 @@ void main() {
   });
 
   test('preserves actual progress updates below five percent', () async {
-    final bus = _ProgressBus([.01, .02, .03]);
+    final bus = _ProgressBus([
+      const _ProgressEvent(.01, path: '/tmp/resource.bin'),
+      const _ProgressEvent(.02, path: '/tmp/resource.bin'),
+      const _ProgressEvent(.03, path: '/tmp/resource.bin'),
+    ]);
     final queue = DaemonTaskQueue(bus);
     final progress = <double>[];
     final subscription = queue.events.listen((event) {
@@ -72,10 +76,49 @@ void main() {
       }
     });
 
-    final id = queue.enqueue(const OronBoxCommand(method: 'download'));
+    final id = queue.enqueue(
+      const OronBoxCommand(
+        method: 'install.local',
+        params: {'path': '/tmp/resource.bin'},
+      ),
+    );
     await queue.wait(id);
 
     expect(progress, [.01, .02, .03]);
+    await subscription.cancel();
+    await queue.close();
+  });
+
+  test('ignores progress from concurrent tasks and backward updates', () async {
+    final bus = _ProgressBus([
+      const _ProgressEvent(.4, path: '/tmp/current.bin'),
+      const _ProgressEvent(
+        .9,
+        path: '/tmp/other.bin',
+        operationId: 'resource.download:other',
+      ),
+      const _ProgressEvent(.2, path: '/tmp/current.bin'),
+      const _ProgressEvent(.7, path: '/tmp/current.bin'),
+    ]);
+    final queue = DaemonTaskQueue(bus);
+    final progress = <double>[];
+    final subscription = queue.events.listen((event) {
+      if (event.event != 'task') return;
+      final value = event.data['progress'];
+      if (value is num && value > 0 && value < 1) {
+        progress.add(value.toDouble());
+      }
+    });
+
+    final id = queue.enqueue(
+      const OronBoxCommand(
+        method: 'install.local',
+        params: {'path': '/tmp/current.bin'},
+      ),
+    );
+    await queue.wait(id);
+
+    expect(progress, [.4, .7]);
     await subscription.cancel();
     await queue.close();
   });
@@ -181,7 +224,7 @@ class _BlockingBus implements OronBoxCommandBus {
 class _ProgressBus implements OronBoxCommandBus {
   _ProgressBus(this.progress);
 
-  final List<double> progress;
+  final List<_ProgressEvent> progress;
   final _events = StreamController<CommandEvent>.broadcast(sync: true);
 
   @override
@@ -189,12 +232,29 @@ class _ProgressBus implements OronBoxCommandBus {
 
   @override
   Future<CommandResult> execute(OronBoxCommand command) async {
-    for (final value in progress) {
-      _events.add(CommandEvent('progress', data: {'progress': value}));
+    for (final item in progress) {
+      _events.add(
+        CommandEvent(
+          'progress',
+          data: {
+            'progress': item.value,
+            if (item.path != null) 'path': item.path,
+            'operationId': item.operationId ?? command.params['operationId'],
+          },
+        ),
+      );
     }
     return const CommandResult.success();
   }
 
   @override
   Future<void> close() => _events.close();
+}
+
+class _ProgressEvent {
+  const _ProgressEvent(this.value, {this.path, this.operationId});
+
+  final double value;
+  final String? path;
+  final String? operationId;
 }

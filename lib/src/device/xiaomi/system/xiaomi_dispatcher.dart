@@ -7,6 +7,7 @@ import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
 import 'package:oronbox/src/protocols/xiaomi/packet/l1_packet.dart';
 import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
 import 'package:oronbox/src/protocols/xiaomi/packet/spp_v1_packet.dart';
+import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
 
 class XiaomiDispatcher extends Dispatcher {
   XiaomiDispatcher(this._component) : _log = getLogger('XiaomiDispatcher');
@@ -48,6 +49,7 @@ class XiaomiDispatcher extends Dispatcher {
               ).toBytes(),
             );
           case XiaomiSppV1Channel.activity:
+            _component.onActivityPayload?.call(packet.payload);
             break;
         }
       }
@@ -126,6 +128,22 @@ class XiaomiDispatcher extends Dispatcher {
     _log.fine(
       'L2 channel=${l2.channel} opcode=${l2.opcode} len=${l2.payload.length}',
     );
+    if (l2.channel == L2Channel.pb) {
+      try {
+        final packet = pb.WearPacket.fromBuffer(l2.payload);
+        if (packet.whichPayload() == pb.WearPacket_Payload.notSet) {
+          _log.warning(
+            'unhandled Xiaomi protobuf packet id=${packet.id} '
+            'type=${packet.type} len=${l2.payload.length}',
+          );
+        }
+      } catch (e) {
+        _log.warning(
+          'unsupported Xiaomi protobuf packet len=${l2.payload.length}',
+          e,
+        );
+      }
+    }
     for (final system in _systems) {
       try {
         system.onLayer2Packet(l2.channel, l2.opcode, l2.payload);

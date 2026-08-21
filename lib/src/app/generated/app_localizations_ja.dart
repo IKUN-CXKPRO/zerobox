@@ -175,6 +175,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get creatorResourceMetadataRequired => 'リソース名と概要は必須です';
 
   @override
+  String get creatorSubmitValidationFailed => '送信前に次の項目を確認してください';
+
+  @override
   String get creatorPaidType => '支払いタイプ';
 
   @override
@@ -747,6 +750,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get firmwareLatestRelease => '最新リリース';
+
+  @override
+  String get firmwareHistoricalReleases => '過去のファームウェア';
 
   @override
   String get firmwareUpToDate => 'ファームウェアは最新です';
@@ -1501,7 +1507,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get zeppOsFindDevice => 'デバイスを探す';
 
   @override
-  String get zeppOsFindDeviceDescription => '近くのデバイスを見つけられるよう、振動または着信音を鳴らします';
+  String get zeppOsFindDeviceDescription => 'デバイスを振動させるか着信音を鳴らし続けます';
 
   @override
   String get deviceFeaturesDeviceInfo => 'デバイス情報';
@@ -1729,6 +1735,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDesktopCloseBehaviorDesc => '閉じるボタンを押したときの動作';
+
+  @override
+  String get settingsRemoveBondBeforeSpp => '接続前に Bluetooth のペアリングを解除';
+
+  @override
+  String get settingsRemoveBondBeforeSppDesc =>
+      'クラシック Bluetooth 接続のたびに既存のペアリングを解除して再接続します';
 
   @override
   String get desktopCloseBehaviorAsk => '毎回確認';
@@ -2098,8 +2111,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsAboutSoftwareBuildInfo => 'ビルド情報';
 
   @override
-  String get settingsAboutSoftwareCopyright =>
-      'Copyright © OronBox contributors';
+  String get settingsAboutSoftwareCopyright => 'Copyright © 2026 OrPudding';
 
   @override
   String get acknowledgementsKazumi => 'Material DesignのコンポーネントとUIパターンを参考にしました';
@@ -2288,6 +2300,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDeviceLogsPulling => 'デバイスログを取得中';
+
+  @override
+  String get settingsDeviceLogsWaiting => 'デバイスからの送信を待っています';
 
   @override
   String settingsDeviceLogsProgress(Object progress) {
@@ -2537,6 +2552,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get creatorBandBbsVersionMessage => '更新内容';
+
+  @override
+  String get creatorBandBbsVersionPairRequired =>
+      'バージョンタイトルと更新内容は両方入力するか、両方空欄にしてください';
 
   @override
   String creatorLinkedSections(int count) {
@@ -3017,10 +3036,60 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsAdvancedDescription => 'ログ、開発者ツール、試験的な機能を表示します';
 
   @override
-  String get settingsHealthFeatures => 'ヘルスケア機能';
+  String get settingsHealthFeatures => '試験的な機能を有効にする';
 
   @override
-  String get settingsHealthFeaturesDescription => '開発中のヘルスケア関連機能を有効にします';
+  String get settingsHealthFeaturesDescription =>
+      '開発が完了していないヘルスケア、天気同期、アラーム管理機能を有効にします';
+
+  @override
+  String get debugServerTitle => 'デバッグサービス';
+
+  @override
+  String get debugServerDescription => '信頼できる開発ツール向けにローカル API を提供します';
+
+  @override
+  String get debugServerEnable => 'デバッグサービスを有効にする';
+
+  @override
+  String get debugServerEnableDescription =>
+      '承認したローカルネットワーク上のクライアントに OronBox の確認と操作を許可します';
+
+  @override
+  String get debugServerEndpoint => '接続先';
+
+  @override
+  String get debugServerFingerprint => 'サーバーフィンガープリント';
+
+  @override
+  String get debugServerPendingClients => '承認待ちクライアント';
+
+  @override
+  String get debugServerAuthorizedClients => '承認済みクライアント';
+
+  @override
+  String get debugServerApprove => '承認';
+
+  @override
+  String get debugServerReject => '拒否';
+
+  @override
+  String get debugServerRevoke => 'アクセスを取り消す';
+
+  @override
+  String get debugServerNoPendingClients => '承認を待っているクライアントはありません';
+
+  @override
+  String get debugServerNoAuthorizedClients => '承認済みクライアントはありません';
+
+  @override
+  String get debugServerSecurityNotice => '信頼できるネットワークでのみ有効にしてください';
+
+  @override
+  String get debugServerStartFailed => 'デバッグサービスを起動できませんでした';
+
+  @override
+  String get debugServerStopFailed => 'デバッグサービスを停止できませんでした';
 
   @override
   String get xmsDeveloperMode => 'XMS開発者モード';

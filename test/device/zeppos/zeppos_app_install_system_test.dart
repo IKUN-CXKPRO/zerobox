@@ -173,6 +173,11 @@ class _FakeConnection implements CharacteristicTransport, BluetoothConnection {
   }
 
   @override
+  Future<void> unsubscribe({BleRequiredCharacteristic? characteristic}) async {
+    _notify = null;
+  }
+
+  @override
   Future<StreamSubscription<Uint8List>?> subscribeToCharacteristic(
     BleRequiredCharacteristic characteristic,
     void Function(Uint8List data) onData,

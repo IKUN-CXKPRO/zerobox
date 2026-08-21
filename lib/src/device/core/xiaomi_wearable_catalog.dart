@@ -394,13 +394,20 @@ bool _identityMatchesGeneration(
 /// Variant fallback: a category titled by the base model also covers its
 /// regional variants ("小米手环10" covers "小米手环10 NFC") when no category
 /// matches the variant exactly.
+///
+/// The title must itself identify a concrete base model.  Generic family
+/// roots such as "小米手环" must not absorb a variant when the specific
+/// generation category is missing.
 bool xiaomiWearableTitleCoversVariant(String? title, String codename) {
   final normalized = _normalizeIdentityToken(title);
   if (normalized.isEmpty || normalized.contains('/')) return false;
   final identity = _xiaomiWearableAliasIndex[_normalizeIdentityToken(codename)];
   if (identity == null) return false;
+  final base = _xiaomiWearableAliasIndex[normalized];
+  if (base == null || base.codename == identity.codename) return false;
+  final baseName = _normalizeIdentityToken(base.displayName);
   final name = _normalizeIdentityToken(identity.displayName);
-  return name.length > normalized.length && name.startsWith(normalized);
+  return name.length > baseName.length && name.startsWith(baseName);
 }
 
 String normalizeXiaomiWearableCodename(String? input) {

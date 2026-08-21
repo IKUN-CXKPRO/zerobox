@@ -26,7 +26,7 @@ class BleConnection {
   List<BleService> services = [];
   final _connectionController = StreamController<bool>.broadcast();
   StreamSubscription<bool>? _connectionSubscription;
-  StreamSubscription<Uint8List>? _valueSubscription;
+  bool _started = false;
   bool _disposed = false;
   Future<void> _writeTail = Future<void>.value();
   final _loggedCharacteristicFallbacks = <String>{};
@@ -34,6 +34,11 @@ class BleConnection {
   Stream<bool> get connectionState => _connectionController.stream;
 
   Future<void> start() async {
+    if (_disposed) {
+      throw StateError('BLE connection is disposed');
+    }
+    if (_started) return;
+    _started = true;
     _log.fine('[$deviceId] starting connection state listener');
     _connectionSubscription = UniversalBle.connectionStream(deviceId).listen(
       _onConnectionStateChanged,
@@ -225,8 +230,6 @@ class BleConnection {
     if (_disposed) return;
     _disposed = true;
     _log.fine('[$deviceId] disposing');
-    await _valueSubscription?.cancel();
-    _valueSubscription = null;
     await _connectionSubscription?.cancel();
     _connectionSubscription = null;
     if (!_connectionController.isClosed) {
@@ -427,17 +430,33 @@ class BleGattDriver {
           'requesting the device again before connecting',
         );
         await connection.dispose();
-        final selectedFuture = UniversalBle.scanStream.first.timeout(
-          const Duration(seconds: 30),
-        );
         final services = requiredCharacteristics
             .map((item) => item.serviceUuid)
             .toSet()
             .toList(growable: false);
-        await UniversalBle.startScan(
-          scanFilter: ScanFilter(withServices: services),
-        );
-        final selected = await selectedFuture;
+        late final BleDevice selected;
+        try {
+          final selectedFuture = UniversalBle.scanStream.first.timeout(
+            const Duration(seconds: 30),
+          );
+          await UniversalBle.startScan(
+            scanFilter: ScanFilter(withServices: services),
+          );
+          selected = await selectedFuture;
+        } finally {
+          try {
+            if (await UniversalBle.isScanning().timeout(
+              const Duration(seconds: 2),
+            )) {
+              await UniversalBle.stopScan().timeout(const Duration(seconds: 3));
+            }
+          } catch (scanError) {
+            _log.warning(
+              'Web Bluetooth recovery scan cleanup failed',
+              scanError,
+            );
+          }
+        }
         effectiveDeviceId = selected.deviceId;
         connection = BleConnection(
           deviceId: effectiveDeviceId,

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/core/network/dio_provider.dart';
+import 'package:oronbox/src/core/network/github_release.dart';
 import 'package:oronbox/src/device/core/device_kind.dart';
 import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
 
@@ -75,24 +76,20 @@ class DeviceFirmwareCatalog implements FirmwareCatalog {
     final releasesByProduct = <String, List<FirmwareRelease>>{};
     for (final raw in response.data ?? const []) {
       if (raw is! Map) continue;
-      final release = raw.cast<String, dynamic>();
-      final name = release['name']?.toString().trim() ?? '';
+      final release = GitHubRelease.fromJson(raw.cast<String, Object?>());
+      final name = release.name;
       final parts = name.split(RegExp(r'\s+'));
       final product = parts.first.toLowerCase();
       if (parts.length < 2 || !products.contains(product)) continue;
       final version = _normalizeVersion(parts[1]);
       if (version.isEmpty) continue;
 
-      final assets = (release['assets'] as List? ?? const [])
-          .whereType<Map>()
-          .map((asset) => asset.cast<String, dynamic>())
-          .where((asset) => asset['name']?.toString().endsWith('.bin') ?? false)
+      final assets = release.assets
+          .where((asset) => asset.name.endsWith('.bin'))
           .toList(growable: false);
       final asset = _selectFullAsset(assets);
       if (asset == null) continue;
-      final downloadUrl = Uri.tryParse(
-        asset['browser_download_url']?.toString() ?? '',
-      );
+      final downloadUrl = Uri.tryParse(asset.downloadUrl);
       if (downloadUrl == null) continue;
       releasesByProduct
           .putIfAbsent(product, () => [])
@@ -100,10 +97,10 @@ class DeviceFirmwareCatalog implements FirmwareCatalog {
             FirmwareRelease(
               version: version,
               downloadUrl: downloadUrl,
-              fileName: asset['name'].toString(),
-              releaseNotes: release['body']?.toString(),
-              size: (asset['size'] as num?)?.toInt(),
-              sha256: asset['digest']?.toString().replaceFirst('sha256:', ''),
+              fileName: asset.name,
+              releaseNotes: release.body,
+              size: asset.size,
+              sha256: asset.digest?.replaceFirst('sha256:', ''),
             ),
           );
     }
@@ -130,9 +127,9 @@ class DeviceFirmwareCatalog implements FirmwareCatalog {
         .toList(growable: false);
   }
 
-  Map<String, dynamic>? _selectFullAsset(List<Map<String, dynamic>> assets) {
+  GitHubReleaseAsset? _selectFullAsset(List<GitHubReleaseAsset> assets) {
     for (final asset in assets) {
-      if (asset['name'].toString().toLowerCase().contains('_full_')) {
+      if (asset.name.toLowerCase().contains('_full_')) {
         return asset;
       }
     }

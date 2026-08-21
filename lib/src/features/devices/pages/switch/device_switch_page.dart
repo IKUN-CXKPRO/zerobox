@@ -15,6 +15,7 @@ import 'package:oronbox/src/core/models/device.dart';
 import 'package:oronbox/src/core/utils/layout.dart';
 import 'package:oronbox/src/device/core/connect_type.dart';
 import 'package:oronbox/src/device/core/device_profile.dart';
+import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/devices/domain/device_connection_endpoint.dart';
@@ -37,7 +38,30 @@ List<BTDeviceInfo> _visibleScannedDevices(DeviceManagerState state) {
       return aBle.compareTo(bBle);
     });
 
+  // CoreBluetooth exposes a macOS UUID, while VelaOS SPP requires the
+  // classic address returned by the native inquiry. Once that classic result
+  // exists, hide the UUID duplicate so the user cannot select the wrong
+  // transport. Keep this platform-specific because Android can expose a
+  // usable BLE address directly.
+  final macClassicXiaomi = defaultTargetPlatform == TargetPlatform.macOS
+      ? scans
+            .where(
+              (scan) => scan.connectType.toLowerCase() == ConnectType.spp.name,
+            )
+            .map((scan) => normalizeXiaomiWearableIdentity(scan.name))
+            .whereType<XiaomiWearableIdentity>()
+            .map((identity) => identity.codename)
+            .toSet()
+      : const <String>{};
+
   for (final scan in scans) {
+    if (defaultTargetPlatform == TargetPlatform.macOS &&
+        scan.connectType.toLowerCase() == ConnectType.ble.name) {
+      final identity = normalizeXiaomiWearableIdentity(scan.name);
+      if (identity != null && macClassicXiaomi.contains(identity.codename)) {
+        continue;
+      }
+    }
     final scanIdentity = zeppOsDeviceForBluetoothName(scan.name);
     final alreadyPaired = state.pairedDevices.any((paired) {
       if (deviceAddressEquals(scan.addr, paired.addr)) return true;
@@ -194,89 +218,110 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
           },
         );
 
-        return PageContainer(
-          padding: const EdgeInsets.fromLTRB(
-            StyleConstants.pagePadding,
-            8,
-            StyleConstants.pagePadding,
-            0,
-          ),
-          child: Column(
-            children: [
-              AnimatedOpacity(
-                opacity: state.scanning ? 1 : 0,
-                duration: const Duration(milliseconds: 300),
-                child: const LinearProgressIndicator(minHeight: 2),
-              ),
-              Expanded(
-                child: isWide
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: _ListWrapper(
-                              isFirst: true,
-                              child: savedList,
-                            ),
-                          ),
-                          Container(
-                            width: 1,
-                            margin: const EdgeInsets.symmetric(vertical: 12),
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                          ),
-                          Expanded(
-                            child: _ListWrapper(
-                              isFirst: false,
-                              child: scanList,
-                            ),
-                          ),
-                        ],
-                      )
-                    : CustomScrollView(
-                        slivers: [
-                          SliverToBoxAdapter(
-                            child: _SectionHeader(
-                              title: AppLocalizations.of(context)!.savedDevices,
-                            ),
-                          ),
-                          _SliverSavedDeviceList(
-                            selectedAddr: currentAddr,
-                            onComplete: () {
-                              if (mounted) setState(() {});
-                            },
-                            onMiAccountLogin: () =>
-                                SettingsPage.showMiAccountLoginDialog(
-                                  context,
-                                  ref,
-                                ),
-                            onWearableLogImport: () =>
-                                showWearableLogSyncDialog(context, ref),
-                          ),
-                          const SliverToBoxAdapter(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12),
-                              child: Divider(height: 1),
-                            ),
-                          ),
-                          SliverToBoxAdapter(
-                            child: _ScanSectionHeader(
-                              onComplete: () {
-                                if (mounted) setState(() {});
-                              },
-                            ),
-                          ),
-                          _SliverScanDeviceList(
-                            onComplete: () {
-                              if (mounted) setState(() {});
-                            },
-                          ),
-                        ],
+        if (isWide) {
+          return PageContainer(
+            padding: const EdgeInsets.fromLTRB(
+              StyleConstants.pagePadding,
+              8,
+              StyleConstants.pagePadding,
+              0,
+            ),
+            child: Column(
+              children: [
+                AnimatedOpacity(
+                  opacity: state.scanning ? 1 : 0,
+                  duration: const Duration(milliseconds: 300),
+                  child: const LinearProgressIndicator(minHeight: 2),
+                ),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: _ListWrapper(isFirst: true, child: savedList),
                       ),
+                      Container(
+                        width: 1,
+                        margin: const EdgeInsets.symmetric(vertical: 12),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                      ),
+                      Expanded(
+                        child: _ListWrapper(isFirst: false, child: scanList),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: PageContainer(
+                padding: const EdgeInsets.fromLTRB(
+                  StyleConstants.pagePadding,
+                  8,
+                  StyleConstants.pagePadding,
+                  0,
+                ),
+                child: AnimatedOpacity(
+                  opacity: state.scanning ? 1 : 0,
+                  duration: const Duration(milliseconds: 300),
+                  child: const LinearProgressIndicator(minHeight: 2),
+                ),
               ),
-            ],
-          ),
+            ),
+            SliverToBoxAdapter(
+              child: PageContainer(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: StyleConstants.pagePadding,
+                ),
+                child: _SectionHeader(
+                  title: AppLocalizations.of(context)!.savedDevices,
+                ),
+              ),
+            ),
+            _SliverSavedDeviceList(
+              selectedAddr: currentAddr,
+              onComplete: () {
+                if (mounted) setState(() {});
+              },
+              onMiAccountLogin: () =>
+                  SettingsPage.showMiAccountLoginDialog(context, ref),
+              onWearableLogImport: () =>
+                  showWearableLogSyncDialog(context, ref),
+            ),
+            SliverToBoxAdapter(
+              child: PageContainer(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: StyleConstants.pagePadding,
+                  vertical: 12,
+                ),
+                child: const Divider(height: 1),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: PageContainer(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: StyleConstants.pagePadding,
+                ),
+                child: _ScanSectionHeader(
+                  onComplete: () {
+                    if (mounted) setState(() {});
+                  },
+                ),
+              ),
+            ),
+            _SliverScanDeviceList(
+              onComplete: () {
+                if (mounted) setState(() {});
+              },
+            ),
+          ],
         );
       },
     );
@@ -301,86 +346,106 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
           onWearableLogImport: () => showWearableLogSyncDialog(context, ref),
         );
 
-        return PageContainer(
-          padding: const EdgeInsets.fromLTRB(
-            StyleConstants.pagePadding,
-            8,
-            StyleConstants.pagePadding,
-            0,
-          ),
-          child: isWide
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _ListWrapper(isFirst: true, child: savedList),
-                    ),
-                    Container(
-                      width: 1,
-                      margin: const EdgeInsets.symmetric(vertical: 12),
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                    ),
-                    const Expanded(
-                      child: _ListWrapper(
-                        isFirst: false,
-                        child: _WebSerialHint(),
-                      ),
-                    ),
-                  ],
-                )
-              : CustomScrollView(
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: _SectionHeader(
-                        title: AppLocalizations.of(context)!.savedDevices,
-                      ),
-                    ),
-                    if (state.pairedDevices.isEmpty)
-                      SliverToBoxAdapter(
-                        child: Column(
-                          children: [
-                            _DeviceImportActions(
-                              onMiAccountLogin: () =>
-                                  SettingsPage.showMiAccountLoginDialog(
-                                    context,
-                                    ref,
-                                  ),
-                              onWearableLogImport: () =>
-                                  showWearableLogSyncDialog(context, ref),
-                            ),
-                            const SizedBox(
-                              height: 96,
-                              child: _EmptyState(message: ''),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      SliverList.builder(
-                        itemCount: state.pairedDevices.length,
-                        itemBuilder: (context, index) {
-                          final device = state.pairedDevices[index];
-                          return _DeviceCard(
-                            key: ValueKey('web-saved-${device.addr}'),
-                            device: device,
-                            saved: true,
-                          );
-                        },
-                      ),
-                    const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Divider(height: 1),
-                      ),
-                    ),
-                    const SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: _WebSerialHint(),
-                    ),
-                  ],
+        if (isWide) {
+          return PageContainer(
+            padding: const EdgeInsets.fromLTRB(
+              StyleConstants.pagePadding,
+              8,
+              StyleConstants.pagePadding,
+              0,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: _ListWrapper(isFirst: true, child: savedList)),
+                Container(
+                  width: 1,
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withValues(alpha: 0.5),
                 ),
+                const Expanded(
+                  child: _ListWrapper(isFirst: false, child: _WebSerialHint()),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: PageContainer(
+                padding: const EdgeInsets.fromLTRB(
+                  StyleConstants.pagePadding,
+                  8,
+                  StyleConstants.pagePadding,
+                  0,
+                ),
+                child: _SectionHeader(
+                  title: AppLocalizations.of(context)!.savedDevices,
+                ),
+              ),
+            ),
+            if (state.pairedDevices.isEmpty)
+              SliverToBoxAdapter(
+                child: PageContainer(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: StyleConstants.pagePadding,
+                  ),
+                  child: Column(
+                    children: [
+                      _DeviceImportActions(
+                        onMiAccountLogin: () =>
+                            SettingsPage.showMiAccountLoginDialog(context, ref),
+                        onWearableLogImport: () =>
+                            showWearableLogSyncDialog(context, ref),
+                      ),
+                      const SizedBox(
+                        height: 96,
+                        child: _EmptyState(message: ''),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SliverList.builder(
+                itemCount: state.pairedDevices.length,
+                itemBuilder: (context, index) {
+                  final device = state.pairedDevices[index];
+                  return PageContainer(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: StyleConstants.pagePadding,
+                    ),
+                    child: _DeviceCard(
+                      key: ValueKey('web-saved-${device.addr}'),
+                      device: device,
+                      saved: true,
+                    ),
+                  );
+                },
+              ),
+            SliverToBoxAdapter(
+              child: PageContainer(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: StyleConstants.pagePadding,
+                  vertical: 12,
+                ),
+                child: const Divider(height: 1),
+              ),
+            ),
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: PageContainer(
+                padding: EdgeInsets.symmetric(
+                  horizontal: StyleConstants.pagePadding,
+                ),
+                child: _WebSerialHint(),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -753,14 +818,19 @@ class _SliverSavedDeviceList extends ConsumerWidget {
 
     if (sorted.isEmpty) {
       return SliverToBoxAdapter(
-        child: Column(
-          children: [
-            _DeviceImportActions(
-              onMiAccountLogin: onMiAccountLogin,
-              onWearableLogImport: onWearableLogImport,
-            ),
-            const SizedBox(height: 240, child: _EmptyState(message: '')),
-          ],
+        child: PageContainer(
+          padding: const EdgeInsets.symmetric(
+            horizontal: StyleConstants.pagePadding,
+          ),
+          child: Column(
+            children: [
+              _DeviceImportActions(
+                onMiAccountLogin: onMiAccountLogin,
+                onWearableLogImport: onWearableLogImport,
+              ),
+              const SizedBox(height: 240, child: _EmptyState(message: '')),
+            ],
+          ),
         ),
       );
     }
@@ -768,11 +838,16 @@ class _SliverSavedDeviceList extends ConsumerWidget {
       itemCount: sorted.length,
       itemBuilder: (context, index) {
         final device = sorted[index];
-        return _DeviceCard(
-          key: ValueKey('saved-${device.addr}'),
-          device: device,
-          saved: true,
-          onComplete: onComplete,
+        return PageContainer(
+          padding: const EdgeInsets.symmetric(
+            horizontal: StyleConstants.pagePadding,
+          ),
+          child: _DeviceCard(
+            key: ValueKey('saved-${device.addr}'),
+            device: device,
+            saved: true,
+            onComplete: onComplete,
+          ),
         );
       },
     );
@@ -824,15 +899,25 @@ class _SliverScanDeviceListState extends ConsumerState<_SliverScanDeviceList> {
     final visibleDevices = _visibleScannedDevices(state);
 
     if (!state.scanning && visibleDevices.isEmpty) {
-      return const SliverToBoxAdapter(
-        child: SizedBox(height: 240, child: _EmptyState(message: '')),
+      return SliverToBoxAdapter(
+        child: PageContainer(
+          padding: const EdgeInsets.symmetric(
+            horizontal: StyleConstants.pagePadding,
+          ),
+          child: const SizedBox(height: 240, child: _EmptyState(message: '')),
+        ),
       );
     }
     if (state.scanning && visibleDevices.isEmpty) {
-      return const SliverToBoxAdapter(
-        child: SizedBox(
-          height: 240,
-          child: Center(child: CircularProgressIndicator()),
+      return SliverToBoxAdapter(
+        child: PageContainer(
+          padding: const EdgeInsets.symmetric(
+            horizontal: StyleConstants.pagePadding,
+          ),
+          child: const SizedBox(
+            height: 240,
+            child: Center(child: CircularProgressIndicator()),
+          ),
         ),
       );
     }
@@ -840,16 +925,21 @@ class _SliverScanDeviceListState extends ConsumerState<_SliverScanDeviceList> {
       itemCount: visibleDevices.length,
       itemBuilder: (context, index) {
         final device = visibleDevices[index];
-        return _DeviceCard(
-          key: ValueKey('scan-${device.addr}'),
-          device: MiWearState(
-            name: device.name,
-            addr: device.addr,
-            connectType: device.connectType,
-            disconnected: true,
+        return PageContainer(
+          padding: const EdgeInsets.symmetric(
+            horizontal: StyleConstants.pagePadding,
           ),
-          saved: false,
-          onComplete: widget.onComplete,
+          child: _DeviceCard(
+            key: ValueKey('scan-${device.addr}'),
+            device: MiWearState(
+              name: device.name,
+              addr: device.addr,
+              connectType: device.connectType,
+              disconnected: true,
+            ),
+            saved: false,
+            onComplete: widget.onComplete,
+          ),
         );
       },
     );

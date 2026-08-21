@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,6 +10,7 @@ import 'package:oronbox/src/core/constants/app_constants.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/core/network/github_cdn.dart';
 import 'package:oronbox/src/core/services/build_info_service.dart';
+import 'package:oronbox/src/app/widgets/release_notes_view.dart';
 import 'package:oronbox/src/features/oobe/oobe_state.dart';
 import 'package:oronbox/src/features/settings/services/oronbox_support_api.dart';
 import 'package:oronbox/src/features/settings/widgets/update_download_dialog.dart';
@@ -124,20 +124,13 @@ class UpdateAvailableDialog extends ConsumerWidget {
     return AlertDialog(
       title: Text(l10n.newVersionAvailable(release.latestVersion)),
       content: SizedBox(
-        // AlertDialog measures intrinsic width on its content; a fixed
-        // width stops that query from reaching the Markdown viewport,
-        // which cannot report intrinsic dimensions and crashes layout.
+        // Keep the text viewport bounded so the dialog can measure its
+        // content without allowing a long release body to widen the dialog.
         width: 420,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 400),
           child: SingleChildScrollView(
-            child: Markdown(
-              data: release.releaseNotes,
-              // The package pads its viewport by default; the dialog already
-              // has its own insets.
-              shrinkWrap: true,
-              padding: EdgeInsets.zero,
-            ),
+            child: ReleaseNotesView(data: release.releaseNotes),
           ),
         ),
       ),

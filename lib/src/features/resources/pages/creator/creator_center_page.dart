@@ -5,9 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
-import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
-import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
@@ -83,35 +81,26 @@ class _CreatorCenterPageState extends ConsumerState<CreatorCenterPage> {
                 onAuthorizeBandBbs: () => _authorizeBandBbs(controller),
                 onConnectGitHub: () => _authorizeGitHub(controller),
               ),
-              child: PageContainer(
-                maxWidth: 1000,
-                padding: const EdgeInsets.fromLTRB(
-                  StyleConstants.pagePadding,
-                  8,
-                  StyleConstants.pagePadding,
-                  0,
+              child: CreatorResourceList(
+                state: state,
+                controller: controller,
+                collections: state.collections,
+                collectionsLoading: false,
+                onRefresh: () => _refresh(controller),
+                onOpenCollection: (item) => context.push(
+                  '/resources/creator/collection/${item['id']}',
+                  extra: item,
                 ),
-                child: CreatorResourceList(
-                  state: state,
-                  controller: controller,
-                  collections: state.collections,
-                  collectionsLoading: false,
-                  onRefresh: () => _refresh(controller),
-                  onOpenCollection: (item) => context.push(
-                    '/resources/creator/collection/${item['id']}',
-                    extra: item,
-                  ),
-                  onOpen: (workspace) {
-                    controller.select(workspace);
-                    context.push('/resources/creator/resource');
-                  },
-                  selectedResourceIds: _selectedResourceIds,
-                  onSelectionChanged: (value) =>
-                      setState(() => _selectedResourceIds = value),
-                  onDissolveCollection: (item) =>
-                      _dissolveCollection(item, controller),
-                  bottomPadding: 220,
-                ),
+                onOpen: (workspace) {
+                  controller.select(workspace);
+                  context.push('/resources/creator/resource');
+                },
+                selectedResourceIds: _selectedResourceIds,
+                onSelectionChanged: (value) =>
+                    setState(() => _selectedResourceIds = value),
+                onDissolveCollection: (item) =>
+                    _dissolveCollection(item, controller),
+                bottomPadding: 220,
               ),
             ),
     );

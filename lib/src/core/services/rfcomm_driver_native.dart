@@ -81,6 +81,11 @@ class NativeRfcommDriver implements RfcommDriver {
       _onNativeEvent,
       onError: (Object e, StackTrace st) {
         _log.warning('SPP event stream error', e, st);
+        _eventSubscription = null;
+        _markDisconnected();
+      },
+      onDone: () {
+        _eventSubscription = null;
         _markDisconnected();
       },
     );
@@ -114,7 +119,7 @@ class NativeRfcommDriver implements RfcommDriver {
         }
       }
     }
-    throw StateError('Unexpected SPP event: ${event.runtimeType}');
+    _log.warning('Ignoring unexpected SPP event: ${event.runtimeType}');
   }
 
   void _markConnected() {
@@ -131,38 +136,47 @@ class NativeRfcommDriver implements RfcommDriver {
 
   @override
   Stream<BluetoothEndpoint> get scanStream {
-    return _scanData ??= _scanEvents.receiveBroadcastStream().map((event) {
-      if (event is! Map) {
-        throw StateError('Unexpected SPP scan event: ${event.runtimeType}');
-      }
-      final addr = event['addr'] as String? ?? event['address'] as String?;
-      if (addr == null || addr.isEmpty) {
-        throw StateError('SPP scan event missing address');
-      }
-      final rawName = event['name'] as String?;
-      final canonicalAddress = _canonicalAddress(addr);
-      final endpoint = BluetoothEndpoint(
-        name: rawName?.trim().isNotEmpty == true
-            ? rawName!.trim()
-            : 'Unknown device',
-        address: canonicalAddress,
-        connectType: ConnectType.spp,
-      );
-      final previous = _scanResults[endpoint.address];
-      final shouldLog =
-          previous == null ||
-          previous.name != endpoint.name ||
-          previous.connectType != endpoint.connectType;
-      if (shouldLog) {
-        _log.fine(
-          'device_identity platform.spp_scan '
-          'addr=$canonicalAddress sppName="$rawName" '
-          'displayName="${endpoint.name}"',
+    final parsed = _scanEvents.receiveBroadcastStream().map<BluetoothEndpoint?>(
+      (event) {
+        if (event is! Map) {
+          _log.warning(
+            'Ignoring unexpected SPP scan event: ${event.runtimeType}',
+          );
+          return null;
+        }
+        final addr = event['addr'] as String? ?? event['address'] as String?;
+        if (addr == null || addr.isEmpty) {
+          _log.warning('Ignoring SPP scan event without address');
+          return null;
+        }
+        final rawName = event['name'] as String?;
+        final canonicalAddress = _canonicalAddress(addr);
+        final endpoint = BluetoothEndpoint(
+          name: rawName?.trim().isNotEmpty == true
+              ? rawName!.trim()
+              : 'Unknown device',
+          address: canonicalAddress,
+          connectType: ConnectType.spp,
         );
-      }
-      _scanResults[endpoint.address] = endpoint;
-      return endpoint;
-    });
+        final previous = _scanResults[endpoint.address];
+        final shouldLog =
+            previous == null ||
+            previous.name != endpoint.name ||
+            previous.connectType != endpoint.connectType;
+        if (shouldLog) {
+          _log.fine(
+            'device_identity platform.spp_scan '
+            'addr=$canonicalAddress sppName="$rawName" '
+            'displayName="${endpoint.name}"',
+          );
+        }
+        _scanResults[endpoint.address] = endpoint;
+        return endpoint;
+      },
+    );
+    return _scanData ??= parsed
+        .where((item) => item != null)
+        .cast<BluetoothEndpoint>();
   }
 
   @override

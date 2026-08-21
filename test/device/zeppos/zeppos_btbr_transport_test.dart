@@ -171,6 +171,12 @@ class _FakeBluetoothConnection implements BluetoothConnection {
   }
 
   @override
+  Future<void> unsubscribe({BleRequiredCharacteristic? characteristic}) async {
+    await _subscription?.cancel();
+    _subscription = null;
+  }
+
+  @override
   Future<void> dispose() async {
     await _subscription?.cancel();
     await _incoming.close();

@@ -4,7 +4,14 @@ import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/core/models/bt_models.dart' as models;
 import 'package:oronbox/src/device/core/event_bus.dart';
 import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
+import 'package:oronbox/src/features/devices/models/xiaomi_device_features.dart';
 import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_clock.pb.dart'
+    as pb_clock;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_common.pb.dart'
+    as pb_common;
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_weather.pb.dart'
+    as pb_weather;
 import 'package:oronbox/src/protocols/generated/xiaomi/wear_lpa.pb.dart'
     as pb_lpa;
 import 'package:oronbox/src/protocols/generated/xiaomi/wear_system.pb.dart'
@@ -133,6 +140,241 @@ class XiaomiInfoSystem extends XiaomiPbSystem {
     return apps;
   }
 
+  Future<void> setOrderedApps(List<models.AppInfo> apps) async {
+    await component.sendPbPacket(
+      pb.WearPacket(
+        type: pb.WearPacket_Type.SYSTEM,
+        id: pb_system.System_SystemID.SET_ORDERED_APP_LIST.value,
+        system: pb_system.System(
+          appList: pb_system.App_List(
+            list: apps
+                .map(
+                  (app) =>
+                      pb_system.App(id: app.packageName, name: app.appName),
+                )
+                .toList(growable: false),
+          ),
+        ),
+      ),
+      waitForAck: true,
+    );
+    entity.emit(AppListUpdated(deviceId: entity.id, apps: apps));
+  }
+
+  Future<List<XiaomiAlarm>> fetchAlarms() async {
+    final response = await component.requestPool
+        .request<pb_clock.ClockInfo_List>(
+          packet: pb.WearPacket(
+            type: pb.WearPacket_Type.CLOCK,
+            id: pb_clock.Clock_ClockID.GET_CLOCK_LIST.value,
+            clock: pb_clock.Clock(),
+          ),
+          typeMatcher: (p) =>
+              p.whichPayload() == pb.WearPacket_Payload.clock &&
+              p.id == pb_clock.Clock_ClockID.GET_CLOCK_LIST.value &&
+              p.clock.hasClockInfoList(),
+          responseMapper: (p) => p.clock.clockInfoList,
+        );
+    return response.list.map(XiaomiAlarm.fromProto).toList(growable: false);
+  }
+
+  Future<void> addAlarm(XiaomiAlarm alarm) async {
+    await _sendClockCommand(
+      pb_clock.Clock_ClockID.ADD_CLOCK,
+      clockInfo: alarm.toProto(),
+    );
+  }
+
+  Future<void> updateAlarm(XiaomiAlarm alarm) async {
+    await _sendClockCommand(
+      pb_clock.Clock_ClockID.UPDATE_CLOCK,
+      clockInfo: alarm.toProto(),
+    );
+  }
+
+  Future<void> removeAlarm(int id) async {
+    await _sendClockCommand(pb_clock.Clock_ClockID.REMOVE_CLOCK, idValue: id);
+  }
+
+  Future<void> setAlarmEnabled(int id, bool enabled) async {
+    await _sendClockCommand(
+      pb_clock.Clock_ClockID.ENABLE_OR_DISABLE_CLOCK,
+      idValue: id,
+      enable: enabled,
+    );
+  }
+
+  Future<void> _sendClockCommand(
+    pb_clock.Clock_ClockID id, {
+    pb_clock.ClockInfo? clockInfo,
+    int? idValue,
+    bool? enable,
+  }) async {
+    await component.sendPbPacket(
+      pb.WearPacket(
+        type: pb.WearPacket_Type.CLOCK,
+        id: id.value,
+        clock: pb_clock.Clock(
+          clockInfo: clockInfo,
+          id: idValue,
+          enable: enable,
+        ),
+      ),
+      waitForAck: true,
+    );
+  }
+
+  Future<void> sendWeather(XiaomiWeatherData weather) async {
+    final id = pb_weather.WeatherId(
+      pubTime: weather.publishedAt,
+      cityName: weather.cityName,
+      locationName: weather.locationName,
+      locationKey: weather.locationKey,
+      isCurrentLocation: true,
+    );
+    final latest = pb_weather.WeatherLatest(
+      id: id,
+      weather: weather.conditionCode,
+      temperature: _weatherValue('℃', weather.temperature),
+      humidity: _weatherValue('%', weather.humidity),
+      windInfo: _weatherValue(
+        weather.windDirection.toString(),
+        weather.windSpeedBeaufort,
+      ),
+      uvindex: _weatherValue('', weather.uvIndex),
+      aqi: _weatherValue('Unknown', weather.aqi),
+      alertsList: pb_weather.Alerts_List(),
+      pressure: weather.pressureHpa * 100,
+    );
+
+    final cityKey = pb_weather.CityKey(
+      locationKey: weather.locationKey,
+      cityName: weather.cityName,
+    );
+    await _sendWeatherPacket(
+      pb_weather.Weather_WeatherID.ADD_CITY_KEY,
+      weather: pb_weather.Weather(cityKey: cityKey),
+    );
+    await _sendWeatherPacket(
+      pb_weather.Weather_WeatherID.UPDATE_CITY_KEYS,
+      weather: pb_weather.Weather(
+        cityKeyList: pb_weather.CityKey_List(list: [cityKey]),
+      ),
+    );
+    await _sendWeatherPacket(
+      pb_weather.Weather_WeatherID.SET_CONFIG,
+      weather: pb_weather.Weather(
+        weatherConfig: pb_weather.WeatherConfig(
+          temperatureUnit: pb_common.TemperatureUnit.CENTIGRADE,
+        ),
+      ),
+    );
+    await _sendWeatherPacket(
+      pb_weather.Weather_WeatherID.LATEST_WEATHER,
+      weather: pb_weather.Weather(latest: latest),
+    );
+    await _sendWeatherPacket(
+      pb_weather.Weather_WeatherID.DAILY_FORECAST,
+      weather: pb_weather.Weather(
+        forecast: pb_weather.WeatherForecast(
+          id: id,
+          dataList: pb_weather.WeatherForecast_Data_List(
+            list: weather.daily
+                .map(
+                  (day) => pb_weather.WeatherForecast_Data(
+                    aqi: _weatherValue('Unknown', 0),
+                    weather: pb_common.RangeValue(
+                      from: day.conditionCode,
+                      to: day.conditionCode,
+                    ),
+                    temperature: xiaomiDailyTemperatureRange(day),
+                    temperatureUnit: '℃',
+                    sunRiseSet: pb_weather.SunRiseSet(
+                      sunRise: day.sunrise,
+                      sunSet: day.sunset,
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        ),
+      ),
+    );
+    if (weather.hourly.isNotEmpty) {
+      await _sendWeatherPacket(
+        pb_weather.Weather_WeatherID.HOURLY_FORECAST,
+        weather: pb_weather.Weather(
+          forecast: pb_weather.WeatherForecast(
+            id: id,
+            dataList: pb_weather.WeatherForecast_Data_List(
+              list: weather.hourly
+                  .map(
+                    (hour) => pb_weather.WeatherForecast_Data(
+                      aqi: _weatherValue('Unknown', 0),
+                      weather: pb_common.RangeValue(
+                        from: 0,
+                        to: hour.conditionCode,
+                      ),
+                      temperature: pb_common.RangeValue(
+                        from: 0,
+                        to: hour.temperature,
+                      ),
+                      temperatureUnit: '℃',
+                      windInfo: _weatherValue(
+                        hour.windDirection.toString(),
+                        hour.windSpeedBeaufort,
+                      ),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  pb_common.KeyValue _weatherValue(String key, int value) =>
+      pb_common.KeyValue(key: key, value: value);
+
+  Future<void> _sendWeatherPacket(
+    pb_weather.Weather_WeatherID id, {
+    required pb_weather.Weather weather,
+  }) async {
+    await component.sendPbPacket(
+      pb.WearPacket(
+        type: pb.WearPacket_Type.WEATHER,
+        id: id.value,
+        weather: weather,
+      ),
+      waitForAck: true,
+    );
+  }
+
+  Future<pb_system.AppLayout> fetchAppLayout() async {
+    final response = await component.requestPool.request<pb_system.AppLayout>(
+      packet: buildSystemPacket(pb_system.System_SystemID.GET_APP_LAYOUT),
+      typeMatcher: (p) =>
+          p.whichPayload() == pb.WearPacket_Payload.system &&
+          p.id == pb_system.System_SystemID.GET_APP_LAYOUT.value,
+      responseMapper: (p) => p.system.appLayout,
+    );
+    return response;
+  }
+
+  Future<void> setAppLayout(pb_system.AppLayout_Layout layout) async {
+    await component.sendPbPacket(
+      pb.WearPacket(
+        type: pb.WearPacket_Type.SYSTEM,
+        id: pb_system.System_SystemID.SET_APP_LAYOUT.value,
+        system: pb_system.System(
+          appLayout: pb_system.AppLayout(layout: layout),
+        ),
+      ),
+      waitForAck: true,
+    );
+  }
+
   Future<List<models.WatchfaceInfo>> fetchInstalledWatchfaces() async {
     _log.fine('[${entity.id}] fetching installed watchfaces');
     final response = await component.requestPool
@@ -196,3 +438,9 @@ class XiaomiInfoSystem extends XiaomiPbSystem {
     _emitBattery(_batteryStatus(packet.system.batteryStatus));
   }
 }
+
+pb_common.RangeValue xiaomiDailyTemperatureRange(XiaomiWeatherDay day) =>
+    pb_common.RangeValue(
+      from: day.maximumTemperature,
+      to: day.minimumTemperature,
+    );

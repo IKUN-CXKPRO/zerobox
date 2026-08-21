@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
+import 'package:oronbox/src/app/widgets/release_notes_view.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
@@ -165,6 +166,9 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
     final device = state.currentDevice;
     final currentVersion = state.systemInfo?.firmwareVersion.trim() ?? '';
     final latest = _releases.firstOrNull;
+    final history = _releases.length > 1
+        ? _releases.skip(1).toList(growable: false)
+        : const <FirmwareRelease>[];
     final hasUpdate =
         latest != null &&
         currentVersion.isNotEmpty &&
@@ -175,111 +179,156 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
         secondary: true,
         title: Text(l10n.deviceFeaturesInstallFirmware),
       ),
-      body: PageContainer(
+      body: ListView(
         padding: EdgeInsets.zero,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            StyleConstants.pagePadding,
-            8,
-            StyleConstants.pagePadding,
-            0,
-          ),
-          children: [
-            SectionHeader(title: l10n.firmwareCurrentVersion),
-            Text(
-              currentVersion.isEmpty
-                  ? l10n.firmwareVersionUnknown
-                  : currentVersion,
-              style: Theme.of(context).textTheme.displaySmall,
+        children: [
+          PageContainer(
+            padding: const EdgeInsets.fromLTRB(
+              StyleConstants.pagePadding,
+              8,
+              StyleConstants.pagePadding,
+              0,
             ),
-            const SizedBox(height: 8),
-            Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(child: Text(_statusText(l10n, latest, hasUpdate))),
-                TextButton.icon(
-                  onPressed: _checking ? null : _checkForUpdates,
-                  icon: _checking
-                      ? const SizedBox.square(
-                          dimension: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.refresh),
-                  label: Text(_checking ? l10n.refreshing : l10n.refresh),
+                SectionHeader(title: l10n.firmwareCurrentVersion),
+                Text(
+                  currentVersion.isEmpty
+                      ? l10n.firmwareVersionUnknown
+                      : currentVersion,
+                  style: Theme.of(context).textTheme.displaySmall,
                 ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.tonalIcon(
-                    onPressed: latest == null
-                        ? null
-                        : () => _downloadLatest(latest),
-                    icon: const Icon(Icons.download_outlined),
-                    label: Text(l10n.firmwareDownloadLatestFull),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.tonalIcon(
-                    onPressed: device == null ? null : _installLocal,
-                    icon: const Icon(Icons.folder_open_outlined),
-                    label: Text(l10n.localFirmwareInstall),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 28),
-            SectionHeader(title: l10n.firmwareLatestRelease),
-            const SizedBox(height: 8),
-            SectionCard(
-              margin: EdgeInsets.zero,
-              child: latest == null
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      child: Center(child: Text(_emptyText(l10n))),
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          latest.version,
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        if (hasUpdate) ...[
-                          const SizedBox(height: 12),
-                          FilledButton.icon(
-                            onPressed: _installingUpdate
-                                ? null
-                                : () => _installLatest(latest),
-                            icon: _installingUpdate
-                                ? const SizedBox.square(
-                                    dimension: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.system_update_alt),
-                            label: Text(l10n.firmwareUpdateNow),
-                          ),
-                        ],
-                        const SizedBox(height: 20),
-                        Text(
-                          l10n.firmwareReleaseNotes,
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        const SizedBox(height: 8),
-                        SelectableText(
-                          latest.releaseNotes?.trim().isNotEmpty == true
-                              ? latest.releaseNotes!.trim()
-                              : l10n.firmwareReleaseNotesUnavailable,
-                        ),
-                      ],
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(child: Text(_statusText(l10n, latest, hasUpdate))),
+                    TextButton.icon(
+                      onPressed: _checking ? null : _checkForUpdates,
+                      icon: _checking
+                          ? const SizedBox.square(
+                              dimension: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.refresh),
+                      label: Text(_checking ? l10n.refreshing : l10n.refresh),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.tonalIcon(
+                        onPressed: latest == null
+                            ? null
+                            : () => _downloadLatest(latest),
+                        icon: const Icon(Icons.download_outlined),
+                        label: Text(l10n.firmwareDownloadLatestFull),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.tonalIcon(
+                        onPressed: device == null ? null : _installLocal,
+                        icon: const Icon(Icons.folder_open_outlined),
+                        label: Text(l10n.localFirmwareInstall),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 28),
+                SectionHeader(title: l10n.firmwareLatestRelease),
+                const SizedBox(height: 8),
+                SectionCard(
+                  margin: EdgeInsets.zero,
+                  child: latest == null
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Center(child: Text(_emptyText(l10n))),
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              latest.version,
+                              style: Theme.of(context).textTheme.headlineSmall,
+                            ),
+                            if (hasUpdate) ...[
+                              const SizedBox(height: 12),
+                              FilledButton.icon(
+                                onPressed: _installingUpdate
+                                    ? null
+                                    : () => _installLatest(latest),
+                                icon: _installingUpdate
+                                    ? const SizedBox.square(
+                                        dimension: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.system_update_alt),
+                                label: Text(l10n.firmwareUpdateNow),
+                              ),
+                            ],
+                            const SizedBox(height: 20),
+                            Text(
+                              l10n.firmwareReleaseNotes,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                            const SizedBox(height: 8),
+                            if (latest.releaseNotes?.trim().isNotEmpty == true)
+                              ReleaseNotesView(
+                                data: latest.releaseNotes!.trim(),
+                              )
+                            else
+                              Text(l10n.firmwareReleaseNotesUnavailable),
+                          ],
+                        ),
+                ),
+                if (history.isNotEmpty) ...[
+                  const SizedBox(height: 28),
+                  SectionHeader(title: l10n.firmwareHistoricalReleases),
+                  const SizedBox(height: 8),
+                  for (final release in history) ...[
+                    SectionCard(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  release.version,
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: l10n.download,
+                                icon: const Icon(Icons.download_outlined),
+                                onPressed: () => _downloadLatest(release),
+                              ),
+                            ],
+                          ),
+                          if (release.releaseNotes?.trim().isNotEmpty ==
+                              true) ...[
+                            const SizedBox(height: 8),
+                            ReleaseNotesView(
+                              data: release.releaseNotes!.trim(),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

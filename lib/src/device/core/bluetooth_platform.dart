@@ -112,6 +112,8 @@ abstract class BluetoothConnection {
     void Function(Uint8List data)? onData,
   });
 
+  Future<void> unsubscribe({BleRequiredCharacteristic? characteristic});
+
   Future<void> dispose();
 }
 

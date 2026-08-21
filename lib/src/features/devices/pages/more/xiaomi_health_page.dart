@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:segmented_list/segmented_list.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/devices/health/health_cards.dart';
 import 'package:oronbox/src/features/devices/health/health_models.dart';
+import 'package:oronbox/src/features/devices/pages/more/xiaomi_health_detail_page.dart';
 import 'package:oronbox/src/features/devices/widgets/xiaomi_fitness_logo.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart';
 
@@ -23,14 +29,16 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
   @override
   void initState() {
     super.initState();
-    _load();
+    Future.microtask(_load);
   }
 
   Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final data = await ref
           .read(deviceManagerProvider.notifier)
@@ -39,8 +47,7 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
       setState(() => _data = data);
     } catch (error) {
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      setState(() => _error = _healthErrorMessage(l10n, error));
+      setState(() => _error = _healthErrorMessage(error));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -58,22 +65,21 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
           .syncXiaomiHealth();
       if (!mounted) return;
       setState(() => _data = result.data);
-      if (result.warning?.isNotEmpty == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.deviceHealthPartialSync,
-            ),
-          ),
-        );
-      }
     } catch (error) {
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      setState(() => _error = _healthErrorMessage(l10n, error));
+      setState(() => _error = _healthErrorMessage(error));
     } finally {
       if (mounted) setState(() => _syncing = false);
     }
+  }
+
+  void _openDetail(XiaomiHealthMetric metric) {
+    final data = _data;
+    if (data == null) return;
+    context.push(
+      '/devices/velaos-health/detail',
+      extra: XiaomiHealthDetailArgs(metric: metric, data: data),
+    );
   }
 
   @override
@@ -83,251 +89,236 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
     final ready =
         ref.watch(deviceManagerProvider).protocolState == ProtocolState.ready;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.deviceHealthTitle)),
+      appBar: SysAppBar(secondary: true, title: Text(l10n.deviceHealthTitle)),
       body: RefreshIndicator(
         onRefresh: _load,
-        child: _loading && data == null
-            ? ListView(
-                children: [
-                  SizedBox(height: 240),
-                  Center(child: CircularProgressIndicator()),
+        child: SegmentedList(
+          maxWidth: StyleConstants.pageMaxWidth,
+          contentPadding: const EdgeInsets.only(top: 8, bottom: 24),
+          sections: [
+            SegmentedSection(
+              tiles: [
+                SegmentedTile(
+                  leading: _syncing
+                      ? const SizedBox.square(
+                          dimension: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const XiaomiFitnessLogo(),
+                  title: Text(
+                    _syncing ? l10n.deviceHealthSyncing : l10n.deviceHealthSync,
+                  ),
+                  description: Text(
+                    data?.lastSyncedAt == null
+                        ? l10n.deviceHealthNeverSynced
+                        : l10n.deviceHealthLastSynced(
+                            _formatDateTime(data!.lastSyncedAt!),
+                          ),
+                  ),
+                  enabled: ready && !_syncing,
+                  trailing: IconButton(
+                    onPressed: ready && !_syncing ? _sync : null,
+                    icon: const Icon(Icons.sync),
+                    tooltip: l10n.deviceHealthSync,
+                  ),
+                  onPressed: (_) {
+                    if (ready && !_syncing) _sync();
+                  },
+                ),
+              ],
+            ),
+            if (_error != null)
+              SegmentedSection(
+                tiles: [
+                  SegmentedTile(
+                    leading: const Icon(Icons.error_outline),
+                    title: Text(l10n.deviceHealthLoadFailed),
+                    description: Text(_error!),
+                    trailing: IconButton(
+                      onPressed: _load,
+                      icon: const Icon(Icons.refresh),
+                    ),
+                  ),
                 ],
+              ),
+            if (_loading && data == null)
+              const CustomSegmentedSection(
+                child: SizedBox(
+                  height: 220,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
               )
-            : ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                children: [
-                  if (_error != null)
-                    _ErrorCard(message: _error!, onRetry: _load),
-                  _SyncCard(
-                    data: data,
-                    syncing: _syncing,
-                    enabled: ready,
-                    onSync: _sync,
-                  ),
-                  const SizedBox(height: 12),
-                  _DailyCard(summary: data?.latestDay),
-                  const SizedBox(height: 12),
-                  _SleepCard(summary: data?.latestSleep),
-                ],
-              ),
-      ),
-    );
-  }
-}
-
-class _SyncCard extends StatelessWidget {
-  const _SyncCard({
-    required this.data,
-    required this.syncing,
-    required this.enabled,
-    required this.onSync,
-  });
-
-  final XiaomiHealthData? data;
-  final bool syncing;
-  final bool enabled;
-  final VoidCallback onSync;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final lastSynced = data?.lastSyncedAt;
-    return Card.filled(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const XiaomiFitnessLogo(),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    l10n.deviceHealthSyncCardTitle,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              lastSynced == null
-                  ? l10n.deviceHealthNeverSynced
-                  : l10n.deviceHealthLastSynced(_formatDateTime(lastSynced)),
-            ),
-            if (!enabled) ...[
-              const SizedBox(height: 4),
-              Text(l10n.deviceHealthConnectFirst),
-            ],
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: !enabled || syncing ? null : onSync,
-              icon: syncing
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.sync),
-              label: Text(
-                syncing ? l10n.deviceHealthSyncing : l10n.deviceHealthSync,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DailyCard extends StatelessWidget {
-  const _DailyCard({required this.summary});
-
-  final HealthDailySummary? summary;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Card.filled(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.deviceHealthToday,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 16),
-            if (summary == null)
-              Text(l10n.deviceHealthNoData)
             else
-              Wrap(
-                spacing: 24,
-                runSpacing: 18,
-                children: [
-                  _Metric(
-                    label: l10n.deviceHealthSteps,
-                    value: '${summary!.steps}',
-                  ),
-                  _Metric(
-                    label: l10n.deviceHealthDistance,
-                    value: _distance(summary!.distanceMeters),
-                  ),
-                  _Metric(
-                    label: l10n.deviceHealthCalories,
-                    value: '${summary!.calories} kcal',
-                  ),
-                  _Metric(
-                    label: l10n.deviceHealthHeartRate,
-                    value: summary!.heartRate > 0
-                        ? '${summary!.heartRate} bpm'
-                        : '—',
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SleepCard extends StatelessWidget {
-  const _SleepCard({required this.summary});
-
-  final HealthSleepSummary? summary;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Card.filled(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.deviceHealthSleep,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 16),
-            if (summary == null)
-              Text(l10n.deviceHealthNoData)
-            else ...[
-              Text(
-                _duration(summary!.durationSeconds),
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${_formatTime(summary!.startedAt)} – ${_formatTime(summary!.endedAt)}',
-              ),
-              if (summary!.averageHeartRate != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  l10n.deviceHealthAverageHeartRate(summary!.averageHeartRate!),
+              CustomSegmentedSection(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: AdaptiveHealthCardWrap(children: _cards(data)),
                 ),
-              ],
-            ],
+              ),
           ],
         ),
       ),
     );
   }
-}
 
-class _Metric extends StatelessWidget {
-  const _Metric({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 120,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(value, style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 2),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-      ],
-    ),
-  );
-}
-
-class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) => Card.filled(
-    color: Theme.of(context).colorScheme.errorContainer,
-    child: ListTile(
-      leading: Icon(
-        Icons.error_outline,
-        color: Theme.of(context).colorScheme.onErrorContainer,
+  List<Widget> _cards(XiaomiHealthData? data) {
+    final value = data ?? const XiaomiHealthData();
+    final cards = <Widget>[
+      ActivityOverviewCard(
+        summary: value.activitySummary,
+        onPressed: () => _openDetail(XiaomiHealthMetric.activity),
       ),
-      title: Text(AppLocalizations.of(context)!.deviceHealthLoadFailed),
-      subtitle: Text(message),
-      trailing: IconButton(onPressed: onRetry, icon: const Icon(Icons.refresh)),
-    ),
-  );
+    ];
+    final capabilities = value.capabilities;
+    if (capabilities.heartRate) {
+      cards.add(
+        _metricCard(
+          data: value,
+          metric: XiaomiHealthMetric.heartRate,
+          title: '心率',
+          icon: Icons.favorite_outline,
+          color: Colors.redAccent,
+          summaryValue: value.latestDay?.averageHeartRate,
+          unit: 'bpm',
+          detail: _range(
+            value.latestDay?.minHeartRate,
+            value.latestDay?.maxHeartRate,
+            'bpm',
+          ),
+        ),
+      );
+    }
+    if (capabilities.bloodOxygen) {
+      cards.add(
+        _metricCard(
+          data: value,
+          metric: XiaomiHealthMetric.bloodOxygen,
+          title: '血氧',
+          icon: Icons.bloodtype_outlined,
+          color: Colors.indigo,
+          summaryValue: value.latestDay?.averageBloodOxygen,
+          unit: '%',
+          detail: _range(
+            value.latestDay?.minBloodOxygen,
+            value.latestDay?.maxBloodOxygen,
+            '%',
+          ),
+        ),
+      );
+    }
+    if (capabilities.stress) {
+      cards.add(
+        _metricCard(
+          data: value,
+          metric: XiaomiHealthMetric.stress,
+          title: '压力',
+          icon: Icons.spa_outlined,
+          color: Colors.orange,
+          summaryValue: value.latestDay?.averageStress,
+          unit: '',
+          detail: _range(
+            value.latestDay?.minStress,
+            value.latestDay?.maxStress,
+            '',
+          ),
+        ),
+      );
+    }
+    if (capabilities.vitality) {
+      cards.add(
+        _metricCard(
+          data: value,
+          metric: XiaomiHealthMetric.vitality,
+          title: '元气值',
+          icon: Icons.bolt_outlined,
+          color: Colors.amber,
+          summaryValue: value.latestDay?.vitalityCurrent,
+          unit: '',
+          detail: '今日累计',
+        ),
+      );
+    }
+    if (capabilities.sleep) {
+      final sleep = value.latestSleep;
+      cards.add(
+        HealthMetricCard(
+          metric: XiaomiHealthMetric.sleep,
+          title: '睡眠',
+          icon: Icons.bedtime_outlined,
+          color: Colors.deepPurple,
+          value: sleep == null ? '—' : _duration(sleep.durationSeconds),
+          detail: sleep == null
+              ? '暂无数据'
+              : '${_formatTime(sleep.startedAt)} – ${_formatTime(sleep.endedAt)}',
+          samples: const [],
+          onPressed: () => _openDetail(XiaomiHealthMetric.sleep),
+        ),
+      );
+    }
+    if (capabilities.workouts) {
+      cards.add(
+        HealthMetricCard(
+          metric: XiaomiHealthMetric.workout,
+          title: '运动记录',
+          icon: Icons.directions_run_outlined,
+          color: Colors.teal,
+          value: '${value.workouts.length}',
+          detail: '条记录',
+          samples: const [],
+          onPressed: () => _openDetail(XiaomiHealthMetric.workout),
+        ),
+      );
+    }
+    return cards;
+  }
+
+  HealthMetricCard _metricCard({
+    required XiaomiHealthData data,
+    required XiaomiHealthMetric metric,
+    required String title,
+    required IconData icon,
+    required Color color,
+    required int? summaryValue,
+    required String unit,
+    required String detail,
+  }) {
+    final latest = data.latestSample(metric);
+    final samples =
+        data.samplesFor(metric).where((sample) => sample.isUsable).toList()
+          ..sort((left, right) => left.timestamp.compareTo(right.timestamp));
+    final visibleSamples = samples.length <= 120
+        ? samples
+        : samples.sublist(samples.length - 120);
+    final displayedValue = latest?.value.round() ?? summaryValue;
+    return HealthMetricCard(
+      metric: metric,
+      title: title,
+      icon: icon,
+      color: color,
+      value: displayedValue == null ? '—' : '$displayedValue $unit'.trim(),
+      detail: latest == null ? detail : _formatDateTime(latest.timestamp),
+      samples: visibleSamples,
+      onPressed: () => _openDetail(metric),
+    );
+  }
+
+  String _range(int? min, int? max, String unit) {
+    if (min == null && max == null) return '暂无详细范围';
+    if (min == null || max == null) return '${min ?? max} $unit'.trim();
+    return '$min–$max $unit'.trim();
+  }
+
+  String _healthErrorMessage(Object error) {
+    if (error is UnsupportedError) {
+      return AppLocalizations.of(context)!.errorUnknown;
+    }
+    return localizedErrorMessage(AppLocalizations.of(context)!, error);
+  }
 }
 
 String _formatDateTime(DateTime value) =>
     '${value.month}/${value.day} ${_formatTime(value)}';
 String _formatTime(DateTime value) =>
     '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
-String _distance(int meters) =>
-    meters >= 1000 ? '${(meters / 1000).toStringAsFixed(1)} km' : '$meters m';
 String _duration(int seconds) =>
     '${seconds ~/ 3600}h ${((seconds % 3600) ~/ 60).toString().padLeft(2, '0')}m';
-
-String _healthErrorMessage(AppLocalizations l10n, Object error) {
-  if (error is UnsupportedError) return l10n.errorUnknown;
-  return localizedErrorMessage(l10n, error);
-}

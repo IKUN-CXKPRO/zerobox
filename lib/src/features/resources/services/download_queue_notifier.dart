@@ -188,34 +188,56 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
         bytes: downloaded.bytes,
       );
     }
-    final result = await ref
-        .read(applicationHostProvider)
-        .execute(
-          OronBoxCommand(
-            method: 'resource.download',
-            params: {
-              'ref': resource.ref.key,
-              'file': task.file.id,
-              'targetDevice': task.codename,
-              'title': resource.name,
-              'resource': communityResourceDetailToJson(resource),
-            },
-          ),
-        );
-    if (!result.ok) {
-      throw StateError('${result.error!.code}: ${result.error!.message}');
+    final host = ref.read(applicationHostProvider);
+    final operationId =
+        'download:${task.id}:${DateTime.now().microsecondsSinceEpoch}';
+    final progressSubscription = host.events.listen((event) {
+      if (event.data['operationId']?.toString() != operationId) {
+        return;
+      }
+      final rawProgress = event.data['progress'];
+      if (rawProgress is! num) return;
+      final progress =
+          (rawProgress <= 1
+                  ? rawProgress.toDouble()
+                  : rawProgress.toDouble() / 100)
+              .clamp(0, 1)
+              .toDouble();
+      if (event.event == ResourceTaskStatus.downloading.name) {
+        _update(task.id, ResourceTaskStatus.downloading, progress, null);
+      }
+    });
+    try {
+      final result = await host.execute(
+        OronBoxCommand(
+          method: 'resource.download',
+          params: {
+            'ref': resource.ref.key,
+            'file': task.file.id,
+            'targetDevice': task.codename,
+            'title': resource.name,
+            'operationId': operationId,
+            'resource': communityResourceDetailToJson(resource),
+          },
+        ),
+      );
+      if (!result.ok) {
+        throw StateError('${result.error!.code}: ${result.error!.message}');
+      }
+      final download = (result.value as Map).cast<String, Object?>();
+      return ResourceTask(
+        id: task.id,
+        resource: resource,
+        file: task.file,
+        codename: task.codename,
+        status: ResourceTaskStatus.completed,
+        progress: 1,
+        filePath: download['path']?.toString() ?? '',
+        installType: download['type']?.toString(),
+      );
+    } finally {
+      await progressSubscription.cancel();
     }
-    final download = (result.value as Map).cast<String, Object?>();
-    return ResourceTask(
-      id: task.id,
-      resource: resource,
-      file: task.file,
-      codename: task.codename,
-      status: ResourceTaskStatus.completed,
-      progress: 1,
-      filePath: download['path']?.toString() ?? '',
-      installType: download['type']?.toString(),
-    );
   }
 
   Future<void> _handToInstallQueue(ResourceTask task) async {

@@ -6,6 +6,7 @@ import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/app/widgets/smooth_linear_progress_indicator.dart';
+import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
 
@@ -24,6 +25,7 @@ class _XiaomiRecordingsPageState extends ConsumerState<XiaomiRecordingsPage> {
   int _completed = 0;
   int _total = 0;
   String _currentFile = '';
+  double _transferProgress = 0;
   String? _error;
 
   Future<void> _sync() async {
@@ -33,6 +35,7 @@ class _XiaomiRecordingsPageState extends ConsumerState<XiaomiRecordingsPage> {
       _completed = 0;
       _total = 0;
       _currentFile = '';
+      _transferProgress = 0;
       _error = null;
       _cancelling = false;
     });
@@ -46,6 +49,16 @@ class _XiaomiRecordingsPageState extends ConsumerState<XiaomiRecordingsPage> {
                 _completed = completed;
                 _total = total;
                 _currentFile = fileName;
+                _transferProgress = total == 0 ? 0 : completed / total;
+              });
+            },
+            onDetailedProgress: (value) {
+              if (!mounted) return;
+              setState(() {
+                _completed = value.currentIndex - 1;
+                _total = value.totalFiles;
+                _currentFile = value.fileName;
+                _transferProgress = value.progress;
               });
             },
           );
@@ -54,6 +67,7 @@ class _XiaomiRecordingsPageState extends ConsumerState<XiaomiRecordingsPage> {
         _recordings = result;
         _completed = result.length;
         _total = result.length;
+        _transferProgress = result.isEmpty ? 0 : 1;
       });
     } catch (error) {
       if (mounted && !_cancelling) {
@@ -123,6 +137,11 @@ class _XiaomiRecordingsPageState extends ConsumerState<XiaomiRecordingsPage> {
           title: Text(l10n.deviceRecordingsTitle),
         ),
         floatingActionButton: FloatingActionButton.extended(
+          elevation: 0,
+          focusElevation: 0,
+          hoverElevation: 0,
+          highlightElevation: 0,
+          disabledElevation: 0,
           onPressed: _syncing
               ? (_cancelling ? null : _cancel)
               : (ready ? _sync : null),
@@ -131,83 +150,93 @@ class _XiaomiRecordingsPageState extends ConsumerState<XiaomiRecordingsPage> {
               : const Icon(Icons.sync),
           label: Text(_syncing ? l10n.cancel : l10n.deviceRecordingsSync),
         ),
-        body: PageContainer(
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 88),
-            children: [
-              SectionCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SectionHeader(title: l10n.deviceRecordingsDescription),
-                    Text(
-                      l10n.deviceRecordingsHint,
-                      style: TextStyle(color: colors.onSurfaceVariant),
-                    ),
-                    if (_syncing) ...[
-                      const SizedBox(height: 16),
-                      SmoothLinearProgressIndicator(
-                        value: _total == 0 ? null : _completed / _total,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _total == 0
-                            ? l10n.deviceRecordingsReading
-                            : l10n.deviceRecordingsProgress(
-                                _completed,
-                                _total,
-                                _currentFile,
-                              ),
-                      ),
-                    ],
-                    if (_error != null) ...[
-                      const SizedBox(height: 12),
-                      Text(_error!, style: TextStyle(color: colors.error)),
-                    ],
-                  ],
-                ),
+        body: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            PageContainer(
+              padding: const EdgeInsets.fromLTRB(
+                StyleConstants.pagePadding,
+                16,
+                StyleConstants.pagePadding,
+                StyleConstants.pagePadding + 88,
               ),
-              if (_recordings.isEmpty && !_syncing)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 48),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.mic_none,
-                        size: 48,
-                        color: colors.onSurfaceVariant,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(l10n.deviceRecordingsEmpty),
-                    ],
-                  ),
-                )
-              else
-                ..._recordings.map(
-                  (recording) => Card(
-                    elevation: 0,
-                    child: ListTile(
-                      leading: const Icon(Icons.graphic_eq),
-                      title: Text(recording.fileName),
-                      subtitle: Text(
-                        [
-                          if (recording.createdAt != null)
-                            _formatDate(recording.createdAt!),
-                          if (recording.durationSeconds != null)
-                            _formatDuration(recording.durationSeconds!),
-                          _formatBytes(recording.data.length),
-                        ].join(' · '),
-                      ),
-                      trailing: IconButton(
-                        tooltip: l10n.deviceRecordingsSave,
-                        onPressed: () => _save(recording),
-                        icon: const Icon(Icons.save_alt),
-                      ),
+              child: Column(
+                children: [
+                  SectionCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SectionHeader(title: l10n.deviceRecordingsDescription),
+                        Text(
+                          l10n.deviceRecordingsHint,
+                          style: TextStyle(color: colors.onSurfaceVariant),
+                        ),
+                        if (_syncing) ...[
+                          const SizedBox(height: 16),
+                          SmoothLinearProgressIndicator(
+                            value: _total == 0 ? null : _transferProgress,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _total == 0
+                                ? l10n.deviceRecordingsReading
+                                : l10n.deviceRecordingsProgress(
+                                    _completed.clamp(0, _total),
+                                    _total,
+                                    _currentFile,
+                                  ),
+                          ),
+                        ],
+                        if (_error != null) ...[
+                          const SizedBox(height: 12),
+                          Text(_error!, style: TextStyle(color: colors.error)),
+                        ],
+                      ],
                     ),
                   ),
-                ),
-            ],
-          ),
+                  if (_recordings.isEmpty && !_syncing)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 48),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.mic_none,
+                            size: 48,
+                            color: colors.onSurfaceVariant,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(l10n.deviceRecordingsEmpty),
+                        ],
+                      ),
+                    )
+                  else
+                    ..._recordings.map(
+                      (recording) => Card(
+                        elevation: 0,
+                        child: ListTile(
+                          leading: const Icon(Icons.graphic_eq),
+                          title: Text(recording.fileName),
+                          subtitle: Text(
+                            [
+                              if (recording.createdAt != null)
+                                _formatDate(recording.createdAt!),
+                              if (recording.durationSeconds != null)
+                                _formatDuration(recording.durationSeconds!),
+                              _formatBytes(recording.data.length),
+                            ].join(' · '),
+                          ),
+                          trailing: IconButton(
+                            tooltip: l10n.deviceRecordingsSave,
+                            onPressed: () => _save(recording),
+                            icon: const Icon(Icons.save_alt),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -221,7 +250,11 @@ String _extension(String fileName) {
 }
 
 String _safeFileName(String value, String extension) {
-  final safe = value.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+  final sanitized = value
+      .replaceAll(RegExp(r'[\x00-\x1F<>:"/\\|?*]'), '_')
+      .trim()
+      .replaceFirst(RegExp(r'[. ]+$'), '');
+  final safe = sanitized.isEmpty ? 'recording' : sanitized;
   return safe.toLowerCase().endsWith('.$extension') ? safe : '$safe.$extension';
 }
 

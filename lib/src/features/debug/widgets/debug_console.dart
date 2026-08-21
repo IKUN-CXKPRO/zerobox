@@ -48,34 +48,52 @@ class _DebugConsoleState extends State<DebugConsole> {
   }
 
   @override
-  Widget build(BuildContext context) => SelectionArea(
-    child: ListView.separated(
-      controller: _scroll,
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      itemCount: widget.records.length,
-      separatorBuilder: (_, _) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final record = widget.records[index];
-        final color = switch (record.level.name) {
-          'SEVERE' => Theme.of(context).colorScheme.error,
-          'WARNING' => Colors.orange,
-          _ => Theme.of(context).colorScheme.onSurface,
-        };
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          child: Text(
-            '${record.time.toIso8601String()}  ${record.level.name.padRight(7)} '
-            '[${record.scope}] ${record.source}  ${record.message}'
-            '${record.error == null ? '' : '\n${record.error}'}',
-            style: TextStyle(
-              color: color,
-              fontFamily: 'monospace',
-              fontSize: 12.5,
-              height: 1.35,
-            ),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    if (widget.records.isEmpty) {
+      return const Center(child: Text('No logs'));
+    }
+
+    // A single selectable text surface preserves line boundaries when a
+    // selection spans multiple records.  Selecting independent Text widgets
+    // causes Flutter's semantics tree to copy them as one paragraph.
+    final spans = <TextSpan>[];
+    for (final record in widget.records) {
+      final color = switch (record.level.name) {
+        'SEVERE' => scheme.error,
+        'WARNING' => Colors.orange,
+        _ => scheme.onSurface,
+      };
+      final line = StringBuffer()
+        ..write(record.time.toIso8601String())
+        ..write('  ')
+        ..write(record.level.name.padRight(7))
+        ..write(' [${record.scope}] ${record.source}  ${record.message}');
+      if (record.error != null) {
+        line.write('\n${record.error}');
+      }
+      spans.add(
+        TextSpan(
+          text: '${line.toString()}\n',
+          style: TextStyle(
+            color: color,
+            fontFamily: 'monospace',
+            fontSize: 12.5,
+            height: 1.35,
           ),
-        );
-      },
-    ),
-  );
+        ),
+      );
+    }
+
+    return Scrollbar(
+      controller: _scroll,
+      child: SingleChildScrollView(
+        controller: _scroll,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: SelectionArea(
+          child: SelectableText.rich(TextSpan(children: spans)),
+        ),
+      ),
+    );
+  }
 }

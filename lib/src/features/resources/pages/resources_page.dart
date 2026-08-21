@@ -1209,6 +1209,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
   var _preparingLayoutMotion = false;
   final _items = <CommunityResource>[];
   var _page = 0;
+  var _feedSeed = math.Random.secure().nextInt(0x7fffffff) + 1;
   var _hasMore = true;
   var _loading = true;
   var _loadingMore = false;
@@ -1334,6 +1335,7 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
 
   Future<void> _reset() async {
     final generation = ++_generation;
+    _feedSeed = math.Random.secure().nextInt(0x7fffffff) + 1;
     setState(() {
       _items.clear();
       _page = 0;
@@ -1365,12 +1367,14 @@ class _ResourceLibraryViewState extends ConsumerState<_ResourceLibraryView>
     setState(() => _loadingMore = true);
     try {
       final filters = ref.read(resourceFiltersProvider);
+      final source = ref.read(selectedCommunitySourceProvider);
       final result = await ref
           .read(communityCatalogProvider)
           .getPage(
             CommunityResourceQuery(
               page: _page,
               pageSize: _pageSize,
+              seed: source == CommunitySourceId.oronBox ? _feedSeed : null,
               query: filters.query,
               sort: filters.sort,
               type: filters.type,

@@ -22,7 +22,6 @@ import 'package:oronbox/src/features/resources/application/creator/creator_works
 import 'package:oronbox/src/features/resources/pages/creator/creator_shared.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/accounts/services/mi_account_two_factor_resolver.dart';
-import 'package:oronbox/src/features/devices/widgets/xiaomi_fitness_logo.dart';
 
 final _desktopExitBehaviorProvider = Provider<int?>((ref) {
   return SharedPrefsService.instance.getInt('desktop.exit_behavior');
@@ -358,6 +357,19 @@ class SettingsPage extends ConsumerWidget {
                   title: Text(l10n.settingsAutoReconnectTitle),
                   description: Text(l10n.settingsAutoReconnectDesc),
                 ),
+                SegmentedTile.switchTile(
+                  onToggle: (value) async {
+                    await ref
+                        .read(appSettingsProvider.notifier)
+                        .setRemoveBondBeforeSpp(value ?? false);
+                  },
+                  initialValue: ref
+                      .watch(appSettingsProvider)
+                      .removeBondBeforeSpp,
+                  leading: const Icon(Icons.bluetooth_searching_outlined),
+                  title: Text(l10n.settingsRemoveBondBeforeSpp),
+                  description: Text(l10n.settingsRemoveBondBeforeSppDesc),
+                ),
                 SegmentedTile.navigation(
                   onPressed: (context) => _showCdnMenu(context, ref),
                   leading: const Icon(Icons.cloud_outlined),
@@ -444,12 +456,18 @@ class SettingsPage extends ConsumerWidget {
                   title: Text(l10n.settingsAboutLogs),
                   description: Text(l10n.settingsAboutLogsDescription),
                 ),
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/settings/debug-server'),
+                  leading: const Icon(Icons.developer_mode_outlined),
+                  title: Text(l10n.debugServerTitle),
+                  description: Text(l10n.debugServerDescription),
+                ),
                 if (showDebugWindowSettings)
                   SegmentedTile.switchTile(
                     onToggle: (value) =>
                         _setDebugWindowEnabled(context, ref, value ?? false),
                     initialValue: debugWindowEnabled,
-                    leading: const Icon(Icons.developer_mode_outlined),
+                    leading: const Icon(Icons.bug_report_outlined),
                     title: Text(l10n.devTools),
                     description: Text(
                       showDesktopWindowSettings
@@ -474,7 +492,7 @@ class SettingsPage extends ConsumerWidget {
                   initialValue: ref
                       .watch(appSettingsProvider)
                       .healthFeaturesEnabled,
-                  leading: const XiaomiFitnessLogo(),
+                  leading: const Icon(Icons.science_outlined),
                   title: Text(l10n.settingsHealthFeatures),
                   description: Text(l10n.settingsHealthFeaturesDescription),
                 ),

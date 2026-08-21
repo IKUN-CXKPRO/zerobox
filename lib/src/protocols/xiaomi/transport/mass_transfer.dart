@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart' as crypto;
@@ -148,7 +149,13 @@ class ReverseMassPacket {
         error = true;
         throw ProtocolException('Invalid reverse mass filename length');
       }
-      fileName = String.fromCharCodes(packet.sublist(7, 7 + len));
+      // MASS filenames are UTF-8 bytes on the wire.  Treating each byte as a
+      // Unicode code point turns Chinese names into mojibake (for example
+      // ``ç»æ``).  Keep the packet bytes untouched for CRC,
+      // but decode the presentation value as UTF-8 and fall back to an empty
+      // name when a device sends malformed metadata so callers can use the
+      // descriptor name instead.
+      fileName = _decodeMassFileName(packet.sublist(7, 7 + len));
       header = Uint8List.sublistView(packet, 6, 7 + len + 5);
       skipOffset = 7 + len + 5;
     } else {
@@ -205,6 +212,18 @@ class ReverseMassPacket {
 
   static bool looksLikeReverseMassPacket(Uint8List payload) {
     return payload.length >= 12 && payload[0] == 0;
+  }
+}
+
+String _decodeMassFileName(List<int> bytes) {
+  if (bytes.isEmpty) return '';
+  try {
+    return utf8
+        .decode(bytes, allowMalformed: false)
+        .replaceAll('\u0000', '')
+        .trim();
+  } on FormatException {
+    return '';
   }
 }
 

@@ -34,6 +34,7 @@ class ZeppOsDeviceComponent {
 
   ZeppOsAuthKeys? authKeys;
   void Function(ZeppOsPayload payload)? onPayload;
+  void Function(Uint8List frame)? onRawOutgoing;
   void Function(Object error, StackTrace stackTrace)? onTransportFailure;
 
   int _writeHandle = 0;
@@ -55,8 +56,7 @@ class ZeppOsDeviceComponent {
     final wirePayload = encrypted ? _encryptPayload(payload, handle) : payload;
     var offset = 0;
     var count = 0;
-    while (offset < wirePayload.length ||
-        (wirePayload.isEmpty && count == 0)) {
+    while (offset < wirePayload.length || (wirePayload.isEmpty && count == 0)) {
       final first = count == 0;
       final maxPayload = _maxChunkPayload(
         first: first,
@@ -132,11 +132,8 @@ class ZeppOsDeviceComponent {
         throw StateError('ZeppOS first chunk is too short: ${data.length}');
       }
       final announcedLength = _readUint32Le(data, cursor);
-      if (announcedLength < 0 ||
-          announcedLength > _maxInboundPayloadLength) {
-        throw StateError(
-          'Invalid ZeppOS payload length $announcedLength',
-        );
+      if (announcedLength < 0 || announcedLength > _maxInboundPayloadLength) {
+        throw StateError('Invalid ZeppOS payload length $announcedLength');
       }
       _currentLength = announcedLength;
       cursor += 4;
@@ -151,11 +148,12 @@ class ZeppOsDeviceComponent {
     _expectedCount = (count + 1) & 0xff;
     if (needsAck) {
       unawaited(
-        _sendAck(handle: handle, count: count).catchError(
-          (Object error, StackTrace stackTrace) {
-            _log.warning('Failed to send ZeppOS ACK', error, stackTrace);
-          },
-        ),
+        _sendAck(handle: handle, count: count).catchError((
+          Object error,
+          StackTrace stackTrace,
+        ) {
+          _log.warning('Failed to send ZeppOS ACK', error, stackTrace);
+        }),
       );
     }
     if (!last) return;
@@ -203,6 +201,7 @@ class ZeppOsDeviceComponent {
 
   Future<void> _safeSend(Uint8List data) async {
     try {
+      onRawOutgoing?.call(Uint8List.fromList(data));
       await transport.send(data);
     } catch (e, st) {
       onTransportFailure?.call(e, st);
@@ -216,6 +215,7 @@ class ZeppOsDeviceComponent {
     CharacteristicTransport characteristicTransport,
   ) async {
     try {
+      onRawOutgoing?.call(Uint8List.fromList(data));
       await characteristicTransport.sendToCharacteristic(data, characteristic);
     } catch (e, st) {
       onTransportFailure?.call(e, st);
@@ -240,14 +240,20 @@ class ZeppOsDeviceComponent {
     final clear = Uint8List(paddedLength);
     clear.setRange(0, payload.length, payload);
     _writeUint32Le(clear, payload.length, sequence);
-    _writeUint32Le(clear, payload.length + 4, _crc32(clear, payload.length + 4));
+    _writeUint32Le(
+      clear,
+      payload.length + 4,
+      _crc32(clear, payload.length + 4),
+    );
     return zeppOsAesEcbEncrypt(_messageKey(keys.sessionKey, handle), clear);
   }
 
   Uint8List _decryptPayload(Uint8List payload, int handle, int clearLength) {
     final keys = authKeys;
     if (keys == null) {
-      throw StateError('Encrypted ZeppOS payload received before authentication');
+      throw StateError(
+        'Encrypted ZeppOS payload received before authentication',
+      );
     }
     if (payload.length % 16 != 0) {
       throw StateError('Encrypted ZeppOS payload is not block aligned');
@@ -270,9 +276,7 @@ class ZeppOsDeviceComponent {
     for (var i = 0; i < length; i += 1) {
       crc ^= data[i];
       for (var bit = 0; bit < 8; bit += 1) {
-        crc = (crc & 1) != 0
-            ? (crc >> 1) ^ 0xedb88320
-            : crc >> 1;
+        crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xedb88320 : crc >> 1;
       }
     }
     return (crc ^ 0xffffffff) & 0xffffffff;

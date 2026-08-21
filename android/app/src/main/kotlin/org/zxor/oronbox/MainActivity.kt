@@ -17,12 +17,17 @@ import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.content.pm.PackageManager
+import android.media.AudioAttributes
+import android.media.MediaPlayer
+import android.media.RingtoneManager
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.view.ViewGroup
 import android.view.Window
 import android.webkit.CookieManager
@@ -82,6 +87,10 @@ class MainActivity : FlutterActivity() {
     private var fileOpenChannel: MethodChannel? = null
     private var pendingOpenFilePath: String? = null
     private var pendingWearableLogResult: MethodChannel.Result? = null
+    @Volatile
+    private var phoneFinderPlayer: MediaPlayer? = null
+    @Volatile
+    private var phoneFinderVibrator: Vibrator? = null
     private val wearableLogExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private var sessionMarker: File? = null
 
@@ -216,7 +225,7 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         fileOpenChannel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "oronbox/file_open",
+            PlatformChannelNames.FILE_OPEN,
         ).also { channel ->
             channel.setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -231,20 +240,40 @@ class MainActivity : FlutterActivity() {
         }
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "oronbox/wearable_log",
+            PlatformChannelNames.WEARABLE_LOG,
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "scanLatest" -> scanLatestWearableLog(result)
                 else -> result.notImplemented()
             }
         }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            PlatformChannelNames.FIND_PHONE,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "start" -> {
+                    try {
+                        startPhoneFinder()
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error("PHONE_FINDER_START_FAILED", error.message, null)
+                    }
+                }
+                "stop" -> {
+                    stopPhoneFinder()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
         xmsWearableChannel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "oronbox/xms_wearable",
+            PlatformChannelNames.XMS_WEARABLE,
         ).also(XmsWearableBridge::attach)
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "oronbox/background_tasks",
+            PlatformChannelNames.BACKGROUND_TASKS,
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "begin" -> {
@@ -298,7 +327,7 @@ class MainActivity : FlutterActivity() {
         }
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "oronbox/logs",
+            PlatformChannelNames.LOGS,
         ).setMethodCallHandler { call, result ->
             val authority = "${applicationContext.packageName}.logs"
             when (call.method) {
@@ -385,7 +414,7 @@ class MainActivity : FlutterActivity() {
         }
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "oronbox/installer",
+            PlatformChannelNames.INSTALLER,
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "getSupportedAbi" -> {
@@ -424,7 +453,7 @@ class MainActivity : FlutterActivity() {
         }
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "oronbox/classic_spp",
+            PlatformChannelNames.CLASSIC_SPP,
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "requestPermissions" -> {
@@ -448,7 +477,7 @@ class MainActivity : FlutterActivity() {
 
         EventChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "oronbox/classic_spp/events",
+            PlatformChannelNames.CLASSIC_SPP_EVENTS,
         ).setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                 eventSink = events
@@ -461,7 +490,7 @@ class MainActivity : FlutterActivity() {
 
         EventChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "oronbox/classic_spp/scan_events",
+            PlatformChannelNames.CLASSIC_SPP_SCAN_EVENTS,
         ).setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                 scanEventSink = events
@@ -474,7 +503,7 @@ class MainActivity : FlutterActivity() {
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "oronbox/mi_account_2fa",
+            PlatformChannelNames.MI_ACCOUNT_2FA,
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "resolve" -> resolveMiAccountTwoFactor(call, result)
@@ -483,7 +512,7 @@ class MainActivity : FlutterActivity() {
         }
         zeppSettingsChannel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "oronbox/zeppos_app_settings",
+            PlatformChannelNames.ZEPPOS_APP_SETTINGS,
         ).also { channel ->
             channel.setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -1469,12 +1498,86 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private fun startPhoneFinder() {
+        stopPhoneFinder()
+        val ringtoneUri = RingtoneManager.getActualDefaultRingtoneUri(
+            this,
+            RingtoneManager.TYPE_ALARM,
+        ) ?: RingtoneManager.getActualDefaultRingtoneUri(
+            this,
+            RingtoneManager.TYPE_RINGTONE,
+        ) ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            ?: throw IOException("No default alarm sound is available")
+        val player = MediaPlayer()
+        try {
+            player.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build(),
+            )
+            player.setDataSource(this, ringtoneUri)
+            player.isLooping = true
+            player.setOnErrorListener { _, what, extra ->
+                writeNativeLog(
+                    File(filesDir, "logs/phone-finder.log"),
+                    "phone finder playback error what=$what extra=$extra\\n",
+                )
+                stopPhoneFinder()
+                true
+            }
+            phoneFinderPlayer = player
+            player.prepare()
+            player.setVolume(1f, 1f)
+            player.start()
+        } catch (error: Exception) {
+            phoneFinderPlayer = null
+            runCatching { player.release() }
+            throw error
+        }
+
+        val vibrator = getSystemService(Vibrator::class.java)
+        if (vibrator?.hasVibrator() == true) {
+            val pattern = longArrayOf(0, 500, 500)
+            vibrator.vibrate(
+                VibrationEffect.createWaveform(pattern, 0),
+            )
+            phoneFinderVibrator = vibrator
+        }
+    }
+
+    private fun stopPhoneFinder() {
+        phoneFinderPlayer?.let { player ->
+            try {
+                if (player.isPlaying) player.stop()
+            } catch (_: IllegalStateException) {
+                // The native callback can race with an audio error callback.
+            } finally {
+                try {
+                    player.reset()
+                } catch (_: IllegalStateException) {
+                    // Already released by the competing callback.
+                }
+                try {
+                    player.release()
+                } catch (_: IllegalStateException) {
+                    // Nothing left to release.
+                }
+            }
+        }
+        phoneFinderPlayer = null
+        phoneFinderVibrator?.cancel()
+        phoneFinderVibrator = null
+    }
+
     private data class ConnectedSocket(
         val socket: BluetoothSocket,
         val channel: Int,
     )
 
     override fun onDestroy() {
+        stopPhoneFinder()
         disconnect()
         sessionMarker?.let { marker ->
             if (isFinishing || isChangingConfigurations) marker.delete()

@@ -18,6 +18,9 @@ import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/data/bandbbs/bandbbs_resource_provider.dart';
 import 'package:oronbox/src/data/huami/huami_app_store_resource_provider.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/devices/models/xiaomi_device_features.dart';
+import 'package:oronbox/src/features/devices/services/device_log_archive.dart';
+import 'package:oronbox/src/features/devices/services/phone_finder.dart';
 import 'package:oronbox/src/features/devices/controllers/interconnect_event_codec.dart';
 import 'package:oronbox/src/features/accounts/services/bandbbs_auth_service.dart';
 import 'package:oronbox/src/features/accounts/services/huami_auth_service.dart';
@@ -35,6 +38,8 @@ import 'package:oronbox/src/features/resources/domain/community_resource_codec.d
 import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
 import 'package:oronbox/src/host/application_host.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart';
+import 'package:oronbox/src/protocols/generated/xiaomi/wear_system.pb.dart'
+    as pb_system;
 
 class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
   static final _log = getLogger('LocalCommandBus');
@@ -86,6 +91,13 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
         ),
       ),
     );
+    _rawBluetoothSubscription = _manager.rawProtocolFrames.listen((frame) {
+      _recordRawBluetoothPacket(frame, direction: 'in');
+    });
+    _rawBluetoothOutgoingSubscription = _manager.rawProtocolOutgoingFrames
+        .listen((frame) {
+          _recordRawBluetoothPacket(frame, direction: 'out');
+        });
     _interconnectSubscription = _manager.interconnectMessages.listen(
       (message) => _events.add(
         CommandEvent(
@@ -94,6 +106,24 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
         ),
       ),
     );
+    _deviceEventSubscription = _manager.deviceEvents.listen((event) {
+      if (event case XiaomiFindPhoneRequested(:final finding)) {
+        // Handle the native reaction at the backend boundary. The GUI adapter
+        // can be paused or absent while Android is in the background, but the
+        // local command bus remains alive with the connected device manager.
+        unawaited(
+          PhoneFinder.setFinding(finding).catchError((error, stackTrace) {
+            _log.warning('phone finder playback failed', error, stackTrace);
+          }),
+        );
+        _events.add(
+          CommandEvent(
+            'device.xiaomi.find_phone',
+            data: {'deviceId': event.deviceId, 'finding': finding},
+          ),
+        );
+      }
+    });
     _pluginManager = PluginManager(
       deviceManager: _manager,
       readDeviceState: () => _state,
@@ -109,6 +139,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
   final ProviderContainer container;
   final _events = StreamController<CommandEvent>.broadcast();
   final _externalDiagnostics = <Map<String, Object?>>[];
+  final _rawBluetoothPackets = <Map<String, Object?>>[];
   String? _debugSessionId;
   DateTime? _debugSessionStartedAt;
   late final ProviderSubscription<DeviceManagerState>
@@ -116,8 +147,12 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
   late final ProviderSubscription<BandBbsAuthState> _bandBbsAuthSubscription;
   late final StreamSubscription<DiagnosticEvent> _logSubscription;
   late final StreamSubscription<Uint8List> _xiaoAiSubscription;
+  late final StreamSubscription<Uint8List> _rawBluetoothSubscription;
+  late final StreamSubscription<Uint8List> _rawBluetoothOutgoingSubscription;
   late final StreamSubscription<InterconnectMessage> _interconnectSubscription;
+  late final StreamSubscription<DeviceEvent> _deviceEventSubscription;
   bool _activeCommandCancelled = false;
+  bool _rawBluetoothEnabled = false;
   Future<void> _commandTail = Future<void>.value();
   late final PluginManager _pluginManager;
   late final PluginRepositories _pluginRepositories;
@@ -342,14 +377,22 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'device.xiaomi.health.sync' => _manager.syncXiaomiHealth().then(
       (value) => value.toJson(),
     ),
+    'device.xiaomi.appLayout.get' => _getXiaomiAppLayout(),
+    'device.xiaomi.appLayout.set' => _setXiaomiAppLayout(command.params),
     'device.xiaomi.recordings.download' => _downloadXiaomiRecordings(),
     'device.recordings.cancel' => _cancelRecordingSync(),
     'device.zeppos.find' => _setFindingZeppOsDevice(
       command.params['finding'] == true,
     ),
+    'device.xiaomi.findPhone' => _setFindingXiaomiPhone(
+      command.params['finding'] == true,
+    ),
+    'device.xiaomi.findWearable' => _setFindingXiaomiWearable(
+      command.params['finding'] == true,
+    ),
     'device.zeppos.screenshot' => _manager.requestZeppOsScreenshot(),
     'device.zeppos.voice_memos.download' => _downloadVoiceMemos(),
-    'device.logs.pull' => _pullDeviceLogs(),
+    'device.logs.pull' => _pullDeviceLogs(command.params),
     'device.logs.cancel' => _cancelDeviceLogPull(),
     'device.zeppos.appside.list' => _manager.listZeppOsAppSides(),
     'device.zeppos.appside.observed' => _manager.observedZeppOsAppSideIds(),
@@ -384,6 +427,14 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'device.remove' => _removeDevice(command.params['device']?.toString()),
     'device.import' => _importDevice(command.params),
     'app.list' => _listApps(),
+    'device.xiaomi.appOrder.list' => _listXiaomiAppOrder(),
+    'device.xiaomi.appOrder.set' => _setXiaomiAppOrder(command.params),
+    'device.xiaomi.alarm.list' => _listXiaomiAlarms(),
+    'device.xiaomi.alarm.add' => _addXiaomiAlarm(command.params),
+    'device.xiaomi.alarm.update' => _updateXiaomiAlarm(command.params),
+    'device.xiaomi.alarm.remove' => _removeXiaomiAlarm(command.params),
+    'device.xiaomi.alarm.enable' => _setXiaomiAlarmEnabled(command.params),
+    'device.xiaomi.weather.sync' => _syncXiaomiWeather(command.params),
     'app.uninstall' => _uninstallApp(command.params['package']?.toString()),
     'app.launch' => _launchApp(command.params['package']?.toString()),
     'watchface.list' => _listWatchfaces(),
@@ -606,6 +657,13 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     ),
     'logs.recent' => Future.value(recentOronBoxLogs),
     'debug.snapshot' => _debugSnapshot(),
+    'debug.rawBluetooth.get' => Future.value({
+      'enabled': _rawBluetoothEnabled,
+      'packets': List<Map<String, Object?>>.unmodifiable(_rawBluetoothPackets),
+    }),
+    'debug.rawBluetooth.set' => _setRawBluetoothListener(
+      command.params['enabled'] == true,
+    ),
     'debug.sources' => _debugSources(),
     'debug.plugin.snapshot' => _debugPluginSnapshot(command.params),
     'debug.runtime' => collectDebugRuntimeEnvironment(),
@@ -758,7 +816,36 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
           ..sort(
             (a, b) => a['time'].toString().compareTo(b['time'].toString()),
           );
-    return {'records': records, 'plugins': _pluginManager.diagnostics()};
+    return {
+      'records': records,
+      'plugins': _pluginManager.diagnostics(),
+      'rawBluetoothEnabled': _rawBluetoothEnabled,
+    };
+  }
+
+  Future<Map<String, Object?>> _setRawBluetoothListener(bool enabled) async {
+    _rawBluetoothEnabled = enabled;
+    if (!enabled) _rawBluetoothPackets.clear();
+    return {'enabled': enabled};
+  }
+
+  void _recordRawBluetoothPacket(Uint8List frame, {required String direction}) {
+    if (!_rawBluetoothEnabled) return;
+    final record = <String, Object?>{
+      'time': DateTime.now().toUtc().toIso8601String(),
+      'direction': direction,
+      if (_state.currentDevice case final device?) ...{
+        'deviceId': device.addr,
+        'deviceName': device.name,
+        'connectType': device.connectType,
+        if (device.codename case final codename?) 'codename': codename,
+      },
+      'size': frame.length,
+      'hex': _hexPreview(frame),
+    };
+    _rawBluetoothPackets.add(record);
+    if (_rawBluetoothPackets.length > 2000) _rawBluetoothPackets.removeAt(0);
+    _events.add(CommandEvent('debug.raw_packet', data: record));
   }
 
   Future<Map<String, Object?>> _debugSources() async {
@@ -1151,40 +1238,230 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     };
   }
 
-  Future<Object?> _pullDeviceLogs() async {
-    final pulled = await _manager.pullDeviceLogs(
-      onProgress: (progress, fileName) {
-        _events.add(
+  Future<Object?> _pullDeviceLogs([
+    Map<String, Object?> params = const {},
+  ]) async {
+    final operationId = params['operationId'];
+    final deviceId = params['deviceId'];
+    _events.add(
+      CommandEvent(
+        'device.log.progress',
+        data: {
+          'stage': 'preparing',
+          if (operationId != null) 'operationId': operationId,
+          if (deviceId != null) 'deviceId': deviceId,
+        },
+      ),
+    );
+    DateTime? lastLogProgressAt;
+    DeviceLogPullResult pulled;
+    try {
+      pulled = await _manager.pullDeviceLogs(
+        onStage: (stage) => _events.add(
           CommandEvent(
             'device.log.progress',
-            data: {'progress': progress, 'fileName': fileName},
+            data: {
+              'stage': stage,
+              if (operationId != null) 'operationId': operationId,
+              if (deviceId != null) 'deviceId': deviceId,
+            },
           ),
-        );
-      },
-    );
-    final directory = await getLogDirectoryPath();
-    if (directory == null) {
-      throw const CommandFailure(
-        'storage_unavailable',
-        'The runtime log directory is unavailable',
+        ),
+        onDetailedProgress: (value) {
+          final now = DateTime.now();
+          if (lastLogProgressAt != null &&
+              now.difference(lastLogProgressAt!) <
+                  const Duration(milliseconds: 100) &&
+              value.progress < 1) {
+            return;
+          }
+          lastLogProgressAt = now;
+          _events.add(
+            CommandEvent(
+              'device.log.progress',
+              data: {
+                'stage': 'transferring',
+                'progress': value.progress,
+                'fileName': value.fileName,
+                'channel': value.channel,
+                'currentPart': value.currentPart,
+                'totalParts': value.totalParts,
+                if (operationId != null) 'operationId': operationId,
+                if (deviceId != null) 'deviceId': deviceId,
+              },
+            ),
+          );
+        },
       );
+    } catch (error) {
+      _events.add(
+        CommandEvent(
+          'device.log.progress',
+          data: {
+            'stage': 'failed',
+            'message': error.toString(),
+            if (operationId != null) 'operationId': operationId,
+            if (deviceId != null) 'deviceId': deviceId,
+          },
+        ),
+      );
+      rethrow;
+    }
+    String directory;
+    try {
+      final path = await getLogDirectoryPath();
+      if (path == null) {
+        throw const CommandFailure(
+          'storage_unavailable',
+          'The runtime log directory is unavailable',
+        );
+      }
+      directory = path;
+    } catch (error) {
+      _events.add(
+        CommandEvent(
+          'device.log.progress',
+          data: {
+            'stage': 'failed',
+            'message': error.toString(),
+            if (operationId != null) 'operationId': operationId,
+            if (deviceId != null) 'deviceId': deviceId,
+          },
+        ),
+      );
+      rethrow;
     }
     final sourceName = pulled.fileName.trim();
     final safeName = sourceName
         .split(RegExp(r'[/\\]'))
         .last
-        .replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+        // Keep valid Unicode names readable while removing path separators,
+        // control characters, and platform-reserved filename characters.
+        .replaceAll(RegExp(r'[\x00-\x1F<>:"/\\|?*]'), '_')
+        .trim()
+        .replaceFirst(RegExp(r'[. ]+$'), '');
     final now = DateTime.now();
     final stamp =
         '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-'
         '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
-    final name = 'device-$stamp-${safeName.isEmpty ? 'logs.zip' : safeName}';
-    final file = File('$directory${Platform.pathSeparator}$name');
-    await file.writeAsBytes(pulled.data, flush: true);
+    final rawCodename =
+        params['codename']?.toString() ??
+        _state.currentDevice?.codename ??
+        _state.currentDevice?.name ??
+        '';
+    final codename = rawCodename
+        .trim()
+        .replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')
+        .replaceFirst(RegExp(r'[. ]+$'), '');
+    final name =
+        'device-${codename.isEmpty ? 'unknown' : codename}-$stamp-'
+        '${safeName.isEmpty ? 'logs.zip' : safeName}';
+    late final File file;
+    try {
+      file = await _uniqueOutputFile(
+        File('$directory${Platform.pathSeparator}$name'),
+      );
+    } catch (error) {
+      _events.add(
+        CommandEvent(
+          'device.log.progress',
+          data: {
+            'stage': 'failed',
+            'message': error.toString(),
+            if (operationId != null) 'operationId': operationId,
+            if (deviceId != null) 'deviceId': deviceId,
+          },
+        ),
+      );
+      rethrow;
+    }
+    final temporary = File('${file.path}.part');
+    _events.add(
+      CommandEvent(
+        'device.log.progress',
+        data: {
+          'stage': 'storing',
+          'progress': 0.98,
+          'fileName': name,
+          if (operationId != null) 'operationId': operationId,
+          if (deviceId != null) 'deviceId': deviceId,
+        },
+      ),
+    );
+    try {
+      await temporary.writeAsBytes(pulled.data, flush: true);
+      await temporary.rename(file.path);
+    } catch (error) {
+      if (await temporary.exists()) await temporary.delete();
+      _events.add(
+        CommandEvent(
+          'device.log.progress',
+          data: {
+            'stage': 'failed',
+            'message': error.toString(),
+            if (operationId != null) 'operationId': operationId,
+            if (deviceId != null) 'deviceId': deviceId,
+          },
+        ),
+      );
+      rethrow;
+    }
+    final currentLog = extractCurrentDeviceLog(pulled.data);
+    if (currentLog == null) {
+      _log.warning(
+        'device log archive did not contain offlinelog/tmp.log '
+        '(archive=${pulled.data.length} bytes)',
+      );
+    }
+    String? currentLogName;
+    if (currentLog != null && currentLog.isNotEmpty) {
+      try {
+        currentLogName =
+            await _uniqueOutputFile(
+              File(
+                '$directory${Platform.pathSeparator}${name.replaceFirst(RegExp(r'(?:\.tar\.gz|\.tgz|\.zip)$'), '')}-tmp.log',
+              ),
+            ).then((target) async {
+              final temporary = File('${target.path}.part');
+              try {
+                await temporary.writeAsBytes(currentLog, flush: true);
+                await temporary.rename(target.path);
+              } catch (_) {
+                if (await temporary.exists()) await temporary.delete();
+                rethrow;
+              }
+              return target.path.split(Platform.pathSeparator).last;
+            });
+      } catch (error, stackTrace) {
+        _log.warning(
+          'failed to save extracted current device log',
+          error,
+          stackTrace,
+        );
+      }
+    }
+    _events.add(
+      CommandEvent(
+        'device.log.progress',
+        data: {
+          'stage': 'completed',
+          'progress': 1.0,
+          'fileName': name,
+          'bytesDone': pulled.data.length,
+          'bytesTotal': pulled.data.length,
+          if (operationId != null) 'operationId': operationId,
+          if (deviceId != null) 'deviceId': deviceId,
+        },
+      ),
+    );
     return {
       'name': name,
       'path': file.path,
       'size': pulled.data.length,
+      'stored': true,
+      if (currentLogName != null) 'currentLogName': currentLogName,
+      if (currentLog != null)
+        'currentLogBytes': currentLog.toList(growable: false),
       // The GUI may be a separate desktop process from the device daemon.
       // Return the archive so the GUI can mirror it into its own OronBox logs
       // directory instead of leaving it inaccessible in the daemon sandbox.
@@ -1260,6 +1537,21 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
           data: {'completed': completed, 'total': total, 'fileName': fileName},
         ),
       ),
+      onDetailedProgress: (value) => _events.add(
+        CommandEvent(
+          'progress',
+          data: {
+            'currentIndex': value.currentIndex,
+            'totalFiles': value.totalFiles,
+            'progress': value.progress,
+            'fileName': value.fileName,
+            'currentPart': value.currentPart,
+            'totalParts': value.totalParts,
+            if (value.bytesDone != null) 'bytesDone': value.bytesDone,
+            if (value.bytesTotal != null) 'bytesTotal': value.bytesTotal,
+          },
+        ),
+      ),
     );
     return recordings.map((recording) => recording.toJson()).toList();
   }
@@ -1272,6 +1564,41 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
   Future<Object?> _setFindingZeppOsDevice(bool finding) async {
     await _ensureConnected(null);
     await _manager.setFindingZeppOsDevice(finding);
+    return {'finding': finding};
+  }
+
+  Future<Object?> _setFindingXiaomiPhone(bool finding) async {
+    await _ensureConnected(null);
+    await _manager.setFindingXiaomiPhone(finding);
+    if (!finding) await PhoneFinder.setFinding(false);
+    return {'finding': finding};
+  }
+
+  Future<Object?> _getXiaomiAppLayout() async {
+    await _ensureConnected(null);
+    final layout = await _manager.loadXiaomiAppLayout();
+    return {
+      if (layout.hasLayout()) 'layout': layout.layout.value,
+      if (layout.hasSupportLayouts()) 'supportLayouts': layout.supportLayouts,
+    };
+  }
+
+  Future<Object?> _setXiaomiAppLayout(Map<String, Object?> params) async {
+    await _ensureConnected(null);
+    final value = (params['layout'] as num?)?.toInt();
+    final layout = value == null
+        ? null
+        : pb_system.AppLayout_Layout.valueOf(value);
+    if (layout == null) {
+      throw const CommandFailure('invalid_argument', 'layout is required');
+    }
+    await _manager.setXiaomiAppLayout(layout);
+    return {'layout': layout.value};
+  }
+
+  Future<Object?> _setFindingXiaomiWearable(bool finding) async {
+    await _ensureConnected(null);
+    await _manager.setFindingXiaomiWearable(finding);
     return {'finding': finding};
   }
 
@@ -1400,6 +1727,88 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
         .toList(growable: false);
   }
 
+  Future<Object?> _listXiaomiAppOrder() async {
+    await _ensureConnected(null);
+    final apps = await _manager.loadXiaomiAppOrder();
+    return apps
+        .map(
+          (app) => {
+            'packageName': app.packageName,
+            'name': app.appName,
+            'versionCode': app.versionCode,
+            'canRemove': app.canRemove,
+          },
+        )
+        .toList(growable: false);
+  }
+
+  Future<Object?> _setXiaomiAppOrder(Map<String, Object?> params) async {
+    await _ensureConnected(null);
+    final rows = params['apps'];
+    if (rows is! List) {
+      throw const CommandFailure('invalid_argument', 'apps is required');
+    }
+    final apps = rows
+        .whereType<Map>()
+        .map(
+          (row) => AppInfo(
+            packageName: row['packageName']?.toString() ?? '',
+            appName: (row['appName'] ?? row['name'])?.toString() ?? '',
+            versionCode: (row['versionCode'] as num?)?.toInt() ?? 0,
+            canRemove: row['canRemove'] as bool? ?? false,
+          ),
+        )
+        .where((app) => app.packageName.isNotEmpty)
+        .toList(growable: false);
+    await _manager.setXiaomiAppOrder(apps);
+    return {'count': apps.length};
+  }
+
+  Future<Object?> _listXiaomiAlarms() async {
+    await _ensureConnected(null);
+    final alarms = await _manager.loadXiaomiAlarms();
+    return alarms.map((alarm) => alarm.toJson()).toList(growable: false);
+  }
+
+  Future<Object?> _addXiaomiAlarm(Map<String, Object?> params) async {
+    await _ensureConnected(null);
+    await _manager.addXiaomiAlarm(XiaomiAlarm.fromJson(params));
+    return const {'saved': true};
+  }
+
+  Future<Object?> _updateXiaomiAlarm(Map<String, Object?> params) async {
+    await _ensureConnected(null);
+    await _manager.updateXiaomiAlarm(XiaomiAlarm.fromJson(params));
+    return const {'saved': true};
+  }
+
+  Future<Object?> _removeXiaomiAlarm(Map<String, Object?> params) async {
+    await _ensureConnected(null);
+    final id = (params['id'] as num?)?.toInt();
+    if (id == null) {
+      throw const CommandFailure('invalid_argument', 'id is required');
+    }
+    await _manager.removeXiaomiAlarm(id);
+    return {'removed': id};
+  }
+
+  Future<Object?> _setXiaomiAlarmEnabled(Map<String, Object?> params) async {
+    await _ensureConnected(null);
+    final id = (params['id'] as num?)?.toInt();
+    if (id == null) {
+      throw const CommandFailure('invalid_argument', 'id is required');
+    }
+    final enabled = params['enabled'] == true;
+    await _manager.setXiaomiAlarmEnabled(id, enabled);
+    return {'id': id, 'enabled': enabled};
+  }
+
+  Future<Object?> _syncXiaomiWeather(Map<String, Object?> params) async {
+    await _ensureConnected(null);
+    await _manager.syncXiaomiWeather(XiaomiWeatherData.fromJson(params));
+    return const {'synced': true};
+  }
+
   Future<Object?> _listWatchfaces() async {
     await _ensureConnected(null);
     await _manager.fetchWatchfaces();
@@ -1485,6 +1894,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'github_cdn',
     'bandbbs_load_previews',
     'bandbbs_show_all_categories',
+    removeBondBeforeSppSettingKey,
   };
 
   Map<String, Object?> _settingsList() => {
@@ -1527,7 +1937,8 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       'auto_install' ||
       'disable_auto_clean' ||
       'bandbbs_load_previews' ||
-      'bandbbs_show_all_categories' => prefs.getBool(key),
+      'bandbbs_show_all_categories' ||
+      removeBondBeforeSppSettingKey => prefs.getBool(key),
       'community_source' || 'github_cdn' => prefs.getString(key),
       _ => null,
     };
@@ -1888,7 +2299,12 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
         _events.add(
           CommandEvent(
             status.name,
-            data: {'progress': progress, if (error != null) 'error': error},
+            data: {
+              'progress': progress,
+              if (params['operationId'] != null)
+                'operationId': params['operationId'],
+              if (error != null) 'error': error,
+            },
           ),
         );
       },
@@ -2261,9 +2677,37 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     _bandBbsAuthSubscription.close();
     await _logSubscription.cancel();
     await _xiaoAiSubscription.cancel();
+    await _rawBluetoothSubscription.cancel();
+    await _rawBluetoothOutgoingSubscription.cancel();
     await _interconnectSubscription.cancel();
+    await _deviceEventSubscription.cancel();
     await _events.close();
   }
+}
+
+Future<File> _uniqueOutputFile(File requested) async {
+  if (!await requested.exists()) return requested;
+  final directory = requested.parent;
+  final name = requested.uri.pathSegments.last;
+  final dot = name.lastIndexOf('.');
+  final stem = dot > 0 ? name.substring(0, dot) : name;
+  final extension = dot > 0 ? name.substring(dot) : '';
+  for (var index = 2; index < 100000; index++) {
+    final candidate = File(
+      '${directory.path}${Platform.pathSeparator}$stem ($index)$extension',
+    );
+    if (!await candidate.exists()) return candidate;
+  }
+  throw StateError('Unable to allocate a unique output file name');
+}
+
+String _hexPreview(List<int> bytes) {
+  final limit = bytes.length > 256 ? 256 : bytes.length;
+  final value = bytes
+      .take(limit)
+      .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+      .join(' ');
+  return bytes.length > limit ? '$value …' : value;
 }
 
 class CommandFailure implements Exception {

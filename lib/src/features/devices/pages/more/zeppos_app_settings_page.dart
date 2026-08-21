@@ -135,37 +135,38 @@ class _ZeppOsAppSettingsPageState extends State<ZeppOsAppSettingsPage> {
           ),
         ],
       ),
-      body: PageContainer(
-        padding: const EdgeInsets.fromLTRB(
-          StyleConstants.pagePadding,
-          8,
-          StyleConstants.pagePadding,
-          0,
-        ),
-        child: FutureBuilder<List<_Item>>(
-          future: _items,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return Center(
-                child: Text(localizedErrorMessage(l10n, snapshot.error)),
-              );
-            }
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final items = snapshot.data!;
-            if (items.isEmpty) {
-              return Center(
-                child: FilledButton.icon(
-                  onPressed: _supplement,
-                  icon: const Icon(Icons.add),
-                  label: Text(l10n.zeppOsAppSupplementCompatibility),
+      body: FutureBuilder<List<_Item>>(
+        future: _items,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(localizedErrorMessage(l10n, snapshot.error)),
+            );
+          }
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final items = snapshot.data!;
+          if (items.isEmpty) {
+            return Center(
+              child: FilledButton.icon(
+                onPressed: _supplement,
+                icon: const Icon(Icons.add),
+                label: Text(l10n.zeppOsAppSupplementCompatibility),
+              ),
+            );
+          }
+          return ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              PageContainer(
+                padding: const EdgeInsets.fromLTRB(
+                  StyleConstants.pagePadding,
+                  8,
+                  StyleConstants.pagePadding,
+                  0,
                 ),
-              );
-            }
-            return ListView(
-              children: [
-                SegmentedSection(
+                child: SegmentedSection(
                   margin: const EdgeInsetsDirectional.only(
                     start: 0,
                     end: 0,
@@ -204,10 +205,10 @@ class _ZeppOsAppSettingsPageState extends State<ZeppOsAppSettingsPage> {
                       ),
                   ],
                 ),
-              ],
-            );
-          },
-        ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

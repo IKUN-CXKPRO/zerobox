@@ -11,17 +11,29 @@ class XiaomiReportSystem extends XiaomiPbSystem {
 
   Completer<pb_system.ReportData_Result>? _deviceLogWaiter;
 
-  Future<pb_system.ReportData_Result> requestDeviceLogExport() async {
+  Future<pb_system.ReportData_Result> requestDeviceLogExport({
+    Duration timeout = const Duration(seconds: 90),
+  }) async {
     _log.info('[${entity.id}] requesting device log export');
     if (_deviceLogWaiter != null) {
       throw StateError('device log export already in progress');
     }
     final completer = Completer<pb_system.ReportData_Result>();
     _deviceLogWaiter = completer;
-    await component.sendPbPacket(
-      _buildReportDataPacket(pb_system.ReportData_Type.DEVICE_LOG),
-    );
-    return completer.future.timeout(const Duration(seconds: 30));
+    try {
+      await component.sendPbPacket(
+        _buildReportDataPacket(pb_system.ReportData_Type.DEVICE_LOG),
+      );
+      try {
+        return await completer.future.timeout(timeout);
+      } on TimeoutException {
+        throw DeviceLogRequestTimeout(timeout);
+      }
+    } finally {
+      if (identical(_deviceLogWaiter, completer) && !completer.isCompleted) {
+        _deviceLogWaiter = null;
+      }
+    }
   }
 
   void clearDeviceLogWait() {
@@ -44,7 +56,14 @@ class XiaomiReportSystem extends XiaomiPbSystem {
       return;
     }
     final result = system.reportDataResult;
-    if (result.type != pb_system.ReportData_Type.DEVICE_LOG) return;
+    if (result.type != pb_system.ReportData_Type.DEVICE_LOG &&
+        result.type != pb_system.ReportData_Type.DUMP_LOG) {
+      _log.warning(
+        '[${entity.id}] ignored report response type=${result.type.name} '
+        'status=${result.status.name} while waiting for device logs',
+      );
+      return;
+    }
 
     final waiter = _deviceLogWaiter;
     if (waiter != null && !waiter.isCompleted) {
@@ -52,6 +71,17 @@ class XiaomiReportSystem extends XiaomiPbSystem {
     }
     _deviceLogWaiter = null;
   }
+}
+
+class DeviceLogRequestTimeout implements Exception {
+  const DeviceLogRequestTimeout(this.timeout);
+
+  final Duration timeout;
+
+  @override
+  String toString() =>
+      'Device did not answer the log export request within '
+      '${timeout.inSeconds}s';
 }
 
 pb.WearPacket _buildReportDataPacket(pb_system.ReportData_Type reportType) {

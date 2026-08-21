@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
+#include <cctype>
 #include <cstdio>
 #include <map>
 #include <memory>
@@ -215,6 +216,17 @@ gboolean send_event_on_main(gpointer user_data) {
   return G_SOURCE_REMOVE;
 }
 
+gboolean send_disconnected_on_main(gpointer) {
+  if (g_event_channel == nullptr) {
+    return G_SOURCE_REMOVE;
+  }
+  g_autoptr(FlValue) value = fl_value_new_map();
+  fl_value_set_string_take(value, "event", fl_value_new_string("disconnected"));
+  g_autoptr(GError) error = nullptr;
+  fl_event_channel_send(g_event_channel, value, nullptr, &error);
+  return G_SOURCE_REMOVE;
+}
+
 FlValue* scan_device_to_value(const ScanDevice& device) {
   FlValue* value = fl_value_new_map();
   fl_value_set_string_take(value, "addr", fl_value_new_string(device.addr.c_str()));
@@ -313,6 +325,82 @@ std::string find_bluez_adapter_path(GDBusConnection* connection) {
   }
   g_variant_iter_free(objects);
   return adapter_path;
+}
+
+bool remove_bluez_device(const std::string& address, std::string* error_out) {
+  g_autoptr(GError) error = nullptr;
+  g_autoptr(GDBusConnection) connection = get_system_bus(&error);
+  if (connection == nullptr) {
+    if (error_out != nullptr) {
+      *error_out = error == nullptr ? "failed to open system bus" : error->message;
+    }
+    return false;
+  }
+
+  g_autoptr(GVariant) result = g_dbus_connection_call_sync(
+      connection, kBluezBusName, kBluezObjectPath,
+      kBluezObjectManagerInterface, "GetManagedObjects", nullptr,
+      G_VARIANT_TYPE("(a{oa{sa{sv}}})"), G_DBUS_CALL_FLAGS_NONE, 5000,
+      nullptr, &error);
+  if (result == nullptr) {
+    if (error_out != nullptr) {
+      *error_out = error == nullptr ? "BlueZ object enumeration failed" : error->message;
+    }
+    return false;
+  }
+
+  std::string adapter_path;
+  std::string device_path;
+  GVariantIter* objects = nullptr;
+  g_variant_get(result, "(a{oa{sa{sv}}})", &objects);
+  const gchar* object_path = nullptr;
+  GVariant* interfaces = nullptr;
+  while (g_variant_iter_loop(objects, "{o@a{sa{sv}}}", &object_path,
+                              &interfaces)) {
+    if (adapter_path.empty()) {
+      g_autoptr(GVariant) adapter = g_variant_lookup_value(
+          interfaces, kBluezAdapterInterface, G_VARIANT_TYPE("a{sv}"));
+      if (adapter != nullptr) {
+        adapter_path = object_path;
+      }
+    }
+    if (device_path.empty()) {
+      g_autoptr(GVariant) properties = g_variant_lookup_value(
+          interfaces, kBluezDeviceInterface, G_VARIANT_TYPE("a{sv}"));
+      if (properties != nullptr) {
+        const std::string candidate =
+            lookup_string_property(properties, "Address");
+        if (!candidate.empty() &&
+            g_ascii_strcasecmp(candidate.c_str(), address.c_str()) == 0) {
+          device_path = object_path;
+        }
+      }
+    }
+  }
+  g_variant_iter_free(objects);
+
+  // The device may already have been removed, which is the desired state.
+  if (device_path.empty()) {
+    return true;
+  }
+  if (adapter_path.empty()) {
+    if (error_out != nullptr) {
+      *error_out = "no BlueZ adapter found";
+    }
+    return false;
+  }
+
+  g_autoptr(GVariant) remove_result = g_dbus_connection_call_sync(
+      connection, kBluezBusName, adapter_path.c_str(), kBluezAdapterInterface,
+      "RemoveDevice", g_variant_new("(o)", device_path.c_str()), nullptr,
+      G_DBUS_CALL_FLAGS_NONE, 5000, nullptr, &error);
+  if (remove_result == nullptr) {
+    if (error_out != nullptr) {
+      *error_out = error == nullptr ? "BlueZ RemoveDevice failed" : error->message;
+    }
+    return false;
+  }
+  return true;
 }
 
 bool call_bluez_adapter_method(const char* method, std::string* error_out) {
@@ -514,6 +602,10 @@ bool connect_rfcomm(const std::string& addr, uint8_t channel, int timeout_sec,
   }
 
   fcntl(fd, F_SETFL, flags);
+  timeval send_timeout = {};
+  send_timeout.tv_sec = 5;
+  setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &send_timeout,
+             sizeof(send_timeout));
   bool close_after_lock = false;
   {
     std::lock_guard<std::mutex> lock(g_mutex);
@@ -538,6 +630,7 @@ bool connect_rfcomm(const std::string& addr, uint8_t channel, int timeout_sec,
 void start_reader() {
   g_running = true;
   g_read_thread = std::thread([] {
+    int reader_fd = -1;
     while (g_running) {
       int fd = -1;
       {
@@ -547,6 +640,7 @@ void start_reader() {
       if (fd < 0) {
         break;
       }
+      reader_fd = fd;
 
       uint8_t buffer[4096];
       ssize_t n = recv(fd, buffer, sizeof(buffer), 0);
@@ -563,7 +657,23 @@ void start_reader() {
         break;
       }
     }
-    g_running = false;
+    const bool remote_disconnect = g_running.exchange(false);
+    bool close_fd = false;
+    {
+      std::lock_guard<std::mutex> lock(g_mutex);
+      if (reader_fd >= 0 && g_fd == reader_fd) {
+        g_fd = -1;
+        close_fd = true;
+      }
+    }
+    if (close_fd) {
+      shutdown(reader_fd, SHUT_RDWR);
+      close(reader_fd);
+    }
+    if (remote_disconnect) {
+      stop_send_worker();
+      g_main_context_invoke(nullptr, send_disconnected_on_main, nullptr);
+    }
   });
 }
 
@@ -612,6 +722,14 @@ FlValue* lookup_arg(FlMethodCall* method_call, const char* key) {
   return fl_value_lookup_string(args, key);
 }
 
+bool lookup_bool(FlMethodCall* method_call, const char* key, bool fallback) {
+  FlValue* value = lookup_arg(method_call, key);
+  if (value == nullptr || fl_value_get_type(value) != FL_VALUE_TYPE_BOOL) {
+    return fallback;
+  }
+  return fl_value_get_bool(value);
+}
+
 void respond_error(FlMethodCall* method_call, const char* code,
                    const std::string& message) {
   g_autoptr(GError) error = nullptr;
@@ -620,12 +738,27 @@ void respond_error(FlMethodCall* method_call, const char* code,
 }
 
 void handle_connect_async(std::string addr, std::vector<uint8_t> channels,
-                          FlMethodCall* method_call, uint64_t generation) {
-  std::thread([addr, channels, method_call, generation]() {
+                          FlMethodCall* method_call, uint64_t generation,
+                          bool remove_bond) {
+  std::thread([addr, channels, method_call, generation, remove_bond]() {
     std::string last_error;
     std::vector<std::string> errors;
     int connected_fd = -1;
     uint8_t connected_channel = 0;
+
+    if (remove_bond && !remove_bluez_device(addr, &last_error)) {
+      auto* result = new ConnectResult();
+      result->method_call = method_call;
+      result->generation = generation;
+      result->error = "BlueZ RemoveDevice failed: " + last_error;
+      g_main_context_invoke(
+          nullptr, [](gpointer data) -> gboolean {
+            finish_connect_on_main(data);
+            return G_SOURCE_REMOVE;
+          },
+          result);
+      return;
+    }
 
     for (uint8_t channel : channels) {
       if (generation != g_connect_generation.load()) {
@@ -700,11 +833,12 @@ void handle_connect(FlMethodCall* method_call) {
     channels = {5, 1};
   }
   const uint64_t generation = g_connect_generation.fetch_add(1) + 1;
+  const bool remove_bond = lookup_bool(method_call, "removeBond", false);
   stop_all();
 
   // Keep the method_call alive while the background thread works.
   g_object_ref(method_call);
-  handle_connect_async(addr, channels, method_call, generation);
+  handle_connect_async(addr, channels, method_call, generation, remove_bond);
 }
 
 void handle_send(FlMethodCall* method_call) {

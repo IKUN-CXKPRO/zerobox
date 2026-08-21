@@ -128,6 +128,30 @@ void main() {
     expect(plan.canPublishToBandBbs, isTrue);
   });
 
+  test('does not map variants to a generic family root', () {
+    final plan = buildCreatorPublicationPlan(
+      workspace: _workspace(
+        artifacts: {
+          'artifact': const ['o66nfc'],
+        },
+      ),
+      devices: const [
+        CreatorDevice(
+          id: 'o66nfc',
+          codename: 'o66nfc',
+          name: 'Xiaomi Smart Band 10 NFC',
+        ),
+      ],
+      bandBbsCategories: const [
+        {'id': 19, 'title': '小米手环', 'children': []},
+      ],
+    );
+
+    expect(plan.bandBbsTargets, isEmpty);
+    expect(plan.bandBbsProblem, CreatorBandBbsPlanProblem.unmappedDevices);
+    expect(plan.unmappedDeviceNames, ['Xiaomi Smart Band 10 NFC']);
+  });
+
   test('rejects multiple artifacts sharing one category', () {
     final plan = buildCreatorPublicationPlan(
       workspace: _workspace(

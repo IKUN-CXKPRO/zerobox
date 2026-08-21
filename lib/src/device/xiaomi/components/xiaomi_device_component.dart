@@ -40,6 +40,13 @@ class XiaomiDeviceComponent {
 
   XiaomiAuthKeys? authKeys;
   void Function(Uint8List l2Payload)? onL2Payload;
+
+  /// Activity/fitness files use a dedicated transport channel rather than
+  /// protobuf.  Keep that channel separate from [onL2Payload] so a complete
+  /// file can be assembled by the health system without pretending it is a
+  /// protobuf packet.
+  void Function(Uint8List payload)? onActivityPayload;
+  void Function(Uint8List frame)? onRawOutgoing;
   void Function(Object error, StackTrace stackTrace)? onTransportFailure;
   Completer<void>? _sppHelloCompleter;
   final XiaomiSppV1Codec _sppV1Codec = XiaomiSppV1Codec();
@@ -71,6 +78,7 @@ class XiaomiDeviceComponent {
 
   Future<void> _onSarSend(Uint8List data) async {
     _log.fine('SAR sending ${data.length} bytes');
+    onRawOutgoing?.call(Uint8List.fromList(data));
     await transport.send(data);
   }
 
@@ -85,9 +93,9 @@ class XiaomiDeviceComponent {
     if (spp) {
       _log.info('starting SPP hello');
       _sppHelloCompleter = Completer<void>();
-      await transport.send(
-        sppV1 ? _sppV1Codec.versionRequest() : _sppHelloPacket,
-      );
+      final hello = sppV1 ? _sppV1Codec.versionRequest() : _sppHelloPacket;
+      onRawOutgoing?.call(Uint8List.fromList(hello));
+      await transport.send(hello);
       await _sppHelloCompleter!.future.timeout(const Duration(seconds: 10));
       _sppHelloCompleter = null;
       _log.info('SPP hello completed');
@@ -125,9 +133,12 @@ class XiaomiDeviceComponent {
     );
     if (sppV1) {
       _sppV1Codec.authKeys = authKeys;
-      await transport.send(
-        _sppV1Codec.encodeProtobuf(packet.writeToBuffer(), authenticate: false),
+      final data = _sppV1Codec.encodeProtobuf(
+        packet.writeToBuffer(),
+        authenticate: false,
       );
+      onRawOutgoing?.call(Uint8List.fromList(data));
+      await transport.send(data);
       return;
     }
     final l2 = encrypted
@@ -146,9 +157,12 @@ class XiaomiDeviceComponent {
     );
     if (sppV1) {
       _sppV1Codec.authKeys = authKeys;
-      await transport.send(
-        _sppV1Codec.encodeProtobuf(packet.writeToBuffer(), authenticate: true),
+      final data = _sppV1Codec.encodeProtobuf(
+        packet.writeToBuffer(),
+        authenticate: true,
       );
+      onRawOutgoing?.call(Uint8List.fromList(data));
+      await transport.send(data);
       return;
     }
     final l2 = L2Packet.pbWrite(packet);
@@ -157,7 +171,9 @@ class XiaomiDeviceComponent {
 
   Future<void> sendSppV1MassChunk(Uint8List payload) async {
     _sppV1Codec.authKeys = authKeys;
-    await transport.send(_sppV1Codec.encodeData(payload));
+    final data = _sppV1Codec.encodeData(payload);
+    onRawOutgoing?.call(Uint8List.fromList(data));
+    await transport.send(data);
   }
 
   List<XiaomiSppV1Packet> decodeSppV1(Uint8List data) {

@@ -22,6 +22,9 @@ import 'package:oronbox/src/features/devices/pages/more/zeppos_app_settings_page
 import 'package:oronbox/src/features/devices/pages/more/zeppos_music_upload_page.dart';
 import 'package:oronbox/src/features/devices/pages/more/xiaomi_recordings_page.dart';
 import 'package:oronbox/src/features/devices/pages/more/xiaomi_health_page.dart';
+import 'package:oronbox/src/features/devices/pages/more/xiaomi_health_detail_page.dart';
+import 'package:oronbox/src/features/devices/pages/more/xiaomi_device_settings_pages.dart';
+import 'package:oronbox/src/features/devices/pages/more/xiaomi_device_feature_pages.dart';
 import 'package:oronbox/src/features/devices/pages/more/zeppos_voice_memos_page.dart';
 import 'package:oronbox/src/features/devices/pages/switch/device_switch_page.dart';
 import 'package:oronbox/src/features/debug/pages/debug_window_app.dart';
@@ -47,6 +50,7 @@ import 'package:oronbox/src/features/settings/pages/clean_mode_page.dart';
 import 'package:oronbox/src/features/settings/pages/bandbbs_account_page.dart';
 import 'package:oronbox/src/features/settings/pages/feedback_page.dart';
 import 'package:oronbox/src/features/settings/pages/legal_documents_page.dart';
+import 'package:oronbox/src/features/settings/pages/debug_server_page.dart';
 import 'package:oronbox/src/features/settings/services/oronbox_support_api.dart';
 import 'package:oronbox/src/features/plugins/pages/plugin_detail_page.dart';
 import 'package:oronbox/src/features/plugins/pages/plugins_page.dart';
@@ -77,10 +81,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
       if (uri.path.startsWith('/plugins') && !clean.pluginsEnabled) {
         return clean.exploreEnabled ? '/resources' : '/devices';
-      }
-      if (uri.path == '/devices/velaos-health' &&
-          !ref.read(appSettingsProvider).healthFeaturesEnabled) {
-        return '/devices';
       }
       if (uri.path.startsWith('/resources')) {
         if (!clean.exploreEnabled) return '/devices';
@@ -301,6 +301,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'velaos-health',
                     builder: (context, state) => const XiaomiHealthPage(),
+                    routes: [
+                      GoRoute(
+                        path: 'detail',
+                        builder: (context, state) {
+                          final args = state.extra;
+                          if (args is! XiaomiHealthDetailArgs) {
+                            return const XiaomiHealthPage();
+                          }
+                          return XiaomiHealthDetailPage(args: args);
+                        },
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'velaos-app-layout',
+                    builder: (context, state) => const XiaomiAppLayoutPage(),
+                  ),
+                  GoRoute(
+                    path: 'velaos-app-order',
+                    builder: (context, state) => const XiaomiAppOrderPage(),
+                  ),
+                  GoRoute(
+                    path: 'velaos-alarms',
+                    builder: (context, state) => const XiaomiAlarmsPage(),
+                  ),
+                  GoRoute(
+                    path: 'velaos-weather',
+                    builder: (context, state) => const XiaomiWeatherPage(),
                   ),
                   GoRoute(
                     path: 'zeppos-more',
@@ -396,6 +424,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'logs',
                     builder: (context, state) => const RuntimeLogsPage(),
+                  ),
+                  GoRoute(
+                    path: 'debug-server',
+                    builder: (context, state) => const DebugServerPage(),
                   ),
                   GoRoute(
                     path: 'bandbbs',

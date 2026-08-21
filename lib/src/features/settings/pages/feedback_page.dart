@@ -138,17 +138,13 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
           ),
         ],
       ),
-      body: PageContainer(
-        maxWidth: 1000,
-        padding: const EdgeInsets.all(StyleConstants.pagePadding),
-        child: _TicketList(
-          tickets: _tickets ?? const [],
-          loading: _loading,
-          error: _error,
-          onRetry: _reload,
-          onSelect: _open,
-          onCreate: _compose,
-        ),
+      body: _TicketList(
+        tickets: _tickets ?? const [],
+        loading: _loading,
+        error: _error,
+        onRetry: _reload,
+        onSelect: _open,
+        onCreate: _compose,
       ),
     );
   }
@@ -235,65 +231,84 @@ class _TicketList extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     if (loading && tickets.isEmpty) {
-      return LoadingView(message: l10n.feedbackLoading);
+      return PageContainer(child: LoadingView(message: l10n.feedbackLoading));
     }
     if (error != null && tickets.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              localizedErrorMessage(l10n, error),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            FilledButton.tonal(onPressed: onRetry, child: Text(l10n.retry)),
-          ],
+      return PageContainer(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                localizedErrorMessage(l10n, error),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              FilledButton.tonal(onPressed: onRetry, child: Text(l10n.retry)),
+            ],
+          ),
         ),
       );
     }
     if (tickets.isEmpty) {
-      return _TicketPlaceholder(onCreate: onCreate);
+      return PageContainer(child: _TicketPlaceholder(onCreate: onCreate));
     }
     return RefreshIndicator(
       onRefresh: () async => onRetry(),
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: tickets.length,
-        separatorBuilder: (_, _) =>
-            const SizedBox(height: StyleConstants.cardSpace),
-        itemBuilder: (context, index) {
-          final ticket = tickets[index];
-          return Card(
-            margin: EdgeInsets.zero,
-            color: Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest.withValues(alpha: .5),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(StyleConstants.cardRadius),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
-              ),
-              leading: Icon(
-                _isReportKind(ticket.kind)
-                    ? Icons.flag_outlined
-                    : Icons.chat_bubble_outline,
-              ),
-              title: Text(ticket.subject, maxLines: 1),
-              subtitle: Text(
-                ticket.message,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: _TicketStatus(status: ticket.status, compact: true),
-              onTap: () => onSelect(ticket),
-            ),
-          );
-        },
+        padding: EdgeInsets.zero,
+        itemCount: 1,
+        separatorBuilder: (_, _) => const SizedBox.shrink(),
+        itemBuilder: (context, _) => PageContainer(
+          child: Column(
+            children: [
+              for (var index = 0; index < tickets.length; index++) ...[
+                if (index > 0) const SizedBox(height: StyleConstants.cardSpace),
+                Builder(
+                  builder: (context) {
+                    final ticket = tickets[index];
+                    return Card(
+                      margin: EdgeInsets.zero,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: .5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          StyleConstants.cardRadius,
+                        ),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        leading: Icon(
+                          _isReportKind(ticket.kind)
+                              ? Icons.flag_outlined
+                              : Icons.chat_bubble_outline,
+                        ),
+                        title: Text(ticket.subject, maxLines: 1),
+                        subtitle: Text(
+                          ticket.message,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: _TicketStatus(
+                          status: ticket.status,
+                          compact: true,
+                        ),
+                        onTap: () => onSelect(ticket),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

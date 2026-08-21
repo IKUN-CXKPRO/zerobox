@@ -42,6 +42,7 @@ class ZeppOsDeviceFactory implements DeviceEntityFactory {
       entity.emit(DeviceError(deviceId: id, error: error.toString()));
       entity.emit(TransportDisconnected(deviceId: id));
     };
+    component.onRawOutgoing = entity.recordRawOutgoing;
     entity.set(component);
     entity.setDispatcher(ZeppOsDispatcher());
 

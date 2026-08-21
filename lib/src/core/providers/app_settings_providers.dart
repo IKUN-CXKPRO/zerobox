@@ -9,6 +9,8 @@ import 'package:oronbox/src/host/application_host_provider.dart';
 
 enum WideNavigationRailPosition { bottom, center, split }
 
+const removeBondBeforeSppSettingKey = 'remove_bond_before_spp';
+
 class CleanSettings {
   const CleanSettings({
     this.exploreEntry = true,
@@ -145,6 +147,7 @@ class AppSettings {
     required this.wideNavigationRailPosition,
     required this.bandbbsLoadPreviews,
     required this.bandbbsShowAllCategories,
+    this.removeBondBeforeSpp = false,
     this.healthFeaturesEnabled = false,
     this.checkUpdateOnLaunch = true,
     this.clean = const CleanSettings(),
@@ -159,6 +162,7 @@ class AppSettings {
   final WideNavigationRailPosition wideNavigationRailPosition;
   final bool bandbbsLoadPreviews;
   final bool bandbbsShowAllCategories;
+  final bool removeBondBeforeSpp;
   final bool healthFeaturesEnabled;
   final bool checkUpdateOnLaunch;
   final CleanSettings clean;
@@ -174,6 +178,7 @@ class AppSettings {
     bool? bandbbsLoadPreviews,
     bool? checkUpdateOnLaunch,
     bool? bandbbsShowAllCategories,
+    bool? removeBondBeforeSpp,
     bool? healthFeaturesEnabled,
     CleanSettings? clean,
   }) {
@@ -189,6 +194,7 @@ class AppSettings {
       bandbbsLoadPreviews: bandbbsLoadPreviews ?? this.bandbbsLoadPreviews,
       bandbbsShowAllCategories:
           bandbbsShowAllCategories ?? this.bandbbsShowAllCategories,
+      removeBondBeforeSpp: removeBondBeforeSpp ?? this.removeBondBeforeSpp,
       healthFeaturesEnabled:
           healthFeaturesEnabled ?? this.healthFeaturesEnabled,
       checkUpdateOnLaunch: checkUpdateOnLaunch ?? this.checkUpdateOnLaunch,
@@ -235,6 +241,8 @@ class AppSettings {
       bandbbsLoadPreviews: prefs.getBool(_keyBandBbsLoadPreviews) ?? false,
       bandbbsShowAllCategories:
           prefs.getBool(_keyBandBbsShowAllCategories) ?? false,
+      removeBondBeforeSpp:
+          prefs.getBool(removeBondBeforeSppSettingKey) ?? false,
       healthFeaturesEnabled: prefs.getBool(_keyHealthFeaturesEnabled) ?? false,
       checkUpdateOnLaunch: prefs.getBool(_keyCheckUpdateOnLaunch) ?? true,
       clean: CleanSettings(
@@ -271,6 +279,7 @@ class AppSettings {
     wideNavigationRailPosition: WideNavigationRailPosition.bottom,
     bandbbsLoadPreviews: false,
     bandbbsShowAllCategories: false,
+    removeBondBeforeSpp: false,
   );
 
   Future<void> save() async {
@@ -287,6 +296,7 @@ class AppSettings {
     );
     await prefs.setBool(_keyBandBbsLoadPreviews, bandbbsLoadPreviews);
     await prefs.setBool(_keyBandBbsShowAllCategories, bandbbsShowAllCategories);
+    await prefs.setBool(removeBondBeforeSppSettingKey, removeBondBeforeSpp);
     await prefs.setBool(_keyHealthFeaturesEnabled, healthFeaturesEnabled);
     await prefs.setBool(_keyCheckUpdateOnLaunch, checkUpdateOnLaunch);
     await prefs.setBool('clean_explore_entry', clean.exploreEntry);
@@ -333,6 +343,7 @@ abstract class AppSettingsNotifier extends Notifier<AppSettings> {
   Future<void> setWideNavigationRailPosition(WideNavigationRailPosition value);
   Future<void> setBandBbsLoadPreviews(bool value);
   Future<void> setBandBbsShowAllCategories(bool value);
+  Future<void> setRemoveBondBeforeSpp(bool value);
   Future<void> setHealthFeaturesEnabled(bool value);
   Future<void> setCheckUpdateOnLaunch(bool value);
   Future<void> setClean(CleanSettings value);
@@ -424,6 +435,12 @@ class LocalAppSettingsNotifier extends AppSettingsNotifier {
   }
 
   @override
+  Future<void> setRemoveBondBeforeSpp(bool value) async {
+    state = state.copyWith(removeBondBeforeSpp: value);
+    await state.save();
+  }
+
+  @override
   Future<void> setHealthFeaturesEnabled(bool value) async {
     state = state.copyWith(healthFeaturesEnabled: value);
     await state.save();
@@ -483,6 +500,8 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
       bandbbsLoadPreviews: json['bandbbs_load_previews'] as bool? ?? false,
       bandbbsShowAllCategories:
           json['bandbbs_show_all_categories'] as bool? ?? false,
+      removeBondBeforeSpp:
+          json[removeBondBeforeSppSettingKey] as bool? ?? false,
       healthFeaturesEnabled: state.healthFeaturesEnabled,
       clean: state.clean,
     );
@@ -570,6 +589,13 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
     'bandbbs_show_all_categories',
     value,
     state.copyWith(bandbbsShowAllCategories: value),
+  );
+
+  @override
+  Future<void> setRemoveBondBeforeSpp(bool value) => _set(
+    removeBondBeforeSppSettingKey,
+    value,
+    state.copyWith(removeBondBeforeSpp: value),
   );
   @override
   Future<void> setHealthFeaturesEnabled(bool value) async {

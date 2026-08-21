@@ -173,8 +173,10 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
                   AppLocalizations.of(context)!.pluginFeatures,
             ),
           ),
-          body: PageContainer(
-            child: PluginUITree(root: nodes, onInvoke: _invoke),
+          body: PluginUITree(
+            root: nodes,
+            onInvoke: _invoke,
+            contentPadding: const EdgeInsets.all(StyleConstants.pagePadding),
           ),
         ),
       ),
@@ -246,7 +248,13 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
                 child: TabBarView(
                   controller: _tabs,
                   children: [
-                    PluginUITree(root: _nodes, onInvoke: _invoke),
+                    PluginUITree(
+                      root: _nodes,
+                      onInvoke: _invoke,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: StyleConstants.pagePadding,
+                      ),
+                    ),
                     _PluginInformation(plugin: plugin, onUninstall: _remove),
                   ],
                 ),
@@ -259,12 +267,7 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
         secondary: true,
         title: Text(plugin?['name']?.toString() ?? l10n.pluginDetails),
       ),
-      body: PageContainer(
-        padding: const EdgeInsets.symmetric(
-          horizontal: StyleConstants.pagePadding,
-        ),
-        child: content,
-      ),
+      body: content,
     );
   }
 
@@ -399,59 +402,72 @@ class _PluginInformation extends StatelessWidget {
             .toList(growable: false) ??
         const <String>[];
     return ListView(
-      padding: const EdgeInsets.only(top: 16, bottom: 16),
+      padding: EdgeInsets.zero,
       children: [
-        _InfoGroup(
-          title: l10n.pluginDetails,
-          children: [
-            _InfoLine(
-              icon: Icons.person_outline,
-              label: l10n.pluginAuthor,
-              value: plugin['author']?.toString() ?? '',
-            ),
-            if (website != null && website.isNotEmpty)
-              _InfoLine(
-                icon: Icons.language,
-                label: l10n.pluginWebsite,
-                value: website,
-                onOpen: () {
-                  final uri = Uri.tryParse(website);
-                  if (uri != null) launchUrl(uri);
-                },
+        PageContainer(
+          padding: const EdgeInsets.fromLTRB(
+            StyleConstants.pagePadding,
+            16,
+            StyleConstants.pagePadding,
+            16,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _InfoGroup(
+                title: l10n.pluginDetails,
+                children: [
+                  _InfoLine(
+                    icon: Icons.person_outline,
+                    label: l10n.pluginAuthor,
+                    value: plugin['author']?.toString() ?? '',
+                  ),
+                  if (website != null && website.isNotEmpty)
+                    _InfoLine(
+                      icon: Icons.language,
+                      label: l10n.pluginWebsite,
+                      value: website,
+                      onOpen: () {
+                        final uri = Uri.tryParse(website);
+                        if (uri != null) launchUrl(uri);
+                      },
+                    ),
+                  _InfoLine(
+                    icon: Icons.info_outline,
+                    label: l10n.pluginVersion,
+                    value: plugin['version']?.toString() ?? '',
+                  ),
+                  _InfoLine(
+                    icon: Icons.numbers,
+                    label: l10n.pluginApiLevel,
+                    value: plugin['apiLevel']?.toString() ?? '',
+                  ),
+                ],
               ),
-            _InfoLine(
-              icon: Icons.info_outline,
-              label: l10n.pluginVersion,
-              value: plugin['version']?.toString() ?? '',
-            ),
-            _InfoLine(
-              icon: Icons.numbers,
-              label: l10n.pluginApiLevel,
-              value: plugin['apiLevel']?.toString() ?? '',
-            ),
-          ],
-        ),
-        _InfoGroup(
-          title: l10n.pluginPermissions,
-          children: [
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: permissions
-                  .map((permission) => Chip(label: Text(permission)))
-                  .toList(growable: false),
-            ),
-          ],
-        ),
-        Center(
-          child: FilledButton.icon(
-            onPressed: onUninstall,
-            icon: const Icon(Icons.delete_outline),
-            label: Text(l10n.uninstall),
-            style: FilledButton.styleFrom(
-              backgroundColor: color.errorContainer,
-              foregroundColor: color.onErrorContainer,
-            ),
+              _InfoGroup(
+                title: l10n.pluginPermissions,
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: permissions
+                        .map((permission) => Chip(label: Text(permission)))
+                        .toList(growable: false),
+                  ),
+                ],
+              ),
+              Center(
+                child: FilledButton.icon(
+                  onPressed: onUninstall,
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text(l10n.uninstall),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: color.errorContainer,
+                    foregroundColor: color.onErrorContainer,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],

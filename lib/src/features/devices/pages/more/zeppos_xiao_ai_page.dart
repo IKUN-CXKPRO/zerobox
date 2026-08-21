@@ -311,43 +311,39 @@ class _ZeppOsXiaoAiPageState extends ConsumerState<ZeppOsXiaoAiPage> {
         : l10n.voiceLabXiaoAi;
     return Scaffold(
       appBar: SysAppBar(secondary: true, title: Text(l10n.voiceLabTitle)),
-      body: PageContainer(
-        padding: const EdgeInsets.fromLTRB(
-          StyleConstants.pagePadding,
-          8,
-          StyleConstants.pagePadding,
-          0,
-        ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 900;
-            final main = _SectionCard(
-              child: _buildSessionPanel(context, state, assistantName),
-            );
-            final side = _SectionCard(child: _buildCapturePanel(context));
-            return Align(
-              alignment: Alignment.topCenter,
-              child: ListView(
-                children: [
-                  if (wide)
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(flex: 2, child: main),
-                        const SizedBox(width: 16),
-                        Expanded(child: side),
-                      ],
-                    )
-                  else ...[
-                    main,
-                    const SizedBox(height: 16),
-                    side,
-                  ],
-                ],
-              ),
-            );
-          },
-        ),
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          PageContainer(
+            padding: const EdgeInsets.fromLTRB(
+              StyleConstants.pagePadding,
+              8,
+              StyleConstants.pagePadding,
+              0,
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 900;
+                final main = _SectionCard(
+                  child: _buildSessionPanel(context, state, assistantName),
+                );
+                final side = _SectionCard(child: _buildCapturePanel(context));
+                return wide
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 2, child: main),
+                          const SizedBox(width: 16),
+                          Expanded(child: side),
+                        ],
+                      )
+                    : Column(
+                        children: [main, const SizedBox(height: 16), side],
+                      );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

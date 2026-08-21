@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/core/models/sync_models.dart';
+import 'package:oronbox/src/device/core/event_bus.dart';
 import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
 import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
 import 'package:oronbox/src/protocols/generated/xiaomi/wear_common.pb.dart'
@@ -22,6 +23,34 @@ class XiaomiSyncSystem extends XiaomiPbSystem {
     await component.sendPbPacket(_buildSetLanguagePacket(locale));
   }
 
+  Future<void> setFindingPhone(bool finding) async {
+    if (finding) {
+      // Xiaomi's FIND_PHONE command is an inbound watch->phone request.
+      // Starting it from the phone would make the watch wait for a state it
+      // does not own. The local phone ringtone is started by the inbound
+      // XiaomiFindPhoneRequested event instead.
+      _log.fine('[${entity.id}] phone finder start is wearable-originated');
+      return;
+    }
+    _log.info(
+      '[${entity.id}] ${finding ? 'starting' : 'stopping'} phone finder',
+    );
+    await component.sendPbPacket(
+      _buildFindPacket(pb_system.System_SystemID.FIND_PHONE, finding),
+      waitForAck: true,
+    );
+  }
+
+  Future<void> setFindingWearable(bool finding) async {
+    _log.info(
+      '[${entity.id}] ${finding ? 'starting' : 'stopping'} wearable finder',
+    );
+    await component.sendPbPacket(
+      _buildFindPacket(pb_system.System_SystemID.FIND_WEAR, finding),
+      waitForAck: true,
+    );
+  }
+
   pb.WearPacket _buildSetLanguagePacket(String lang) {
     final payload = pb_system.Language(locale: lang);
     final pktPayload = pb_system.System(language: payload);
@@ -30,6 +59,18 @@ class XiaomiSyncSystem extends XiaomiPbSystem {
       type: pb.WearPacket_Type.SYSTEM,
       id: pb_system.System_SystemID.SET_LANGUAGE.value,
       system: pktPayload,
+    );
+  }
+
+  pb.WearPacket _buildFindPacket(pb_system.System_SystemID id, bool finding) {
+    return pb.WearPacket(
+      type: pb.WearPacket_Type.SYSTEM,
+      id: id.value,
+      system: pb_system.System(
+        findMode: finding
+            ? pb_system.FindMode.FIND_START
+            : pb_system.FindMode.FIND_STOP,
+      ),
     );
   }
 
@@ -65,5 +106,20 @@ class XiaomiSyncSystem extends XiaomiPbSystem {
   }
 
   @override
-  void onWearPacket(pb.WearPacket packet) {}
+  void onWearPacket(pb.WearPacket packet) {
+    if (packet.type != pb.WearPacket_Type.SYSTEM ||
+        packet.id != pb_system.System_SystemID.FIND_PHONE.value ||
+        !packet.hasSystem() ||
+        !packet.system.hasFindMode()) {
+      return;
+    }
+    final finding = packet.system.findMode == pb_system.FindMode.FIND_START;
+    _log.info(
+      '[${entity.id}] wearable phone finder '
+      '${finding ? 'started' : 'stopped'}',
+    );
+    entity.emit(
+      XiaomiFindPhoneRequested(deviceId: entity.id, finding: finding),
+    );
+  }
 }

@@ -78,26 +78,27 @@ class _DeviceAppsPageState extends ConsumerState<DeviceAppsPage> {
           ),
         ],
       ),
-      body: PageContainer(
-        padding: const EdgeInsets.fromLTRB(
-          StyleConstants.pagePadding,
-          8,
-          StyleConstants.pagePadding,
-          0,
-        ),
-        child: !ready
-            ? Center(child: Text(l10n.deviceNotConnected))
-            : _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-            ? Center(child: Text(localizedErrorMessage(l10n, _error)))
-            : displayedApps.isEmpty
-            ? Center(child: Text(l10n.appManagementNone))
-            : ListView.builder(
-                itemCount: displayedApps.length,
-                itemBuilder: (context, index) {
-                  final app = displayedApps[index];
-                  return SectionCard(
+      body: !ready
+          ? Center(child: Text(l10n.deviceNotConnected))
+          : _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+          ? Center(child: Text(localizedErrorMessage(l10n, _error)))
+          : displayedApps.isEmpty
+          ? Center(child: Text(l10n.appManagementNone))
+          : ListView.builder(
+              padding: EdgeInsets.zero,
+              itemCount: displayedApps.length,
+              itemBuilder: (context, index) {
+                final app = displayedApps[index];
+                return PageContainer(
+                  padding: EdgeInsets.fromLTRB(
+                    StyleConstants.pagePadding,
+                    index == 0 ? 8 : 0,
+                    StyleConstants.pagePadding,
+                    0,
+                  ),
+                  child: SectionCard(
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: EdgeInsets.zero,
                     child: ListTile(
@@ -105,10 +106,10 @@ class _DeviceAppsPageState extends ConsumerState<DeviceAppsPage> {
                       subtitle: Text(app.packageName),
                       trailing: _AppActions(app: app, onRefresh: _refresh),
                     ),
-                  );
-                },
-              ),
-      ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }

@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -14,12 +13,14 @@ import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/app/widgets/app_icon.dart';
+import 'package:oronbox/src/app/widgets/release_notes_view.dart';
 import 'package:oronbox/src/app/widgets/smooth_linear_progress_indicator.dart';
 import 'package:oronbox/src/core/constants/app_constants.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/logging/file_log_sink.dart';
 import 'package:oronbox/src/core/services/build_info_service.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
+import 'package:oronbox/src/host/application_host.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
 import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
 import 'package:oronbox/src/features/accounts/services/mi_account_service.dart';
@@ -156,22 +157,7 @@ class _ChangelogSection extends ConsumerWidget {
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
-          Markdown(
-            data: value.releaseNotes,
-            // Markdown renders a ListView internally; shrink-wrap it so the
-            // surrounding column gets stable intrinsic dimensions. The
-            // package pads its viewport by default; dialogs/cards already
-            // supply their own spacing, so drop it here.
-            shrinkWrap: true,
-            padding: EdgeInsets.zero,
-            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
-                .copyWith(
-                  p: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    height: 1.45,
-                  ),
-                ),
-          ),
+          ReleaseNotesView(data: value.releaseNotes),
         ],
       ),
       AsyncData() || AsyncError() => Text(
@@ -392,6 +378,10 @@ int _compareVersions(String a, String b) {
 }
 
 const _wearableLogChannel = MethodChannel('oronbox/wearable_log');
+const _flatButtonStyle = ButtonStyle(
+  elevation: WidgetStatePropertyAll(0),
+  shadowColor: WidgetStatePropertyAll(Colors.transparent),
+);
 
 class RuntimeLogsPage extends ConsumerStatefulWidget {
   const RuntimeLogsPage({super.key});
@@ -492,6 +482,7 @@ class _RuntimeLogsPageState extends ConsumerState<RuntimeLogsPage> {
             child: Text(l10n.cancel),
           ),
           FilledButton(
+            style: _flatButtonStyle,
             onPressed: () => Navigator.pop(dialogContext, true),
             child: Text(l10n.settingsDeviceLogsStart),
           ),
@@ -550,8 +541,22 @@ class _RuntimeLogsPageState extends ConsumerState<RuntimeLogsPage> {
           .whereType<num>()
           .map((item) => item.toInt())
           .toList(growable: false);
-      if (bytes.isNotEmpty) {
+      // The in-process mobile host has already written the archive into the
+      // shared log directory. Desktop receives the archive from its daemon
+      // over IPC and must mirror it into the GUI process's log directory.
+      final mirrorToGui = host is! ApplicationHost || value['stored'] != true;
+      if (bytes.isNotEmpty && mirrorToGui) {
         await saveDeviceLogFile(value['name']?.toString() ?? '', bytes);
+        final currentLog = (value['currentLogBytes'] as List? ?? const [])
+            .whereType<num>()
+            .map((item) => item.toInt())
+            .toList(growable: false);
+        if (currentLog.isNotEmpty) {
+          await saveDeviceLogFile(
+            value['currentLogName']?.toString() ?? 'device-tmp.log',
+            currentLog,
+          );
+        }
       }
       await _reload();
       if (mounted && !cancelRequested) {
@@ -649,16 +654,19 @@ class _RuntimeLogsPageState extends ConsumerState<RuntimeLogsPage> {
                       runSpacing: 8,
                       children: [
                         FilledButton.tonalIcon(
+                          style: _flatButtonStyle,
                           onPressed: _busy ? null : _openDirectory,
                           icon: const Icon(Icons.folder_open_outlined),
                           label: Text(l10n.settingsAboutLogsOpen),
                         ),
                         FilledButton.tonalIcon(
+                          style: _flatButtonStyle,
                           onPressed: _busy ? null : _export,
                           icon: const Icon(Icons.archive_outlined),
                           label: Text(l10n.settingsAboutLogsExport),
                         ),
                         FilledButton.tonalIcon(
+                          style: _flatButtonStyle,
                           onPressed: _busy ? null : _pullDeviceLogs,
                           icon: const Icon(Icons.watch_outlined),
                           label: Text(l10n.settingsDeviceLogsPull),
@@ -666,11 +674,13 @@ class _RuntimeLogsPageState extends ConsumerState<RuntimeLogsPage> {
                         if (!kIsWeb &&
                             defaultTargetPlatform == TargetPlatform.android)
                           FilledButton.tonalIcon(
+                            style: _flatButtonStyle,
                             onPressed: _busy ? null : _syncFromWearableLog,
                             icon: const Icon(Icons.folder_zip_outlined),
                             label: Text(l10n.settingsWearableLogSync),
                           ),
                         OutlinedButton.icon(
+                          style: _flatButtonStyle,
                           onPressed: _busy ? null : _clear,
                           icon: const Icon(Icons.delete_outline),
                           label: Text(l10n.settingsAboutLogsClear),
@@ -761,9 +771,7 @@ Future<void> showWearableLogSyncDialog(
             setDialogState(() {
               scanning = false;
               devices = found;
-              error = found.isEmpty
-                  ? l10n.settingsMiAccountLogNoDevices
-                  : null;
+              error = found.isEmpty ? l10n.settingsMiAccountLogNoDevices : null;
             });
           } on PlatformException catch (exception) {
             if (!dialogContext.mounted) return;
@@ -880,6 +888,7 @@ Future<void> showWearableLogSyncDialog(
               child: Text(l10n.cancel),
             ),
             FilledButton(
+              style: _flatButtonStyle,
               onPressed: scanning ? null : scan,
               child: scanning
                   ? const SizedBox.square(
@@ -923,7 +932,11 @@ class _DeviceLogProgressDialog extends StatelessWidget {
             children: [
               SmoothLinearProgressIndicator(value: value > 0 ? value : null),
               const SizedBox(height: 12),
-              Text(l10n.settingsDeviceLogsProgress((value * 100).round())),
+              Text(
+                value <= 0
+                    ? l10n.settingsDeviceLogsWaiting
+                    : l10n.settingsDeviceLogsProgress((value * 100).round()),
+              ),
               ValueListenableBuilder<String>(
                 valueListenable: fileName,
                 builder: (context, name, _) => name.isEmpty
