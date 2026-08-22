@@ -27,7 +27,7 @@ class HealthSample {
     return switch (metric) {
       XiaomiHealthMetric.heartRate => value >= 30 && value <= 240,
       XiaomiHealthMetric.bloodOxygen => value >= 50 && value <= 100,
-      XiaomiHealthMetric.stress => value >= 0 && value <= 100,
+      XiaomiHealthMetric.stress => value > 0 && value <= 100,
       XiaomiHealthMetric.vitality => value >= 0,
       XiaomiHealthMetric.activity ||
       XiaomiHealthMetric.activeCalories => value >= 0,

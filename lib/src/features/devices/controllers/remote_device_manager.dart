@@ -117,11 +117,7 @@ class HostDeviceManager extends DeviceManager {
       if (error == null) {
         throw StateError('Daemon command failed without error details');
       }
-      final details = error.details;
-      throw StateError(
-        '${error.code}: ${error.message}'
-        '${details == null || details.toString().isEmpty ? '' : '\n$details'}',
-      );
+      throw error;
     }
     return result;
   }
@@ -1167,7 +1163,7 @@ class HostDeviceManager extends DeviceManager {
       if (nested is Map) {
         final result = CommandResult.fromJson(nested.cast<String, Object?>());
         if (!result.ok) {
-          throw StateError('${result.error!.code}: ${result.error!.message}');
+          throw result.error!;
         }
       }
       await _refreshSnapshot();

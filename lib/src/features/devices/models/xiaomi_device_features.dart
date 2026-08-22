@@ -185,7 +185,7 @@ class XiaomiWeatherData {
   final int windSpeedBeaufort;
   final int windDirection;
   final int uvIndex;
-  final int aqi;
+  final int? aqi;
   final double pressureHpa;
   final List<XiaomiWeatherDay> daily;
   final List<XiaomiWeatherHour> hourly;
@@ -220,7 +220,7 @@ class XiaomiWeatherData {
     windSpeedBeaufort: (json['windSpeedBeaufort'] as num?)?.toInt() ?? 0,
     windDirection: (json['windDirection'] as num?)?.toInt() ?? 0,
     uvIndex: (json['uvIndex'] as num?)?.toInt() ?? 0,
-    aqi: (json['aqi'] as num?)?.toInt() ?? 0,
+    aqi: (json['aqi'] as num?)?.toInt(),
     pressureHpa: (json['pressureHpa'] as num?)?.toDouble() ?? 0,
     daily: ((json['daily'] as List?) ?? const [])
         .whereType<Map>()

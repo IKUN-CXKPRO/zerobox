@@ -88,7 +88,7 @@ final communitySourcesProvider =
           const OronBoxCommand(method: 'resource.sources'),
         );
         if (!result.ok) {
-          throw StateError('${result.error!.code}: ${result.error!.message}');
+          throw result.error!;
         }
         return (result.value as List? ?? const [])
             .whereType<Map>()
@@ -123,7 +123,7 @@ final bandbbsCategoryTreeProvider =
           .read(applicationHostProvider)
           .execute(const OronBoxCommand(method: 'resource.bandbbs.categories'));
       if (!result.ok) {
-        throw StateError('${result.error!.code}: ${result.error!.message}');
+        throw result.error!;
       }
       BandBbsCategoryNode decode(Map<String, Object?> json) =>
           BandBbsCategoryNode(
@@ -160,7 +160,7 @@ final huamiPublisherResourcesProvider = FutureProvider.autoDispose
             ),
           );
       if (!result.ok) {
-        throw StateError('${result.error!.code}: ${result.error!.message}');
+        throw result.error!;
       }
       return (result.value as List)
           .whereType<Map>()

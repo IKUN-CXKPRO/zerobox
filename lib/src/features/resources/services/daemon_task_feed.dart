@@ -71,7 +71,7 @@ class DaemonTaskFeed<T> {
       OronBoxCommand(method: command, params: {'id': id}),
     );
     if (!result.ok) {
-      throw StateError('${result.error!.code}: ${result.error!.message}');
+      throw result.error!;
     }
   }
 

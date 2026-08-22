@@ -116,7 +116,7 @@ class OronBoxSupportApi {
       OronBoxCommand(method: method, params: params),
     );
     if (!result.ok) {
-      throw StateError('${result.error!.code}: ${result.error!.message}');
+      throw result.error!;
     }
     return result.value;
   }

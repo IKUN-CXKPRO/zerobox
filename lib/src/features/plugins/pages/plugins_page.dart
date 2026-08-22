@@ -603,7 +603,7 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
   Future<Object?> _execute(OronBoxCommand command) async {
     final result = await ref.read(applicationHostProvider).execute(command);
     if (!result.ok) {
-      throw StateError('${result.error!.code}: ${result.error!.message}');
+      throw result.error!;
     }
     return result.value;
   }

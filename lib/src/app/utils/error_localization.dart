@@ -130,6 +130,8 @@ String localizedErrorMessage(AppLocalizations l10n, Object? error) {
   final raw = _flattenError(error);
   final normalized = raw.toLowerCase();
   final code = _errorCode(error, normalized);
+  final backendMessage = _backendMessage(error);
+  if (backendMessage != null) return backendMessage;
 
   switch (code) {
     case 'invalid_refresh_token':
@@ -296,8 +298,8 @@ String localizedErrorMessage(AppLocalizations l10n, Object? error) {
   if (error is DioException) {
     final data = error.response?.data;
     if (data is Map && data['code']?.toString().trim().isNotEmpty == true) {
-      // Known response codes have already gone through the switch above;
-      // unknown response codes must not fall through to a raw HTTP detail.
+      // A coded response without message or details has nothing useful to
+      // expose, so retain a localized fallback.
       return l10n.errorUnknown;
     }
     final status = error.response?.statusCode;
@@ -317,8 +319,8 @@ String localizedErrorMessage(AppLocalizations l10n, Object? error) {
     };
   }
 
-  // Coded backend messages can contain implementation details or sensitive
-  // values. Unknown codes must remain localized instead of being shown raw.
+  // A coded error reaches this branch only when both message and details are
+  // empty. Non-empty backend diagnostics return before code localization.
   if (error is CodedError) {
     return l10n.errorUnknown;
   }
@@ -368,10 +370,6 @@ String localizedErrorMessage(AppLocalizations l10n, Object? error) {
 
   if (normalized.contains('bluetooth permission is required')) {
     return l10n.errorBluetoothUnavailable;
-  }
-
-  if (_looksLikeCodedErrorText(normalized)) {
-    return l10n.errorUnknown;
   }
 
   if (normalized.contains('timeout') ||
@@ -465,14 +463,6 @@ String _errorCode(Object? error, String normalized) {
   for (final prefix in const ['exception: ', 'bad state: ']) {
     if (text.startsWith(prefix)) text = text.substring(prefix.length);
   }
-  for (final code in oronBoxKnownErrorCodes) {
-    if (text == code ||
-        text.startsWith('$code:') ||
-        text.contains('"code":"$code"') ||
-        text.contains('"code": "$code"')) {
-      return code;
-    }
-  }
   final http = RegExp(
     r'\bhttp[_ ](400|401|403|404|409|413|422|429|500|502|503|504)\b',
   ).firstMatch(text);
@@ -493,6 +483,34 @@ String _flattenError(Object? error) {
   return error.toString();
 }
 
+String? _backendMessage(Object? error) {
+  String? message;
+  Object? details;
+  if (error is CodedError) {
+    message = error.message;
+    details = error.details;
+  } else if (error is DioException) {
+    final data = error.response?.data;
+    if (data is Map) {
+      for (final key in const ['message', 'error', 'detail']) {
+        final value = data[key];
+        if (value is String && value.trim().isNotEmpty) {
+          message = value;
+          break;
+        }
+      }
+      details = data['details'];
+    }
+  }
+  if (message == null) return null;
+  final parts = <String>[
+    message.trim(),
+    if (details != null && details.toString().trim().isNotEmpty)
+      details.toString().trim(),
+  ].where((part) => part.isNotEmpty).toList(growable: false);
+  return parts.isEmpty ? null : parts.join('\n');
+}
+
 String _trimPlatformNoise(String raw) {
   var text = raw.trim();
   if (text.startsWith('Exception: ')) {
@@ -502,14 +520,4 @@ String _trimPlatformNoise(String raw) {
     text = text.substring('Bad state: '.length);
   }
   return text;
-}
-
-bool _looksLikeCodedErrorText(String normalized) {
-  var text = normalized.trim();
-  for (final prefix in const ['exception: ', 'bad state: ']) {
-    if (text.startsWith(prefix)) text = text.substring(prefix.length);
-  }
-  if (text.contains('"code"')) return true;
-  return text.startsWith('internal:') ||
-      RegExp(r'^[a-z][a-z0-9]*(?:_[a-z0-9]+)+\s*:').hasMatch(text);
 }

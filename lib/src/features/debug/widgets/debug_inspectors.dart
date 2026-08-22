@@ -136,7 +136,7 @@ class _DebugRuntimeInspectorState extends State<DebugRuntimeInspector> {
       const OronBoxCommand(method: 'debug.runtime'),
     );
     if (!result.ok) {
-      throw StateError('${result.error!.code}: ${result.error!.message}');
+      throw result.error!;
     }
     return (result.value as Map).cast<String, Object?>();
   }
@@ -148,7 +148,7 @@ class _DebugRuntimeInspectorState extends State<DebugRuntimeInspector> {
       OronBoxCommand(method: 'debug.plugin.snapshot', params: {'id': id}),
     );
     if (!result.ok) {
-      throw StateError('${result.error!.code}: ${result.error!.message}');
+      throw result.error!;
     }
     return (result.value as Map).cast<String, Object?>();
   }

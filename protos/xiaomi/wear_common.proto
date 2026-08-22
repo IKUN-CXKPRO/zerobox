@@ -564,7 +564,7 @@ message Time {
 
 message KeyValue {
     required string key = 1;
-    required int32 value = 2;
+    required sint32 value = 2;
 }
 
 message KeyValueStr {

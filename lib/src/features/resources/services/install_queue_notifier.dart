@@ -286,7 +286,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
           ),
         );
     if (!result.ok) {
-      throw StateError('${result.error!.code}: ${result.error!.message}');
+      throw result.error!;
     }
     await _feed?.refresh();
   }

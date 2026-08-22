@@ -3174,14 +3174,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get settingsAdvancedDescription =>
-      'Журналы, инструменты разработчика и экспериментальные функции';
-
-  @override
-  String get settingsHealthFeatures => 'Включить экспериментальные функции';
-
-  @override
-  String get settingsHealthFeaturesDescription =>
-      'Включить незавершённые функции здоровья, синхронизации погоды и управления будильниками';
+      'Журналы и инструменты разработчика';
 
   @override
   String get debugServerTitle => 'Сервис отладки';
@@ -3591,4 +3584,337 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get creatorBandBbsOverwritePreviousDescription =>
       'Сначала создать новую версию, затем удалить предыдущую публикацию на BandBBS';
+
+  @override
+  String get deviceAboutTitle => 'About device';
+
+  @override
+  String get deviceValueUnavailable => 'Not provided';
+
+  @override
+  String get deviceHealthActivityOverview => 'Activity overview';
+
+  @override
+  String get deviceHealthActiveCalories => 'Active calories';
+
+  @override
+  String get deviceHealthStanding => 'Standing';
+
+  @override
+  String get deviceHealthBloodOxygen => 'Blood oxygen';
+
+  @override
+  String get deviceHealthStress => 'Stress';
+
+  @override
+  String get deviceHealthVitality => 'Vitality';
+
+  @override
+  String get deviceHealthWorkout => 'Workouts';
+
+  @override
+  String get deviceHealthTodayTotal => 'Today\'s total';
+
+  @override
+  String get deviceHealthRecordCount => 'records';
+
+  @override
+  String get deviceHealthNoDetailedRange => 'No detailed range';
+
+  @override
+  String get deviceHealthActivityTrend => 'Activity trend';
+
+  @override
+  String get deviceHealthTrend => 'Trend';
+
+  @override
+  String get deviceHealthLatest => 'Latest';
+
+  @override
+  String get deviceHealthAverage => 'Average';
+
+  @override
+  String get deviceHealthRange => 'Range';
+
+  @override
+  String get deviceHealthNoSamples => 'No detailed samples';
+
+  @override
+  String get deviceHealthCurrentVitality => 'Current vitality';
+
+  @override
+  String get deviceHealthLightIntensity => 'Light intensity';
+
+  @override
+  String get deviceHealthModerateHighIntensity => 'Moderate to high intensity';
+
+  @override
+  String get deviceHealthNoSleep => 'No sleep data';
+
+  @override
+  String get deviceHealthNoWorkouts => 'No workout records';
+
+  @override
+  String deviceHealthStepValue(Object value) {
+    return '$value steps';
+  }
+
+  @override
+  String get deviceHealthFeatureDescription =>
+      'View activity, heart rate, blood oxygen, stress, and sleep data';
+
+  @override
+  String get weatherSyncTitle => 'Weather sync';
+
+  @override
+  String get weatherSyncDescription =>
+      'Select a city and sync current weather and forecasts';
+
+  @override
+  String get alarmManagementTitle => 'Alarm management';
+
+  @override
+  String get alarmManagementDescription =>
+      'Add, edit, enable, or delete device alarms';
+
+  @override
+  String get findDeviceDescription =>
+      'Make the device vibrate or ring continuously';
+
+  @override
+  String get appOrderTitle => 'App order';
+
+  @override
+  String get appOrderDescription =>
+      'Drag to reorder apps in the device launcher';
+
+  @override
+  String get appOrderSaved => 'App order saved';
+
+  @override
+  String get appOrderReload => 'Reload';
+
+  @override
+  String get appOrderUndo => 'Undo changes';
+
+  @override
+  String get appOrderSaving => 'Saving…';
+
+  @override
+  String get appOrderSave => 'Save changes';
+
+  @override
+  String get appOrderEmpty => 'The device returned no reorderable apps';
+
+  @override
+  String get appLayoutTitle => 'App layout';
+
+  @override
+  String get appLayoutDescription =>
+      'Choose how the device app list is displayed';
+
+  @override
+  String get appLayoutLoadFailed => 'Unable to load app layout';
+
+  @override
+  String get appLayoutList => 'List';
+
+  @override
+  String get appLayoutGrid => 'Grid';
+
+  @override
+  String get appLayoutTextGrid => 'Grid with labels';
+
+  @override
+  String get firmwareUpdateDescription =>
+      'Check for updates or install local firmware';
+
+  @override
+  String get deviceAboutDescription =>
+      'View model, system version, storage, and device identifiers';
+
+  @override
+  String get alarmAdd => 'Add alarm';
+
+  @override
+  String get alarmEdit => 'Edit alarm';
+
+  @override
+  String get alarmHour => 'Hour';
+
+  @override
+  String get alarmMinute => 'Minute';
+
+  @override
+  String get alarmRepeat => 'Repeat';
+
+  @override
+  String get alarmOnce => 'Once';
+
+  @override
+  String get alarmEveryDay => 'Every day';
+
+  @override
+  String get alarmWorkdays => 'Workdays';
+
+  @override
+  String get alarmHolidays => 'Holidays';
+
+  @override
+  String get alarmCustom => 'Custom';
+
+  @override
+  String get alarmLabel => 'Label';
+
+  @override
+  String get alarmDeleteTitle => 'Delete alarm?';
+
+  @override
+  String get alarmWeekly => 'Weekly';
+
+  @override
+  String get alarmMonthly => 'Monthly';
+
+  @override
+  String get alarmYearly => 'Yearly';
+
+  @override
+  String get alarmNoRepeat => 'Does not repeat';
+
+  @override
+  String alarmCustomDays(Object days) {
+    return 'Week $days';
+  }
+
+  @override
+  String get weekdayMonShort => 'M';
+
+  @override
+  String get weekdayTueShort => 'T';
+
+  @override
+  String get weekdayWedShort => 'W';
+
+  @override
+  String get weekdayThuShort => 'T';
+
+  @override
+  String get weekdayFriShort => 'F';
+
+  @override
+  String get weekdaySatShort => 'S';
+
+  @override
+  String get weekdaySunShort => 'S';
+
+  @override
+  String get weatherCityLabel => 'Sync city';
+
+  @override
+  String get weatherCityHint => 'Enter a city name';
+
+  @override
+  String get weatherSyncAction => 'Sync weather';
+
+  @override
+  String get weatherSyncing => 'Syncing…';
+
+  @override
+  String get weatherHumidity => 'Humidity';
+
+  @override
+  String get weatherWind => 'Wind';
+
+  @override
+  String get weatherAirQuality => 'Air quality';
+
+  @override
+  String get weatherUv => 'UV index';
+
+  @override
+  String get weatherPressure => 'Pressure';
+
+  @override
+  String get weatherNext24Hours => 'Next 24 hours';
+
+  @override
+  String get weatherNext7Days => 'Next 7 days';
+
+  @override
+  String weatherLevelDirection(Object level, Object direction) {
+    return 'Level $level · $direction';
+  }
+
+  @override
+  String weatherLevelDirectionCompact(Object level, Object direction) {
+    return 'Level $level $direction';
+  }
+
+  @override
+  String weatherForecastSummary(
+    Object condition,
+    Object sunrise,
+    Object sunset,
+  ) {
+    return '$condition · Sunrise $sunrise · Sunset $sunset';
+  }
+
+  @override
+  String get weatherClear => 'Clear';
+
+  @override
+  String get weatherPartlyCloudy => 'Partly cloudy';
+
+  @override
+  String get weatherCloudy => 'Cloudy';
+
+  @override
+  String get weatherLightRain => 'Light rain';
+
+  @override
+  String get weatherHeavyRain => 'Heavy rain';
+
+  @override
+  String get weatherThunderstorm => 'Thunderstorm';
+
+  @override
+  String get weatherSnow => 'Snow';
+
+  @override
+  String get weatherFog => 'Fog';
+
+  @override
+  String get weatherUnknown => 'Unknown';
+
+  @override
+  String get weatherUnknownDate => 'Unknown date';
+
+  @override
+  String weatherUpdatedAt(Object time) {
+    return 'Updated $time';
+  }
+
+  @override
+  String get windNorth => 'N';
+
+  @override
+  String get windNorthEast => 'NE';
+
+  @override
+  String get windEast => 'E';
+
+  @override
+  String get windSouthEast => 'SE';
+
+  @override
+  String get windSouth => 'S';
+
+  @override
+  String get windSouthWest => 'SW';
+
+  @override
+  String get windWest => 'W';
+
+  @override
+  String get windNorthWest => 'NW';
 }

@@ -485,17 +485,6 @@ class SettingsPage extends ConsumerWidget {
                     title: Text(l10n.xmsDeveloperMode),
                     description: Text(l10n.xmsDeveloperModeDescription),
                   ),
-                SegmentedTile.switchTile(
-                  onToggle: (value) => ref
-                      .read(appSettingsProvider.notifier)
-                      .setHealthFeaturesEnabled(value ?? false),
-                  initialValue: ref
-                      .watch(appSettingsProvider)
-                      .healthFeaturesEnabled,
-                  leading: const Icon(Icons.science_outlined),
-                  title: Text(l10n.settingsHealthFeatures),
-                  description: Text(l10n.settingsHealthFeaturesDescription),
-                ),
               ],
             ),
         ],

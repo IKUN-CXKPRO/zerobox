@@ -128,9 +128,7 @@ class _FileOpenHandlerState extends ConsumerState<FileOpenHandler> {
       ),
     );
     if (!listResult.ok) {
-      throw StateError(
-        '${listResult.error!.code}: ${listResult.error!.message}',
-      );
+      throw listResult.error!;
     }
     final manifest = package.manifest;
     final updating = (listResult.value as List? ?? const [])
@@ -153,7 +151,7 @@ class _FileOpenHandlerState extends ConsumerState<FileOpenHandler> {
       ),
     );
     if (!result.ok) {
-      throw StateError('${result.error!.code}: ${result.error!.message}');
+      throw result.error!;
     }
     if (context.mounted) {
       final l10n = AppLocalizations.of(context)!;

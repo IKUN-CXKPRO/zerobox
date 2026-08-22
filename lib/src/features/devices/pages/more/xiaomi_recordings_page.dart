@@ -6,6 +6,7 @@ import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/app/widgets/smooth_linear_progress_indicator.dart';
+import 'package:oronbox/src/app/widgets/stable_fab.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
@@ -136,12 +137,9 @@ class _XiaomiRecordingsPageState extends ConsumerState<XiaomiRecordingsPage> {
           secondary: true,
           title: Text(l10n.deviceRecordingsTitle),
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          elevation: 0,
-          focusElevation: 0,
-          hoverElevation: 0,
-          highlightElevation: 0,
-          disabledElevation: 0,
+        floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
+        floatingActionButton: StableExtendedFab(
+          heroTag: 'xiaomi-recordings-sync',
           onPressed: _syncing
               ? (_cancelling ? null : _cancel)
               : (ready ? _sync : null),
@@ -149,6 +147,7 @@ class _XiaomiRecordingsPageState extends ConsumerState<XiaomiRecordingsPage> {
               ? Icon(_cancelling ? Icons.hourglass_top : Icons.close)
               : const Icon(Icons.sync),
           label: Text(_syncing ? l10n.cancel : l10n.deviceRecordingsSync),
+          animationKey: (_syncing, _cancelling),
         ),
         body: ListView(
           padding: EdgeInsets.zero,

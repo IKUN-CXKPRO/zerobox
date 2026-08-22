@@ -13,7 +13,6 @@ import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
-import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/core/models/device.dart';
 import 'package:oronbox/src/core/utils/layout.dart';
@@ -767,9 +766,6 @@ class _DeviceFeaturesPanelState extends ConsumerState<_DeviceFeaturesPanel> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(deviceManagerProvider);
-    final experimentalFeatures = ref
-        .watch(appSettingsProvider)
-        .healthFeaturesEnabled;
     final appCount = state.apps
         .where((app) => !app.packageName.startsWith('com.xiaomi.miwear.'))
         .length;
@@ -812,14 +808,13 @@ class _DeviceFeaturesPanelState extends ConsumerState<_DeviceFeaturesPanel> {
                   description: Text(l10n.zeppOsMoreFeaturesDescription),
                 )
               else ...[
-                if (experimentalFeatures)
-                  SegmentedTile.navigation(
-                    onPressed: (_) => context.push('/devices/velaos-health'),
-                    enabled: widget.enabled,
-                    leading: const XiaomiFitnessLogo(),
-                    title: Text(l10n.deviceHealthTitle),
-                    description: const Text('查看活动、心率、血氧、压力和睡眠数据'),
-                  ),
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/devices/velaos-health'),
+                  enabled: widget.enabled,
+                  leading: const XiaomiFitnessLogo(),
+                  title: Text(l10n.deviceHealthTitle),
+                  description: Text(l10n.deviceHealthFeatureDescription),
+                ),
                 SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/velaos-music'),
                   enabled: widget.enabled,
@@ -834,26 +829,24 @@ class _DeviceFeaturesPanelState extends ConsumerState<_DeviceFeaturesPanel> {
                   title: Text(l10n.deviceRecordingsTitle),
                   description: Text(l10n.deviceRecordingsDescription),
                 ),
-                if (experimentalFeatures)
-                  SegmentedTile.navigation(
-                    onPressed: (_) => context.push('/devices/velaos-weather'),
-                    enabled: widget.enabled,
-                    leading: const Icon(Icons.cloud_outlined),
-                    title: const Text('天气同步'),
-                    description: const Text('选择城市并同步当前天气与预报'),
-                  ),
-                if (experimentalFeatures)
-                  SegmentedTile.navigation(
-                    onPressed: (_) => context.push('/devices/velaos-alarms'),
-                    enabled: widget.enabled,
-                    leading: const Icon(Icons.alarm_outlined),
-                    title: const Text('闹钟管理'),
-                    description: const Text('添加、编辑、启用或删除设备闹钟'),
-                  ),
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/devices/velaos-weather'),
+                  enabled: widget.enabled,
+                  leading: const Icon(Icons.cloud_outlined),
+                  title: Text(l10n.weatherSyncTitle),
+                  description: Text(l10n.weatherSyncDescription),
+                ),
+                SegmentedTile.navigation(
+                  onPressed: (_) => context.push('/devices/velaos-alarms'),
+                  enabled: widget.enabled,
+                  leading: const Icon(Icons.alarm_outlined),
+                  title: Text(l10n.alarmManagementTitle),
+                  description: Text(l10n.alarmManagementDescription),
+                ),
                 SegmentedTile.switchTile(
                   leading: const Icon(Icons.vibration),
                   title: Text(l10n.zeppOsFindDevice),
-                  description: const Text('让设备持续振动或响铃'),
+                  description: Text(l10n.findDeviceDescription),
                   initialValue: _finding,
                   enabled: widget.enabled && !_findingBusy,
                   onToggle: (value) => _setFinding(value ?? false),
@@ -862,29 +855,29 @@ class _DeviceFeaturesPanelState extends ConsumerState<_DeviceFeaturesPanel> {
                   onPressed: (_) => context.push('/devices/velaos-app-order'),
                   enabled: widget.enabled,
                   leading: const Icon(Icons.swap_vert_outlined),
-                  title: const Text('应用顺序管理'),
-                  description: const Text('拖动调整设备启动器中的应用顺序'),
+                  title: Text(l10n.appOrderTitle),
+                  description: Text(l10n.appOrderDescription),
                 ),
                 SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/velaos-app-layout'),
                   enabled: widget.enabled,
                   leading: const Icon(Icons.grid_view_outlined),
-                  title: const Text('应用布局设置'),
-                  description: const Text('选择设备应用列表的显示方式'),
+                  title: Text(l10n.appLayoutTitle),
+                  description: Text(l10n.appLayoutDescription),
                 ),
                 SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/firmware'),
                   enabled: widget.enabled,
                   leading: const Icon(Icons.memory_outlined),
                   title: Text(l10n.deviceFeaturesInstallFirmware),
-                  description: const Text('检查更新或安装本地固件'),
+                  description: Text(l10n.firmwareUpdateDescription),
                 ),
                 SegmentedTile.navigation(
                   onPressed: (_) => context.push('/devices/info'),
                   enabled: widget.hasDevice,
                   leading: const Icon(Icons.info_outline),
-                  title: const Text('关于设备'),
-                  description: const Text('查看型号、固件、存储空间和设备标识'),
+                  title: Text(l10n.deviceAboutTitle),
+                  description: Text(l10n.deviceAboutDescription),
                 ),
               ],
               if (widget.isZeppOs) ...[

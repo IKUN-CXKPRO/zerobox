@@ -1,7 +1,6 @@
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oronbox/src/features/plugins/runtime/plugin_runtime.dart';
+import 'package:oronbox/src/features/plugins/runtime/plugin_runtime_quickjs.dart';
 
 void main() {
   test('interconnect send forwards the optional device id', () {
@@ -11,20 +10,17 @@ void main() {
     );
   });
 
-  test('failed host futures are consumed and dispatch QuickJS once', () async {
-    final unhandled = <Object>[];
-    var dispatches = 0;
+  test('host calls use request IDs instead of returning Dart futures', () {
+    expect(oronBoxPluginBootstrap, contains('nextHostRequest'));
+    expect(oronBoxPluginBootstrap, contains('__zbSettleHostRequest'));
+    expect(oronBoxPluginBootstrap, contains('__zbBeginOperation'));
+    expect(oronBoxPluginBootstrap, contains('__zbPollOperation'));
+  });
 
-    await runZonedGuarded(() async {
-      settlePluginHostCall(
-        Future<Object?>.error(StateError('host failure')),
-        () => dispatches++,
-      );
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
-    }, (error, _) => unhandled.add(error));
+  test('unencodable host results reject the pending JavaScript request', () {
+    final settlement = encodeQuickJsHostSettlement(true, Object());
 
-    expect(unhandled, isEmpty);
-    expect(dispatches, 1);
+    expect(settlement.succeeded, isFalse);
+    expect(settlement.encodedPayload, contains('serialization failed'));
   });
 }

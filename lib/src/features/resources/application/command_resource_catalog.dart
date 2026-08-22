@@ -145,7 +145,7 @@ class CommandResourceCatalog implements CommunityResourceCatalog {
         (task['result'] as Map).cast<String, Object?>(),
       );
       if (!nested.ok) {
-        throw StateError('${nested.error!.code}: ${nested.error!.message}');
+        throw nested.error!;
       }
       final result = (nested.value as Map).cast<String, Object?>();
       return CommunityResourceDownloadResult(
@@ -174,7 +174,7 @@ class CommandResourceCatalog implements CommunityResourceCatalog {
   Future<Object?> _execute(OronBoxCommand command) async {
     final result = await host.execute(command);
     if (!result.ok) {
-      throw StateError('${result.error!.code}: ${result.error!.message}');
+      throw result.error!;
     }
     return result.value;
   }

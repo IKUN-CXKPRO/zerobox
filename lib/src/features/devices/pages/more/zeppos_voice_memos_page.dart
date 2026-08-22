@@ -6,6 +6,7 @@ import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/app/widgets/smooth_linear_progress_indicator.dart';
+import 'package:oronbox/src/app/widgets/stable_fab.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_voice_memos_system.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
@@ -131,12 +132,9 @@ class _ZeppOsVoiceMemosPageState extends ConsumerState<ZeppOsVoiceMemosPage> {
         secondary: true,
         title: Text(l10n.deviceRecordingsTitle),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        elevation: 0,
-        focusElevation: 0,
-        hoverElevation: 0,
-        highlightElevation: 0,
-        disabledElevation: 0,
+      floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
+      floatingActionButton: StableExtendedFab(
+        heroTag: 'zeppos-voice-memos-sync',
         onPressed: _syncing
             ? (_cancelling ? null : _cancel)
             : (ready ? _sync : null),
@@ -144,6 +142,7 @@ class _ZeppOsVoiceMemosPageState extends ConsumerState<ZeppOsVoiceMemosPage> {
             ? Icon(_cancelling ? Icons.hourglass_top : Icons.close)
             : const Icon(Icons.sync),
         label: Text(_syncing ? l10n.cancel : l10n.deviceRecordingsSync),
+        animationKey: (_syncing, _cancelling),
       ),
       body: ListView(
         padding: EdgeInsets.zero,

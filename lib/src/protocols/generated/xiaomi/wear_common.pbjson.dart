@@ -948,13 +948,13 @@ const KeyValue$json = {
   '1': 'KeyValue',
   '2': [
     {'1': 'key', '3': 1, '4': 2, '5': 9, '10': 'key'},
-    {'1': 'value', '3': 2, '4': 2, '5': 5, '10': 'value'},
+    {'1': 'value', '3': 2, '4': 2, '5': 17, '10': 'value'},
   ],
 };
 
 /// Descriptor for `KeyValue`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List keyValueDescriptor = $convert.base64Decode(
-    'CghLZXlWYWx1ZRIQCgNrZXkYASACKAlSA2tleRIUCgV2YWx1ZRgCIAIoBVIFdmFsdWU=');
+    'CghLZXlWYWx1ZRIQCgNrZXkYASACKAlSA2tleRIUCgV2YWx1ZRgCIAIoEVIFdmFsdWU=');
 
 @$core.Deprecated('Use keyValueStrDescriptor instead')
 const KeyValueStr$json = {

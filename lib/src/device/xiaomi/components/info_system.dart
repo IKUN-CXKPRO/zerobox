@@ -181,7 +181,7 @@ class XiaomiInfoSystem extends XiaomiPbSystem {
   Future<void> addAlarm(XiaomiAlarm alarm) async {
     await _sendClockCommand(
       pb_clock.Clock_ClockID.ADD_CLOCK,
-      clockInfo: alarm.toProto(),
+      clockData: alarm.toProto().data,
     );
   }
 
@@ -197,18 +197,19 @@ class XiaomiInfoSystem extends XiaomiPbSystem {
   }
 
   Future<void> setAlarmEnabled(int id, bool enabled) async {
-    await _sendClockCommand(
-      pb_clock.Clock_ClockID.ENABLE_OR_DISABLE_CLOCK,
-      idValue: id,
-      enable: enabled,
-    );
+    final alarms = await fetchAlarms();
+    final alarm = alarms.where((alarm) => alarm.id == id).firstOrNull;
+    if (alarm == null) {
+      throw StateError('Alarm $id no longer exists');
+    }
+    await updateAlarm(alarm.copyWith(enabled: enabled));
   }
 
   Future<void> _sendClockCommand(
     pb_clock.Clock_ClockID id, {
     pb_clock.ClockInfo? clockInfo,
+    pb_clock.ClockInfo_Data? clockData,
     int? idValue,
-    bool? enable,
   }) async {
     await component.sendPbPacket(
       pb.WearPacket(
@@ -216,8 +217,8 @@ class XiaomiInfoSystem extends XiaomiPbSystem {
         id: id.value,
         clock: pb_clock.Clock(
           clockInfo: clockInfo,
+          clockData: clockData,
           id: idValue,
-          enable: enable,
         ),
       ),
       waitForAck: true,
@@ -225,27 +226,8 @@ class XiaomiInfoSystem extends XiaomiPbSystem {
   }
 
   Future<void> sendWeather(XiaomiWeatherData weather) async {
-    final id = pb_weather.WeatherId(
-      pubTime: weather.publishedAt,
-      cityName: weather.cityName,
-      locationName: weather.locationName,
-      locationKey: weather.locationKey,
-      isCurrentLocation: true,
-    );
-    final latest = pb_weather.WeatherLatest(
-      id: id,
-      weather: weather.conditionCode,
-      temperature: _weatherValue('℃', weather.temperature),
-      humidity: _weatherValue('%', weather.humidity),
-      windInfo: _weatherValue(
-        weather.windDirection.toString(),
-        weather.windSpeedBeaufort,
-      ),
-      uvindex: _weatherValue('', weather.uvIndex),
-      aqi: _weatherValue('Unknown', weather.aqi),
-      alertsList: pb_weather.Alerts_List(),
-      pressure: weather.pressureHpa * 100,
-    );
+    final id = buildXiaomiWeatherId(weather);
+    final latest = buildXiaomiWeatherLatest(weather, id);
 
     final cityKey = pb_weather.CityKey(
       locationKey: weather.locationKey,
@@ -308,24 +290,7 @@ class XiaomiInfoSystem extends XiaomiPbSystem {
             id: id,
             dataList: pb_weather.WeatherForecast_Data_List(
               list: weather.hourly
-                  .map(
-                    (hour) => pb_weather.WeatherForecast_Data(
-                      aqi: _weatherValue('Unknown', 0),
-                      weather: pb_common.RangeValue(
-                        from: 0,
-                        to: hour.conditionCode,
-                      ),
-                      temperature: pb_common.RangeValue(
-                        from: 0,
-                        to: hour.temperature,
-                      ),
-                      temperatureUnit: '℃',
-                      windInfo: _weatherValue(
-                        hour.windDirection.toString(),
-                        hour.windSpeedBeaufort,
-                      ),
-                    ),
-                  )
+                  .map(buildXiaomiHourlyWeatherEntry)
                   .toList(growable: false),
             ),
           ),
@@ -444,3 +409,43 @@ pb_common.RangeValue xiaomiDailyTemperatureRange(XiaomiWeatherDay day) =>
       from: day.maximumTemperature,
       to: day.minimumTemperature,
     );
+
+pb_weather.WeatherId buildXiaomiWeatherId(XiaomiWeatherData weather) =>
+    pb_weather.WeatherId(
+      pubTime: weather.publishedAt,
+      cityName: weather.cityName,
+      locationName: weather.locationName,
+      locationKey: weather.locationKey,
+      isCurrentLocation: true,
+    );
+
+pb_weather.WeatherLatest buildXiaomiWeatherLatest(
+  XiaomiWeatherData weather,
+  pb_weather.WeatherId id,
+) => pb_weather.WeatherLatest(
+  id: id,
+  weather: weather.conditionCode,
+  temperature: pb_common.KeyValue(key: '℃', value: weather.temperature),
+  humidity: pb_common.KeyValue(key: '%', value: weather.humidity),
+  windInfo: pb_common.KeyValue(
+    key: weather.windDirection.toString(),
+    value: weather.windSpeedBeaufort,
+  ),
+  uvindex: pb_common.KeyValue(key: '', value: weather.uvIndex),
+  aqi: pb_common.KeyValue(key: 'Unknown', value: weather.aqi ?? 0),
+  alertsList: pb_weather.Alerts_List(),
+  pressure: weather.pressureHpa * 100,
+);
+
+pb_weather.WeatherForecast_Data buildXiaomiHourlyWeatherEntry(
+  XiaomiWeatherHour hour,
+) => pb_weather.WeatherForecast_Data(
+  aqi: pb_common.KeyValue(key: 'Unknown', value: 0),
+  weather: pb_common.RangeValue(from: 0, to: hour.conditionCode),
+  temperature: pb_common.RangeValue(from: 0, to: hour.temperature),
+  temperatureUnit: '℃',
+  windInfo: pb_common.KeyValue(
+    key: hour.windDirection.toString(),
+    value: hour.windSpeedBeaufort,
+  ),
+);

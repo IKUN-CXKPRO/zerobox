@@ -531,10 +531,8 @@ class _RuntimeLogsPageState extends ConsumerState<RuntimeLogsPage> {
         const OronBoxCommand(method: 'device.logs.pull'),
       );
       if (!result.ok) {
-        throw StateError(
-          '${result.error?.code ?? 'internal'}: '
-          '${result.error?.message ?? 'Unknown error'}',
-        );
+        throw result.error ??
+            const CommandError('internal', 'Unknown command error');
       }
       final value = (result.value as Map).cast<String, Object?>();
       final bytes = (value['bytes'] as List? ?? const [])

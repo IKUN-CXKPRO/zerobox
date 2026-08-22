@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/app/widgets/stable_fab.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
@@ -509,32 +510,22 @@ class _CreatorTermsGateState extends ConsumerState<_CreatorTermsGate> {
           Positioned(
             right: 16,
             bottom: 16,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (widget.selectionActive)
-                  FloatingActionButton.extended(
-                    heroTag: 'creator-move-selection',
-                    elevation: 0,
-                    focusElevation: 0,
-                    hoverElevation: 0,
-                    highlightElevation: 0,
-                    onPressed: widget.loading ? null : widget.onMoveSelection,
-                    icon: const Icon(Icons.drive_file_move_outline),
-                    label: Text(l10n.creatorMoveToCollection),
-                  )
-                else
-                  FloatingActionButton.extended(
-                    heroTag: 'creator-new-resource',
-                    elevation: 0,
-                    focusElevation: 0,
-                    hoverElevation: 0,
-                    highlightElevation: 0,
-                    onPressed: widget.loading ? null : widget.onCreate,
-                    icon: const Icon(Icons.add),
-                    label: Text(l10n.creatorNewResource),
-                  ),
-              ],
+            child: StableFabSwitcher(
+              child: widget.selectionActive
+                  ? StableExtendedFab(
+                      key: const ValueKey('creator-move-selection'),
+                      heroTag: 'creator-move-selection',
+                      onPressed: widget.loading ? null : widget.onMoveSelection,
+                      icon: const Icon(Icons.drive_file_move_outline),
+                      label: Text(l10n.creatorMoveToCollection),
+                    )
+                  : StableExtendedFab(
+                      key: const ValueKey('creator-new-resource'),
+                      heroTag: 'creator-new-resource',
+                      onPressed: widget.loading ? null : widget.onCreate,
+                      icon: const Icon(Icons.add),
+                      label: Text(l10n.creatorNewResource),
+                    ),
             ),
           ),
         ],

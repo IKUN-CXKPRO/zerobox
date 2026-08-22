@@ -162,6 +162,7 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
   }
 
   List<Widget> _cards(XiaomiHealthData? data) {
+    final l10n = AppLocalizations.of(context)!;
     final value = data ?? const XiaomiHealthData();
     final cards = <Widget>[
       ActivityOverviewCard(
@@ -175,7 +176,7 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
         _metricCard(
           data: value,
           metric: XiaomiHealthMetric.heartRate,
-          title: '心率',
+          title: l10n.deviceHealthHeartRate,
           icon: Icons.favorite_outline,
           color: Colors.redAccent,
           summaryValue: value.latestDay?.averageHeartRate,
@@ -193,7 +194,7 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
         _metricCard(
           data: value,
           metric: XiaomiHealthMetric.bloodOxygen,
-          title: '血氧',
+          title: l10n.deviceHealthBloodOxygen,
           icon: Icons.bloodtype_outlined,
           color: Colors.indigo,
           summaryValue: value.latestDay?.averageBloodOxygen,
@@ -211,7 +212,7 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
         _metricCard(
           data: value,
           metric: XiaomiHealthMetric.stress,
-          title: '压力',
+          title: l10n.deviceHealthStress,
           icon: Icons.spa_outlined,
           color: Colors.orange,
           summaryValue: value.latestDay?.averageStress,
@@ -229,12 +230,12 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
         _metricCard(
           data: value,
           metric: XiaomiHealthMetric.vitality,
-          title: '元气值',
+          title: l10n.deviceHealthVitality,
           icon: Icons.bolt_outlined,
           color: Colors.amber,
           summaryValue: value.latestDay?.vitalityCurrent,
           unit: '',
-          detail: '今日累计',
+          detail: l10n.deviceHealthTodayTotal,
         ),
       );
     }
@@ -243,12 +244,12 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
       cards.add(
         HealthMetricCard(
           metric: XiaomiHealthMetric.sleep,
-          title: '睡眠',
+          title: l10n.deviceHealthSleep,
           icon: Icons.bedtime_outlined,
           color: Colors.deepPurple,
           value: sleep == null ? '—' : _duration(sleep.durationSeconds),
           detail: sleep == null
-              ? '暂无数据'
+              ? l10n.deviceHealthNoData
               : '${_formatTime(sleep.startedAt)} – ${_formatTime(sleep.endedAt)}',
           samples: const [],
           onPressed: () => _openDetail(XiaomiHealthMetric.sleep),
@@ -259,11 +260,11 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
       cards.add(
         HealthMetricCard(
           metric: XiaomiHealthMetric.workout,
-          title: '运动记录',
+          title: l10n.deviceHealthWorkout,
           icon: Icons.directions_run_outlined,
           color: Colors.teal,
           value: '${value.workouts.length}',
-          detail: '条记录',
+          detail: l10n.deviceHealthRecordCount,
           samples: const [],
           onPressed: () => _openDetail(XiaomiHealthMetric.workout),
         ),
@@ -283,12 +284,25 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
     required String detail,
   }) {
     final latest = data.latestSample(metric);
+    final anchor = latest?.timestamp ?? DateTime.now();
+    final chartEnd = DateTime(
+      anchor.year,
+      anchor.month,
+      anchor.day,
+      anchor.hour,
+    ).add(const Duration(hours: 1));
+    final chartStart = chartEnd.subtract(const Duration(hours: 24));
     final samples =
-        data.samplesFor(metric).where((sample) => sample.isUsable).toList()
+        data
+            .samplesFor(metric)
+            .where(
+              (sample) =>
+                  sample.isUsable &&
+                  !sample.timestamp.isBefore(chartStart) &&
+                  sample.timestamp.isBefore(chartEnd),
+            )
+            .toList()
           ..sort((left, right) => left.timestamp.compareTo(right.timestamp));
-    final visibleSamples = samples.length <= 120
-        ? samples
-        : samples.sublist(samples.length - 120);
     final displayedValue = latest?.value.round() ?? summaryValue;
     return HealthMetricCard(
       metric: metric,
@@ -297,13 +311,17 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
       color: color,
       value: displayedValue == null ? '—' : '$displayedValue $unit'.trim(),
       detail: latest == null ? detail : _formatDateTime(latest.timestamp),
-      samples: visibleSamples,
+      samples: samples,
+      chartStart: chartStart,
+      chartEnd: chartEnd,
       onPressed: () => _openDetail(metric),
     );
   }
 
   String _range(int? min, int? max, String unit) {
-    if (min == null && max == null) return '暂无详细范围';
+    if (min == null && max == null) {
+      return AppLocalizations.of(context)!.deviceHealthNoDetailedRange;
+    }
     if (min == null || max == null) return '${min ?? max} $unit'.trim();
     return '$min–$max $unit'.trim();
   }

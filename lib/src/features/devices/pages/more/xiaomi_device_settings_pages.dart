@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:segmented_list/segmented_list.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
@@ -66,10 +67,11 @@ class _XiaomiAppLayoutPageState extends ConsumerState<XiaomiAppLayoutPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final layout = _layout;
     final supported = _supportedLayouts(layout?.supportLayouts ?? 0);
     return Scaffold(
-      appBar: SysAppBar(secondary: true, title: const Text('应用布局设置')),
+      appBar: SysAppBar(secondary: true, title: Text(l10n.appLayoutTitle)),
       body: SegmentedList(
         maxWidth: StyleConstants.pageMaxWidth,
         contentPadding: const EdgeInsets.only(top: 8, bottom: 24),
@@ -86,7 +88,7 @@ class _XiaomiAppLayoutPageState extends ConsumerState<XiaomiAppLayoutPage> {
               tiles: [
                 SegmentedTile(
                   leading: const Icon(Icons.error_outline),
-                  title: const Text('无法读取应用布局'),
+                  title: Text(l10n.appLayoutLoadFailed),
                   description: Text(_error!),
                   trailing: IconButton(
                     onPressed: _load,
@@ -107,7 +109,7 @@ class _XiaomiAppLayoutPageState extends ConsumerState<XiaomiAppLayoutPage> {
                     for (final value in supported)
                       SegmentedTile(
                         leading: Icon(_layoutIcon(value)),
-                        title: Text(_layoutName(value)),
+                        title: Text(_layoutName(l10n, value)),
                         trailing: Radio<pb_system.AppLayout_Layout>(
                           value: value,
                         ),
@@ -135,12 +137,13 @@ class _XiaomiAppLayoutPageState extends ConsumerState<XiaomiAppLayoutPage> {
     return supported.isEmpty ? [values.first] : supported;
   }
 
-  String _layoutName(pb_system.AppLayout_Layout value) => switch (value) {
-    pb_system.AppLayout_Layout.LIST => '列表',
-    pb_system.AppLayout_Layout.GRID => '网格',
-    pb_system.AppLayout_Layout.GRID_TEXT => '带文字网格',
-    _ => value.name,
-  };
+  String _layoutName(AppLocalizations l10n, pb_system.AppLayout_Layout value) =>
+      switch (value) {
+        pb_system.AppLayout_Layout.LIST => l10n.appLayoutList,
+        pb_system.AppLayout_Layout.GRID => l10n.appLayoutGrid,
+        pb_system.AppLayout_Layout.GRID_TEXT => l10n.appLayoutTextGrid,
+        _ => value.name,
+      };
 
   IconData _layoutIcon(pb_system.AppLayout_Layout value) => switch (value) {
     pb_system.AppLayout_Layout.LIST => Icons.view_list_outlined,

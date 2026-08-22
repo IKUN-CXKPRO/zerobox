@@ -274,7 +274,7 @@ class _PluginDetailPageState extends ConsumerState<PluginDetailPage>
   Future<Object?> _execute(OronBoxCommand command) async {
     final result = await _host.execute(command);
     if (!result.ok) {
-      throw StateError('${result.error!.code}: ${result.error!.message}');
+      throw result.error!;
     }
     return result.value;
   }

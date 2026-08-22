@@ -5697,20 +5697,8 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAdvancedDescription.
   ///
   /// In en, this message translates to:
-  /// **'View logs, developer tools, and experimental features'**
+  /// **'View logs and developer tools'**
   String get settingsAdvancedDescription;
-
-  /// No description provided for @settingsHealthFeatures.
-  ///
-  /// In en, this message translates to:
-  /// **'Enable experimental features'**
-  String get settingsHealthFeatures;
-
-  /// No description provided for @settingsHealthFeaturesDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Enable the unfinished health, weather sync, and alarm management features'**
-  String get settingsHealthFeaturesDescription;
 
   /// No description provided for @debugServerTitle.
   ///
@@ -6431,6 +6419,628 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create the new version first, then delete the previous BandBBS submission'**
   String get creatorBandBbsOverwritePreviousDescription;
+
+  /// No description provided for @deviceAboutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About device'**
+  String get deviceAboutTitle;
+
+  /// No description provided for @deviceValueUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not provided'**
+  String get deviceValueUnavailable;
+
+  /// No description provided for @deviceHealthActivityOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity overview'**
+  String get deviceHealthActivityOverview;
+
+  /// No description provided for @deviceHealthActiveCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Active calories'**
+  String get deviceHealthActiveCalories;
+
+  /// No description provided for @deviceHealthStanding.
+  ///
+  /// In en, this message translates to:
+  /// **'Standing'**
+  String get deviceHealthStanding;
+
+  /// No description provided for @deviceHealthBloodOxygen.
+  ///
+  /// In en, this message translates to:
+  /// **'Blood oxygen'**
+  String get deviceHealthBloodOxygen;
+
+  /// No description provided for @deviceHealthStress.
+  ///
+  /// In en, this message translates to:
+  /// **'Stress'**
+  String get deviceHealthStress;
+
+  /// No description provided for @deviceHealthVitality.
+  ///
+  /// In en, this message translates to:
+  /// **'Vitality'**
+  String get deviceHealthVitality;
+
+  /// No description provided for @deviceHealthWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Workouts'**
+  String get deviceHealthWorkout;
+
+  /// No description provided for @deviceHealthTodayTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s total'**
+  String get deviceHealthTodayTotal;
+
+  /// No description provided for @deviceHealthRecordCount.
+  ///
+  /// In en, this message translates to:
+  /// **'records'**
+  String get deviceHealthRecordCount;
+
+  /// No description provided for @deviceHealthNoDetailedRange.
+  ///
+  /// In en, this message translates to:
+  /// **'No detailed range'**
+  String get deviceHealthNoDetailedRange;
+
+  /// No description provided for @deviceHealthActivityTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity trend'**
+  String get deviceHealthActivityTrend;
+
+  /// No description provided for @deviceHealthTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Trend'**
+  String get deviceHealthTrend;
+
+  /// No description provided for @deviceHealthLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest'**
+  String get deviceHealthLatest;
+
+  /// No description provided for @deviceHealthAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Average'**
+  String get deviceHealthAverage;
+
+  /// No description provided for @deviceHealthRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Range'**
+  String get deviceHealthRange;
+
+  /// No description provided for @deviceHealthNoSamples.
+  ///
+  /// In en, this message translates to:
+  /// **'No detailed samples'**
+  String get deviceHealthNoSamples;
+
+  /// No description provided for @deviceHealthCurrentVitality.
+  ///
+  /// In en, this message translates to:
+  /// **'Current vitality'**
+  String get deviceHealthCurrentVitality;
+
+  /// No description provided for @deviceHealthLightIntensity.
+  ///
+  /// In en, this message translates to:
+  /// **'Light intensity'**
+  String get deviceHealthLightIntensity;
+
+  /// No description provided for @deviceHealthModerateHighIntensity.
+  ///
+  /// In en, this message translates to:
+  /// **'Moderate to high intensity'**
+  String get deviceHealthModerateHighIntensity;
+
+  /// No description provided for @deviceHealthNoSleep.
+  ///
+  /// In en, this message translates to:
+  /// **'No sleep data'**
+  String get deviceHealthNoSleep;
+
+  /// No description provided for @deviceHealthNoWorkouts.
+  ///
+  /// In en, this message translates to:
+  /// **'No workout records'**
+  String get deviceHealthNoWorkouts;
+
+  /// No description provided for @deviceHealthStepValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} steps'**
+  String deviceHealthStepValue(Object value);
+
+  /// No description provided for @deviceHealthFeatureDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'View activity, heart rate, blood oxygen, stress, and sleep data'**
+  String get deviceHealthFeatureDescription;
+
+  /// No description provided for @weatherSyncTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather sync'**
+  String get weatherSyncTitle;
+
+  /// No description provided for @weatherSyncDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a city and sync current weather and forecasts'**
+  String get weatherSyncDescription;
+
+  /// No description provided for @alarmManagementTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Alarm management'**
+  String get alarmManagementTitle;
+
+  /// No description provided for @alarmManagementDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Add, edit, enable, or delete device alarms'**
+  String get alarmManagementDescription;
+
+  /// No description provided for @findDeviceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Make the device vibrate or ring continuously'**
+  String get findDeviceDescription;
+
+  /// No description provided for @appOrderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App order'**
+  String get appOrderTitle;
+
+  /// No description provided for @appOrderDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder apps in the device launcher'**
+  String get appOrderDescription;
+
+  /// No description provided for @appOrderSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'App order saved'**
+  String get appOrderSaved;
+
+  /// No description provided for @appOrderReload.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload'**
+  String get appOrderReload;
+
+  /// No description provided for @appOrderUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo changes'**
+  String get appOrderUndo;
+
+  /// No description provided for @appOrderSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get appOrderSaving;
+
+  /// No description provided for @appOrderSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get appOrderSave;
+
+  /// No description provided for @appOrderEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The device returned no reorderable apps'**
+  String get appOrderEmpty;
+
+  /// No description provided for @appLayoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App layout'**
+  String get appLayoutTitle;
+
+  /// No description provided for @appLayoutDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how the device app list is displayed'**
+  String get appLayoutDescription;
+
+  /// No description provided for @appLayoutLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load app layout'**
+  String get appLayoutLoadFailed;
+
+  /// No description provided for @appLayoutList.
+  ///
+  /// In en, this message translates to:
+  /// **'List'**
+  String get appLayoutList;
+
+  /// No description provided for @appLayoutGrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid'**
+  String get appLayoutGrid;
+
+  /// No description provided for @appLayoutTextGrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid with labels'**
+  String get appLayoutTextGrid;
+
+  /// No description provided for @firmwareUpdateDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates or install local firmware'**
+  String get firmwareUpdateDescription;
+
+  /// No description provided for @deviceAboutDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'View model, system version, storage, and device identifiers'**
+  String get deviceAboutDescription;
+
+  /// No description provided for @alarmAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add alarm'**
+  String get alarmAdd;
+
+  /// No description provided for @alarmEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit alarm'**
+  String get alarmEdit;
+
+  /// No description provided for @alarmHour.
+  ///
+  /// In en, this message translates to:
+  /// **'Hour'**
+  String get alarmHour;
+
+  /// No description provided for @alarmMinute.
+  ///
+  /// In en, this message translates to:
+  /// **'Minute'**
+  String get alarmMinute;
+
+  /// No description provided for @alarmRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat'**
+  String get alarmRepeat;
+
+  /// No description provided for @alarmOnce.
+  ///
+  /// In en, this message translates to:
+  /// **'Once'**
+  String get alarmOnce;
+
+  /// No description provided for @alarmEveryDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day'**
+  String get alarmEveryDay;
+
+  /// No description provided for @alarmWorkdays.
+  ///
+  /// In en, this message translates to:
+  /// **'Workdays'**
+  String get alarmWorkdays;
+
+  /// No description provided for @alarmHolidays.
+  ///
+  /// In en, this message translates to:
+  /// **'Holidays'**
+  String get alarmHolidays;
+
+  /// No description provided for @alarmCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get alarmCustom;
+
+  /// No description provided for @alarmLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Label'**
+  String get alarmLabel;
+
+  /// No description provided for @alarmDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete alarm?'**
+  String get alarmDeleteTitle;
+
+  /// No description provided for @alarmWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get alarmWeekly;
+
+  /// No description provided for @alarmMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get alarmMonthly;
+
+  /// No description provided for @alarmYearly.
+  ///
+  /// In en, this message translates to:
+  /// **'Yearly'**
+  String get alarmYearly;
+
+  /// No description provided for @alarmNoRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Does not repeat'**
+  String get alarmNoRepeat;
+
+  /// No description provided for @alarmCustomDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Week {days}'**
+  String alarmCustomDays(Object days);
+
+  /// No description provided for @weekdayMonShort.
+  ///
+  /// In en, this message translates to:
+  /// **'M'**
+  String get weekdayMonShort;
+
+  /// No description provided for @weekdayTueShort.
+  ///
+  /// In en, this message translates to:
+  /// **'T'**
+  String get weekdayTueShort;
+
+  /// No description provided for @weekdayWedShort.
+  ///
+  /// In en, this message translates to:
+  /// **'W'**
+  String get weekdayWedShort;
+
+  /// No description provided for @weekdayThuShort.
+  ///
+  /// In en, this message translates to:
+  /// **'T'**
+  String get weekdayThuShort;
+
+  /// No description provided for @weekdayFriShort.
+  ///
+  /// In en, this message translates to:
+  /// **'F'**
+  String get weekdayFriShort;
+
+  /// No description provided for @weekdaySatShort.
+  ///
+  /// In en, this message translates to:
+  /// **'S'**
+  String get weekdaySatShort;
+
+  /// No description provided for @weekdaySunShort.
+  ///
+  /// In en, this message translates to:
+  /// **'S'**
+  String get weekdaySunShort;
+
+  /// No description provided for @weatherCityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync city'**
+  String get weatherCityLabel;
+
+  /// No description provided for @weatherCityHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a city name'**
+  String get weatherCityHint;
+
+  /// No description provided for @weatherSyncAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync weather'**
+  String get weatherSyncAction;
+
+  /// No description provided for @weatherSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing…'**
+  String get weatherSyncing;
+
+  /// No description provided for @weatherHumidity.
+  ///
+  /// In en, this message translates to:
+  /// **'Humidity'**
+  String get weatherHumidity;
+
+  /// No description provided for @weatherWind.
+  ///
+  /// In en, this message translates to:
+  /// **'Wind'**
+  String get weatherWind;
+
+  /// No description provided for @weatherAirQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Air quality'**
+  String get weatherAirQuality;
+
+  /// No description provided for @weatherUv.
+  ///
+  /// In en, this message translates to:
+  /// **'UV index'**
+  String get weatherUv;
+
+  /// No description provided for @weatherPressure.
+  ///
+  /// In en, this message translates to:
+  /// **'Pressure'**
+  String get weatherPressure;
+
+  /// No description provided for @weatherNext24Hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Next 24 hours'**
+  String get weatherNext24Hours;
+
+  /// No description provided for @weatherNext7Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Next 7 days'**
+  String get weatherNext7Days;
+
+  /// No description provided for @weatherLevelDirection.
+  ///
+  /// In en, this message translates to:
+  /// **'Level {level} · {direction}'**
+  String weatherLevelDirection(Object level, Object direction);
+
+  /// No description provided for @weatherLevelDirectionCompact.
+  ///
+  /// In en, this message translates to:
+  /// **'Level {level} {direction}'**
+  String weatherLevelDirectionCompact(Object level, Object direction);
+
+  /// No description provided for @weatherForecastSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{condition} · Sunrise {sunrise} · Sunset {sunset}'**
+  String weatherForecastSummary(
+    Object condition,
+    Object sunrise,
+    Object sunset,
+  );
+
+  /// No description provided for @weatherClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get weatherClear;
+
+  /// No description provided for @weatherPartlyCloudy.
+  ///
+  /// In en, this message translates to:
+  /// **'Partly cloudy'**
+  String get weatherPartlyCloudy;
+
+  /// No description provided for @weatherCloudy.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudy'**
+  String get weatherCloudy;
+
+  /// No description provided for @weatherLightRain.
+  ///
+  /// In en, this message translates to:
+  /// **'Light rain'**
+  String get weatherLightRain;
+
+  /// No description provided for @weatherHeavyRain.
+  ///
+  /// In en, this message translates to:
+  /// **'Heavy rain'**
+  String get weatherHeavyRain;
+
+  /// No description provided for @weatherThunderstorm.
+  ///
+  /// In en, this message translates to:
+  /// **'Thunderstorm'**
+  String get weatherThunderstorm;
+
+  /// No description provided for @weatherSnow.
+  ///
+  /// In en, this message translates to:
+  /// **'Snow'**
+  String get weatherSnow;
+
+  /// No description provided for @weatherFog.
+  ///
+  /// In en, this message translates to:
+  /// **'Fog'**
+  String get weatherFog;
+
+  /// No description provided for @weatherUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get weatherUnknown;
+
+  /// No description provided for @weatherUnknownDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown date'**
+  String get weatherUnknownDate;
+
+  /// No description provided for @weatherUpdatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {time}'**
+  String weatherUpdatedAt(Object time);
+
+  /// No description provided for @windNorth.
+  ///
+  /// In en, this message translates to:
+  /// **'N'**
+  String get windNorth;
+
+  /// No description provided for @windNorthEast.
+  ///
+  /// In en, this message translates to:
+  /// **'NE'**
+  String get windNorthEast;
+
+  /// No description provided for @windEast.
+  ///
+  /// In en, this message translates to:
+  /// **'E'**
+  String get windEast;
+
+  /// No description provided for @windSouthEast.
+  ///
+  /// In en, this message translates to:
+  /// **'SE'**
+  String get windSouthEast;
+
+  /// No description provided for @windSouth.
+  ///
+  /// In en, this message translates to:
+  /// **'S'**
+  String get windSouth;
+
+  /// No description provided for @windSouthWest.
+  ///
+  /// In en, this message translates to:
+  /// **'SW'**
+  String get windSouthWest;
+
+  /// No description provided for @windWest.
+  ///
+  /// In en, this message translates to:
+  /// **'W'**
+  String get windWest;
+
+  /// No description provided for @windNorthWest.
+  ///
+  /// In en, this message translates to:
+  /// **'NW'**
+  String get windNorthWest;
 }
 
 class _AppLocalizationsDelegate

@@ -4,16 +4,6 @@ import 'dart:typed_data';
 typedef PluginHostCall =
     FutureOr<Object?> Function(String method, List<Object?> arguments);
 
-void settlePluginHostCall(Object? result, void Function() dispatch) {
-  if (result is! Future) return;
-  unawaited(
-    result.then<void>(
-      (_) => scheduleMicrotask(dispatch),
-      onError: (_, _) => scheduleMicrotask(dispatch),
-    ),
-  );
-}
-
 abstract interface class PluginRuntime {
   Map<String, Object?> get diagnostics;
 
@@ -41,12 +31,78 @@ const oronBoxPluginBootstrap = r'''
   const callbacks = Object.create(null);
   const events = Object.create(null);
   const timers = Object.create(null);
+  const hostRequests = Object.create(null);
+  const operations = Object.create(null);
   let nextCallback = 0;
   let nextTimer = 0;
+  let nextHostRequest = 0;
+  let nextOperation = 0;
 
   function host(method, args = []) {
-    return sendMessage('OronBoxHost', JSON.stringify({method, args}));
+    const requestId = `zb_host_${++nextHostRequest}`;
+    return new Promise((resolve, reject) => {
+      hostRequests[requestId] = {resolve, reject};
+      try {
+        sendMessage('OronBoxHost', JSON.stringify({requestId, method, args}));
+      } catch (error) {
+        delete hostRequests[requestId];
+        reject(error);
+      }
+    });
   }
+
+  globalThis.__zbSettleHostRequest = (requestId, succeeded, payload) => {
+    const request = hostRequests[requestId];
+    if (!request) return;
+    delete hostRequests[requestId];
+    if (succeeded) request.resolve(payload);
+    else request.reject(new Error(String(payload)));
+  };
+
+  globalThis.__zbRejectAllHostRequests = (message) => {
+    for (const requestId of Object.keys(hostRequests)) {
+      const request = hostRequests[requestId];
+      delete hostRequests[requestId];
+      request.reject(new Error(String(message)));
+    }
+  };
+
+  globalThis.__zbBeginOperation = (operation) => {
+    const operationId = ++nextOperation;
+    operations[operationId] = {state: 'pending'};
+    Promise.resolve()
+      .then(operation)
+      .then(
+        value => {
+          operations[operationId] = {
+            state: 'fulfilled',
+            value: value === undefined ? null : value,
+          };
+        },
+        error => {
+          operations[operationId] = {
+            state: 'rejected',
+            error: String(error && error.stack || error),
+          };
+        },
+      );
+    return operationId;
+  };
+
+  globalThis.__zbPollOperation = (operationId) => {
+    const operation = operations[operationId];
+    if (!operation) return JSON.stringify({state: 'missing'});
+    if (operation.state === 'pending') return JSON.stringify(operation);
+    delete operations[operationId];
+    try {
+      return JSON.stringify(operation);
+    } catch (error) {
+      return JSON.stringify({
+        state: 'rejected',
+        error: `Plugin result is not serializable: ${String(error)}`,
+      });
+    }
+  };
 
   function registerCallback(fn) {
     if (typeof fn !== 'function') throw new TypeError('Expected a function');

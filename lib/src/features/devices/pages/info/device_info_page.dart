@@ -33,9 +33,7 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(deviceManagerProvider);
     final device = state.currentDevice;
-    final unavailable = Localizations.localeOf(context).languageCode == 'zh'
-        ? '未提供'
-        : 'Not provided';
+    final unavailable = l10n.deviceValueUnavailable;
     String shown(String value) => value.trim().isEmpty ? unavailable : value;
     String shownCodename(String? value) {
       if (value == null || value.trim().isEmpty) return '-';
@@ -81,7 +79,10 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
     ];
 
     return Scaffold(
-      appBar: const SysAppBar(secondary: true, title: Text('关于设备')),
+      appBar: SysAppBar(
+        secondary: true,
+        title: Text(AppLocalizations.of(context)!.deviceAboutTitle),
+      ),
       body: ListView.separated(
         padding: EdgeInsets.zero,
         itemCount: items.length,

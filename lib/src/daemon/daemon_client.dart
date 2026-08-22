@@ -69,10 +69,8 @@ class OronBoxDaemonClient implements OronBoxCommandBus {
       timeout: const Duration(seconds: 2),
     );
     if (!result.ok) {
-      throw StateError(
-        '${result.error?.code ?? 'handshake_failed'}: '
-        '${result.error?.message ?? 'Daemon handshake failed'}',
-      );
+      throw result.error ??
+          const CommandError('handshake_failed', 'Daemon handshake failed');
     }
     final info = result.value;
     if (info is! Map ||

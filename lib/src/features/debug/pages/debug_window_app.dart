@@ -129,7 +129,7 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
         const OronBoxCommand(method: 'debug.snapshot'),
       );
       if (!result.ok) {
-        throw StateError('${result.error!.code}: ${result.error!.message}');
+        throw result.error!;
       }
       final snapshot = (result.value as Map).cast<String, Object?>();
       final records = (snapshot['records'] as List? ?? const [])

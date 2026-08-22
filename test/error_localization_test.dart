@@ -70,90 +70,64 @@ void main() {
       );
     });
 
-    test('maps expired OronBox sessions to a sign-in prompt', () {
-      const shapes = [
-        'invalid_refresh_token: refresh token is invalid or expired',
-        'OronBox session expired',
-        'unauthorized: OronBox access token is invalid or expired',
-      ];
+    test('preserves structured backend session messages', () {
+      expect(
+        localizedErrorMessage(
+          en,
+          const _TestCodedError(
+            'invalid_refresh_token',
+            'refresh token is invalid or expired',
+          ),
+        ),
+        'refresh token is invalid or expired',
+      );
+      expect(
+        localizedErrorMessage(
+          zh,
+          const _TestCodedError(
+            'unauthorized',
+            'OronBox access token is invalid or expired',
+          ),
+        ),
+        'OronBox access token is invalid or expired',
+      );
+      expect(
+        localizedErrorMessage(en, 'OronBox session expired'),
+        en.errorOronBoxSessionExpired,
+      );
+    });
 
-      for (final raw in shapes) {
+    test('preserves structured backend messages', () {
+      for (final code in oronBoxKnownErrorCodes) {
         expect(
-          localizedErrorMessage(en, raw),
-          en.errorOronBoxSessionExpired,
-          reason: raw,
-        );
-        expect(
-          localizedErrorMessage(zh, raw),
-          zh.errorOronBoxSessionExpired,
-          reason: raw,
+          localizedErrorMessage(
+            en,
+            _TestCodedError(code, 'actual backend message'),
+          ),
+          'actual backend message',
+          reason: code,
         );
       }
     });
 
-    test(
-      'maps common structured service failures without exposing internals',
-      () {
-        final cases = <String, String>{
-          'forbidden': en.errorPermissionDenied,
-          'resource_not_found': en.errorContentNotFound,
-          'conflict': en.errorRequestConflict,
-          'coin_balance_insufficient': en.errorCoinBalanceInsufficient,
-          'coin_resource_limit': en.errorCoinResourceLimit,
-          'coin_own_resource': en.errorCoinOwnResource,
-          'coin_voting_frozen': en.errorCoinVotingFrozen,
-          'coin_account_too_new': en.errorCoinAccountTooNew,
-          'coin_vote_failed': en.errorCoinOperationFailed,
-          'coin_status_failed': en.errorCoinStatusUnavailable,
-          'coin_account_failed': en.errorServiceUnavailable,
-          'rate_limited': en.errorRateLimited,
-          'http_413': en.errorFileTooLarge,
-          'invalid_request': en.errorInvalidRequest,
-          'network_error': en.errorNetworkUnavailable,
-          'http_503': en.errorServiceUnavailable,
-          'cancelled': en.errorOperationCancelled,
-        };
-
-        for (final entry in cases.entries) {
-          expect(
-            localizedErrorMessage(
-              en,
-              _TestCodedError(entry.key, 'sensitive backend detail'),
-            ),
-            entry.value,
-            reason: entry.key,
-          );
-        }
-      },
-    );
-
-    test('localizes the complete coded-error catalog safely', () {
-      for (final code in oronBoxKnownErrorCodes) {
-        final message = localizedErrorMessage(
-          en,
-          _TestCodedError(code, 'sensitive backend detail'),
-        );
-        expect(
-          message,
-          isNot(contains('sensitive backend detail')),
-          reason: code,
-        );
-      }
-
+    test('preserves unknown coded backend messages and details', () {
       expect(
         localizedErrorMessage(
           en,
-          const _TestCodedError('new_server_code', 'sensitive backend detail'),
+          const _TestCodedError('new_server_code', 'actual backend message'),
         ),
-        en.errorUnknown,
+        'actual backend message',
       );
       expect(
-        localizedErrorMessage(en, StateError('new_server_code: secret detail')),
-        en.errorUnknown,
-      );
-      expect(
-        localizedErrorMessage(en, StateError('invalid_request: secret detail')),
-        en.errorInvalidRequest,
+        localizedErrorMessage(
+          en,
+          const _TestCodedError(
+            'internal',
+            'actual backend message',
+            'stack trace',
+          ),
+        ),
+        'actual backend message\nstack trace',
       );
     });
 
@@ -210,7 +184,7 @@ void main() {
             type: DioExceptionType.badResponse,
           ),
         ),
-        en.errorUnknown,
+        'secret',
       );
     });
 
@@ -239,14 +213,14 @@ void main() {
 }
 
 class _TestCodedError implements CodedError {
-  const _TestCodedError(this.code, this.message);
+  const _TestCodedError(this.code, this.message, [this.details]);
 
   @override
   final String code;
   @override
   final String message;
   @override
-  Object? get details => null;
+  final Object? details;
 
   @override
   String toString() => message;

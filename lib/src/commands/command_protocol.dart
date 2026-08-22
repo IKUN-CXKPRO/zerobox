@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:oronbox/src/core/errors/coded_error.dart';
+
 const oronBoxProtocolVersion = 6;
 
 const oronBoxDaemonCapabilities = <String>[
@@ -57,10 +59,13 @@ class CommandResult {
   }
 }
 
-class CommandError {
+class CommandError implements CodedError {
   const CommandError(this.code, this.message, {this.details});
+  @override
   final String code;
+  @override
   final String message;
+  @override
   final Object? details;
 
   Map<String, Object?> toJson() => {
@@ -74,6 +79,10 @@ class CommandError {
     json['message']?.toString() ?? 'Unknown error',
     details: json['details'],
   );
+
+  @override
+  String toString() =>
+      details == null ? '$code: $message' : '$code: $message\n$details';
 }
 
 class CommandEvent {

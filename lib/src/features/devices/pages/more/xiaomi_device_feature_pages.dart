@@ -5,8 +5,10 @@ import 'package:segmented_list/tile/segmented_tile_info.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/app/widgets/stable_fab.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/devices/models/xiaomi_device_features.dart';
 import 'package:oronbox/src/features/devices/services/xiaomi_weather_sync_service.dart';
@@ -79,9 +81,9 @@ class _XiaomiAppOrderPageState extends ConsumerState<XiaomiAppOrderPage> {
           _savedApps = List.unmodifiable(_apps);
           _dirty = false;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('应用顺序已保存')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.appOrderSaved)),
+        );
       }
     } catch (error) {
       if (mounted) _showError(error);
@@ -110,49 +112,58 @@ class _XiaomiAppOrderPageState extends ConsumerState<XiaomiAppOrderPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(deviceManagerProvider);
     final ready = state.protocolState == proto.ProtocolState.ready;
     return Scaffold(
       appBar: SysAppBar(
         secondary: true,
-        title: const Text('应用顺序管理'),
+        title: Text(l10n.appOrderTitle),
         actions: [
           IconButton(
             onPressed: !_loading && !_saving && !_dirty ? _load : null,
-            tooltip: '重新读取',
+            tooltip: l10n.appOrderReload,
             icon: const Icon(Icons.refresh),
           ),
         ],
       ),
-      floatingActionButton: _dirty
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                FloatingActionButton.extended(
-                  heroTag: 'xiaomi-app-order-reset',
-                  onPressed: _saving ? null : _reset,
-                  icon: const Icon(Icons.undo),
-                  label: const Text('撤销更改'),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.extended(
-                  heroTag: 'xiaomi-app-order-save',
-                  onPressed: _saving ? null : _save,
-                  icon: const Icon(Icons.save_outlined),
-                  label: Text(_saving ? '保存中…' : '保存更改'),
-                ),
-              ],
-            )
-          : null,
+      floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
+      floatingActionButton: StableFabSwitcher(
+        child: _dirty
+            ? Column(
+                key: const ValueKey('app-order-actions'),
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  StableExtendedFab(
+                    heroTag: 'xiaomi-app-order-reset',
+                    onPressed: _saving ? null : _reset,
+                    icon: const Icon(Icons.undo),
+                    label: Text(l10n.appOrderUndo),
+                    secondary: true,
+                  ),
+                  const SizedBox(height: 12),
+                  StableExtendedFab(
+                    heroTag: 'xiaomi-app-order-save',
+                    onPressed: _saving ? null : _save,
+                    icon: const Icon(Icons.save_outlined),
+                    label: Text(
+                      _saving ? l10n.appOrderSaving : l10n.appOrderSave,
+                    ),
+                    animationKey: _saving,
+                  ),
+                ],
+              )
+            : const SizedBox.shrink(key: ValueKey('app-order-actions-empty')),
+      ),
       body: !ready
-          ? const Center(child: Text('设备未连接'))
+          ? Center(child: Text(l10n.deviceNotConnected))
           : _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
           ? _AppOrderError(message: _error!, onRetry: _load)
           : _apps.isEmpty
-          ? const Center(child: Text('设备没有返回可排序的应用'))
+          ? Center(child: Text(l10n.appOrderEmpty))
           : Column(
               children: [
                 Expanded(
@@ -291,7 +302,10 @@ class _AppOrderError extends StatelessWidget {
           const SizedBox(height: 12),
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 16),
-          FilledButton.tonal(onPressed: onRetry, child: const Text('重试')),
+          FilledButton.tonal(
+            onPressed: onRetry,
+            child: Text(AppLocalizations.of(context)!.retry),
+          ),
         ],
       ),
     ),
@@ -335,7 +349,18 @@ class _XiaomiAlarmsPageState extends ConsumerState<XiaomiAlarmsPage> {
   }
 
   Future<void> _add() async {
-    final draft = await _editAlarm();
+    final draft = await _editAlarm(
+      XiaomiAlarm(
+        id: 0,
+        hour: TimeOfDay.now().hour,
+        minute: TimeOfDay.now().minute,
+        clockMode: 0,
+        weekDays: 0,
+        enabled: true,
+        label: '',
+      ),
+      adding: true,
+    );
     if (draft == null) return;
     setState(() => _busy = true);
     try {
@@ -362,47 +387,177 @@ class _XiaomiAlarmsPageState extends ConsumerState<XiaomiAlarmsPage> {
     }
   }
 
-  Future<XiaomiAlarm?> _editAlarm([XiaomiAlarm? initial]) async {
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(
-        hour: initial?.hour ?? TimeOfDay.now().hour,
-        minute: initial?.minute ?? TimeOfDay.now().minute,
-      ),
+  Future<XiaomiAlarm?> _editAlarm(
+    XiaomiAlarm? initial, {
+    bool adding = false,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    var label = initial?.label ?? '';
+    final originalClockMode = initial?.clockMode ?? 0;
+    var clockMode = originalClockMode;
+    if (clockMode == 4) clockMode = 2;
+    if (![0, 1, 2, 3, 5].contains(clockMode)) clockMode = 0;
+    var repeatChanged = false;
+    var weekDays = initial?.weekDays ?? 0;
+    final selectedTime = TimeOfDay(
+      hour: initial?.hour ?? TimeOfDay.now().hour,
+      minute: initial?.minute ?? TimeOfDay.now().minute,
     );
-    if (time == null || !mounted) return null;
-    final labelController = TextEditingController(text: initial?.label ?? '');
-    final label = await showDialog<String>(
+    var hourText = selectedTime.hour.toString().padLeft(2, '0');
+    var minuteText = selectedTime.minute.toString().padLeft(2, '0');
+    final formKey = GlobalKey<FormState>();
+    final details = await showDialog<(String, int, int, TimeOfDay)>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(initial == null ? '添加闹钟' : '编辑闹钟'),
-        content: TextField(
-          controller: labelController,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: '标签（可选）'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(adding ? l10n.alarmAdd : l10n.alarmEdit),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: hourText,
+                        onChanged: (value) => hourText = value,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        decoration: InputDecoration(labelText: l10n.alarmHour),
+                        validator: (value) {
+                          final hour = int.tryParse(value ?? '');
+                          return hour == null || hour < 0 || hour > 23
+                              ? '0–23'
+                              : null;
+                        },
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Text(':'),
+                    ),
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: minuteText,
+                        onChanged: (value) => minuteText = value,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        decoration: InputDecoration(
+                          labelText: l10n.alarmMinute,
+                        ),
+                        validator: (value) {
+                          final minute = int.tryParse(value ?? '');
+                          return minute == null || minute < 0 || minute > 59
+                              ? '0–59'
+                              : null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<int>(
+                  initialValue: clockMode,
+                  decoration: InputDecoration(labelText: l10n.alarmRepeat),
+                  items: [
+                    DropdownMenuItem(value: 0, child: Text(l10n.alarmOnce)),
+                    DropdownMenuItem(value: 1, child: Text(l10n.alarmEveryDay)),
+                    DropdownMenuItem(value: 2, child: Text(l10n.alarmWorkdays)),
+                    DropdownMenuItem(value: 3, child: Text(l10n.alarmHolidays)),
+                    DropdownMenuItem(value: 5, child: Text(l10n.alarmCustom)),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() {
+                        clockMode = value;
+                        repeatChanged = true;
+                      });
+                    }
+                  },
+                ),
+                if (clockMode == 5) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      for (final (index, label) in [
+                        l10n.weekdayMonShort,
+                        l10n.weekdayTueShort,
+                        l10n.weekdayWedShort,
+                        l10n.weekdayThuShort,
+                        l10n.weekdayFriShort,
+                        l10n.weekdaySatShort,
+                        l10n.weekdaySunShort,
+                      ].indexed)
+                        Expanded(
+                          child: Center(
+                            child: _AlarmWeekDayButton(
+                              label: label,
+                              selected: weekDays & (1 << index) != 0,
+                              onPressed: () {
+                                setDialogState(() {
+                                  weekDays ^= 1 << index;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 16),
+                TextFormField(
+                  initialValue: label,
+                  onChanged: (value) => label = value,
+                  decoration: InputDecoration(labelText: l10n.alarmLabel),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: clockMode == 5 && weekDays == 0
+                  ? null
+                  : () {
+                      if (!(formKey.currentState?.validate() ?? false)) return;
+                      formKey.currentState!.save();
+                      Navigator.pop(context, (
+                        label.trim(),
+                        clockMode,
+                        weekDays,
+                        TimeOfDay(
+                          hour: int.parse(hourText),
+                          minute: int.parse(minuteText),
+                        ),
+                      ));
+                    },
+              child: Text(l10n.save),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, labelController.text),
-            child: const Text('保存'),
-          ),
-        ],
       ),
     );
-    labelController.dispose();
-    if (label == null) return null;
+    if (details == null) return null;
+    final savedClockMode = repeatChanged ? details.$2 : originalClockMode;
     return XiaomiAlarm(
-      id: initial?.id ?? 0,
-      hour: time.hour,
-      minute: time.minute,
-      clockMode: initial?.clockMode ?? 1,
-      weekDays: initial?.weekDays ?? 127,
+      id: initial?.id ?? 1,
+      hour: details.$4.hour,
+      minute: details.$4.minute,
+      clockMode: savedClockMode,
+      weekDays: repeatChanged
+          ? switch (savedClockMode) {
+              1 => 127,
+              2 => 31,
+              5 => details.$3,
+              _ => 0,
+            }
+          : initial?.weekDays ?? details.$3,
       enabled: initial?.enabled ?? true,
-      label: label,
+      label: details.$1,
     );
   }
 
@@ -424,16 +579,16 @@ class _XiaomiAlarmsPageState extends ConsumerState<XiaomiAlarmsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('删除闹钟？'),
+        title: Text(AppLocalizations.of(context)!.alarmDeleteTitle),
         content: Text('${_time(alarm)} ${alarm.label}'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除'),
+            child: Text(AppLocalizations.of(context)!.delete),
           ),
         ],
       ),
@@ -444,7 +599,13 @@ class _XiaomiAlarmsPageState extends ConsumerState<XiaomiAlarmsPage> {
       await ref
           .read(deviceManagerProvider.notifier)
           .removeXiaomiAlarm(alarm.id);
-      await _load();
+      if (mounted) {
+        setState(
+          () => _alarms = _alarms
+              .where((candidate) => candidate.id != alarm.id)
+              .toList(growable: false),
+        );
+      }
     } catch (error) {
       if (mounted) _showError(error);
     } finally {
@@ -465,21 +626,66 @@ class _XiaomiAlarmsPageState extends ConsumerState<XiaomiAlarmsPage> {
   String _time(XiaomiAlarm alarm) =>
       '${alarm.hour.toString().padLeft(2, '0')}:${alarm.minute.toString().padLeft(2, '0')}';
 
+  String _alarmDescription(XiaomiAlarm alarm) {
+    final l10n = AppLocalizations.of(context)!;
+    final repeat = switch (alarm.clockMode) {
+      0 => l10n.alarmOnce,
+      1 => l10n.alarmEveryDay,
+      2 => l10n.alarmWorkdays,
+      3 => l10n.alarmHolidays,
+      4 => l10n.alarmWorkdays,
+      5 => _customWeekDays(l10n, alarm.weekDays),
+      6 => l10n.alarmWeekly,
+      7 => l10n.alarmMonthly,
+      8 => l10n.alarmYearly,
+      _ => l10n.alarmNoRepeat,
+    };
+    return alarm.label.isEmpty ? repeat : '$repeat · ${alarm.label}';
+  }
+
+  String _customWeekDays(AppLocalizations l10n, int days) {
+    final labels = [
+      l10n.weekdayMonShort,
+      l10n.weekdayTueShort,
+      l10n.weekdayWedShort,
+      l10n.weekdayThuShort,
+      l10n.weekdayFriShort,
+      l10n.weekdaySatShort,
+      l10n.weekdaySunShort,
+    ];
+    final selected = <String>[];
+    for (var index = 0; index < labels.length; index++) {
+      if (days & (1 << index) != 0) selected.add(labels[index]);
+    }
+    return selected.isEmpty
+        ? l10n.alarmCustom
+        : l10n.alarmCustomDays(selected.join('、'));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(deviceManagerProvider);
     final ready = state.protocolState == proto.ProtocolState.ready;
     return Scaffold(
-      appBar: SysAppBar(secondary: true, title: const Text('闹钟管理')),
-      floatingActionButton: ready && !_busy
-          ? FloatingActionButton.extended(
-              onPressed: _add,
-              icon: const Icon(Icons.add),
-              label: const Text('添加闹钟'),
-            )
-          : null,
+      appBar: SysAppBar(
+        secondary: true,
+        title: Text(l10n.alarmManagementTitle),
+      ),
+      floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
+      floatingActionButton: StableFabSwitcher(
+        child: ready && !_busy
+            ? StableExtendedFab(
+                key: const ValueKey('add-alarm'),
+                heroTag: 'xiaomi-add-alarm',
+                onPressed: _add,
+                icon: const Icon(Icons.add),
+                label: Text(l10n.alarmAdd),
+              )
+            : const SizedBox.shrink(key: ValueKey('add-alarm-hidden')),
+      ),
       body: !ready
-          ? const Center(child: Text('设备未连接'))
+          ? Center(child: Text(l10n.deviceNotConnected))
           : _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -495,9 +701,7 @@ class _XiaomiAlarmsPageState extends ConsumerState<XiaomiAlarmsPage> {
                         key: ValueKey(alarm.id),
                         leading: const Icon(Icons.alarm_outlined),
                         title: Text(_time(alarm)),
-                        description: Text(
-                          alarm.label.isEmpty ? '每天' : alarm.label,
-                        ),
+                        description: Text(_alarmDescription(alarm)),
                         initialValue: alarm.enabled,
                         enabled: !_busy,
                         trailing: Row(
@@ -523,6 +727,46 @@ class _XiaomiAlarmsPageState extends ConsumerState<XiaomiAlarmsPage> {
   }
 }
 
+class _AlarmWeekDayButton extends StatelessWidget {
+  const _AlarmWeekDayButton({
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      color: selected ? colors.primaryContainer : colors.surfaceContainerHigh,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
+        child: SizedBox.square(
+          dimension: 36,
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: selected
+                    ? colors.onPrimaryContainer
+                    : colors.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class XiaomiWeatherPage extends ConsumerStatefulWidget {
   const XiaomiWeatherPage({super.key});
 
@@ -531,11 +775,19 @@ class XiaomiWeatherPage extends ConsumerStatefulWidget {
 }
 
 class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
+  static const _lastCityPreferenceKey = 'xiaomi.weather.last_city';
   final _cityController = TextEditingController();
   final _weatherService = XiaomiWeatherSyncService();
   XiaomiWeatherData? _weather;
   bool _syncing = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _cityController.text =
+        SharedPrefsService.instance.getString(_lastCityPreferenceKey) ?? '';
+  }
 
   @override
   void dispose() {
@@ -552,7 +804,16 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
     try {
       final weather = await _weatherService.fetch(_cityController.text);
       await ref.read(deviceManagerProvider.notifier).syncXiaomiWeather(weather);
-      if (mounted) setState(() => _weather = weather);
+      await SharedPrefsService.instance.setString(
+        _lastCityPreferenceKey,
+        weather.cityName,
+      );
+      if (mounted) {
+        setState(() {
+          _weather = weather;
+          _cityController.text = weather.cityName;
+        });
+      }
     } catch (error) {
       if (mounted) {
         setState(
@@ -569,11 +830,12 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(deviceManagerProvider);
     final ready = state.protocolState == proto.ProtocolState.ready;
     final weather = _weather;
     return Scaffold(
-      appBar: SysAppBar(secondary: true, title: const Text('天气同步')),
+      appBar: SysAppBar(secondary: true, title: Text(l10n.weatherSyncTitle)),
       body: SegmentedList(
         maxWidth: StyleConstants.pageMaxWidth,
         contentPadding: const EdgeInsets.only(top: 8, bottom: 24),
@@ -587,19 +849,14 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '选择城市后，OronBox 会把当前天气和未来预报一次性同步到设备',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 16),
                       TextField(
                         controller: _cityController,
                         enabled: ready && !_syncing,
-                        decoration: const InputDecoration(
-                          labelText: '同步城市',
-                          hintText: '例如：上海',
-                          prefixIcon: Icon(Icons.location_city_outlined),
-                          suffixIcon: Icon(Icons.search),
+                        decoration: InputDecoration(
+                          labelText: l10n.weatherCityLabel,
+                          hintText: l10n.weatherCityHint,
+                          prefixIcon: const Icon(Icons.location_city_outlined),
+                          suffixIcon: const Icon(Icons.search),
                         ),
                         onSubmitted: (_) => _sync(),
                       ),
@@ -616,7 +873,11 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
                                   ),
                                 )
                               : const Icon(Icons.sync),
-                          label: Text(_syncing ? '同步中…' : '同步天气'),
+                          label: Text(
+                            _syncing
+                                ? l10n.weatherSyncing
+                                : l10n.weatherSyncAction,
+                          ),
                         ),
                       ),
                       if (_error != null) ...[
@@ -628,17 +889,42 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
                           ),
                         ),
                       ],
-                      if (weather != null) ...[
-                        const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (weather != null)
+            CustomSegmentedSection(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Icon(
-                              _weatherIcon(weather.conditionCode),
-                              size: 42,
-                              color: Theme.of(context).colorScheme.primary,
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                _weatherIcon(weather.conditionCode),
+                                size: 34,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimaryContainer,
+                              ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 16),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -650,31 +936,87 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
                                     ).textTheme.titleMedium,
                                   ),
                                   Text(
-                                    '${weather.temperature}℃ · ${_weatherCondition(weather.conditionCode)}',
+                                    '${weather.temperature}℃',
                                     style: Theme.of(
                                       context,
-                                    ).textTheme.headlineSmall,
+                                    ).textTheme.displaySmall,
+                                  ),
+                                  Text(
+                                    _weatherCondition(
+                                      l10n,
+                                      weather.conditionCode,
+                                    ),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge,
                                   ),
                                 ],
                               ),
                             ),
+                            Text(
+                              _publishedLabel(l10n, weather.publishedAt),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '湿度 ${weather.humidity}% · 风力 ${weather.windSpeedBeaufort} 级',
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '已同步未来 ${weather.hourly.length} 小时和 ${weather.daily.length} 天预报',
+                        const SizedBox(height: 20),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final columns = constraints.maxWidth >= 640 ? 4 : 2;
+                            const spacing = 12.0;
+                            final width =
+                                (constraints.maxWidth -
+                                    spacing * (columns - 1)) /
+                                columns;
+                            return Wrap(
+                              spacing: spacing,
+                              runSpacing: spacing,
+                              children: [
+                                _WeatherMetric(
+                                  width: width,
+                                  icon: Icons.water_drop_outlined,
+                                  label: l10n.weatherHumidity,
+                                  value: '${weather.humidity}%',
+                                ),
+                                _WeatherMetric(
+                                  width: width,
+                                  icon: Icons.air,
+                                  label: l10n.weatherWind,
+                                  value: l10n.weatherLevelDirection(
+                                    weather.windSpeedBeaufort,
+                                    _windDirection(l10n, weather.windDirection),
+                                  ),
+                                ),
+                                _WeatherMetric(
+                                  width: width,
+                                  icon: Icons.eco_outlined,
+                                  label: l10n.weatherAirQuality,
+                                  value: weather.aqi == null
+                                      ? l10n.deviceHealthNoData
+                                      : 'AQI ${weather.aqi}',
+                                ),
+                                _WeatherMetric(
+                                  width: width,
+                                  icon: Icons.wb_sunny_outlined,
+                                  label: l10n.weatherUv,
+                                  value: '${weather.uvIndex}',
+                                ),
+                                _WeatherMetric(
+                                  width: width,
+                                  icon: Icons.speed,
+                                  label: l10n.weatherPressure,
+                                  value: '${weather.pressureHpa.round()} hPa',
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
           if (weather != null && weather.hourly.isNotEmpty)
             CustomSegmentedSection(
               child: Padding(
@@ -686,12 +1028,12 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '未来 24 小时',
+                          l10n.weatherNext24Hours,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
-                          height: 124,
+                          height: 160,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: weather.hourly.length,
@@ -700,7 +1042,7 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
                             itemBuilder: (context, index) {
                               final hour = weather.hourly[index];
                               return SizedBox(
-                                width: 82,
+                                width: 104,
                                 child: Card(
                                   margin: EdgeInsets.zero,
                                   color: Theme.of(
@@ -725,6 +1067,27 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w600,
                                           ),
+                                        ),
+                                        Text(
+                                          _weatherCondition(
+                                            l10n,
+                                            hour.conditionCode,
+                                          ),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodySmall,
+                                        ),
+                                        Text(
+                                          l10n.weatherLevelDirectionCompact(
+                                            hour.windSpeedBeaufort,
+                                            _windDirection(
+                                              l10n,
+                                              hour.windDirection,
+                                            ),
+                                          ),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodySmall,
                                         ),
                                       ],
                                     ),
@@ -751,7 +1114,7 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '未来 7 天',
+                          l10n.weatherNext7Days,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: 8),
@@ -759,12 +1122,16 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
                           ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: Icon(_weatherIcon(day.conditionCode)),
-                            title: Text(_dayLabel(day.date)),
+                            title: Text(_dayLabel(l10n, day.date)),
                             subtitle: Text(
-                              _weatherCondition(day.conditionCode),
+                              l10n.weatherForecastSummary(
+                                _weatherCondition(l10n, day.conditionCode),
+                                _clockLabel(day.sunrise),
+                                _clockLabel(day.sunset),
+                              ),
                             ),
                             trailing: Text(
-                              '${day.minimumTemperature}℃ / ${day.maximumTemperature}℃',
+                              '${day.maximumTemperature}℃ / ${day.minimumTemperature}℃',
                             ),
                           ),
                       ],
@@ -779,6 +1146,52 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
   }
 }
 
+class _WeatherMetric extends StatelessWidget {
+  const _WeatherMetric({
+    required this.width,
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final double width;
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: width,
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Row(
+      children: [
+        Icon(icon, size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 IconData _weatherIcon(int conditionCode) => switch (conditionCode) {
   0 => Icons.wb_sunny_outlined,
   1 => Icons.wb_cloudy_outlined,
@@ -791,24 +1204,50 @@ IconData _weatherIcon(int conditionCode) => switch (conditionCode) {
   _ => Icons.cloud_outlined,
 };
 
-String _weatherCondition(int conditionCode) => switch (conditionCode) {
-  0 => '晴',
-  1 => '少云',
-  2 => '阴',
-  3 || 7 => '小雨',
-  8 || 9 || 11 => '大雨',
-  4 || 5 => '雷雨',
-  14 || 15 || 16 => '降雪',
-  18 || 19 => '雾',
-  _ => '未知',
-};
+String _weatherCondition(AppLocalizations l10n, int conditionCode) =>
+    switch (conditionCode) {
+      0 => l10n.weatherClear,
+      1 => l10n.weatherPartlyCloudy,
+      2 => l10n.weatherCloudy,
+      3 || 7 => l10n.weatherLightRain,
+      8 || 9 || 11 => l10n.weatherHeavyRain,
+      4 || 5 => l10n.weatherThunderstorm,
+      14 || 15 || 16 => l10n.weatherSnow,
+      18 || 19 => l10n.weatherFog,
+      _ => l10n.weatherUnknown,
+    };
 
 String _hourLabel(String value) {
   if (value.length >= 16) return value.substring(11, 16);
   return value;
 }
 
-String _dayLabel(String value) {
+String _dayLabel(AppLocalizations l10n, String value) {
   if (value.length >= 10) return value.substring(5, 10);
-  return value.isEmpty ? '未知日期' : value;
+  return value.isEmpty ? l10n.weatherUnknownDate : value;
+}
+
+String _clockLabel(String value) {
+  if (value.length >= 16) return value.substring(11, 16);
+  return '--:--';
+}
+
+String _publishedLabel(AppLocalizations l10n, String value) {
+  final time = _clockLabel(value);
+  return time == '--:--' ? '' : l10n.weatherUpdatedAt(time);
+}
+
+String _windDirection(AppLocalizations l10n, int degrees) {
+  final names = [
+    l10n.windNorth,
+    l10n.windNorthEast,
+    l10n.windEast,
+    l10n.windSouthEast,
+    l10n.windSouth,
+    l10n.windSouthWest,
+    l10n.windWest,
+    l10n.windNorthWest,
+  ];
+  final normalized = ((degrees % 360) + 360) % 360;
+  return names[((normalized + 22.5) ~/ 45) % names.length];
 }

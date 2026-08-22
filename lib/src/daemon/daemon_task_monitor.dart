@@ -65,7 +65,7 @@ Future<void> clearHostTasks(OronBoxCommandBus host) async {
     const OronBoxCommand(method: 'queue.clear'),
   );
   if (!result.ok) {
-    throw StateError('${result.error!.code}: ${result.error!.message}');
+    throw result.error!;
   }
 }
 
@@ -78,6 +78,6 @@ Future<void> _taskCommand(
     OronBoxCommand(method: method, params: {'id': id}),
   );
   if (!result.ok) {
-    throw StateError('${result.error!.code}: ${result.error!.message}');
+    throw result.error!;
   }
 }

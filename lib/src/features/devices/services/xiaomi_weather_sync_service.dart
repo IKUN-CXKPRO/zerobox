@@ -30,6 +30,24 @@ class XiaomiWeatherSyncService {
       throw StateError('城市坐标无效');
     }
 
+    final airQualityRequest = _dio
+        .get<Map<String, dynamic>>(
+          'https://air-quality-api.open-meteo.com/v1/air-quality',
+          queryParameters: {
+            'latitude': latitude,
+            'longitude': longitude,
+            'current': 'us_aqi',
+            'timezone': 'auto',
+          },
+        )
+        .then<Map<String, Object?>>(
+          (response) => _map(response.data?['current']),
+          onError: (Object _, StackTrace _) => const <String, Object?>{},
+        )
+        .timeout(
+          const Duration(seconds: 5),
+          onTimeout: () => const <String, Object?>{},
+        );
     final forecastResponse = await _dio.get<Map<String, dynamic>>(
       'https://api.open-meteo.com/v1/forecast',
       queryParameters: {
@@ -68,6 +86,8 @@ class XiaomiWeatherSyncService {
     final current = _map(data['current']);
     final daily = _map(data['daily']);
     final hourly = _map(data['hourly']);
+    final airQuality = await airQualityRequest;
+    final utcOffsetSeconds = (data['utc_offset_seconds'] as num?)?.toInt() ?? 0;
 
     final dailyCodes = _nullableNumbers(daily['weather_code']);
     final minimums = _nullableNumbers(daily['temperature_2m_min']);
@@ -87,8 +107,8 @@ class XiaomiWeatherSyncService {
           minimumTemperature: minimum.round(),
           maximumTemperature: maximum.round(),
           date: _value(dates, i),
-          sunrise: _value(sunrises, i),
-          sunset: _value(sunsets, i),
+          sunrise: _isoWithOffset(_value(sunrises, i), utcOffsetSeconds),
+          sunset: _isoWithOffset(_value(sunsets, i), utcOffsetSeconds),
         ),
       );
     }
@@ -116,7 +136,10 @@ class XiaomiWeatherSyncService {
       if (code == null ||
           temperature == null ||
           speed == null ||
-          direction == null) {
+          direction == null ||
+          direction < 0 ||
+          direction > 360 ||
+          speed < 0) {
         continue;
       }
       hourlyItems.add(
@@ -130,20 +153,25 @@ class XiaomiWeatherSyncService {
       );
     }
 
+    final locationName = location['name']?.toString() ?? query;
+    final locationIdentity =
+        '$locationName:'
+        '${latitude.toStringAsFixed(4)}:${longitude.toStringAsFixed(4)}';
     return XiaomiWeatherData(
-      locationKey:
-          'open-meteo:${latitude.toStringAsFixed(4)}:${longitude.toStringAsFixed(4)}',
-      cityName: location['name']?.toString() ?? query,
-      locationName: location['name']?.toString() ?? query,
-      publishedAt:
-          current['time']?.toString() ?? DateTime.now().toIso8601String(),
+      locationKey: 'accu:${_javaStringHash(locationIdentity).abs() % 1000000}',
+      cityName: locationName,
+      locationName: locationName,
+      publishedAt: _isoWithOffset(
+        current['time']?.toString() ?? '',
+        utcOffsetSeconds,
+      ),
       conditionCode: _condition(_number(current['weather_code'])),
       temperature: _number(current['temperature_2m']).round(),
       humidity: _number(current['relative_humidity_2m']).round(),
       windSpeedBeaufort: _beaufort(_number(current['wind_speed_10m'])),
       windDirection: _number(current['wind_direction_10m']).round(),
       uvIndex: _number(current['uv_index']).round(),
-      aqi: 0,
+      aqi: (airQuality['us_aqi'] as num?)?.round(),
       pressureHpa: _number(current['surface_pressure']),
       daily: dailyItems,
       hourly: hourlyItems,
@@ -167,6 +195,30 @@ class XiaomiWeatherSyncService {
 
   double? _numberAt(List<double?> values, int index) =>
       index < values.length ? values[index] : null;
+
+  String _isoWithOffset(String value, int utcOffsetSeconds) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return DateTime.now().toUtc().toIso8601String();
+    }
+    if (RegExp(r'(Z|[+-]\d{2}:\d{2})$').hasMatch(trimmed)) return trimmed;
+    final withSeconds = RegExp(r'T\d{2}:\d{2}$').hasMatch(trimmed)
+        ? '$trimmed:00'
+        : trimmed;
+    final sign = utcOffsetSeconds < 0 ? '-' : '+';
+    final absolute = utcOffsetSeconds.abs();
+    final hours = (absolute ~/ 3600).toString().padLeft(2, '0');
+    final minutes = ((absolute % 3600) ~/ 60).toString().padLeft(2, '0');
+    return '$withSeconds$sign$hours:$minutes';
+  }
+
+  int _javaStringHash(String value) {
+    var hash = 0;
+    for (final codeUnit in value.codeUnits) {
+      hash = ((hash * 31 + codeUnit) & 0xffffffff);
+    }
+    return hash >= 0x80000000 ? hash - 0x100000000 : hash;
+  }
 
   String _value(List<String> values, int index) =>
       index < values.length ? values[index] : '';

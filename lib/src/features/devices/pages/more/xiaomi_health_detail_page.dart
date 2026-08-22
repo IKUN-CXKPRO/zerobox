@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:segmented_list/segmented_list.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/features/devices/health/health_cards.dart';
@@ -19,8 +20,12 @@ class XiaomiHealthDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: SysAppBar(secondary: true, title: Text(_title(args.metric))),
+      appBar: SysAppBar(
+        secondary: true,
+        title: Text(_title(l10n, args.metric)),
+      ),
       body: SegmentedList(
         maxWidth: StyleConstants.pageMaxWidth,
         contentPadding: const EdgeInsets.only(top: 8, bottom: 24),
@@ -51,6 +56,7 @@ class XiaomiHealthDetailPage extends StatelessWidget {
   }
 
   Widget _activity(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final days = args.data.daily;
     return Column(
       children: [
@@ -58,20 +64,26 @@ class XiaomiHealthDetailPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('活动趋势', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                l10n.deviceHealthActivityTrend,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 16),
               Row(
                 children: [
                   _Stat(
-                    label: '消耗',
+                    label: l10n.deviceHealthActiveCalories,
                     value: _latest(
                       (day) => day.activeCalories ?? day.calories,
                       'kcal',
                     ),
                   ),
-                  _Stat(label: '步数', value: _latest((day) => day.steps, '')),
                   _Stat(
-                    label: '站立',
+                    label: l10n.deviceHealthSteps,
+                    value: _latest((day) => day.steps, ''),
+                  ),
+                  _Stat(
+                    label: l10n.deviceHealthStanding,
                     value: _latest((day) => day.standingHours, 'h'),
                   ),
                 ],
@@ -85,7 +97,7 @@ class XiaomiHealthDetailPage extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(child: Text(_date(day.date))),
-                Text('${day.steps ?? '—'} 步'),
+                Text(l10n.deviceHealthStepValue(day.steps ?? '—')),
                 const SizedBox(width: 16),
                 Text('${day.activeCalories ?? day.calories ?? '—'} kcal'),
               ],
@@ -98,19 +110,57 @@ class XiaomiHealthDetailPage extends StatelessWidget {
   }
 
   Widget _series(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final latestSample = args.data.latestSample(args.metric);
+    final anchor = latestSample?.timestamp ?? DateTime.now();
+    final chartEnd = DateTime(
+      anchor.year,
+      anchor.month,
+      anchor.day,
+      anchor.hour,
+    ).add(const Duration(hours: 1));
+    final chartStart = chartEnd.subtract(const Duration(hours: 24));
     final samples =
         args.data
             .samplesFor(args.metric)
-            .where((sample) => sample.isUsable)
+            .where(
+              (sample) =>
+                  sample.isUsable &&
+                  !sample.timestamp.isBefore(chartStart) &&
+                  sample.timestamp.isBefore(chartEnd),
+            )
             .toList()
           ..sort((left, right) => left.timestamp.compareTo(right.timestamp));
     final color = _color(args.metric);
-    final latest = args.data.latestSample(args.metric)?.value;
+    final summary = args.data.latestDay;
+    final summaryLatest = switch (args.metric) {
+      XiaomiHealthMetric.heartRate => summary?.averageHeartRate,
+      XiaomiHealthMetric.bloodOxygen => summary?.averageBloodOxygen,
+      XiaomiHealthMetric.stress => summary?.averageStress,
+      _ => null,
+    };
+    final latest = latestSample?.value ?? summaryLatest?.toDouble();
     final values = samples.map((sample) => sample.value).toList();
-    final min = values.isEmpty ? null : values.reduce((a, b) => a < b ? a : b);
-    final max = values.isEmpty ? null : values.reduce((a, b) => a > b ? a : b);
+    final summaryMin = switch (args.metric) {
+      XiaomiHealthMetric.heartRate => summary?.minHeartRate,
+      XiaomiHealthMetric.bloodOxygen => summary?.minBloodOxygen,
+      XiaomiHealthMetric.stress => summary?.minStress,
+      _ => null,
+    };
+    final summaryMax = switch (args.metric) {
+      XiaomiHealthMetric.heartRate => summary?.maxHeartRate,
+      XiaomiHealthMetric.bloodOxygen => summary?.maxBloodOxygen,
+      XiaomiHealthMetric.stress => summary?.maxStress,
+      _ => null,
+    };
+    final min = values.isEmpty
+        ? summaryMin?.toDouble()
+        : values.reduce((a, b) => a < b ? a : b);
+    final max = values.isEmpty
+        ? summaryMax?.toDouble()
+        : values.reduce((a, b) => a > b ? a : b);
     final average = values.isEmpty
-        ? null
+        ? summaryLatest?.toDouble()
         : values.reduce((a, b) => a + b) / values.length;
     return Column(
       children: [
@@ -118,9 +168,18 @@ class XiaomiHealthDetailPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('趋势', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                l10n.deviceHealthTrend,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 12),
-              HealthLineChart(samples: samples, color: color),
+              HealthLineChart(
+                metric: args.metric,
+                samples: samples,
+                color: color,
+                start: chartStart,
+                end: chartEnd,
+              ),
             ],
           ),
         ),
@@ -128,29 +187,39 @@ class XiaomiHealthDetailPage extends StatelessWidget {
         _DetailCard(
           child: Row(
             children: [
-              _Stat(label: '最新', value: _number(latest)),
-              _Stat(label: '平均', value: _number(average)),
-              _Stat(label: '范围', value: '${_number(min)}–${_number(max)}'),
+              _Stat(label: l10n.deviceHealthLatest, value: _number(latest)),
+              _Stat(label: l10n.deviceHealthAverage, value: _number(average)),
+              _Stat(
+                label: l10n.deviceHealthRange,
+                value: '${_number(min)}–${_number(max)}',
+              ),
             ],
           ),
         ),
         if (samples.isEmpty) ...[
           const SizedBox(height: 16),
-          _DetailCard(child: const Text('暂无详细采样数据')),
+          _DetailCard(child: Text(l10n.deviceHealthNoSamples)),
         ],
       ],
     );
   }
 
   Widget _vitality(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final day = args.data.latestDay;
     return _DetailCard(
       child: Row(
         children: [
-          _Stat(label: '当前元气值', value: _number(day?.vitalityCurrent)),
-          _Stat(label: '低强度', value: _number(day?.vitalityIncreaseLight)),
           _Stat(
-            label: '中高强度',
+            label: l10n.deviceHealthCurrentVitality,
+            value: _number(day?.vitalityCurrent),
+          ),
+          _Stat(
+            label: l10n.deviceHealthLightIntensity,
+            value: _number(day?.vitalityIncreaseLight),
+          ),
+          _Stat(
+            label: l10n.deviceHealthModerateHighIntensity,
             value: _number(
               (day?.vitalityIncreaseModerate ?? 0) +
                   (day?.vitalityIncreaseHigh ?? 0),
@@ -162,8 +231,9 @@ class XiaomiHealthDetailPage extends StatelessWidget {
   }
 
   Widget _sleep(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (args.data.sleep.isEmpty) {
-      return _DetailCard(child: const Text('暂无睡眠数据'));
+      return _DetailCard(child: Text(l10n.deviceHealthNoSleep));
     }
     return Column(
       children: [
@@ -185,8 +255,9 @@ class XiaomiHealthDetailPage extends StatelessWidget {
   }
 
   Widget _workouts(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (args.data.workouts.isEmpty) {
-      return _DetailCard(child: const Text('暂无运动记录'));
+      return _DetailCard(child: Text(l10n.deviceHealthNoWorkouts));
     }
     return Column(
       children: [
@@ -252,16 +323,17 @@ class _Stat extends StatelessWidget {
   }
 }
 
-String _title(XiaomiHealthMetric metric) => switch (metric) {
-  XiaomiHealthMetric.activity => '活动概览',
-  XiaomiHealthMetric.activeCalories => '活动概览',
-  XiaomiHealthMetric.heartRate => '心率',
-  XiaomiHealthMetric.bloodOxygen => '血氧',
-  XiaomiHealthMetric.stress => '压力',
-  XiaomiHealthMetric.vitality => '元气值',
-  XiaomiHealthMetric.sleep => '睡眠',
-  XiaomiHealthMetric.workout => '运动记录',
-};
+String _title(AppLocalizations l10n, XiaomiHealthMetric metric) =>
+    switch (metric) {
+      XiaomiHealthMetric.activity => l10n.deviceHealthActivityOverview,
+      XiaomiHealthMetric.activeCalories => l10n.deviceHealthActivityOverview,
+      XiaomiHealthMetric.heartRate => l10n.deviceHealthHeartRate,
+      XiaomiHealthMetric.bloodOxygen => l10n.deviceHealthBloodOxygen,
+      XiaomiHealthMetric.stress => l10n.deviceHealthStress,
+      XiaomiHealthMetric.vitality => l10n.deviceHealthVitality,
+      XiaomiHealthMetric.sleep => l10n.deviceHealthSleep,
+      XiaomiHealthMetric.workout => l10n.deviceHealthWorkout,
+    };
 
 Color _color(XiaomiHealthMetric metric) => switch (metric) {
   XiaomiHealthMetric.heartRate => Colors.redAccent,

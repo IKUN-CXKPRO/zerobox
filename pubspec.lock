@@ -761,11 +761,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "v0.1.0"
-      resolved-ref: f1d497372e8ea5414b8358c3eed8bda256bcdea5
+      ref: "v0.1.1"
+      resolved-ref: "0a9c54f275268fe1656926f84f537fc79bffb8eb"
       url: "https://github.com/zxor-org/OronBox-Package-Network.git"
     source: git
-    version: "0.1.0"
+    version: "0.1.1"
   package_config:
     dependency: transitive
     description:

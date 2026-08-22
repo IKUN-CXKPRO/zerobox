@@ -148,7 +148,6 @@ class AppSettings {
     required this.bandbbsLoadPreviews,
     required this.bandbbsShowAllCategories,
     this.removeBondBeforeSpp = false,
-    this.healthFeaturesEnabled = false,
     this.checkUpdateOnLaunch = true,
     this.clean = const CleanSettings(),
   });
@@ -163,7 +162,6 @@ class AppSettings {
   final bool bandbbsLoadPreviews;
   final bool bandbbsShowAllCategories;
   final bool removeBondBeforeSpp;
-  final bool healthFeaturesEnabled;
   final bool checkUpdateOnLaunch;
   final CleanSettings clean;
 
@@ -179,7 +177,6 @@ class AppSettings {
     bool? checkUpdateOnLaunch,
     bool? bandbbsShowAllCategories,
     bool? removeBondBeforeSpp,
-    bool? healthFeaturesEnabled,
     CleanSettings? clean,
   }) {
     return AppSettings(
@@ -195,8 +192,6 @@ class AppSettings {
       bandbbsShowAllCategories:
           bandbbsShowAllCategories ?? this.bandbbsShowAllCategories,
       removeBondBeforeSpp: removeBondBeforeSpp ?? this.removeBondBeforeSpp,
-      healthFeaturesEnabled:
-          healthFeaturesEnabled ?? this.healthFeaturesEnabled,
       checkUpdateOnLaunch: checkUpdateOnLaunch ?? this.checkUpdateOnLaunch,
       clean: clean ?? this.clean,
     );
@@ -214,7 +209,6 @@ class AppSettings {
   static const String _keyCheckUpdateOnLaunch = 'check_update_on_launch';
   static const String _keyBandBbsShowAllCategories =
       'bandbbs_show_all_categories';
-  static const String _keyHealthFeaturesEnabled = 'health_features_enabled';
 
   static AppSettings load() {
     final prefs = SharedPrefsService.instance;
@@ -243,7 +237,6 @@ class AppSettings {
           prefs.getBool(_keyBandBbsShowAllCategories) ?? false,
       removeBondBeforeSpp:
           prefs.getBool(removeBondBeforeSppSettingKey) ?? false,
-      healthFeaturesEnabled: prefs.getBool(_keyHealthFeaturesEnabled) ?? false,
       checkUpdateOnLaunch: prefs.getBool(_keyCheckUpdateOnLaunch) ?? true,
       clean: CleanSettings(
         exploreEntry: prefs.getBool('clean_explore_entry') ?? true,
@@ -297,7 +290,6 @@ class AppSettings {
     await prefs.setBool(_keyBandBbsLoadPreviews, bandbbsLoadPreviews);
     await prefs.setBool(_keyBandBbsShowAllCategories, bandbbsShowAllCategories);
     await prefs.setBool(removeBondBeforeSppSettingKey, removeBondBeforeSpp);
-    await prefs.setBool(_keyHealthFeaturesEnabled, healthFeaturesEnabled);
     await prefs.setBool(_keyCheckUpdateOnLaunch, checkUpdateOnLaunch);
     await prefs.setBool('clean_explore_entry', clean.exploreEntry);
     await prefs.setBool('clean_plugins_entry', clean.pluginsEntry);
@@ -344,7 +336,6 @@ abstract class AppSettingsNotifier extends Notifier<AppSettings> {
   Future<void> setBandBbsLoadPreviews(bool value);
   Future<void> setBandBbsShowAllCategories(bool value);
   Future<void> setRemoveBondBeforeSpp(bool value);
-  Future<void> setHealthFeaturesEnabled(bool value);
   Future<void> setCheckUpdateOnLaunch(bool value);
   Future<void> setClean(CleanSettings value);
 }
@@ -441,12 +432,6 @@ class LocalAppSettingsNotifier extends AppSettingsNotifier {
   }
 
   @override
-  Future<void> setHealthFeaturesEnabled(bool value) async {
-    state = state.copyWith(healthFeaturesEnabled: value);
-    await state.save();
-  }
-
-  @override
   Future<void> setCheckUpdateOnLaunch(bool value) async {
     state = state.copyWith(checkUpdateOnLaunch: value);
     await state.save();
@@ -502,7 +487,6 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
           json['bandbbs_show_all_categories'] as bool? ?? false,
       removeBondBeforeSpp:
           json[removeBondBeforeSppSettingKey] as bool? ?? false,
-      healthFeaturesEnabled: state.healthFeaturesEnabled,
       clean: state.clean,
     );
   }
@@ -517,7 +501,7 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
           ),
         );
     if (!result.ok) {
-      throw StateError('${result.error!.code}: ${result.error!.message}');
+      throw result.error!;
     }
     state = next;
   }
@@ -597,15 +581,6 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
     value,
     state.copyWith(removeBondBeforeSpp: value),
   );
-  @override
-  Future<void> setHealthFeaturesEnabled(bool value) async {
-    state = state.copyWith(healthFeaturesEnabled: value);
-    await SharedPrefsService.instance.setBool(
-      AppSettings._keyHealthFeaturesEnabled,
-      value,
-    );
-  }
-
   @override
   Future<void> setCheckUpdateOnLaunch(bool value) => _set(
     'check_update_on_launch',

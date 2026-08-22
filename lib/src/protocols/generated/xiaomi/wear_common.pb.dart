@@ -361,7 +361,7 @@ class KeyValue extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'protocol'),
       createEmptyInstance: create)
     ..aQS(1, _omitFieldNames ? '' : 'key')
-    ..aI(2, _omitFieldNames ? '' : 'value', fieldType: $pb.PbFieldType.Q3);
+    ..aI(2, _omitFieldNames ? '' : 'value', fieldType: $pb.PbFieldType.QS3);
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   KeyValue clone() => deepCopy();

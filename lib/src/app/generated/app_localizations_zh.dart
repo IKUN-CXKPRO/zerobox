@@ -3010,13 +3010,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsCategoryAdvanced => '高级设置';
 
   @override
-  String get settingsAdvancedDescription => '查看日志、开发者工具与实验性功能';
-
-  @override
-  String get settingsHealthFeatures => '启用实验性功能';
-
-  @override
-  String get settingsHealthFeaturesDescription => '启用尚未开发完成的运动健康、天气同步和闹钟管理功能';
+  String get settingsAdvancedDescription => '查看日志与开发者工具';
 
   @override
   String get debugServerTitle => '调试服务';
@@ -3408,6 +3402,331 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get creatorBandBbsOverwritePreviousDescription => '创建新版本后删除米坛上一次提交的版本';
+
+  @override
+  String get deviceAboutTitle => '关于设备';
+
+  @override
+  String get deviceValueUnavailable => '未提供';
+
+  @override
+  String get deviceHealthActivityOverview => '活动概览';
+
+  @override
+  String get deviceHealthActiveCalories => '消耗';
+
+  @override
+  String get deviceHealthStanding => '站立';
+
+  @override
+  String get deviceHealthBloodOxygen => '血氧';
+
+  @override
+  String get deviceHealthStress => '压力';
+
+  @override
+  String get deviceHealthVitality => '元气值';
+
+  @override
+  String get deviceHealthWorkout => '运动记录';
+
+  @override
+  String get deviceHealthTodayTotal => '今日累计';
+
+  @override
+  String get deviceHealthRecordCount => '条记录';
+
+  @override
+  String get deviceHealthNoDetailedRange => '暂无详细范围';
+
+  @override
+  String get deviceHealthActivityTrend => '活动趋势';
+
+  @override
+  String get deviceHealthTrend => '趋势';
+
+  @override
+  String get deviceHealthLatest => '最新';
+
+  @override
+  String get deviceHealthAverage => '平均';
+
+  @override
+  String get deviceHealthRange => '范围';
+
+  @override
+  String get deviceHealthNoSamples => '暂无详细采样数据';
+
+  @override
+  String get deviceHealthCurrentVitality => '当前元气值';
+
+  @override
+  String get deviceHealthLightIntensity => '低强度';
+
+  @override
+  String get deviceHealthModerateHighIntensity => '中高强度';
+
+  @override
+  String get deviceHealthNoSleep => '暂无睡眠数据';
+
+  @override
+  String get deviceHealthNoWorkouts => '暂无运动记录';
+
+  @override
+  String deviceHealthStepValue(Object value) {
+    return '$value 步';
+  }
+
+  @override
+  String get deviceHealthFeatureDescription => '查看活动、心率、血氧、压力和睡眠数据';
+
+  @override
+  String get weatherSyncTitle => '天气同步';
+
+  @override
+  String get weatherSyncDescription => '选择城市并同步当前天气与预报';
+
+  @override
+  String get alarmManagementTitle => '闹钟管理';
+
+  @override
+  String get alarmManagementDescription => '添加、编辑、启用或删除设备闹钟';
+
+  @override
+  String get findDeviceDescription => '让设备持续振动或响铃';
+
+  @override
+  String get appOrderTitle => '应用顺序管理';
+
+  @override
+  String get appOrderDescription => '拖动调整设备启动器中的应用顺序';
+
+  @override
+  String get appOrderSaved => '应用顺序已保存';
+
+  @override
+  String get appOrderReload => '重新读取';
+
+  @override
+  String get appOrderUndo => '撤销更改';
+
+  @override
+  String get appOrderSaving => '保存中…';
+
+  @override
+  String get appOrderSave => '保存更改';
+
+  @override
+  String get appOrderEmpty => '设备没有返回可排序的应用';
+
+  @override
+  String get appLayoutTitle => '应用布局设置';
+
+  @override
+  String get appLayoutDescription => '选择设备应用列表的显示方式';
+
+  @override
+  String get appLayoutLoadFailed => '无法读取应用布局';
+
+  @override
+  String get appLayoutList => '列表';
+
+  @override
+  String get appLayoutGrid => '网格';
+
+  @override
+  String get appLayoutTextGrid => '带文字网格';
+
+  @override
+  String get firmwareUpdateDescription => '检查更新或安装本地固件';
+
+  @override
+  String get deviceAboutDescription => '查看型号、系统版本、存储空间和设备标识';
+
+  @override
+  String get alarmAdd => '添加闹钟';
+
+  @override
+  String get alarmEdit => '编辑闹钟';
+
+  @override
+  String get alarmHour => '小时';
+
+  @override
+  String get alarmMinute => '分钟';
+
+  @override
+  String get alarmRepeat => '重复';
+
+  @override
+  String get alarmOnce => '仅一次';
+
+  @override
+  String get alarmEveryDay => '每天';
+
+  @override
+  String get alarmWorkdays => '工作日';
+
+  @override
+  String get alarmHolidays => '节假日';
+
+  @override
+  String get alarmCustom => '自定义';
+
+  @override
+  String get alarmLabel => '标签';
+
+  @override
+  String get alarmDeleteTitle => '删除闹钟？';
+
+  @override
+  String get alarmWeekly => '每周';
+
+  @override
+  String get alarmMonthly => '每月';
+
+  @override
+  String get alarmYearly => '每年';
+
+  @override
+  String get alarmNoRepeat => '不重复';
+
+  @override
+  String alarmCustomDays(Object days) {
+    return '周$days';
+  }
+
+  @override
+  String get weekdayMonShort => '一';
+
+  @override
+  String get weekdayTueShort => '二';
+
+  @override
+  String get weekdayWedShort => '三';
+
+  @override
+  String get weekdayThuShort => '四';
+
+  @override
+  String get weekdayFriShort => '五';
+
+  @override
+  String get weekdaySatShort => '六';
+
+  @override
+  String get weekdaySunShort => '日';
+
+  @override
+  String get weatherCityLabel => '同步城市';
+
+  @override
+  String get weatherCityHint => '输入城市名称';
+
+  @override
+  String get weatherSyncAction => '同步天气';
+
+  @override
+  String get weatherSyncing => '同步中…';
+
+  @override
+  String get weatherHumidity => '相对湿度';
+
+  @override
+  String get weatherWind => '风力';
+
+  @override
+  String get weatherAirQuality => '空气质量';
+
+  @override
+  String get weatherUv => '紫外线';
+
+  @override
+  String get weatherPressure => '气压';
+
+  @override
+  String get weatherNext24Hours => '未来 24 小时';
+
+  @override
+  String get weatherNext7Days => '未来 7 天';
+
+  @override
+  String weatherLevelDirection(Object level, Object direction) {
+    return '$level 级 · $direction';
+  }
+
+  @override
+  String weatherLevelDirectionCompact(Object level, Object direction) {
+    return '$level 级 $direction';
+  }
+
+  @override
+  String weatherForecastSummary(
+    Object condition,
+    Object sunrise,
+    Object sunset,
+  ) {
+    return '$condition · 日出 $sunrise · 日落 $sunset';
+  }
+
+  @override
+  String get weatherClear => '晴';
+
+  @override
+  String get weatherPartlyCloudy => '少云';
+
+  @override
+  String get weatherCloudy => '阴';
+
+  @override
+  String get weatherLightRain => '小雨';
+
+  @override
+  String get weatherHeavyRain => '大雨';
+
+  @override
+  String get weatherThunderstorm => '雷雨';
+
+  @override
+  String get weatherSnow => '降雪';
+
+  @override
+  String get weatherFog => '雾';
+
+  @override
+  String get weatherUnknown => '未知';
+
+  @override
+  String get weatherUnknownDate => '未知日期';
+
+  @override
+  String weatherUpdatedAt(Object time) {
+    return '$time 更新';
+  }
+
+  @override
+  String get windNorth => '北';
+
+  @override
+  String get windNorthEast => '东北';
+
+  @override
+  String get windEast => '东';
+
+  @override
+  String get windSouthEast => '东南';
+
+  @override
+  String get windSouth => '南';
+
+  @override
+  String get windSouthWest => '西南';
+
+  @override
+  String get windWest => '西';
+
+  @override
+  String get windNorthWest => '西北';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -6421,13 +6740,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsCategoryAdvanced => '進階設定';
 
   @override
-  String get settingsAdvancedDescription => '檢視日誌、開發者工具與實驗性功能';
-
-  @override
-  String get settingsHealthFeatures => '啟用實驗性功能';
-
-  @override
-  String get settingsHealthFeaturesDescription => '啟用尚未開發完成的運動健康、天氣同步與鬧鐘管理功能';
+  String get settingsAdvancedDescription => '檢視日誌與開發者工具';
 
   @override
   String get debugServerTitle => '除錯服務';

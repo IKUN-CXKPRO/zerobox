@@ -6,12 +6,27 @@ import 'package:quickjs_engine/quickjs_engine.dart';
 
 import 'plugin_runtime.dart';
 
+({bool succeeded, String encodedPayload}) encodeQuickJsHostSettlement(
+  bool succeeded,
+  Object? payload,
+) {
+  try {
+    return (succeeded: succeeded, encodedPayload: jsonEncode(payload));
+  } catch (error) {
+    return (
+      succeeded: false,
+      encodedPayload: jsonEncode('Host result serialization failed: $error'),
+    );
+  }
+}
+
 PluginRuntime createPluginRuntime() => _QuickJsPluginRuntime();
 
 class _QuickJsPluginRuntime implements PluginRuntime {
   QuickJsRuntime2? _runtime;
   PluginHostCall? _hostCall;
   final _timers = <int, Timer>{};
+  final _hostRequests = <String>{};
 
   @override
   Map<String, Object?> get diagnostics => {
@@ -45,24 +60,29 @@ class _QuickJsPluginRuntime implements PluginRuntime {
         );
       },
     );
-    runtime.enableHandlePromises();
     _runtime = runtime;
     _hostCall = hostCall;
 
     JavascriptRuntime.channelFunctionsRegistered[runtime
         .getEngineInstanceId()]!['OronBoxHost'] = (dynamic message) {
       final json = (message as Map).cast<String, Object?>();
+      final requestId = json['requestId']?.toString() ?? '';
       final method = json['method']?.toString() ?? '';
       final arguments = (json['args'] as List?)?.cast<Object?>() ?? const [];
       if (method == 'runtime.setTimer') {
-        return _setTimer(arguments);
+        _scheduleHostRequest(runtime, requestId, () => _setTimer(arguments));
+        return null;
       }
       if (method == 'runtime.clearTimer') {
-        return _clearTimer(arguments);
+        _scheduleHostRequest(runtime, requestId, () => _clearTimer(arguments));
+        return null;
       }
-      final result = hostCall(method, arguments);
-      settlePluginHostCall(result, runtime.dispatch);
-      return result;
+      _scheduleHostRequest(
+        runtime,
+        requestId,
+        () => hostCall(method, arguments),
+      );
+      return null;
     };
 
     if (bootstrap.isNotEmpty) {
@@ -78,9 +98,7 @@ class _QuickJsPluginRuntime implements PluginRuntime {
       );
     }
     _evaluate(runtime, utf8.decode(entryBytes), name: '$pluginId/main.js');
-    final started = runtime.evaluate('__zbStartPlugin()');
-    if (started.isError) throw StateError(started.stringResult);
-    await _resolveResult(runtime, started);
+    await _runOperation(runtime, '__zbStartPlugin()');
   }
 
   @override
@@ -94,21 +112,20 @@ class _QuickJsPluginRuntime implements PluginRuntime {
     List<Object?> arguments,
   ) async {
     final runtime = _requiredRuntime;
-    final result = runtime.evaluate(
-      '__zbInvokeRegistered(${jsonEncode(callbackId)}, ${jsonEncode(arguments)})',
+    return _runOperation(
+      runtime,
+      '__zbInvokeRegistered('
+      '${jsonEncode(callbackId)}, ${jsonEncode(arguments)})',
     );
-    if (result.isError) throw StateError(result.stringResult);
-    return _resolveResult(runtime, result);
   }
 
   @override
   Future<void> dispatchEvent(String name, String payload) async {
     final runtime = _requiredRuntime;
-    final result = runtime.evaluate(
+    await _runOperation(
+      runtime,
       '__zbDispatchEvent(${jsonEncode(name)}, ${jsonEncode(payload)})',
     );
-    if (result.isError) throw StateError(result.stringResult);
-    await _resolveResult(runtime, result);
   }
 
   @override
@@ -117,10 +134,17 @@ class _QuickJsPluginRuntime implements PluginRuntime {
       timer.cancel();
     }
     _timers.clear();
-    _hostCall = null;
     final runtime = _runtime;
-    _runtime = null;
     if (runtime == null) return;
+    if (_hostRequests.isNotEmpty) {
+      final result = runtime.evaluate(
+        '__zbRejectAllHostRequests("Plugin runtime closed")',
+      );
+      if (!result.isError) runtime.dispatch();
+      _hostRequests.clear();
+    }
+    _hostCall = null;
+    _runtime = null;
     JavascriptRuntime.channelFunctionsRegistered.remove(
       runtime.getEngineInstanceId(),
     );
@@ -133,6 +157,56 @@ class _QuickJsPluginRuntime implements PluginRuntime {
     return runtime;
   }
 
+  void _scheduleHostRequest(
+    QuickJsRuntime2 runtime,
+    String requestId,
+    FutureOr<Object?> Function() operation,
+  ) {
+    if (requestId.isEmpty) return;
+    _hostRequests.add(requestId);
+    scheduleMicrotask(() {
+      Future<Object?>.sync(operation)
+          .timeout(const Duration(seconds: 60))
+          .then(
+            (value) {
+              _hostRequests.remove(requestId);
+              _settleHostRequest(runtime, requestId, true, value);
+            },
+            onError: (Object error, StackTrace _) {
+              _hostRequests.remove(requestId);
+              _settleHostRequest(runtime, requestId, false, error.toString());
+            },
+          );
+    });
+  }
+
+  void _settleHostRequest(
+    QuickJsRuntime2 runtime,
+    String requestId,
+    bool succeeded,
+    Object? payload,
+  ) {
+    if (!identical(_runtime, runtime)) return;
+    try {
+      final settlement = encodeQuickJsHostSettlement(succeeded, payload);
+      final result = runtime.evaluate(
+        '__zbSettleHostRequest('
+        '${jsonEncode(requestId)}, ${settlement.succeeded}, '
+        '${settlement.encodedPayload})',
+      );
+      if (result.isError) {
+        throw StateError(result.stringResult);
+      }
+      runtime.dispatch();
+    } catch (error) {
+      unawaited(
+        Future.sync(
+          () => _hostCall?.call('runtime.reportError', [error.toString()]),
+        ).then<void>((_) {}, onError: (_, _) {}),
+      );
+    }
+  }
+
   void _evaluate(
     QuickJsRuntime2 runtime,
     String source, {
@@ -142,19 +216,39 @@ class _QuickJsPluginRuntime implements PluginRuntime {
     if (result.isError) throw StateError(result.stringResult);
   }
 
-  Future<Object?> _resolveResult(
+  Future<Object?> _runOperation(
     QuickJsRuntime2 runtime,
-    JsEvalResult result,
+    String expression,
   ) async {
-    await runtime.dispatch();
-    if (!result.isPromise && result.rawResult is! Future) {
-      return result.rawResult;
+    final deadline = DateTime.now().add(const Duration(seconds: 60));
+    final started = runtime.evaluate('__zbBeginOperation(() => ($expression))');
+    if (started.isError) throw StateError(started.stringResult);
+    final operationId = started.rawResult;
+    if (operationId is! num) {
+      throw StateError('Plugin operation did not return an operation ID');
     }
-    final resolved = result.isPromise
-        ? await runtime.handlePromise(result)
-        : await result.rawResult as Object?;
-    await runtime.dispatch();
-    return resolved is JsEvalResult ? resolved.stringResult : resolved;
+    while (identical(_runtime, runtime)) {
+      if (DateTime.now().isAfter(deadline)) {
+        throw TimeoutException('Plugin operation timed out');
+      }
+      await runtime.dispatch();
+      final polled = runtime.evaluate(
+        '__zbPollOperation(${operationId.toInt()})',
+      );
+      if (polled.isError) throw StateError(polled.stringResult);
+      final status = (jsonDecode(polled.stringResult) as Map)
+          .cast<String, Object?>();
+      switch (status['state']) {
+        case 'fulfilled':
+          return status['value'];
+        case 'rejected':
+          throw StateError(status['error']?.toString() ?? 'Plugin failed');
+        case 'missing':
+          throw StateError('Plugin operation disappeared');
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    throw StateError('Plugin was closed before the operation completed');
   }
 
   Object? _setTimer(List<Object?> arguments) {
@@ -186,9 +280,7 @@ class _QuickJsPluginRuntime implements PluginRuntime {
     final runtime = _runtime;
     if (runtime == null) return;
     try {
-      final result = runtime.evaluate('__zbFireTimer($id)');
-      if (result.isError) throw StateError(result.stringResult);
-      await _resolveResult(runtime, result);
+      await _runOperation(runtime, '__zbFireTimer($id)');
     } catch (error) {
       await Future.sync(
         () => _hostCall?.call('log.error', ['Timer $id failed: $error']),

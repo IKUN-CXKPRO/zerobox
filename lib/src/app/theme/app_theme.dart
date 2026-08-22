@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -15,6 +16,13 @@ ThemeData oledDarkTheme(ThemeData defaultDarkTheme) {
 }
 
 abstract final class AppTheme {
+  static const _windowsFontFallback = <String>[
+    'Microsoft YaHei UI',
+    'Microsoft JhengHei UI',
+    'Yu Gothic UI',
+    'Malgun Gothic',
+  ];
+
   static final ThemeData light = buildLightTheme();
   static final ThemeData dark = buildDarkTheme();
   static final ThemeData oledDark = oledDarkTheme(dark);
@@ -75,6 +83,9 @@ abstract final class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
+      fontFamilyFallback: defaultTargetPlatform == TargetPlatform.windows
+          ? _windowsFontFallback
+          : null,
       colorScheme: effectiveColorScheme,
       brightness: brightness,
       pageTransitionsTheme: pageTransitionsTheme,
@@ -181,7 +192,6 @@ abstract final class AppTheme {
         elevation: 0,
         focusElevation: 0,
         hoverElevation: 0,
-        highlightElevation: 0,
         disabledElevation: 0,
       ),
     );
