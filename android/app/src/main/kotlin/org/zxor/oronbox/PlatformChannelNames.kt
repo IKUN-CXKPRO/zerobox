@@ -11,6 +11,7 @@ object PlatformChannelNames {
     const val FIND_PHONE = "oronbox/find_phone"
     const val XMS_WEARABLE = "oronbox/xms_wearable"
     const val BACKGROUND_TASKS = "oronbox/background_tasks"
+    const val STATUS_SURFACES = "oronbox/status_surfaces"
     const val LOGS = "oronbox/logs"
     const val INSTALLER = "oronbox/installer"
     const val CLASSIC_SPP = "oronbox/classic_spp"

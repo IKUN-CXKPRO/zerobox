@@ -13,6 +13,7 @@ import 'package:oronbox/src/core/providers/bluetooth_platform_provider.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/core/services/connection_keep_alive.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
+import 'package:oronbox/src/core/services/status_surface_bridge.dart';
 import 'package:oronbox/src/device/core/ble_requirement.dart';
 import 'package:oronbox/src/device/core/ble_transport.dart';
 import 'package:oronbox/src/device/core/bluetooth_platform.dart';
@@ -660,12 +661,26 @@ class LocalDeviceManager extends DeviceManager {
       if (wasReady == isReady) return;
       if (isReady) {
         unawaited(
-          beginConnectionKeepAlive(
-            'Connected: ${next.currentDevice?.name ?? 'device'}',
-          ),
+          beginConnectionKeepAlive(next.currentDevice?.name ?? 'device'),
         );
       } else {
         unawaited(endConnectionKeepAlive());
+      }
+    });
+    listenSelf((previous, next) {
+      final previousStorage = previous?.systemInfo?.storageInfo;
+      final nextStorage = next.systemInfo?.storageInfo;
+      final unchanged =
+          previous != null &&
+          previous.currentDevice == next.currentDevice &&
+          previous.protocolState == next.protocolState &&
+          previous.connecting == next.connecting &&
+          previous.battery == next.battery &&
+          previousStorage == nextStorage &&
+          previous.apps.length == next.apps.length &&
+          previous.watchfaces.length == next.watchfaces.length;
+      if (!unchanged) {
+        unawaited(updateDeviceStatusSurface(_deviceStatusSurfaceData(next)));
       }
     });
 
@@ -686,6 +701,9 @@ class LocalDeviceManager extends DeviceManager {
 
     _log.info('DeviceManager created');
     final initialState = _loadStateSync();
+    unawaited(
+      updateDeviceStatusSurface(_deviceStatusSurfaceData(initialState)),
+    );
 
     if (initialState.pairedDevices.isNotEmpty &&
         _shouldAutoReconnect() &&
@@ -713,6 +731,32 @@ class LocalDeviceManager extends DeviceManager {
     }
 
     return initialState;
+  }
+
+  Map<String, Object?> _deviceStatusSurfaceData(DeviceManagerState value) {
+    final device = value.currentDevice;
+    final connected =
+        value.protocolState == ProtocolState.ready &&
+        device != null &&
+        !device.disconnected;
+    final connecting = value.connecting && device != null;
+    final storage = value.systemInfo?.storageInfo;
+    final appCount = value.apps
+        .where((app) => !app.packageName.startsWith('com.xiaomi.miwear.'))
+        .length;
+    return {
+      'hasDevice': device != null,
+      'deviceName': device?.name ?? '',
+      'connected': connected,
+      'connecting': connecting,
+      'battery': value.battery?.capacity ?? -1,
+      'charging': value.battery?.chargeStatus == ChargeStatus.charging,
+      'storageUsed': storage?.used ?? -1,
+      'storageTotal': storage?.total ?? -1,
+      'appCount': appCount,
+      'watchfaceCount': value.watchfaces.length,
+      'updatedAt': DateTime.now().millisecondsSinceEpoch,
+    };
   }
 
   static final _log = getLogger('DeviceManager');
@@ -1057,7 +1101,7 @@ class LocalDeviceManager extends DeviceManager {
   bool _removeBondBeforeSpp() {
     if (kIsWeb) return false;
     return SharedPrefsService.instance.getBool(removeBondBeforeSppSettingKey) ??
-        false;
+        true;
   }
 
   void _throwIfConnectCancelled(int generation) {

@@ -67,34 +67,38 @@ class _DeviceWatchfacesPageState extends ConsumerState<DeviceWatchfacesPage> {
           ? Center(child: Text(localizedErrorMessage(l10n, _error)))
           : state.watchfaces.isEmpty
           ? Center(child: Text(l10n.watchfaceManagementNone))
-          : ListView.builder(
+          : PageContainer(
               padding: EdgeInsets.zero,
-              itemCount: state.watchfaces.length,
-              itemBuilder: (context, index) {
-                final watchface = state.watchfaces[index];
-                return PageContainer(
-                  padding: EdgeInsets.fromLTRB(
-                    StyleConstants.pagePadding,
-                    index == 0 ? 8 : 0,
-                    StyleConstants.pagePadding,
-                    0,
-                  ),
-                  child: SectionCard(
-                    margin: const EdgeInsets.only(bottom: 8),
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(
+                  StyleConstants.pagePadding,
+                  8,
+                  StyleConstants.pagePadding,
+                  16,
+                ),
+                itemCount: state.watchfaces.length,
+                itemBuilder: (context, index) {
+                  final watchface = state.watchfaces[index];
+                  return SectionCard(
+                    margin: EdgeInsets.zero,
                     padding: EdgeInsets.zero,
                     child: ListTile(
                       title: Text(watchface.name),
                       subtitle: watchface.isCurrent
-                          ? Text(l10n.currentDevice)
+                          ? Text(
+                              'ID: ${watchface.id} · ${l10n.currentWatchface}',
+                            )
                           : Text('ID: ${watchface.id}'),
                       trailing: _WatchfaceActions(
                         watchface: watchface,
                         onRefresh: _refresh,
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: StyleConstants.cardSpace),
+              ),
             ),
     );
   }

@@ -11,22 +11,22 @@ class PageContainer extends StatelessWidget {
       vertical: StyleConstants.pagePadding,
     ),
     this.center = true,
+    this.safeArea = true,
   });
 
   final Widget child;
   final double maxWidth;
   final EdgeInsetsGeometry padding;
   final bool center;
+  final bool safeArea;
 
   @override
   Widget build(BuildContext context) {
     // Secondary pages are pushed on the root navigator and reach the system
     // navigation area; inside the tab shell the bottom padding is already
     // consumed by the NavigationBar, so this is a no-op there.
-    final body = SafeArea(
-      top: false,
-      child: Padding(padding: padding, child: child),
-    );
+    final content = Padding(padding: padding, child: child);
+    final body = safeArea ? SafeArea(top: false, child: content) : content;
     if (!center) return body;
     return Center(
       child: ConstrainedBox(
@@ -104,10 +104,7 @@ class SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          if (leading != null) ...[
-            leading!,
-            const SizedBox(width: 8),
-          ],
+          if (leading != null) ...[leading!, const SizedBox(width: 8)],
           Expanded(
             child: Text(
               title,

@@ -110,7 +110,7 @@ void main() {
       }
     });
 
-    test('preserves unknown coded backend messages and details', () {
+    test('shows only the first line of backend messages', () {
       expect(
         localizedErrorMessage(
           en,
@@ -124,10 +124,21 @@ void main() {
           const _TestCodedError(
             'internal',
             'actual backend message',
-            'stack trace',
+            '#0 LocalCommandBus._execute (package:oronbox/command_bus.dart:1:1)\n'
+                '#1 LocalCommandBus.execute (package:oronbox/command_bus.dart:2:2)',
           ),
         ),
-        'actual backend message\nstack trace',
+        'actual backend message',
+      );
+      expect(
+        localizedErrorMessage(
+          en,
+          const _TestCodedError('internal', 'actual backend message', {
+            'stage': 'publish',
+            'stackTrace': '#0 ignored',
+          }),
+        ),
+        'actual backend message',
       );
     });
 

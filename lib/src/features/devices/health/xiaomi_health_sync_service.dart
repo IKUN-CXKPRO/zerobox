@@ -46,6 +46,7 @@ class XiaomiHealthSyncService {
             averageHeartRate: value.averageHeartRate,
             averageBloodOxygen: value.averageBloodOxygen,
             quality: value.quality,
+            stages: _stages(value),
           ),
         )
         .toList(growable: false);
@@ -187,6 +188,54 @@ class XiaomiHealthSyncService {
     );
   }
 
-  DateTime _dateOnly(DateTime value) =>
-      DateTime(value.year, value.month, value.day);
+  DateTime _dateOnly(DateTime value) {
+    final local = value.toLocal();
+    return DateTime(local.year, local.month, local.day);
+  }
+
+  List<HealthSleepStageSegment> _stages(XiaomiActivitySleepRecord value) {
+    final points = [...value.stages]
+      ..sort((left, right) => left.timestamp.compareTo(right.timestamp));
+    final result = <HealthSleepStageSegment>[];
+    for (var index = 0; index < points.length; index++) {
+      final point = points[index];
+      final startedAt = point.timestamp.isBefore(value.startedAt)
+          ? value.startedAt
+          : point.timestamp;
+      final next = index + 1 < points.length
+          ? points[index + 1].timestamp
+          : value.endedAt;
+      final endedAt = next.isAfter(value.endedAt) ? value.endedAt : next;
+      if (!endedAt.isAfter(startedAt)) continue;
+      final kind = switch (point.stage) {
+        2 => HealthSleepStageKind.deep,
+        3 => HealthSleepStageKind.light,
+        4 => HealthSleepStageKind.rem,
+        5 => HealthSleepStageKind.awake,
+        _ => HealthSleepStageKind.unknown,
+      };
+      if (kind == HealthSleepStageKind.unknown) continue;
+      if (result.isNotEmpty &&
+          result.last.kind == kind &&
+          result.last.endedAt == startedAt) {
+        final previous = result.removeLast();
+        result.add(
+          HealthSleepStageSegment(
+            startedAt: previous.startedAt,
+            endedAt: endedAt,
+            kind: kind,
+          ),
+        );
+      } else {
+        result.add(
+          HealthSleepStageSegment(
+            startedAt: startedAt,
+            endedAt: endedAt,
+            kind: kind,
+          ),
+        );
+      }
+    }
+    return result;
+  }
 }

@@ -309,6 +309,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get currentDevice => '当前设备';
 
   @override
+  String get currentWatchface => '当前表盘';
+
+  @override
   String get all => '全部';
 
   @override
@@ -1275,6 +1278,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceHealthSyncing => '正在同步';
 
   @override
+  String get deviceHealthAutoSyncTitle => '自动同步运动健康数据';
+
+  @override
+  String get deviceHealthAutoSyncDescription => '在同步设备数据时自动同步运动健康数据';
+
+  @override
   String get deviceHealthConnectFirst => '请先连接设备再同步运动健康数据';
 
   @override
@@ -1728,10 +1737,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsDesktopCloseBehaviorDesc => '选择关闭主窗口时执行的操作';
 
   @override
-  String get settingsRemoveBondBeforeSpp => '连接前解除蓝牙配对';
+  String get settingsRemoveBondBeforeSpp => '连接时重新配对';
 
   @override
-  String get settingsRemoveBondBeforeSppDesc => '每次经典蓝牙连接前解除现有配对并重新建立连接';
+  String get settingsRemoveBondBeforeSppDesc =>
+      '开启有助于提升连接稳定性，防止官方运动健康抢走设备连接，关闭后有助于加快连接速度';
 
   @override
   String get desktopCloseBehaviorAsk => '每次询问';
@@ -1999,6 +2009,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsQueueDontClearDesc => '保留已完成的安装队列项';
+
+  @override
+  String get settingsRealtimeActivityNotification => '实时活动通知';
+
+  @override
+  String get settingsRealtimeActivityNotificationDesc => '使用实时活动通知展示队列进度';
 
   @override
   String get settingsAboutWebsite => '官方网站';
@@ -3473,6 +3489,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceHealthNoWorkouts => '暂无运动记录';
 
   @override
+  String get deviceHealthSleepStages => '睡眠阶段';
+
+  @override
+  String get deviceHealthSleepAwake => '清醒';
+
+  @override
+  String get deviceHealthSleepLight => '浅睡';
+
+  @override
+  String get deviceHealthSleepDeep => '深睡';
+
+  @override
+  String get deviceHealthSleepRem => 'REM';
+
+  @override
+  String get deviceHealthSleepNoStages => '暂无睡眠阶段数据';
+
+  @override
   String deviceHealthStepValue(Object value) {
     return '$value 步';
   }
@@ -3485,6 +3519,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get weatherSyncDescription => '选择城市并同步当前天气与预报';
+
+  @override
+  String get weatherAutoSyncTitle => '自动同步天气数据';
+
+  @override
+  String get weatherAutoSyncDescription => '在同步设备数据时自动同步天气数据';
 
   @override
   String get alarmManagementTitle => '闹钟管理';
@@ -4032,6 +4072,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get currentDevice => '目前裝置';
+
+  @override
+  String get currentWatchface => '目前錶盤';
 
   @override
   String get all => '全部';
@@ -5000,6 +5043,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get deviceHealthSyncing => '正在同步';
 
   @override
+  String get deviceHealthAutoSyncTitle => '自動同步運動健康資料';
+
+  @override
+  String get deviceHealthAutoSyncDescription => '同步裝置資料時自動同步運動健康資料';
+
+  @override
   String get deviceHealthConnectFirst => '請先連線裝置再同步運動健康資料';
 
   @override
@@ -5452,10 +5501,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsDesktopCloseBehaviorDesc => '選擇關閉主視窗時的行為';
 
   @override
-  String get settingsRemoveBondBeforeSpp => '連線前解除藍牙配對';
+  String get settingsRemoveBondBeforeSpp => '連線時重新配對';
 
   @override
-  String get settingsRemoveBondBeforeSppDesc => '每次經典藍牙連線前解除現有配對並重新建立連線';
+  String get settingsRemoveBondBeforeSppDesc =>
+      '開啟有助於提升連線穩定性，防止官方運動健康搶走裝置連線，關閉後有助於加快連線速度';
 
   @override
   String get desktopCloseBehaviorAsk => '每次詢問';
@@ -5724,6 +5774,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get settingsQueueDontClearDesc => '保留安裝佇列中的已完成項目';
+
+  @override
+  String get settingsRealtimeActivityNotification => '即時活動通知';
+
+  @override
+  String get settingsRealtimeActivityNotificationDesc => '使用即時活動通知顯示佇列進度';
 
   @override
   String get settingsAboutWebsite => '官方網站';
@@ -7131,4 +7187,28 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get creatorBandBbsOverwritePreviousDescription => '建立新版本後刪除米壇上一次提交的版本';
+
+  @override
+  String get deviceHealthSleepStages => '睡眠階段';
+
+  @override
+  String get deviceHealthSleepAwake => '清醒';
+
+  @override
+  String get deviceHealthSleepLight => '淺睡';
+
+  @override
+  String get deviceHealthSleepDeep => '深睡';
+
+  @override
+  String get deviceHealthSleepRem => 'REM';
+
+  @override
+  String get deviceHealthSleepNoStages => '暫無睡眠階段資料';
+
+  @override
+  String get weatherAutoSyncTitle => '自動同步天氣資料';
+
+  @override
+  String get weatherAutoSyncDescription => '同步裝置資料時自動同步天氣資料';
 }

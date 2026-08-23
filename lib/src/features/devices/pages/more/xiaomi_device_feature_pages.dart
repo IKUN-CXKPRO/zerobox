@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:segmented_list/segmented_list.dart';
@@ -8,9 +10,9 @@ import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/app/widgets/stable_fab.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
-import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/devices/models/xiaomi_device_features.dart';
+import 'package:oronbox/src/features/devices/services/xiaomi_sync_preferences.dart';
 import 'package:oronbox/src/features/devices/services/xiaomi_weather_sync_service.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
 
@@ -53,7 +55,14 @@ class _XiaomiAppOrderPageState extends ConsumerState<XiaomiAppOrderPage> {
         });
       }
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(
+          () => _error = localizedErrorMessage(
+            AppLocalizations.of(context)!,
+            error,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -342,7 +351,14 @@ class _XiaomiAlarmsPageState extends ConsumerState<XiaomiAlarmsPage> {
           .loadXiaomiAlarms();
       if (mounted) setState(() => _alarms = alarms);
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(
+          () => _error = localizedErrorMessage(
+            AppLocalizations.of(context)!,
+            error,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -775,18 +791,24 @@ class XiaomiWeatherPage extends ConsumerStatefulWidget {
 }
 
 class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
-  static const _lastCityPreferenceKey = 'xiaomi.weather.last_city';
   final _cityController = TextEditingController();
   final _weatherService = XiaomiWeatherSyncService();
   XiaomiWeatherData? _weather;
+  DateTime? _lastSyncedAt;
   bool _syncing = false;
+  bool _autoSync = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _cityController.text =
-        SharedPrefsService.instance.getString(_lastCityPreferenceKey) ?? '';
+    _cityController.text = XiaomiSyncPreferences.weatherLastCity ?? '';
+    _autoSync = XiaomiSyncPreferences.weatherAutoSync;
+    _weather = XiaomiSyncPreferences.cachedWeather;
+    _lastSyncedAt = XiaomiSyncPreferences.cachedWeatherSyncedAt;
+    if (_cityController.text.trim().isEmpty && _weather != null) {
+      _cityController.text = _weather!.cityName;
+    }
   }
 
   @override
@@ -804,13 +826,13 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
     try {
       final weather = await _weatherService.fetch(_cityController.text);
       await ref.read(deviceManagerProvider.notifier).syncXiaomiWeather(weather);
-      await SharedPrefsService.instance.setString(
-        _lastCityPreferenceKey,
-        weather.cityName,
-      );
+      final syncedAt = DateTime.now();
+      await XiaomiSyncPreferences.setWeatherLastCity(weather.cityName);
+      await XiaomiSyncPreferences.setCachedWeather(weather, syncedAt);
       if (mounted) {
         setState(() {
           _weather = weather;
+          _lastSyncedAt = syncedAt;
           _cityController.text = weather.cityName;
         });
       }
@@ -895,6 +917,21 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
               ),
             ),
           ),
+          SegmentedSection(
+            tiles: [
+              SegmentedTile.switchTile(
+                leading: const Icon(Icons.autorenew_outlined),
+                title: Text(l10n.weatherAutoSyncTitle),
+                description: Text(l10n.weatherAutoSyncDescription),
+                initialValue: _autoSync,
+                onToggle: (value) {
+                  final enabled = value ?? false;
+                  setState(() => _autoSync = enabled);
+                  unawaited(XiaomiSyncPreferences.setWeatherAutoSync(enabled));
+                },
+              ),
+            ],
+          ),
           if (weather != null)
             CustomSegmentedSection(
               child: Padding(
@@ -950,6 +987,15 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
                                       context,
                                     ).textTheme.bodyLarge,
                                   ),
+                                  if (_lastSyncedAt != null)
+                                    Text(
+                                      l10n.deviceHealthLastSynced(
+                                        _weatherDateTime(_lastSyncedAt!),
+                                      ),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
+                                    ),
                                 ],
                               ),
                             ),
@@ -1235,6 +1281,13 @@ String _clockLabel(String value) {
 String _publishedLabel(AppLocalizations l10n, String value) {
   final time = _clockLabel(value);
   return time == '--:--' ? '' : l10n.weatherUpdatedAt(time);
+}
+
+String _weatherDateTime(DateTime value) {
+  final local = value.toLocal();
+  final time =
+      '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+  return '${local.month}/${local.day} $time';
 }
 
 String _windDirection(AppLocalizations l10n, int degrees) {

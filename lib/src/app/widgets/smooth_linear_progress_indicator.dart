@@ -31,7 +31,7 @@ class SmoothLinearProgressIndicator extends StatelessWidget {
     }
 
     return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0, end: target.clamp(0, 1)),
+      tween: Tween<double>(end: target.clamp(0, 1).toDouble()),
       duration: duration,
       curve: Curves.linear,
       builder: (context, animatedValue, _) {

@@ -113,12 +113,7 @@ class XiaomiHealthDetailPage extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final latestSample = args.data.latestSample(args.metric);
     final anchor = latestSample?.timestamp ?? DateTime.now();
-    final chartEnd = DateTime(
-      anchor.year,
-      anchor.month,
-      anchor.day,
-      anchor.hour,
-    ).add(const Duration(hours: 1));
+    final chartEnd = healthHourStart(anchor).add(const Duration(hours: 1));
     final chartStart = chartEnd.subtract(const Duration(hours: 24));
     final samples =
         args.data
@@ -235,16 +230,57 @@ class XiaomiHealthDetailPage extends StatelessWidget {
     if (args.data.sleep.isEmpty) {
       return _DetailCard(child: Text(l10n.deviceHealthNoSleep));
     }
+    final sleeps = [...args.data.sleep]
+      ..sort((left, right) => right.startedAt.compareTo(left.startedAt));
+    final stageLabels = <HealthSleepStageKind, String>{
+      HealthSleepStageKind.awake: l10n.deviceHealthSleepAwake,
+      HealthSleepStageKind.rem: l10n.deviceHealthSleepRem,
+      HealthSleepStageKind.light: l10n.deviceHealthSleepLight,
+      HealthSleepStageKind.deep: l10n.deviceHealthSleepDeep,
+    };
     return Column(
       children: [
-        for (final sleep in args.data.sleep) ...[
+        for (final (index, sleep) in sleeps.indexed) ...[
           _DetailCard(
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.bedtime_outlined),
-                const SizedBox(width: 12),
-                Expanded(child: Text(_date(sleep.startedAt))),
-                Text(_duration(sleep.durationSeconds)),
+                Row(
+                  children: [
+                    const Icon(Icons.bedtime_outlined),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        index == 0
+                            ? l10n.deviceHealthLatest
+                            : _date(sleep.startedAt),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    Text(_duration(sleep.durationSeconds)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${_sleepDateTime(sleep.startedAt)} – '
+                  '${_sleepDateTime(sleep.endedAt)}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                if (index == 0) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.deviceHealthSleepStages,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 10),
+                  if (sleep.stages.isEmpty)
+                    Text(l10n.deviceHealthSleepNoStages)
+                  else
+                    HealthSleepTimeline(
+                      summary: sleep,
+                      stageLabels: stageLabels,
+                    ),
+                ],
               ],
             ),
           ),
@@ -343,6 +379,15 @@ Color _color(XiaomiHealthMetric metric) => switch (metric) {
 };
 
 String _number(num? value) => value == null ? '—' : value.round().toString();
-String _date(DateTime value) => '${value.year}/${value.month}/${value.day}';
+String _date(DateTime value) {
+  final local = value.toLocal();
+  return '${local.year}/${local.month}/${local.day}';
+}
+
+String _sleepDateTime(DateTime value) {
+  final local = value.toLocal();
+  return '${_date(local)} ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+}
+
 String _duration(int seconds) =>
     '${seconds ~/ 3600}h ${((seconds % 3600) ~/ 60).toString().padLeft(2, '0')}m';

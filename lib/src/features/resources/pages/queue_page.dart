@@ -196,6 +196,11 @@ class _InstallQueuePanel extends ConsumerWidget {
                   ? removeHostTask(ref.read(applicationHostProvider), task.id)
                   : cancelHostTask(ref.read(applicationHostProvider), task.id),
             ),
+            onRetry: _daemonTaskStatus(task) == ResourceTaskStatus.failed
+                ? () => unawaited(
+                    retryHostTask(ref.read(applicationHostProvider), task.id),
+                  )
+                : null,
           ),
         for (final task in state.tasks)
           _QueueTile(
@@ -208,10 +213,13 @@ class _InstallQueuePanel extends ConsumerWidget {
             progress: task.progress,
             error: task.error,
             onRemove: () => notifier.remove(task.id),
-            onRetry: () => notifier.retry(task.id),
+            onRetry: task.status == ResourceTaskStatus.failed
+                ? () => notifier.retry(task.id)
+                : null,
             onFixWatchfaceId:
                 task.type == LocalDeviceInstallType.watchface &&
-                    task.status == ResourceTaskStatus.failed
+                    (task.status == ResourceTaskStatus.pending ||
+                        task.status == ResourceTaskStatus.failed)
                 ? () => _promptWatchfaceId(context, ref, task)
                 : null,
           ),
@@ -274,7 +282,11 @@ class _InstallQueuePanel extends ConsumerWidget {
       if (identifier != null) {
         await ref
             .read(installQueueProvider.notifier)
-            .reinstallWatchface(task.id, identifier: identifier);
+            .reinstallWatchface(
+              task.id,
+              identifier: identifier,
+              startImmediately: task.status == ResourceTaskStatus.failed,
+            );
       }
     } finally {
       controller.dispose();
@@ -415,23 +427,20 @@ class _QueueTile extends StatelessWidget {
             ],
           ],
         ),
-        trailing: status == ResourceTaskStatus.failed && onRetry != null
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (onFixWatchfaceId != null)
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined),
-                      tooltip: l10n.installQueueFixWatchfaceId,
-                      onPressed: onFixWatchfaceId,
-                    ),
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: onRetry,
-                  ),
-                ],
-              )
-            : IconButton(icon: const Icon(Icons.close), onPressed: onRemove),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (onFixWatchfaceId != null)
+              IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: l10n.installQueueFixWatchfaceId,
+                onPressed: onFixWatchfaceId,
+              ),
+            if (onRetry != null)
+              IconButton(icon: const Icon(Icons.refresh), onPressed: onRetry),
+            IconButton(icon: const Icon(Icons.close), onPressed: onRemove),
+          ],
+        ),
       ),
     );
   }

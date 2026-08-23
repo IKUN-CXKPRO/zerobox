@@ -157,21 +157,139 @@ class HealthMetricCard extends StatelessWidget {
           Text(detail, style: theme.textTheme.bodySmall),
           const SizedBox(height: 12),
           Expanded(
-            child: CustomPaint(
-              painter: _HealthSparklinePainter(
-                metric: metric,
-                samples: samples,
-                color: color,
-                gridColor: theme.colorScheme.outlineVariant,
-                start: chartStart,
-                end: chartEnd,
-                showGrid: false,
-              ),
-              child: const SizedBox.expand(),
+            child: Column(
+              children: [
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _HealthYAxis(metric: metric, compact: true),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: CustomPaint(
+                          painter: _HealthSparklinePainter(
+                            metric: metric,
+                            samples: samples,
+                            color: color,
+                            gridColor: theme.colorScheme.outlineVariant,
+                            start: chartStart,
+                            end: chartEnd,
+                            showGrid: false,
+                          ),
+                          child: const SizedBox.expand(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                _HealthXAxis(start: chartStart, end: chartEnd, compact: true),
+              ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class HealthSleepCard extends StatelessWidget {
+  const HealthSleepCard({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.summary,
+    required this.noDataLabel,
+    required this.onPressed,
+    super.key,
+  });
+
+  final String title;
+  final IconData icon;
+  final Color color;
+  final HealthSleepSummary? summary;
+  final String noDataLabel;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final sleep = summary;
+    return _HealthCard(
+      onPressed: onPressed,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color),
+              const SizedBox(width: 8),
+              Expanded(child: Text(title, style: theme.textTheme.titleMedium)),
+              Icon(Icons.chevron_right, color: theme.hintColor),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            sleep == null ? '—' : _formatSleepDuration(sleep.durationSeconds),
+            style: theme.textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            sleep == null
+                ? noDataLabel
+                : '${_formatSleepTime(sleep.startedAt)} – '
+                      '${_formatSleepTime(sleep.endedAt)}',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+}
+
+class HealthSleepTimeline extends StatelessWidget {
+  const HealthSleepTimeline({
+    required this.summary,
+    required this.stageLabels,
+    super.key,
+  });
+
+  final HealthSleepSummary summary;
+  final Map<HealthSleepStageKind, String> stageLabels;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = <HealthSleepStageKind, Color>{
+      HealthSleepStageKind.awake: Colors.orange,
+      HealthSleepStageKind.rem: Colors.teal,
+      HealthSleepStageKind.light: Colors.lightBlue,
+      HealthSleepStageKind.deep: Colors.indigo,
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 150,
+          child: CustomPaint(
+            painter: _SleepTimelinePainter(
+              start: summary.startedAt,
+              end: summary.endedAt,
+              stages: summary.stages,
+              colors: colors,
+              labels: stageLabels,
+              labelColor:
+                  theme.textTheme.bodySmall?.color ??
+                  theme.colorScheme.onSurfaceVariant,
+              gridColor: theme.colorScheme.outlineVariant,
+            ),
+            child: const SizedBox.expand(),
+          ),
+        ),
+        const SizedBox(height: 6),
+        _HealthXAxis(start: summary.startedAt, end: summary.endedAt),
+      ],
     );
   }
 }
@@ -201,38 +319,126 @@ class HealthLineChart extends StatelessWidget {
       children: [
         SizedBox(
           height: height,
-          child: CustomPaint(
-            painter: _HealthSparklinePainter(
-              metric: metric,
-              samples: samples,
-              color: color,
-              gridColor: theme.colorScheme.outlineVariant,
-              start: start,
-              end: end,
-              showGrid: true,
-            ),
-            child: const SizedBox.expand(),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _HealthYAxis(metric: metric),
+              const SizedBox(width: 8),
+              Expanded(
+                child: CustomPaint(
+                  painter: _HealthSparklinePainter(
+                    metric: metric,
+                    samples: samples,
+                    color: color,
+                    gridColor: theme.colorScheme.outlineVariant,
+                    start: start,
+                    end: end,
+                    showGrid: true,
+                  ),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(_chartTime(start, '00:00'), style: theme.textTheme.bodySmall),
-            Text(_chartEndTime(), style: theme.textTheme.bodySmall),
-          ],
-        ),
+        _HealthXAxis(start: start, end: end),
       ],
     );
   }
+}
 
-  String _chartTime(DateTime? value, String fallback) {
-    if (value == null) return fallback;
-    return '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+class _HealthYAxis extends StatelessWidget {
+  const _HealthYAxis({required this.metric, this.compact = false});
+
+  final XiaomiHealthMetric metric;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final axis = _healthAxis(metric);
+    final style =
+        (compact ? theme.textTheme.labelSmall : theme.textTheme.bodySmall)
+            ?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: compact ? 9 : null,
+            );
+    return SizedBox(
+      width: compact ? 42 : 52,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(axis.format(axis.maximum), style: style),
+          Text(axis.format(axis.middle), style: style),
+          Text(axis.format(axis.minimum), style: style),
+        ],
+      ),
+    );
   }
+}
 
-  String _chartEndTime() {
-    return _chartTime(end, '24:00');
+class _HealthXAxis extends StatelessWidget {
+  const _HealthXAxis({
+    required this.start,
+    required this.end,
+    this.compact = false,
+  });
+
+  final DateTime? start;
+  final DateTime? end;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final resolvedEnd = end ?? _nextHour(DateTime.now());
+    final resolvedStart =
+        start ?? resolvedEnd.subtract(const Duration(hours: 24));
+    final middle = resolvedStart.add(
+      Duration(
+        milliseconds:
+            (resolvedEnd.millisecondsSinceEpoch -
+                resolvedStart.millisecondsSinceEpoch) ~/
+            2,
+      ),
+    );
+    final style =
+        (compact ? theme.textTheme.labelSmall : theme.textTheme.bodySmall)
+            ?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: compact ? 9 : null,
+            );
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(_formatChartTime(resolvedStart), style: style),
+        Text(_formatChartTime(middle), style: style),
+        Text(_formatChartTime(resolvedEnd), style: style),
+      ],
+    );
+  }
+}
+
+class _HealthAxis {
+  const _HealthAxis({
+    required this.minimum,
+    required this.maximum,
+    this.unit = '',
+  });
+
+  final double minimum;
+  final double maximum;
+  final String unit;
+
+  double get middle => (minimum + maximum) / 2;
+
+  String format(double value) {
+    final number = value == value.roundToDouble()
+        ? value.round().toString()
+        : value.toStringAsFixed(1);
+    return unit.isEmpty ? number : '$number $unit';
   }
 }
 
@@ -338,6 +544,120 @@ class _ActivityRingsPainter extends CustomPainter {
       oldDelegate.trackColor != trackColor;
 }
 
+class _SleepTimelinePainter extends CustomPainter {
+  _SleepTimelinePainter({
+    required this.start,
+    required this.end,
+    required this.stages,
+    required this.colors,
+    required this.labels,
+    required this.labelColor,
+    required this.gridColor,
+  });
+
+  final DateTime start;
+  final DateTime end;
+  final List<HealthSleepStageSegment> stages;
+  final Map<HealthSleepStageKind, Color> colors;
+  final Map<HealthSleepStageKind, String> labels;
+  final Color labelColor;
+  final Color gridColor;
+
+  static const _kinds = [
+    HealthSleepStageKind.awake,
+    HealthSleepStageKind.rem,
+    HealthSleepStageKind.light,
+    HealthSleepStageKind.deep,
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final plotLeft = 58.0;
+    final plotWidth = math.max(1.0, size.width - plotLeft);
+    final laneHeight = 24.0;
+    final laneGap = 7.0;
+    final plotTop = 5.0;
+    final span = end.millisecondsSinceEpoch - start.millisecondsSinceEpoch;
+    if (span <= 0) return;
+
+    final textStyle = TextStyle(color: labelColor, fontSize: 11);
+    final grid = Paint()
+      ..color = gridColor.withValues(alpha: .2)
+      ..strokeWidth = 1;
+    for (var index = 0; index <= 4; index++) {
+      final x = plotLeft + plotWidth * index / 4;
+      canvas.drawLine(Offset(x, plotTop), Offset(x, size.height), grid);
+    }
+
+    for (var index = 0; index < _kinds.length; index++) {
+      final kind = _kinds[index];
+      final top = plotTop + index * (laneHeight + laneGap);
+      final track = Paint()
+        ..color = gridColor.withValues(alpha: .1)
+        ..style = PaintingStyle.fill;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(plotLeft, top, plotWidth, laneHeight),
+          const Radius.circular(8),
+        ),
+        track,
+      );
+      _drawLabel(
+        canvas,
+        labels[kind] ?? kind.name,
+        textStyle,
+        Offset(0, top + (laneHeight - textStyle.fontSize!) / 2 - 1),
+      );
+    }
+
+    for (final stage in stages) {
+      final lane = _kinds.indexOf(stage.kind);
+      final color = colors[stage.kind];
+      if (lane < 0 || color == null) continue;
+      final from = math.max(
+        0,
+        stage.startedAt.millisecondsSinceEpoch - start.millisecondsSinceEpoch,
+      );
+      final to = math.min(
+        span,
+        stage.endedAt.millisecondsSinceEpoch - start.millisecondsSinceEpoch,
+      );
+      if (to <= from) continue;
+      final left = plotLeft + plotWidth * from / span;
+      final right = plotLeft + plotWidth * to / span;
+      final top = plotTop + lane * (laneHeight + laneGap);
+      final paint = Paint()..color = color;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTRB(left, top, math.max(left + 4, right), top + laneHeight),
+          const Radius.circular(8),
+        ),
+        paint,
+      );
+    }
+  }
+
+  void _drawLabel(Canvas canvas, String text, TextStyle style, Offset offset) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+      ellipsis: '…',
+    )..layout(maxWidth: 54);
+    painter.paint(canvas, offset);
+  }
+
+  @override
+  bool shouldRepaint(covariant _SleepTimelinePainter oldDelegate) =>
+      oldDelegate.start != start ||
+      oldDelegate.end != end ||
+      oldDelegate.stages != stages ||
+      oldDelegate.colors != colors ||
+      oldDelegate.labels != labels ||
+      oldDelegate.labelColor != labelColor ||
+      oldDelegate.gridColor != gridColor;
+}
+
 class _HealthSparklinePainter extends CustomPainter {
   _HealthSparklinePainter({
     required this.metric,
@@ -375,7 +695,7 @@ class _HealthSparklinePainter extends CustomPainter {
         canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
       }
     }
-    final axis = _stableAxis(metric);
+    final axis = _healthAxis(metric);
     final plotHeight = math.max(1.0, size.height - 8);
     final trackPaint = Paint()
       ..color = gridColor.withValues(alpha: showGrid ? .3 : .18)
@@ -393,10 +713,11 @@ class _HealthSparklinePainter extends CustomPainter {
       final range = ranges[index];
       if (range == null) continue;
       double y(double value) {
-        final normalized = ((value - axis.$1) / (axis.$2 - axis.$1)).clamp(
-          0.0,
-          1.0,
-        );
+        final normalized =
+            ((value - axis.minimum) / (axis.maximum - axis.minimum)).clamp(
+              0.0,
+              1.0,
+            );
         return 4 + plotHeight * (1 - normalized);
       }
 
@@ -460,19 +781,50 @@ List<HealthHourRange?> aggregateHealthHourlyRanges(
       .toList(growable: false);
 }
 
-(double, double) _stableAxis(XiaomiHealthMetric metric) => switch (metric) {
-  XiaomiHealthMetric.heartRate => (30, 220),
-  XiaomiHealthMetric.bloodOxygen => (50, 100),
-  XiaomiHealthMetric.stress => (0, 100),
-  XiaomiHealthMetric.vitality => (0, 100),
-  XiaomiHealthMetric.activity => (0, 1000),
-  XiaomiHealthMetric.activeCalories => (0, 100),
-  XiaomiHealthMetric.sleep || XiaomiHealthMetric.workout => (0, 100),
+_HealthAxis _healthAxis(XiaomiHealthMetric metric) => switch (metric) {
+  XiaomiHealthMetric.heartRate => const _HealthAxis(
+    minimum: 30,
+    maximum: 220,
+    unit: 'bpm',
+  ),
+  XiaomiHealthMetric.bloodOxygen => const _HealthAxis(
+    minimum: 50,
+    maximum: 100,
+    unit: '%',
+  ),
+  XiaomiHealthMetric.stress => const _HealthAxis(minimum: 0, maximum: 100),
+  XiaomiHealthMetric.vitality => const _HealthAxis(minimum: 0, maximum: 100),
+  XiaomiHealthMetric.activity => const _HealthAxis(
+    minimum: 0,
+    maximum: 1000,
+    unit: 'steps',
+  ),
+  XiaomiHealthMetric.activeCalories => const _HealthAxis(
+    minimum: 0,
+    maximum: 100,
+    unit: 'kcal',
+  ),
+  XiaomiHealthMetric.sleep ||
+  XiaomiHealthMetric.workout => const _HealthAxis(minimum: 0, maximum: 100),
 };
 
-DateTime _nextHour(DateTime value) => DateTime(
-  value.year,
-  value.month,
-  value.day,
-  value.hour,
-).add(const Duration(hours: 1));
+DateTime healthHourStart(DateTime value) {
+  final local = value.toLocal();
+  return DateTime(local.year, local.month, local.day, local.hour);
+}
+
+DateTime _nextHour(DateTime value) =>
+    healthHourStart(value).add(const Duration(hours: 1));
+
+String _formatSleepTime(DateTime value) {
+  final local = value.toLocal();
+  return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+}
+
+String _formatChartTime(DateTime value) {
+  final local = value.toLocal();
+  return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+}
+
+String _formatSleepDuration(int seconds) =>
+    '${seconds ~/ 3600}h ${((seconds % 3600) ~/ 60).toString().padLeft(2, '0')}m';

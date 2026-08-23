@@ -58,6 +58,8 @@ List<DaemonTaskView> _sorted(Map<String, DaemonTaskView> tasks) =>
 
 Future<void> cancelHostTask(OronBoxCommandBus host, String id) =>
     _taskCommand(host, 'queue.cancel', id);
+Future<void> retryHostTask(OronBoxCommandBus host, String id) =>
+    _taskCommand(host, 'queue.retry', id);
 Future<void> removeHostTask(OronBoxCommandBus host, String id) =>
     _taskCommand(host, 'queue.remove', id);
 Future<void> clearHostTasks(OronBoxCommandBus host) async {

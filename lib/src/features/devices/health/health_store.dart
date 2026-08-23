@@ -10,8 +10,11 @@ import 'package:oronbox/src/features/devices/health/health_models.dart';
 /// not migrated: its entry is removed when this store is first opened for a
 /// device.
 class HealthStore {
-  static const _keyPrefix = 'health_data_v2_';
-  static const _legacyKeyPrefix = 'health_data_v1_';
+  // v2 was written while activity timestamps were incorrectly treated as
+  // UTC. Drop it so the first sync after this fix cannot mix shifted and
+  // corrected records.
+  static const _keyPrefix = 'health_data_v3_';
+  static const _legacyKeyPrefixes = ['health_data_v1_', 'health_data_v2_'];
   static const _maxDailyRecords = 90;
   static const _maxSampleRecords = 30 * 24 * 60;
   static const _maxSleepRecords = 90;
@@ -20,7 +23,9 @@ class HealthStore {
   final _prefs = SharedPrefsService.instance;
 
   Future<XiaomiHealthData> read(String deviceId) async {
-    await _prefs.remove(_legacyKey(deviceId));
+    for (final prefix in _legacyKeyPrefixes) {
+      await _prefs.remove(_keyFor(prefix, deviceId));
+    }
     final value = _prefs.getString(_key(deviceId));
     if (value == null || value.isEmpty) return const XiaomiHealthData();
     try {
@@ -55,8 +60,8 @@ class HealthStore {
   String _key(String deviceId) =>
       '$_keyPrefix${sha1.convert(utf8.encode(deviceId)).toString()}';
 
-  String _legacyKey(String deviceId) =>
-      '$_legacyKeyPrefix${sha1.convert(utf8.encode(deviceId)).toString()}';
+  String _keyFor(String prefix, String deviceId) =>
+      '$prefix${sha1.convert(utf8.encode(deviceId)).toString()}';
 
   List<HealthDailySummary> _deduplicateDaily(List<HealthDailySummary> values) {
     final result = <String, HealthDailySummary>{};
@@ -78,8 +83,12 @@ class HealthStore {
   List<HealthSleepSummary> _deduplicateSleep(List<HealthSleepSummary> values) {
     final result = <String, HealthSleepSummary>{};
     for (final value in values) {
-      result['${value.startedAt.toIso8601String()}|${value.endedAt.toIso8601String()}'] ??=
-          value;
+      final key =
+          '${value.startedAt.toIso8601String()}|${value.endedAt.toIso8601String()}';
+      final existing = result[key];
+      if (existing == null || value.stages.length > existing.stages.length) {
+        result[key] = value;
+      }
     }
     return result.values.toList(growable: false);
   }
@@ -95,8 +104,10 @@ class HealthStore {
     return result.values.toList(growable: false);
   }
 
-  String _dateKey(DateTime value) =>
-      '${value.year.toString().padLeft(4, '0')}-'
-      '${value.month.toString().padLeft(2, '0')}-'
-      '${value.day.toString().padLeft(2, '0')}';
+  String _dateKey(DateTime value) {
+    final local = value.toLocal();
+    return '${local.year.toString().padLeft(4, '0')}-'
+        '${local.month.toString().padLeft(2, '0')}-'
+        '${local.day.toString().padLeft(2, '0')}';
+  }
 }

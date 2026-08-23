@@ -83,7 +83,7 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
       if (mounted) {
         setState(() {
           _installing = false;
-          _error = error.toString();
+          _error = localizedErrorMessage(AppLocalizations.of(context)!, error);
         });
       }
     }

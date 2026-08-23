@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/layout/app_navigation_bar.dart';
 import 'package:oronbox/src/core/providers/app_settings_providers.dart';
+import 'package:oronbox/src/core/services/status_surface_bridge.dart';
 import 'package:oronbox/src/core/utils/layout.dart';
 import 'package:oronbox/src/features/resources/services/download_queue_notifier.dart';
 import 'package:oronbox/src/features/resources/services/install_queue_notifier.dart';
@@ -20,26 +23,36 @@ class AppScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     ref.listen(downloadQueueProvider, (prev, _) {
-      if (prev == null) return;
-      final il = ref.read(installQueueProvider).tasks;
-      if (_hasPending(prev, il) &&
-          !_hasPending(ref.read(downloadQueueProvider), il)) {
-        markQueueDone(ref);
+      if (prev != null) {
+        final il = ref.read(installQueueProvider).tasks;
+        if (_hasPending(prev, il) &&
+            !_hasPending(ref.read(downloadQueueProvider), il)) {
+          markQueueDone(ref);
+        }
       }
+      _syncQueueActivity(ref, l10n);
     });
     ref.listen(installQueueProvider, (prev, _) {
-      if (prev == null) return;
-      final dl = ref.read(downloadQueueProvider);
-      if (_hasPending(dl, prev.tasks) &&
-          !_hasPending(dl, ref.read(installQueueProvider).tasks)) {
-        markQueueDone(ref);
+      if (prev != null) {
+        final dl = ref.read(downloadQueueProvider);
+        if (_hasPending(dl, prev.tasks) &&
+            !_hasPending(dl, ref.read(installQueueProvider).tasks)) {
+          markQueueDone(ref);
+        }
       }
+      _syncQueueActivity(ref, l10n);
     });
+    ref.listen(
+      appSettingsProvider.select(
+        (settings) => settings.realtimeActivityNotification,
+      ),
+      (_, _) => _syncQueueActivity(ref, l10n),
+    );
 
     final doneAt = ref.watch(queueDoneAtProvider);
     final width = MediaQuery.sizeOf(context).width;
-    final l10n = AppLocalizations.of(context)!;
     final queue = queueNavCounts(ref);
 
     final showExplore = ref.watch(
@@ -171,6 +184,80 @@ class AppScaffold extends ConsumerWidget {
       label: Text(l10n.settingsTab),
     ),
   };
+}
+
+void _syncQueueActivity(WidgetRef ref, AppLocalizations l10n) {
+  final settings = ref.read(appSettingsProvider);
+  if (!settings.realtimeActivityNotification) {
+    unawaited(clearQueueActivitySurface());
+    return;
+  }
+
+  final queue = queueNavState(
+    ref.read(downloadQueueProvider),
+    ref.read(installQueueProvider).tasks,
+  );
+  if (queue.total == 0) {
+    unawaited(clearQueueActivitySurface());
+    return;
+  }
+
+  final downloads = ref.read(downloadQueueProvider);
+  final installs = ref.read(installQueueProvider).tasks;
+  final currentName =
+      downloads
+          .where((task) => task.status != ResourceTaskStatus.completed)
+          .map((task) => task.title)
+          .firstOrNull ??
+      installs
+          .where((task) => task.status != ResourceTaskStatus.completed)
+          .map((task) => task.name)
+          .firstOrNull;
+  final activeDownload = downloads
+      .where(
+        (task) =>
+            task.status == ResourceTaskStatus.downloading ||
+            task.status == ResourceTaskStatus.installing,
+      )
+      .firstOrNull;
+  final activeInstall = installs
+      .where(
+        (task) =>
+            task.status == ResourceTaskStatus.downloading ||
+            task.status == ResourceTaskStatus.installing,
+      )
+      .firstOrNull;
+  final activeStatus = activeDownload?.status ?? activeInstall?.status;
+  final active = activeDownload != null || activeInstall != null;
+  if (!active) {
+    // A held queue (for example with automatic installation disabled) is not
+    // a live activity. Do not leave a progress notification in the shade
+    // while the user is waiting to press Start.
+    unawaited(clearQueueActivitySurface());
+    return;
+  }
+  final progress =
+      ((activeDownload?.progress ?? activeInstall?.progress ?? 0) * 100)
+          .round()
+          .clamp(0, 100);
+  final status = switch (activeStatus) {
+    ResourceTaskStatus.downloading => l10n.queueStatusDownloading('$progress'),
+    ResourceTaskStatus.installing => l10n.queueStatusInstalling('$progress'),
+    ResourceTaskStatus.failed => l10n.queueStatusFailed,
+    _ => l10n.queueStatusPending,
+  };
+  unawaited(
+    updateQueueActivitySurface({
+      'title': currentName ?? l10n.settingsQueue,
+      'status': status,
+      'progress': progress,
+      'active': active,
+      'total': queue.total,
+      'pending': queue.pending,
+      'installing': queue.installing,
+      'hasError': queue.hasError,
+    }),
+  );
 }
 
 class _WideNavigationRail extends StatelessWidget {

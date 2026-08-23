@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:segmented_list/segmented_list.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
@@ -39,7 +40,14 @@ class _XiaomiAppLayoutPageState extends ConsumerState<XiaomiAppLayoutPage> {
         _error = null;
       });
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(
+          () => _error = localizedErrorMessage(
+            AppLocalizations.of(context)!,
+            error,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -59,7 +67,14 @@ class _XiaomiAppLayoutPageState extends ConsumerState<XiaomiAppLayoutPage> {
         });
       }
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(
+          () => _error = localizedErrorMessage(
+            AppLocalizations.of(context)!,
+            error,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }

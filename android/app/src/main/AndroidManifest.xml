@@ -110,6 +110,28 @@
                 <action android:name="com.xiaomi.wearable.XMS_WEARABLE_SERVICE" />
             </intent-filter>
         </service>
+        <receiver
+            android:name=".DeviceStatusWidgetProvider"
+            android:label="@string/widget_device_status"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/device_status_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".HealthStatusWidgetProvider"
+            android:label="@string/widget_health_status"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/health_status_widget_info" />
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

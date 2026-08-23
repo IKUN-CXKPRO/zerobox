@@ -5,6 +5,13 @@ import 'package:oronbox/src/features/devices/health/health_store.dart';
 import 'package:oronbox/src/features/devices/health/xiaomi_health_sync_service.dart';
 
 void main() {
+  test('Xiaomi activity timestamps stay in local wall-clock semantics', () {
+    final timestamp = xiaomiActivityTimestamp(1_787_472_000);
+
+    expect(timestamp.isUtc, isFalse);
+    expect(timestamp.millisecondsSinceEpoch, 1_787_472_000 * 1000);
+  });
+
   test('health data survives the rewritten local serialization', () {
     final data = XiaomiHealthData(
       daily: [
@@ -33,6 +40,13 @@ void main() {
           durationSeconds: 8 * 60 * 60,
           averageHeartRate: 61,
           averageBloodOxygen: 97,
+          stages: [
+            HealthSleepStageSegment(
+              startedAt: DateTime(2026, 8, 15, 0),
+              endedAt: DateTime(2026, 8, 15, 1),
+              kind: HealthSleepStageKind.deep,
+            ),
+          ],
         ),
       ],
       capabilities: const XiaomiHealthCapabilities(
@@ -51,6 +65,7 @@ void main() {
     expect(decoded.latestDay?.standingHours, 3);
     expect(decoded.samplesFor(XiaomiHealthMetric.heartRate), hasLength(1));
     expect(decoded.latestSleep?.durationSeconds, 8 * 60 * 60);
+    expect(decoded.latestSleep?.stages.single.kind, HealthSleepStageKind.deep);
     expect(decoded.capabilities.vitality, isTrue);
     expect(decoded.lastSyncedAt, DateTime(2026, 8, 15, 8));
   });

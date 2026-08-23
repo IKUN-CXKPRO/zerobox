@@ -485,10 +485,8 @@ String _flattenError(Object? error) {
 
 String? _backendMessage(Object? error) {
   String? message;
-  Object? details;
   if (error is CodedError) {
     message = error.message;
-    details = error.details;
   } else if (error is DioException) {
     final data = error.response?.data;
     if (data is Map) {
@@ -499,20 +497,15 @@ String? _backendMessage(Object? error) {
           break;
         }
       }
-      details = data['details'];
     }
   }
   if (message == null) return null;
-  final parts = <String>[
-    message.trim(),
-    if (details != null && details.toString().trim().isNotEmpty)
-      details.toString().trim(),
-  ].where((part) => part.isNotEmpty).toList(growable: false);
-  return parts.isEmpty ? null : parts.join('\n');
+  final visibleMessage = _firstErrorLine(message);
+  return visibleMessage.isEmpty ? null : visibleMessage;
 }
 
 String _trimPlatformNoise(String raw) {
-  var text = raw.trim();
+  var text = _firstErrorLine(raw);
   if (text.startsWith('Exception: ')) {
     text = text.substring('Exception: '.length);
   }
@@ -521,3 +514,6 @@ String _trimPlatformNoise(String raw) {
   }
   return text;
 }
+
+String _firstErrorLine(String text) =>
+    text.replaceAll('\r\n', '\n').split('\n').first.trim();

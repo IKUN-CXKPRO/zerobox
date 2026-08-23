@@ -309,6 +309,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get currentDevice => '現在のデバイス';
 
   @override
+  String get currentWatchface => '現在の文字盤';
+
+  @override
   String get all => 'すべて';
 
   @override
@@ -1286,6 +1289,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get deviceHealthSyncing => '同期中';
 
   @override
+  String get deviceHealthAutoSyncTitle => 'ヘルスデータを自動同期';
+
+  @override
+  String get deviceHealthAutoSyncDescription => 'デバイスデータの同期時にヘルスデータを自動同期';
+
+  @override
   String get deviceHealthConnectFirst => 'ヘルスデータを同期するにはデバイスを接続してください';
 
   @override
@@ -1737,11 +1746,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDesktopCloseBehaviorDesc => '閉じるボタンを押したときの動作';
 
   @override
-  String get settingsRemoveBondBeforeSpp => '接続前に Bluetooth のペアリングを解除';
+  String get settingsRemoveBondBeforeSpp => '接続時に再ペアリング';
 
   @override
   String get settingsRemoveBondBeforeSppDesc =>
-      'クラシック Bluetooth 接続のたびに既存のペアリングを解除して再接続します';
+      '接続の安定性を高め、Xiaomi Fitness に接続を奪われるのを防ぎます。オフにすると接続が速くなる場合があります';
 
   @override
   String get desktopCloseBehaviorAsk => '毎回確認';
@@ -2009,6 +2018,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsQueueDontClearDesc => '完了項目をインストールキューに残す';
+
+  @override
+  String get settingsRealtimeActivityNotification => 'リアルタイムアクティビティ通知';
+
+  @override
+  String get settingsRealtimeActivityNotificationDesc =>
+      'リアルタイムアクティビティ通知でキューの進捗を表示';
 
   @override
   String get settingsAboutWebsite => '公式ウェブサイト';
@@ -3499,6 +3515,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get deviceHealthNoWorkouts => 'No workout records';
 
   @override
+  String get deviceHealthSleepStages => '睡眠ステージ';
+
+  @override
+  String get deviceHealthSleepAwake => '覚醒';
+
+  @override
+  String get deviceHealthSleepLight => '浅い睡眠';
+
+  @override
+  String get deviceHealthSleepDeep => '深い睡眠';
+
+  @override
+  String get deviceHealthSleepRem => 'REM';
+
+  @override
+  String get deviceHealthSleepNoStages => '睡眠ステージのデータなし';
+
+  @override
   String deviceHealthStepValue(Object value) {
     return '$value steps';
   }
@@ -3513,6 +3547,12 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get weatherSyncDescription =>
       'Select a city and sync current weather and forecasts';
+
+  @override
+  String get weatherAutoSyncTitle => '天気データを自動同期';
+
+  @override
+  String get weatherAutoSyncDescription => 'デバイスデータの同期時に天気データを自動同期';
 
   @override
   String get alarmManagementTitle => 'Alarm management';

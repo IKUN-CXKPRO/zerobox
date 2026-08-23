@@ -171,6 +171,7 @@ class HealthSleepSummary {
     this.averageHeartRate,
     this.averageBloodOxygen,
     this.quality,
+    this.stages = const [],
   });
 
   final DateTime startedAt;
@@ -179,6 +180,7 @@ class HealthSleepSummary {
   final int? averageHeartRate;
   final int? averageBloodOxygen;
   final int? quality;
+  final List<HealthSleepStageSegment> stages;
 
   Map<String, Object?> toJson() => {
     'startedAt': startedAt.toIso8601String(),
@@ -187,6 +189,7 @@ class HealthSleepSummary {
     if (averageHeartRate != null) 'averageHeartRate': averageHeartRate,
     if (averageBloodOxygen != null) 'averageBloodOxygen': averageBloodOxygen,
     if (quality != null) 'quality': quality,
+    'stages': stages.map((value) => value.toJson()).toList(growable: false),
   };
 
   factory HealthSleepSummary.fromJson(Map<String, Object?> json) =>
@@ -197,6 +200,39 @@ class HealthSleepSummary {
         averageHeartRate: _int(json['averageHeartRate']),
         averageBloodOxygen: _int(json['averageBloodOxygen']),
         quality: _int(json['quality']),
+        stages: _list(json['stages'], HealthSleepStageSegment.fromJson),
+      );
+}
+
+enum HealthSleepStageKind { awake, light, deep, rem, unknown }
+
+class HealthSleepStageSegment {
+  const HealthSleepStageSegment({
+    required this.startedAt,
+    required this.endedAt,
+    required this.kind,
+  });
+
+  final DateTime startedAt;
+  final DateTime endedAt;
+  final HealthSleepStageKind kind;
+
+  int get durationSeconds => endedAt.difference(startedAt).inSeconds;
+
+  Map<String, Object?> toJson() => {
+    'startedAt': startedAt.toIso8601String(),
+    'endedAt': endedAt.toIso8601String(),
+    'kind': kind.name,
+  };
+
+  factory HealthSleepStageSegment.fromJson(Map<String, Object?> json) =>
+      HealthSleepStageSegment(
+        startedAt: DateTime.parse(json['startedAt']!.toString()),
+        endedAt: DateTime.parse(json['endedAt']!.toString()),
+        kind: HealthSleepStageKind.values.firstWhere(
+          (value) => value.name == json['kind'],
+          orElse: () => HealthSleepStageKind.unknown,
+        ),
       );
 }
 
@@ -420,13 +456,18 @@ class XiaomiHealthData {
   factory XiaomiHealthData.decode(String value) =>
       XiaomiHealthData.fromJson((jsonDecode(value) as Map).cast());
 
-  static bool _sameDate(DateTime left, DateTime right) =>
-      left.year == right.year &&
-      left.month == right.month &&
-      left.day == right.day;
+  static bool _sameDate(DateTime left, DateTime right) {
+    final localLeft = left.toLocal();
+    final localRight = right.toLocal();
+    return localLeft.year == localRight.year &&
+        localLeft.month == localRight.month &&
+        localLeft.day == localRight.day;
+  }
 
-  static DateTime _dateOnly(DateTime value) =>
-      DateTime(value.year, value.month, value.day);
+  static DateTime _dateOnly(DateTime value) {
+    final local = value.toLocal();
+    return DateTime(local.year, local.month, local.day);
+  }
 
   static int? _standingBitmap(Iterable<HealthSample> values) {
     var bitmap = 0;
@@ -436,7 +477,7 @@ class XiaomiHealthData {
         continue;
       }
       if (sample.value <= 0) continue;
-      bitmap |= 1 << sample.timestamp.hour;
+      bitmap |= 1 << sample.timestamp.toLocal().hour;
       found = true;
     }
     return found ? bitmap : null;
@@ -478,6 +519,33 @@ class XiaomiHealthSyncResult {
         updatedWorkouts: json['updatedWorkouts'] == true,
         warning: json['warning']?.toString(),
       );
+}
+
+Map<String, Object?> healthStatusSurfaceData(XiaomiHealthData data) {
+  final activity = data.activitySummary ?? data.latestDay;
+  final heartRate = data.latestSample(XiaomiHealthMetric.heartRate);
+  final bloodOxygen = data.latestSample(XiaomiHealthMetric.bloodOxygen);
+  final stress = data.latestSample(XiaomiHealthMetric.stress);
+  final sleep = data.latestSleep;
+  return {
+    'steps': activity?.steps ?? -1,
+    'activeCalories': activity?.activeCalories ?? activity?.calories ?? -1,
+    'standingHours': activity?.standingHours ?? -1,
+    'heartRate': heartRate?.value.round() ?? activity?.averageHeartRate ?? -1,
+    'heartRateAt': heartRate?.timestamp.millisecondsSinceEpoch ?? -1,
+    'bloodOxygen':
+        bloodOxygen?.value.round() ?? activity?.averageBloodOxygen ?? -1,
+    'bloodOxygenAt': bloodOxygen?.timestamp.millisecondsSinceEpoch ?? -1,
+    'stress': stress?.value.round() ?? activity?.averageStress ?? -1,
+    'stressAt': stress?.timestamp.millisecondsSinceEpoch ?? -1,
+    'vitality': activity?.vitalityCurrent ?? -1,
+    'sleepDuration': sleep?.durationSeconds ?? -1,
+    'sleepStart': sleep?.startedAt.millisecondsSinceEpoch ?? -1,
+    'sleepEnd': sleep?.endedAt.millisecondsSinceEpoch ?? -1,
+    'updatedAt':
+        data.lastSyncedAt?.millisecondsSinceEpoch ??
+        DateTime.now().millisecondsSinceEpoch,
+  };
 }
 
 int? _int(Object? value) => (value as num?)?.toInt();

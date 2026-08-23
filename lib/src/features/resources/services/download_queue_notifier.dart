@@ -308,6 +308,13 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
     double progress,
     String? error,
   ) {
+    final current = state.where((task) => task.id == id).firstOrNull;
+    if (current == null) return;
+    final normalized = progress.clamp(0.0, 1.0).toDouble();
+    if (status == ResourceTaskStatus.downloading &&
+        normalized < current.progress) {
+      return;
+    }
     state = [
       for (final task in state)
         if (task.id == id)
@@ -317,8 +324,11 @@ class DownloadQueueNotifier extends Notifier<List<ResourceTask>> {
             file: task.file,
             codename: task.codename,
             status: status,
-            progress: progress,
+            progress: normalized,
             error: error,
+            filePath: current.filePath,
+            bytes: current.bytes,
+            installType: current.installType,
           )
         else
           task,

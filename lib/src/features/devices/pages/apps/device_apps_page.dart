@@ -86,29 +86,31 @@ class _DeviceAppsPageState extends ConsumerState<DeviceAppsPage> {
           ? Center(child: Text(localizedErrorMessage(l10n, _error)))
           : displayedApps.isEmpty
           ? Center(child: Text(l10n.appManagementNone))
-          : ListView.builder(
+          : PageContainer(
               padding: EdgeInsets.zero,
-              itemCount: displayedApps.length,
-              itemBuilder: (context, index) {
-                final app = displayedApps[index];
-                return PageContainer(
-                  padding: EdgeInsets.fromLTRB(
-                    StyleConstants.pagePadding,
-                    index == 0 ? 8 : 0,
-                    StyleConstants.pagePadding,
-                    0,
-                  ),
-                  child: SectionCard(
-                    margin: const EdgeInsets.only(bottom: 8),
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(
+                  StyleConstants.pagePadding,
+                  8,
+                  StyleConstants.pagePadding,
+                  16,
+                ),
+                itemCount: displayedApps.length,
+                itemBuilder: (context, index) {
+                  final app = displayedApps[index];
+                  return SectionCard(
+                    margin: EdgeInsets.zero,
                     padding: EdgeInsets.zero,
                     child: ListTile(
                       title: Text(app.appName),
                       subtitle: Text(app.packageName),
                       trailing: _AppActions(app: app, onRefresh: _refresh),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: StyleConstants.cardSpace),
+              ),
             ),
     );
   }

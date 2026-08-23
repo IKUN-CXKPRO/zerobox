@@ -1895,6 +1895,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'bandbbs_load_previews',
     'bandbbs_show_all_categories',
     removeBondBeforeSppSettingKey,
+    realtimeActivityNotificationSettingKey,
   };
 
   Map<String, Object?> _settingsList() => {
@@ -1937,8 +1938,9 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       'auto_install' ||
       'disable_auto_clean' ||
       'bandbbs_load_previews' ||
-      'bandbbs_show_all_categories' ||
-      removeBondBeforeSppSettingKey => prefs.getBool(key),
+      'bandbbs_show_all_categories' => prefs.getBool(key),
+      removeBondBeforeSppSettingKey => prefs.getBool(key) ?? true,
+      realtimeActivityNotificationSettingKey => prefs.getBool(key) ?? true,
       'community_source' || 'github_cdn' => prefs.getString(key),
       _ => null,
     };

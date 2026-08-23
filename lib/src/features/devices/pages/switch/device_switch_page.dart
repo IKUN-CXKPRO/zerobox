@@ -258,70 +258,77 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
           );
         }
 
-        return CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: PageContainer(
-                padding: const EdgeInsets.fromLTRB(
-                  StyleConstants.pagePadding,
-                  8,
-                  StyleConstants.pagePadding,
-                  0,
-                ),
-                child: AnimatedOpacity(
-                  opacity: state.scanning ? 1 : 0,
-                  duration: const Duration(milliseconds: 300),
-                  child: const LinearProgressIndicator(minHeight: 2),
-                ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: PageContainer(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: StyleConstants.pagePadding,
-                ),
-                child: _SectionHeader(
-                  title: AppLocalizations.of(context)!.savedDevices,
+        return SafeArea(
+          top: false,
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: PageContainer(
+                  safeArea: false,
+                  padding: const EdgeInsets.fromLTRB(
+                    StyleConstants.pagePadding,
+                    8,
+                    StyleConstants.pagePadding,
+                    0,
+                  ),
+                  child: AnimatedOpacity(
+                    opacity: state.scanning ? 1 : 0,
+                    duration: const Duration(milliseconds: 300),
+                    child: const LinearProgressIndicator(minHeight: 2),
+                  ),
                 ),
               ),
-            ),
-            _SliverSavedDeviceList(
-              selectedAddr: currentAddr,
-              onComplete: () {
-                if (mounted) setState(() {});
-              },
-              onMiAccountLogin: () =>
-                  SettingsPage.showMiAccountLoginDialog(context, ref),
-              onWearableLogImport: () =>
-                  showWearableLogSyncDialog(context, ref),
-            ),
-            SliverToBoxAdapter(
-              child: PageContainer(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: StyleConstants.pagePadding,
-                  vertical: 12,
-                ),
-                child: const Divider(height: 1),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: PageContainer(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: StyleConstants.pagePadding,
-                ),
-                child: _ScanSectionHeader(
-                  onComplete: () {
-                    if (mounted) setState(() {});
-                  },
+              SliverToBoxAdapter(
+                child: PageContainer(
+                  safeArea: false,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: StyleConstants.pagePadding,
+                  ),
+                  child: _SectionHeader(
+                    title: AppLocalizations.of(context)!.savedDevices,
+                  ),
                 ),
               ),
-            ),
-            _SliverScanDeviceList(
-              onComplete: () {
-                if (mounted) setState(() {});
-              },
-            ),
-          ],
+              _SliverSavedDeviceList(
+                selectedAddr: currentAddr,
+                onComplete: () {
+                  if (mounted) setState(() {});
+                },
+                onMiAccountLogin: () =>
+                    SettingsPage.showMiAccountLoginDialog(context, ref),
+                onWearableLogImport: () =>
+                    showWearableLogSyncDialog(context, ref),
+              ),
+              SliverToBoxAdapter(
+                child: PageContainer(
+                  safeArea: false,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: StyleConstants.pagePadding,
+                    vertical: 12,
+                  ),
+                  child: const Divider(height: 1),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: PageContainer(
+                  safeArea: false,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: StyleConstants.pagePadding,
+                  ),
+                  child: _ScanSectionHeader(
+                    onComplete: () {
+                      if (mounted) setState(() {});
+                    },
+                  ),
+                ),
+              ),
+              _SliverScanDeviceList(
+                onComplete: () {
+                  if (mounted) setState(() {});
+                },
+              ),
+            ],
+          ),
         );
       },
     );
@@ -373,79 +380,93 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
           );
         }
 
-        return CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: PageContainer(
-                padding: const EdgeInsets.fromLTRB(
-                  StyleConstants.pagePadding,
-                  8,
-                  StyleConstants.pagePadding,
-                  0,
-                ),
-                child: _SectionHeader(
-                  title: AppLocalizations.of(context)!.savedDevices,
-                ),
-              ),
-            ),
-            if (state.pairedDevices.isEmpty)
+        return SafeArea(
+          top: false,
+          child: CustomScrollView(
+            slivers: [
               SliverToBoxAdapter(
                 child: PageContainer(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: StyleConstants.pagePadding,
+                  safeArea: false,
+                  padding: const EdgeInsets.fromLTRB(
+                    StyleConstants.pagePadding,
+                    8,
+                    StyleConstants.pagePadding,
+                    0,
                   ),
-                  child: Column(
-                    children: [
-                      _DeviceImportActions(
-                        onMiAccountLogin: () =>
-                            SettingsPage.showMiAccountLoginDialog(context, ref),
-                        onWearableLogImport: () =>
-                            showWearableLogSyncDialog(context, ref),
-                      ),
-                      const SizedBox(
-                        height: 96,
-                        child: _EmptyState(message: ''),
-                      ),
-                    ],
+                  child: _SectionHeader(
+                    title: AppLocalizations.of(context)!.savedDevices,
                   ),
                 ),
-              )
-            else
-              SliverList.builder(
-                itemCount: state.pairedDevices.length,
-                itemBuilder: (context, index) {
-                  final device = state.pairedDevices[index];
-                  return PageContainer(
+              ),
+              if (state.pairedDevices.isEmpty)
+                SliverToBoxAdapter(
+                  child: PageContainer(
+                    safeArea: false,
                     padding: const EdgeInsets.symmetric(
                       horizontal: StyleConstants.pagePadding,
                     ),
-                    child: _DeviceCard(
-                      key: ValueKey('web-saved-${device.addr}'),
-                      device: device,
-                      saved: true,
+                    child: Column(
+                      children: [
+                        _DeviceImportActions(
+                          onMiAccountLogin: () =>
+                              SettingsPage.showMiAccountLoginDialog(
+                                context,
+                                ref,
+                              ),
+                          onWearableLogImport: () =>
+                              showWearableLogSyncDialog(context, ref),
+                        ),
+                        const SizedBox(
+                          height: 96,
+                          child: _EmptyState(message: ''),
+                        ),
+                      ],
                     ),
-                  );
-                },
-              ),
-            SliverToBoxAdapter(
-              child: PageContainer(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: StyleConstants.pagePadding,
-                  vertical: 12,
+                  ),
+                )
+              else
+                SliverList.builder(
+                  itemCount: state.pairedDevices.length * 2 - 1,
+                  itemBuilder: (context, index) {
+                    if (index.isOdd) {
+                      return const SizedBox(height: StyleConstants.cardSpace);
+                    }
+                    final device = state.pairedDevices[index ~/ 2];
+                    return PageContainer(
+                      safeArea: false,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: StyleConstants.pagePadding,
+                      ),
+                      child: _DeviceCard(
+                        key: ValueKey('web-saved-${device.addr}'),
+                        device: device,
+                        saved: true,
+                      ),
+                    );
+                  },
                 ),
-                child: const Divider(height: 1),
-              ),
-            ),
-            const SliverFillRemaining(
-              hasScrollBody: false,
-              child: PageContainer(
-                padding: EdgeInsets.symmetric(
-                  horizontal: StyleConstants.pagePadding,
+              SliverToBoxAdapter(
+                child: PageContainer(
+                  safeArea: false,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: StyleConstants.pagePadding,
+                    vertical: 12,
+                  ),
+                  child: const Divider(height: 1),
                 ),
-                child: _WebSerialHint(),
               ),
-            ),
-          ],
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: PageContainer(
+                  safeArea: false,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: StyleConstants.pagePadding,
+                  ),
+                  child: _WebSerialHint(),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -700,7 +721,7 @@ class _SavedDeviceList extends ConsumerWidget {
           ),
         ] else
           Expanded(
-            child: ListView.builder(
+            child: ListView.separated(
               padding: const EdgeInsets.only(top: 8),
               itemCount: sorted.length,
               itemBuilder: (context, index) {
@@ -712,6 +733,8 @@ class _SavedDeviceList extends ConsumerWidget {
                   onComplete: onComplete,
                 );
               },
+              separatorBuilder: (context, index) =>
+                  const SizedBox(height: StyleConstants.cardSpace),
             ),
           ),
       ],
@@ -768,7 +791,7 @@ class _ScanDeviceListState extends ConsumerState<_ScanDeviceList> {
           )
         else
           Expanded(
-            child: ListView.builder(
+            child: ListView.separated(
               padding: const EdgeInsets.only(top: 8),
               itemCount: visibleDevices.length,
               itemBuilder: (context, index) {
@@ -785,6 +808,8 @@ class _ScanDeviceListState extends ConsumerState<_ScanDeviceList> {
                   onComplete: widget.onComplete,
                 );
               },
+              separatorBuilder: (context, index) =>
+                  const SizedBox(height: StyleConstants.cardSpace),
             ),
           ),
       ],
@@ -819,6 +844,7 @@ class _SliverSavedDeviceList extends ConsumerWidget {
     if (sorted.isEmpty) {
       return SliverToBoxAdapter(
         child: PageContainer(
+          safeArea: false,
           padding: const EdgeInsets.symmetric(
             horizontal: StyleConstants.pagePadding,
           ),
@@ -835,10 +861,14 @@ class _SliverSavedDeviceList extends ConsumerWidget {
       );
     }
     return SliverList.builder(
-      itemCount: sorted.length,
+      itemCount: sorted.length * 2 - 1,
       itemBuilder: (context, index) {
-        final device = sorted[index];
+        if (index.isOdd) {
+          return const SizedBox(height: StyleConstants.cardSpace);
+        }
+        final device = sorted[index ~/ 2];
         return PageContainer(
+          safeArea: false,
           padding: const EdgeInsets.symmetric(
             horizontal: StyleConstants.pagePadding,
           ),
@@ -901,6 +931,7 @@ class _SliverScanDeviceListState extends ConsumerState<_SliverScanDeviceList> {
     if (!state.scanning && visibleDevices.isEmpty) {
       return SliverToBoxAdapter(
         child: PageContainer(
+          safeArea: false,
           padding: const EdgeInsets.symmetric(
             horizontal: StyleConstants.pagePadding,
           ),
@@ -911,6 +942,7 @@ class _SliverScanDeviceListState extends ConsumerState<_SliverScanDeviceList> {
     if (state.scanning && visibleDevices.isEmpty) {
       return SliverToBoxAdapter(
         child: PageContainer(
+          safeArea: false,
           padding: const EdgeInsets.symmetric(
             horizontal: StyleConstants.pagePadding,
           ),
@@ -922,10 +954,14 @@ class _SliverScanDeviceListState extends ConsumerState<_SliverScanDeviceList> {
       );
     }
     return SliverList.builder(
-      itemCount: visibleDevices.length,
+      itemCount: visibleDevices.length * 2 - 1,
       itemBuilder: (context, index) {
-        final device = visibleDevices[index];
+        if (index.isOdd) {
+          return const SizedBox(height: StyleConstants.cardSpace);
+        }
+        final device = visibleDevices[index ~/ 2];
         return PageContainer(
+          safeArea: false,
           padding: const EdgeInsets.symmetric(
             horizontal: StyleConstants.pagePadding,
           ),
@@ -1165,7 +1201,7 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
 
     return Card(
       elevation: 0,
-      margin: const EdgeInsets.only(bottom: StyleConstants.cardSpace),
+      margin: EdgeInsets.zero,
       color: connected
           ? colorScheme.primaryContainer.withValues(alpha: 0.3)
           : colorScheme.surfaceContainerHigh,

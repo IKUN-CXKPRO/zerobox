@@ -673,6 +673,12 @@ abstract class AppLocalizations {
   /// **'Current device'**
   String get currentDevice;
 
+  /// No description provided for @currentWatchface.
+  ///
+  /// In en, this message translates to:
+  /// **'Current watchface'**
+  String get currentWatchface;
+
   /// No description provided for @all.
   ///
   /// In en, this message translates to:
@@ -2455,6 +2461,18 @@ abstract class AppLocalizations {
   /// **'Synchronizing'**
   String get deviceHealthSyncing;
 
+  /// No description provided for @deviceHealthAutoSyncTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically sync health data'**
+  String get deviceHealthAutoSyncTitle;
+
+  /// No description provided for @deviceHealthAutoSyncDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically synchronize health data when synchronizing device data'**
+  String get deviceHealthAutoSyncDescription;
+
   /// No description provided for @deviceHealthConnectFirst.
   ///
   /// In en, this message translates to:
@@ -3280,13 +3298,13 @@ abstract class AppLocalizations {
   /// No description provided for @settingsRemoveBondBeforeSpp.
   ///
   /// In en, this message translates to:
-  /// **'Remove Bluetooth pairing before connection'**
+  /// **'Re-pair when connecting'**
   String get settingsRemoveBondBeforeSpp;
 
   /// No description provided for @settingsRemoveBondBeforeSppDesc.
   ///
   /// In en, this message translates to:
-  /// **'Remove the existing pairing before each classic Bluetooth connection'**
+  /// **'Improves connection stability and prevents Xiaomi Fitness from taking the connection; turning it off may speed up connections'**
   String get settingsRemoveBondBeforeSppDesc;
 
   /// No description provided for @desktopCloseBehaviorAsk.
@@ -3804,6 +3822,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Keep completed items in the install queue'**
   String get settingsQueueDontClearDesc;
+
+  /// No description provided for @settingsRealtimeActivityNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'Real-time activity notification'**
+  String get settingsRealtimeActivityNotification;
+
+  /// No description provided for @settingsRealtimeActivityNotificationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a real-time activity notification to show queue progress'**
+  String get settingsRealtimeActivityNotificationDesc;
 
   /// No description provided for @settingsAboutWebsite.
   ///
@@ -6558,6 +6588,42 @@ abstract class AppLocalizations {
   /// **'No workout records'**
   String get deviceHealthNoWorkouts;
 
+  /// No description provided for @deviceHealthSleepStages.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep stages'**
+  String get deviceHealthSleepStages;
+
+  /// No description provided for @deviceHealthSleepAwake.
+  ///
+  /// In en, this message translates to:
+  /// **'Awake'**
+  String get deviceHealthSleepAwake;
+
+  /// No description provided for @deviceHealthSleepLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get deviceHealthSleepLight;
+
+  /// No description provided for @deviceHealthSleepDeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Deep'**
+  String get deviceHealthSleepDeep;
+
+  /// No description provided for @deviceHealthSleepRem.
+  ///
+  /// In en, this message translates to:
+  /// **'REM'**
+  String get deviceHealthSleepRem;
+
+  /// No description provided for @deviceHealthSleepNoStages.
+  ///
+  /// In en, this message translates to:
+  /// **'No sleep stage data'**
+  String get deviceHealthSleepNoStages;
+
   /// No description provided for @deviceHealthStepValue.
   ///
   /// In en, this message translates to:
@@ -6581,6 +6647,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select a city and sync current weather and forecasts'**
   String get weatherSyncDescription;
+
+  /// No description provided for @weatherAutoSyncTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically sync weather data'**
+  String get weatherAutoSyncTitle;
+
+  /// No description provided for @weatherAutoSyncDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically synchronize weather data when synchronizing device data'**
+  String get weatherAutoSyncDescription;
 
   /// No description provided for @alarmManagementTitle.
   ///

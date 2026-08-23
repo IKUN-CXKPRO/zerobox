@@ -322,6 +322,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get currentDevice => 'Текущее устройство';
 
   @override
+  String get currentWatchface => 'Текущий циферблат';
+
+  @override
   String get all => 'Все';
 
   @override
@@ -1351,6 +1354,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get deviceHealthSyncing => 'Синхронизация';
 
   @override
+  String get deviceHealthAutoSyncTitle =>
+      'Автоматически синхронизировать данные о здоровье';
+
+  @override
+  String get deviceHealthAutoSyncDescription =>
+      'Автоматически синхронизировать данные о здоровье при синхронизации данных устройства';
+
+  @override
   String get deviceHealthConnectFirst =>
       'Подключите устройство, чтобы синхронизировать данные о здоровье';
 
@@ -1818,11 +1829,11 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get settingsRemoveBondBeforeSpp =>
-      'Удалять сопряжение Bluetooth перед подключением';
+      'Повторное сопряжение при подключении';
 
   @override
   String get settingsRemoveBondBeforeSppDesc =>
-      'Перед каждым классическим Bluetooth-подключением удалять существующее сопряжение';
+      'Повышает стабильность соединения и не позволяет Xiaomi Fitness занять подключение; отключение может ускорить соединение';
 
   @override
   String get desktopCloseBehaviorAsk => 'Спрашивать';
@@ -2113,6 +2124,14 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get settingsQueueDontClearDesc =>
       'Сохранять завершённые элементы в очереди установки';
+
+  @override
+  String get settingsRealtimeActivityNotification =>
+      'Уведомление о ходе выполнения';
+
+  @override
+  String get settingsRealtimeActivityNotificationDesc =>
+      'Показывать ход очереди в уведомлении в реальном времени';
 
   @override
   String get settingsAboutWebsite => 'Официальный сайт';
@@ -3655,6 +3674,24 @@ class AppLocalizationsRu extends AppLocalizations {
   String get deviceHealthNoWorkouts => 'No workout records';
 
   @override
+  String get deviceHealthSleepStages => 'Фазы сна';
+
+  @override
+  String get deviceHealthSleepAwake => 'Бодрствование';
+
+  @override
+  String get deviceHealthSleepLight => 'Лёгкий сон';
+
+  @override
+  String get deviceHealthSleepDeep => 'Глубокий сон';
+
+  @override
+  String get deviceHealthSleepRem => 'REM';
+
+  @override
+  String get deviceHealthSleepNoStages => 'Нет данных о фазах сна';
+
+  @override
   String deviceHealthStepValue(Object value) {
     return '$value steps';
   }
@@ -3669,6 +3706,14 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get weatherSyncDescription =>
       'Select a city and sync current weather and forecasts';
+
+  @override
+  String get weatherAutoSyncTitle =>
+      'Автоматически синхронизировать данные о погоде';
+
+  @override
+  String get weatherAutoSyncDescription =>
+      'Автоматически синхронизировать данные о погоде при синхронизации данных устройства';
 
   @override
   String get alarmManagementTitle => 'Alarm management';

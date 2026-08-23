@@ -10,6 +10,7 @@ import 'package:oronbox/src/host/application_host_provider.dart';
 enum WideNavigationRailPosition { bottom, center, split }
 
 const removeBondBeforeSppSettingKey = 'remove_bond_before_spp';
+const realtimeActivityNotificationSettingKey = 'realtime_activity_notification';
 
 class CleanSettings {
   const CleanSettings({
@@ -147,7 +148,8 @@ class AppSettings {
     required this.wideNavigationRailPosition,
     required this.bandbbsLoadPreviews,
     required this.bandbbsShowAllCategories,
-    this.removeBondBeforeSpp = false,
+    this.removeBondBeforeSpp = true,
+    this.realtimeActivityNotification = true,
     this.checkUpdateOnLaunch = true,
     this.clean = const CleanSettings(),
   });
@@ -162,6 +164,7 @@ class AppSettings {
   final bool bandbbsLoadPreviews;
   final bool bandbbsShowAllCategories;
   final bool removeBondBeforeSpp;
+  final bool realtimeActivityNotification;
   final bool checkUpdateOnLaunch;
   final CleanSettings clean;
 
@@ -177,6 +180,7 @@ class AppSettings {
     bool? checkUpdateOnLaunch,
     bool? bandbbsShowAllCategories,
     bool? removeBondBeforeSpp,
+    bool? realtimeActivityNotification,
     CleanSettings? clean,
   }) {
     return AppSettings(
@@ -192,6 +196,8 @@ class AppSettings {
       bandbbsShowAllCategories:
           bandbbsShowAllCategories ?? this.bandbbsShowAllCategories,
       removeBondBeforeSpp: removeBondBeforeSpp ?? this.removeBondBeforeSpp,
+      realtimeActivityNotification:
+          realtimeActivityNotification ?? this.realtimeActivityNotification,
       checkUpdateOnLaunch: checkUpdateOnLaunch ?? this.checkUpdateOnLaunch,
       clean: clean ?? this.clean,
     );
@@ -235,8 +241,9 @@ class AppSettings {
       bandbbsLoadPreviews: prefs.getBool(_keyBandBbsLoadPreviews) ?? false,
       bandbbsShowAllCategories:
           prefs.getBool(_keyBandBbsShowAllCategories) ?? false,
-      removeBondBeforeSpp:
-          prefs.getBool(removeBondBeforeSppSettingKey) ?? false,
+      removeBondBeforeSpp: prefs.getBool(removeBondBeforeSppSettingKey) ?? true,
+      realtimeActivityNotification:
+          prefs.getBool(realtimeActivityNotificationSettingKey) ?? true,
       checkUpdateOnLaunch: prefs.getBool(_keyCheckUpdateOnLaunch) ?? true,
       clean: CleanSettings(
         exploreEntry: prefs.getBool('clean_explore_entry') ?? true,
@@ -272,7 +279,8 @@ class AppSettings {
     wideNavigationRailPosition: WideNavigationRailPosition.bottom,
     bandbbsLoadPreviews: false,
     bandbbsShowAllCategories: false,
-    removeBondBeforeSpp: false,
+    removeBondBeforeSpp: true,
+    realtimeActivityNotification: true,
   );
 
   Future<void> save() async {
@@ -290,6 +298,10 @@ class AppSettings {
     await prefs.setBool(_keyBandBbsLoadPreviews, bandbbsLoadPreviews);
     await prefs.setBool(_keyBandBbsShowAllCategories, bandbbsShowAllCategories);
     await prefs.setBool(removeBondBeforeSppSettingKey, removeBondBeforeSpp);
+    await prefs.setBool(
+      realtimeActivityNotificationSettingKey,
+      realtimeActivityNotification,
+    );
     await prefs.setBool(_keyCheckUpdateOnLaunch, checkUpdateOnLaunch);
     await prefs.setBool('clean_explore_entry', clean.exploreEntry);
     await prefs.setBool('clean_plugins_entry', clean.pluginsEntry);
@@ -336,6 +348,7 @@ abstract class AppSettingsNotifier extends Notifier<AppSettings> {
   Future<void> setBandBbsLoadPreviews(bool value);
   Future<void> setBandBbsShowAllCategories(bool value);
   Future<void> setRemoveBondBeforeSpp(bool value);
+  Future<void> setRealtimeActivityNotification(bool value);
   Future<void> setCheckUpdateOnLaunch(bool value);
   Future<void> setClean(CleanSettings value);
 }
@@ -432,6 +445,12 @@ class LocalAppSettingsNotifier extends AppSettingsNotifier {
   }
 
   @override
+  Future<void> setRealtimeActivityNotification(bool value) async {
+    state = state.copyWith(realtimeActivityNotification: value);
+    await state.save();
+  }
+
+  @override
   Future<void> setCheckUpdateOnLaunch(bool value) async {
     state = state.copyWith(checkUpdateOnLaunch: value);
     await state.save();
@@ -485,8 +504,9 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
       bandbbsLoadPreviews: json['bandbbs_load_previews'] as bool? ?? false,
       bandbbsShowAllCategories:
           json['bandbbs_show_all_categories'] as bool? ?? false,
-      removeBondBeforeSpp:
-          json[removeBondBeforeSppSettingKey] as bool? ?? false,
+      removeBondBeforeSpp: json[removeBondBeforeSppSettingKey] as bool? ?? true,
+      realtimeActivityNotification:
+          json[realtimeActivityNotificationSettingKey] as bool? ?? true,
       clean: state.clean,
     );
   }
@@ -580,6 +600,12 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
     removeBondBeforeSppSettingKey,
     value,
     state.copyWith(removeBondBeforeSpp: value),
+  );
+  @override
+  Future<void> setRealtimeActivityNotification(bool value) => _set(
+    realtimeActivityNotificationSettingKey,
+    value,
+    state.copyWith(realtimeActivityNotification: value),
   );
   @override
   Future<void> setCheckUpdateOnLaunch(bool value) => _set(

@@ -104,6 +104,7 @@ class XiaomiActivitySleepRecord {
     this.averageHeartRate,
     this.averageBloodOxygen,
     this.quality,
+    this.stages = const [],
   });
 
   final DateTime startedAt;
@@ -112,6 +113,19 @@ class XiaomiActivitySleepRecord {
   final int? averageHeartRate;
   final int? averageBloodOxygen;
   final int? quality;
+  final List<XiaomiActivitySleepStageRecord> stages;
+}
+
+class XiaomiActivitySleepStageRecord {
+  const XiaomiActivitySleepStageRecord({
+    required this.timestamp,
+    required this.stage,
+  });
+
+  final DateTime timestamp;
+
+  /// Gadgetbridge's canonical stage values: 2 deep, 3 light, 4 REM, 5 awake.
+  final int stage;
 }
 
 class XiaomiActivityWorkoutRecord {
@@ -704,7 +718,7 @@ class XiaomiHealthSystem extends XiaomiPbSystem {
       if (offset > limit) return null;
     }
     return XiaomiActivityDailyRecord(
-      date: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+      date: xiaomiActivityTimestamp(timestamp),
       steps: steps,
       activeCalories: activeCalories,
       calories: calories,
@@ -798,9 +812,7 @@ class XiaomiHealthSystem extends XiaomiPbSystem {
       if (!parser.progressed) break;
       samples.add(
         XiaomiActivitySampleRecord(
-          timestamp: DateTime.fromMillisecondsSinceEpoch(
-            sampleTimestamp * 1000,
-          ),
+          timestamp: xiaomiActivityTimestamp(sampleTimestamp),
           steps: steps,
           activeCalories: activeCalories,
           distanceMeters: distanceMeters,
@@ -856,8 +868,8 @@ class XiaomiHealthSystem extends XiaomiPbSystem {
       }
     }
     return XiaomiActivityWorkoutRecord(
-      startedAt: DateTime.fromMillisecondsSinceEpoch(started * 1000),
-      endedAt: DateTime.fromMillisecondsSinceEpoch(ended * 1000),
+      startedAt: xiaomiActivityTimestamp(started),
+      endedAt: xiaomiActivityTimestamp(ended),
       activityType: subtype,
       distanceMeters: distanceMeters,
       calories: calories,
@@ -915,6 +927,9 @@ class XiaomiHealthSystem extends XiaomiPbSystem {
     int version,
     int subtype,
   ) {
+    if (subtype == 3 && version == 2) {
+      return _parseSleepStages(data);
+    }
     final limit = data.length - 4;
     if (subtype == 8) {
       return _parseSleepDetails(data, version, limit);
@@ -927,8 +942,8 @@ class XiaomiHealthSystem extends XiaomiPbSystem {
     final ended = view.getUint32(offset + 6, Endian.little);
     if (started == 0 || ended == 0 || durationMinutes == 0) return null;
     return XiaomiActivitySleepRecord(
-      startedAt: DateTime.fromMillisecondsSinceEpoch(started * 1000),
-      endedAt: DateTime.fromMillisecondsSinceEpoch(ended * 1000),
+      startedAt: xiaomiActivityTimestamp(started),
+      endedAt: xiaomiActivityTimestamp(ended),
       durationSeconds: durationMinutes * 60,
     );
   }
@@ -962,6 +977,14 @@ class XiaomiHealthSystem extends XiaomiPbSystem {
       headerIndex++;
     }
 
+    if (version >= 5) {
+      // Newer sleep-detail files include two additional timestamps after the
+      // quality field: nine reserved bytes followed by bed and wake times.
+      if (offset + 17 > limit) return null;
+      offset += 17;
+      headerIndex += 5;
+    }
+
     final heartRate = _readSleepByteSeries(
       view,
       data,
@@ -980,16 +1003,125 @@ class XiaomiHealthSystem extends XiaomiPbSystem {
       version,
       _validHeaderBit(header, headerIndex),
     );
+    offset = bloodOxygen.offset;
+    headerIndex++;
+    if (version >= 3) {
+      final snore = _readSleepByteSeries(
+        view,
+        data,
+        limit,
+        offset,
+        version,
+        _validHeaderBit(header, headerIndex),
+      );
+      offset = snore.offset;
+    }
     final duration = ended - started;
     return XiaomiActivitySleepRecord(
-      startedAt: DateTime.fromMillisecondsSinceEpoch(started * 1000),
-      endedAt: DateTime.fromMillisecondsSinceEpoch(ended * 1000),
+      startedAt: xiaomiActivityTimestamp(started),
+      endedAt: xiaomiActivityTimestamp(ended),
       durationSeconds: duration,
       averageHeartRate: heartRate.average,
       averageBloodOxygen: bloodOxygen.average,
       quality: quality,
+      stages: _parseSleepStagePackets(data, offset, limit),
     );
   }
+
+  XiaomiActivitySleepRecord? _parseSleepStages(Uint8List data) {
+    final limit = data.length - 4;
+    if (limit < 37) return null;
+    final view = ByteData.sublistView(data);
+    var offset = 8 + 7;
+    final durationMinutes = view.getUint16(offset, Endian.little);
+    final started = view.getUint32(offset + 2, Endian.little);
+    final ended = view.getUint32(offset + 6, Endian.little);
+    offset += 10;
+    if (started == 0 || ended <= started || durationMinutes == 0) return null;
+    // Three reserved bytes, four stage totals, then one trailing reserved
+    // byte precede the five-byte stage records.
+    offset += 3 + 8 + 1;
+    final stages = <XiaomiActivitySleepStageRecord>[];
+    while (offset + 5 <= limit) {
+      final timestamp = view.getUint32(offset, Endian.little);
+      final stage = _sleepStageFileValue(data[offset + 4]);
+      if (timestamp != 0 && stage >= 0) {
+        stages.add(
+          XiaomiActivitySleepStageRecord(
+            timestamp: xiaomiActivityTimestamp(timestamp),
+            stage: stage,
+          ),
+        );
+      }
+      offset += 5;
+    }
+    return XiaomiActivitySleepRecord(
+      startedAt: xiaomiActivityTimestamp(started),
+      endedAt: xiaomiActivityTimestamp(ended),
+      durationSeconds: durationMinutes * 60,
+      stages: stages,
+    );
+  }
+
+  List<XiaomiActivitySleepStageRecord> _parseSleepStagePackets(
+    Uint8List data,
+    int offset,
+    int limit,
+  ) {
+    final view = ByteData.sublistView(data);
+    final stages = <XiaomiActivitySleepStageRecord>[];
+    while (offset + 17 <= limit) {
+      if (view.getUint32(offset, Endian.little) != 0xfffcfafb) {
+        offset++;
+        continue;
+      }
+      final type = data[offset + 13];
+      final dataLength = (data[offset + 15] << 8) | data[offset + 16];
+      offset += 17;
+      if (type == 2 ||
+          type == 3 ||
+          type == 9 ||
+          type == 12 ||
+          type == 13 ||
+          type == 14 ||
+          type == 15) {
+        continue;
+      }
+      if (offset + dataLength > limit) break;
+      if (type == 17) {
+        final timestamp = view.getUint64(offset - 12, Endian.little);
+        var current = timestamp * 1000;
+        for (var index = 0; index + 1 < dataLength; index += 2) {
+          final value = view.getUint16(offset + index, Endian.big);
+          final stage = _sleepStageDetailValue(value >> 12);
+          if (stage >= 0) {
+            stages.add(
+              XiaomiActivitySleepStageRecord(
+                timestamp: DateTime.fromMillisecondsSinceEpoch(current),
+                stage: stage,
+              ),
+            );
+          }
+          current += (value & 0xfff) * 60 * 1000;
+        }
+      }
+      offset += dataLength;
+    }
+    return stages;
+  }
+
+  int _sleepStageFileValue(int raw) => switch (raw) {
+    2 || 3 || 4 || 5 => raw,
+    _ => -1,
+  };
+
+  int _sleepStageDetailValue(int raw) => switch (raw) {
+    0 => 5,
+    1 => 3,
+    2 => 2,
+    3 => 4,
+    _ => -1,
+  };
 
   _SleepByteSeries _readSleepByteSeries(
     ByteData view,
@@ -1538,6 +1670,16 @@ class XiaomiHealthSystem extends XiaomiPbSystem {
       left.sportType == right.sportType &&
       left.sportState == right.sportState;
 }
+
+/// Converts a timestamp from Xiaomi's activity-file protocol.
+///
+/// These fields are encoded as the device's local wall-clock epoch. They are
+/// not UTC instants, even though the wire representation looks like a Unix
+/// timestamp. Constructing a UTC [DateTime] here and calling [DateTime.toLocal]
+/// later adds the host timezone offset a second time (UTC+8 on the affected
+/// devices).
+DateTime xiaomiActivityTimestamp(int seconds) =>
+    DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
 
 class _ParsedActivityFile {
   const _ParsedActivityFile({

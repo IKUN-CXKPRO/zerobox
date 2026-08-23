@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/release_notes_view.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
@@ -79,7 +80,7 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
       setState(() {
         _releases = const [];
         _checked = true;
-        _error = error.toString();
+        _error = localizedErrorMessage(AppLocalizations.of(context)!, error);
       });
     } finally {
       if (mounted) setState(() => _checking = false);

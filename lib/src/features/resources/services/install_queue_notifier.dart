@@ -66,13 +66,26 @@ class InstallQueueState {
   const InstallQueueState({
     this.tasks = const [],
     this.runStatus = QueueRunStatus.pending,
+    this.loaded = false,
   });
 
   final List<InstallTask> tasks;
   final QueueRunStatus runStatus;
 
+  /// Whether the daemon has returned the first complete task snapshot.
+  ///
+  /// An empty task list before that snapshot is not proof that the queue is
+  /// empty. Consumers that coordinate device work must wait for this flag.
+  final bool loaded;
+
   bool get isRunning => runStatus == QueueRunStatus.running;
   bool get isStopping => runStatus == QueueRunStatus.stopping;
+  bool get hasActiveTasks => tasks.any(
+    (task) =>
+        task.status == ResourceTaskStatus.pending ||
+        task.status == ResourceTaskStatus.downloading ||
+        task.status == ResourceTaskStatus.installing,
+  );
   bool get hasRunnableTasks => tasks.any(
     (task) =>
         task.status == ResourceTaskStatus.pending ||
@@ -91,7 +104,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
   InstallQueueState build() {
     if (kIsWeb) {
       ref.listen(deviceManagerProvider, (_, _) {});
-      return const InstallQueueState();
+      return const InstallQueueState(loaded: true);
     }
     final host = ref.watch(applicationHostProvider);
     _feed = DaemonTaskFeed(
@@ -115,6 +128,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     state = InstallQueueState(
       tasks: tasks,
       runStatus: running ? QueueRunStatus.running : QueueRunStatus.pending,
+      loaded: true,
     );
   }
 
@@ -296,6 +310,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
   Future<void> reinstallWatchface(
     String taskId, {
     required String identifier,
+    bool startImmediately = true,
   }) async {
     final task = state.tasks.where((item) => item.id == taskId).firstOrNull;
     if (task == null) return;
@@ -316,13 +331,17 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
                 identifier: identifier,
                 resource: item.resource,
                 file: item.file,
+                status: startImmediately
+                    ? ResourceTaskStatus.pending
+                    : item.status,
               )
             else
               item,
         ],
         runStatus: state.runStatus,
+        loaded: state.loaded,
       );
-      start();
+      if (startImmediately) start();
       return;
     }
     await _enqueue(
@@ -333,6 +352,8 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
           'identifier': identifier,
           'path': task.filePath,
           'title': task.name,
+          'description': task.description,
+          'installMode': task.installMode.name,
           'deleteAfter': true,
           'autoClean': true,
           if (task.resource != null)
@@ -340,9 +361,12 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
           if (task.file != null) 'file': task.file!.id,
         },
       ),
-      held: false,
+      held: !startImmediately,
     );
-    await _feed?.remove(taskId, terminal: true);
+    await _feed?.remove(
+      taskId,
+      terminal: task.status == ResourceTaskStatus.failed,
+    );
   }
 
   void enqueueResource({
@@ -390,6 +414,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     state = InstallQueueState(
       tasks: [...state.tasks, task],
       runStatus: state.runStatus,
+      loaded: state.loaded,
     );
   }
 
@@ -408,6 +433,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
         runStatus: state.tasks.length <= 1
             ? QueueRunStatus.pending
             : state.runStatus,
+        loaded: state.loaded,
       );
       return;
     }
@@ -430,6 +456,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
             )
             .toList(),
         runStatus: state.runStatus,
+        loaded: state.loaded,
       );
       return;
     }
@@ -465,6 +492,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
               task,
         ],
         runStatus: state.runStatus,
+        loaded: state.loaded,
       );
       return;
     }
@@ -479,6 +507,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
       state = InstallQueueState(
         tasks: state.tasks,
         runStatus: QueueRunStatus.running,
+        loaded: state.loaded,
       );
       unawaited(_runWeb());
       return;
@@ -496,6 +525,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
       state = InstallQueueState(
         tasks: state.tasks,
         runStatus: QueueRunStatus.stopping,
+        loaded: state.loaded,
       );
       return;
     }
@@ -518,6 +548,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     state = InstallQueueState(
       tasks: state.tasks,
       runStatus: QueueRunStatus.pending,
+      loaded: state.loaded,
     );
   }
 
@@ -548,6 +579,7 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
               item,
         ],
         runStatus: state.runStatus,
+        loaded: state.loaded,
       );
     }
 

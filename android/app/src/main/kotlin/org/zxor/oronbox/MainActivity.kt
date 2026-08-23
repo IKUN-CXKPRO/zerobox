@@ -95,6 +95,7 @@ class MainActivity : FlutterActivity() {
     private var sessionMarker: File? = null
 
     companion object {
+        private const val NOTIFICATION_PERMISSION_REQUEST = 0x5A12
         private const val WEARABLE_LOG_DIRECTORY_REQUEST = 0x5A11
         private const val WEARABLE_LOG_DIRECTORY_PREF = "wearable_log_directory"
         private const val MAX_WEARABLE_LOG_BYTES = 64 * 1024 * 1024
@@ -221,6 +222,18 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                NOTIFICATION_PERMISSION_REQUEST,
+            )
+        }
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         fileOpenChannel = MethodChannel(
@@ -320,6 +333,48 @@ class MainActivity : FlutterActivity() {
                         startBackgroundService(it, BackgroundTaskService.MODE_TASK)
                     }
                     stopBackgroundServiceIfIdle()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            PlatformChannelNames.STATUS_SURFACES,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "updateDeviceStatus" -> {
+                    val values = call.arguments as? Map<*, *>
+                    if (values == null) {
+                        result.error("INVALID_ARGUMENT", "Device status is required", null)
+                    } else {
+                        StatusWidgetDataStore.saveDevice(this, values)
+                        StatusWidgetUpdater.updateDevice(this)
+                        result.success(null)
+                    }
+                }
+                "updateHealthStatus" -> {
+                    val values = call.arguments as? Map<*, *>
+                    if (values == null) {
+                        result.error("INVALID_ARGUMENT", "Health status is required", null)
+                    } else {
+                        StatusWidgetDataStore.saveHealth(this, values)
+                        StatusWidgetUpdater.updateHealth(this)
+                        result.success(null)
+                    }
+                }
+                "updateQueueActivity" -> {
+                    val values = call.arguments as? Map<*, *>
+                    if (values == null) {
+                        result.error("INVALID_ARGUMENT", "Queue status is required", null)
+                    } else {
+                        requestNotificationPermissionIfNeeded()
+                        QueueActivityNotification.update(this, values)
+                        result.success(null)
+                    }
+                }
+                "clearQueueActivity" -> {
+                    QueueActivityNotification.clear(this)
                     result.success(null)
                 }
                 else -> result.notImplemented()

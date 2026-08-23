@@ -22,8 +22,8 @@ class QueueDoneNotifier extends Notifier<DateTime?> {
 
 final queueDoneVersionProvider =
     NotifierProvider<QueueDoneVersionNotifier, int>(
-  QueueDoneVersionNotifier.new,
-);
+      QueueDoneVersionNotifier.new,
+    );
 
 class QueueDoneVersionNotifier extends Notifier<int> {
   @override
@@ -62,8 +62,13 @@ class QueueNavState {
 }
 
 QueueNavState queueNavCounts(WidgetRef ref) {
-  final dl = ref.watch(downloadQueueProvider);
-  final il = ref.watch(installQueueProvider).tasks;
+  return queueNavState(
+    ref.watch(downloadQueueProvider),
+    ref.watch(installQueueProvider).tasks,
+  );
+}
+
+QueueNavState queueNavState(List<ResourceTask> dl, List<InstallTask> il) {
   var active = 0, pending = 0, total = 0;
   var installing = false, hasError = false;
   double progress = 0;
@@ -114,7 +119,11 @@ List<int> visibleBranchIndices({
   required bool showPlugins,
 }) => [if (showExplore) 0, 1, 2, if (showPlugins) 3, 4];
 
-Widget queueNavIcon(BuildContext context, QueueNavState queue, DateTime? doneAt) {
+Widget queueNavIcon(
+  BuildContext context,
+  QueueNavState queue,
+  DateTime? doneAt,
+) {
   if (queue.total == 0) {
     if (doneAt != null) {
       return Icon(Icons.check, color: Theme.of(context).colorScheme.primary);
@@ -201,9 +210,8 @@ class ShellBranchIndex extends InheritedWidget {
 
   final int index;
 
-  static int? maybeOf(BuildContext context) => context
-      .dependOnInheritedWidgetOfExactType<ShellBranchIndex>()
-      ?.index;
+  static int? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ShellBranchIndex>()?.index;
 
   @override
   bool updateShouldNotify(ShellBranchIndex oldWidget) =>

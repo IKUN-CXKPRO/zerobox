@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:developer' as developer;
 
 import 'package:cross_file/cross_file.dart';
 import 'package:segmented_list/segmented_list.dart';
@@ -12,15 +13,20 @@ import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
+import 'package:oronbox/src/app/layout/app_navigation_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/core/models/device.dart';
+import 'package:oronbox/src/core/services/status_surface_bridge.dart';
 import 'package:oronbox/src/core/utils/layout.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/devices/health/health_models.dart';
+import 'package:oronbox/src/features/devices/services/xiaomi_sync_preferences.dart';
+import 'package:oronbox/src/features/devices/services/xiaomi_weather_sync_service.dart';
 import 'package:oronbox/src/features/devices/widgets/device_connection_text.dart';
 import 'package:oronbox/src/features/devices/widgets/xiaomi_fitness_logo.dart';
-import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
+import 'package:oronbox/src/features/resources/services/install_queue_notifier.dart';
 import 'package:oronbox/src/features/resources/widgets/resource_install_confirmation.dart';
 import 'package:oronbox/src/features/devices/pages/install/local_file_picker_policy.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart' as proto;
@@ -35,6 +41,97 @@ class DevicesPage extends ConsumerStatefulWidget {
 class _DevicesPageState extends ConsumerState<DevicesPage> {
   bool _syncingTime = false;
   String? _lastErrorToast;
+  int? _lastShellBranch;
+  bool _automaticSyncStarted = false;
+  bool _automaticSyncRunning = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final branch = ShellBranchIndex.maybeOf(context);
+    if (branch == null || branch == _lastShellBranch) return;
+    _lastShellBranch = branch;
+    if (branch == 1 && !_automaticSyncRunning) {
+      _automaticSyncStarted = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _maybeStartAutomaticSync();
+      });
+    }
+  }
+
+  void _maybeStartAutomaticSync() {
+    if (!mounted || _automaticSyncStarted || _automaticSyncRunning) return;
+    final deviceState = ref.read(deviceManagerProvider);
+    if (deviceState.protocolState != proto.ProtocolState.ready ||
+        deviceState.currentDevice == null ||
+        deviceState.currentDevice!.disconnected) {
+      return;
+    }
+
+    final queue = ref.read(installQueueProvider);
+    if (!queue.loaded || queue.hasActiveTasks) return;
+
+    _automaticSyncStarted = true;
+    _automaticSyncRunning = true;
+    unawaited(
+      _runAutomaticSync().whenComplete(() => _automaticSyncRunning = false),
+    );
+  }
+
+  Future<void> _runAutomaticSync() async {
+    final manager = ref.read(deviceManagerProvider.notifier);
+    try {
+      await manager.syncDevice();
+    } catch (error, stackTrace) {
+      developer.log(
+        'Automatic device synchronization failed',
+        name: 'oronbox.devices',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    await _syncEnabledXiaomiData(manager);
+  }
+
+  Future<void> _syncEnabledXiaomiData(DeviceManager manager) async {
+    if (!mounted) return;
+    if (XiaomiSyncPreferences.healthAutoSync) {
+      try {
+        final result = await manager.syncXiaomiHealth();
+        unawaited(
+          updateHealthStatusSurface(healthStatusSurfaceData(result.data)),
+        );
+      } catch (error, stackTrace) {
+        developer.log(
+          'Automatic health synchronization failed',
+          name: 'oronbox.devices',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+    }
+
+    final city = XiaomiSyncPreferences.weatherLastCity?.trim();
+    if (!XiaomiSyncPreferences.weatherAutoSync ||
+        city == null ||
+        city.isEmpty) {
+      return;
+    }
+    try {
+      final weather = await XiaomiWeatherSyncService().fetch(city);
+      await manager.syncXiaomiWeather(weather);
+      await XiaomiSyncPreferences.setWeatherLastCity(weather.cityName);
+      await XiaomiSyncPreferences.setCachedWeather(weather, DateTime.now());
+    } catch (error, stackTrace) {
+      developer.log(
+        'Automatic weather synchronization failed',
+        name: 'oronbox.devices',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +139,16 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
     final state = ref.watch(deviceManagerProvider);
     final device = state.currentDevice;
 
+    ref.listen<InstallQueueState>(installQueueProvider, (_, next) {
+      if (next.loaded && !next.hasActiveTasks) {
+        _maybeStartAutomaticSync();
+      }
+    });
+
     ref.listen<DeviceManagerState>(deviceManagerProvider, (previous, next) {
+      if (next.protocolState == proto.ProtocolState.ready) {
+        _maybeStartAutomaticSync();
+      }
       if (next.error == null) _lastErrorToast = null;
       if (next.error == null) return;
       if (ModalRoute.of(context)?.isCurrent != true) return;
@@ -90,7 +196,9 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
       if (_syncingTime) return;
       setState(() => _syncingTime = true);
       try {
-        await ref.read(deviceManagerProvider.notifier).syncDevice();
+        final manager = ref.read(deviceManagerProvider.notifier);
+        await manager.syncDevice();
+        await _syncEnabledXiaomiData(manager);
       } finally {
         if (mounted) setState(() => _syncingTime = false);
       }
@@ -576,7 +684,7 @@ class _StorageCard extends StatelessWidget {
       return '${(value / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
     }
     if (value >= 1024 * 1024) {
-      return '${(value / (1024 * 1024)).toStringAsFixed(1)} MB';
+      return '${(value / (1024 * 1024)).toStringAsFixed(0)} MB';
     }
     return '${(value / 1024).toStringAsFixed(0)} KB';
   }

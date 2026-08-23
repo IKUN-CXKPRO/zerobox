@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,10 +8,12 @@ import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
+import 'package:oronbox/src/core/services/status_surface_bridge.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/devices/health/health_cards.dart';
 import 'package:oronbox/src/features/devices/health/health_models.dart';
 import 'package:oronbox/src/features/devices/pages/more/xiaomi_health_detail_page.dart';
+import 'package:oronbox/src/features/devices/services/xiaomi_sync_preferences.dart';
 import 'package:oronbox/src/features/devices/widgets/xiaomi_fitness_logo.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart';
 
@@ -25,10 +29,12 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
   String? _error;
   bool _loading = true;
   bool _syncing = false;
+  bool _autoSync = false;
 
   @override
   void initState() {
     super.initState();
+    _autoSync = XiaomiSyncPreferences.healthAutoSync;
     Future.microtask(_load);
   }
 
@@ -43,6 +49,7 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
       final data = await ref
           .read(deviceManagerProvider.notifier)
           .loadXiaomiHealthData();
+      unawaited(updateHealthStatusSurface(healthStatusSurfaceData(data)));
       if (!mounted) return;
       setState(() => _data = data);
     } catch (error) {
@@ -63,6 +70,9 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
       final result = await ref
           .read(deviceManagerProvider.notifier)
           .syncXiaomiHealth();
+      unawaited(
+        updateHealthStatusSurface(healthStatusSurfaceData(result.data)),
+      );
       if (!mounted) return;
       setState(() => _data = result.data);
     } catch (error) {
@@ -123,6 +133,17 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
                   ),
                   onPressed: (_) {
                     if (ready && !_syncing) _sync();
+                  },
+                ),
+                SegmentedTile.switchTile(
+                  leading: const Icon(Icons.autorenew_outlined),
+                  title: Text(l10n.deviceHealthAutoSyncTitle),
+                  description: Text(l10n.deviceHealthAutoSyncDescription),
+                  initialValue: _autoSync,
+                  onToggle: (value) {
+                    final enabled = value ?? false;
+                    setState(() => _autoSync = enabled);
+                    unawaited(XiaomiSyncPreferences.setHealthAutoSync(enabled));
                   },
                 ),
               ],
@@ -242,16 +263,12 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
     if (capabilities.sleep) {
       final sleep = value.latestSleep;
       cards.add(
-        HealthMetricCard(
-          metric: XiaomiHealthMetric.sleep,
+        HealthSleepCard(
           title: l10n.deviceHealthSleep,
           icon: Icons.bedtime_outlined,
           color: Colors.deepPurple,
-          value: sleep == null ? '—' : _duration(sleep.durationSeconds),
-          detail: sleep == null
-              ? l10n.deviceHealthNoData
-              : '${_formatTime(sleep.startedAt)} – ${_formatTime(sleep.endedAt)}',
-          samples: const [],
+          summary: sleep,
+          noDataLabel: l10n.deviceHealthNoData,
           onPressed: () => _openDetail(XiaomiHealthMetric.sleep),
         ),
       );
@@ -285,12 +302,7 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
   }) {
     final latest = data.latestSample(metric);
     final anchor = latest?.timestamp ?? DateTime.now();
-    final chartEnd = DateTime(
-      anchor.year,
-      anchor.month,
-      anchor.day,
-      anchor.hour,
-    ).add(const Duration(hours: 1));
+    final chartEnd = healthHourStart(anchor).add(const Duration(hours: 1));
     final chartStart = chartEnd.subtract(const Duration(hours: 24));
     final samples =
         data
@@ -334,9 +346,12 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
   }
 }
 
-String _formatDateTime(DateTime value) =>
-    '${value.month}/${value.day} ${_formatTime(value)}';
-String _formatTime(DateTime value) =>
-    '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
-String _duration(int seconds) =>
-    '${seconds ~/ 3600}h ${((seconds % 3600) ~/ 60).toString().padLeft(2, '0')}m';
+String _formatDateTime(DateTime value) {
+  final local = value.toLocal();
+  return '${local.month}/${local.day} ${_formatTime(local)}';
+}
+
+String _formatTime(DateTime value) {
+  final local = value.toLocal();
+  return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+}

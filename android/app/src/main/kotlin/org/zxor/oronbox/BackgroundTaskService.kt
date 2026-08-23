@@ -34,16 +34,20 @@ class BackgroundTaskService : Service() {
             launchIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+        val mode = intent?.getStringExtra(EXTRA_MODE)
         val label = intent?.getStringExtra(EXTRA_LABEL) ?: "Installing resources"
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("OronBox")
-            .setContentText(label)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(pendingIntent)
+            .apply {
+                // The connection keep-alive is an implementation detail. It
+                // must not expose the old noisy “Connected: …” label.
+                if (mode != MODE_CONNECTION) setContentText(label)
+            }
             .build()
-        val mode = intent?.getStringExtra(EXTRA_MODE)
         val serviceType = when (mode) {
             MODE_CONNECTION -> ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
             else -> ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC

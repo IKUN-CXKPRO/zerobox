@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:oronbox/src/core/network/app_http_transport.dart';
 import 'package:oronbox/src/core/network/github_cdn.dart';
 import 'package:oronbox/src/data/astrobox/models/astrobox_models.dart';
+import 'package:oronbox/src/data/astrobox/astrobox_repo_description.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/device/core/xiaomi_wearable_catalog.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
@@ -115,6 +116,12 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
       );
     }
     final manifestItem = manifest.item;
+    // AstroBox Repo manifests may put presentation markup directly in the
+    // description field. Keep this source-specific so other providers retain
+    // their own description semantics.
+    final description = normalizeAstroBoxRepoDescription(
+      manifestItem.description,
+    );
     final purchase = manifest.links
         .where(
           (link) =>
@@ -143,10 +150,12 @@ class AstroBoxRepoCatalog implements CommunityResourceCatalog {
       sourceRepoName: item.repoName,
       sourceRepoCommitHash: item.repoCommitHash,
       purchaseLink: purchase,
-      summary: manifestItem.description,
+      summary: description.value,
       content: CommunityResourceContent(
-        format: ResourceContentFormat.plainText,
-        value: manifestItem.description,
+        format: description.isHtml
+            ? ResourceContentFormat.html
+            : ResourceContentFormat.plainText,
+        value: description.value,
       ),
       previews: manifestItem.preview
           .map((path) => _assetUri(item, path))

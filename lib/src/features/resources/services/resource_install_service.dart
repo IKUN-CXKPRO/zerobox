@@ -57,9 +57,30 @@ class ResourceInstallService {
     )
     onUpdate,
   }) async {
-    onUpdate(ResourceTaskStatus.downloading, 0, null);
-    if (!resource.canDownload) {
+    var lastProgress = 0.0;
+
+    void report(
+      ResourceTaskStatus status,
+      double progress,
+      String? error,
+    ) {
+      final normalized = progress.clamp(0.0, 1.0).toDouble();
+      if (status != ResourceTaskStatus.failed && normalized < lastProgress) {
+        return;
+      }
+      if (status != ResourceTaskStatus.failed && normalized > lastProgress) {
+        lastProgress = normalized;
+      }
       onUpdate(
+        status,
+        status == ResourceTaskStatus.failed ? normalized : lastProgress,
+        error,
+      );
+    }
+
+    report(ResourceTaskStatus.downloading, 0, null);
+    if (!resource.canDownload) {
+      report(
         ResourceTaskStatus.failed,
         0,
         'This resource is not available for download with the current account',
@@ -68,7 +89,7 @@ class ResourceInstallService {
     }
     if (resource.downloadRestriction ==
         CommunityResourceDownloadRestriction.astroBoxCreatorEncrypted) {
-      onUpdate(
+      report(
         ResourceTaskStatus.failed,
         0,
         'AstroBox Creator Console encrypted resources are not supported',
@@ -82,17 +103,17 @@ class ResourceInstallService {
           file: file,
           targetDevice: targetDevice,
           onProgress: (progress, {status = ''}) =>
-              onUpdate(ResourceTaskStatus.downloading, progress, null),
+              report(ResourceTaskStatus.downloading, progress, null),
         ),
       );
-      onUpdate(ResourceTaskStatus.completed, 1, null);
+      report(ResourceTaskStatus.completed, 1, null);
       return DownloadedResource(
         path: result.path,
         fileName: result.fileName,
         bytes: result.bytes,
       );
     } catch (e) {
-      onUpdate(ResourceTaskStatus.failed, 0, 'Download failed: $e');
+      report(ResourceTaskStatus.failed, 0, 'Download failed: $e');
       return null;
     }
   }
