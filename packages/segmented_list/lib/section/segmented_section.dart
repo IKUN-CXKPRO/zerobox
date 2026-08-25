@@ -19,6 +19,8 @@ class SegmentedSection extends AbstractSegmentedSection {
 
   @override
   Widget build(BuildContext context) {
+    final inheritedTextStyle = DefaultTextStyle.of(context).style;
+
     return Padding(
       padding:
           margin ?? EdgeInsetsDirectional.only(start: 16, end: 16, bottom: 16),
@@ -29,11 +31,11 @@ class SegmentedSection extends AbstractSegmentedSection {
             Padding(
               padding: const EdgeInsets.all(10),
               child: DefaultTextStyle(
-                style: TextStyle(
+                style: inheritedTextStyle.merge(TextStyle(
                   fontSize: 13,
                   color: Theme.of(context).colorScheme.onPrimaryContainer,
                   fontWeight: FontWeight.w600,
-                ),
+                )),
                 child: title!,
               ),
             ),
@@ -42,11 +44,11 @@ class SegmentedSection extends AbstractSegmentedSection {
             Padding(
               padding: const EdgeInsets.all(10),
               child: DefaultTextStyle(
-                style: TextStyle(
+                style: inheritedTextStyle.merge(TextStyle(
                   fontSize: 13,
                   color: Theme.of(context).hintColor,
                   fontWeight: FontWeight.w600,
-                ),
+                )),
                 child: bottomInfo!,
               ),
             ),

@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/utils/picked_file.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/app/window/window_launcher.dart';
@@ -143,15 +144,15 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
   }
 
   Future<Uint8List?> _pickPackage(List<String> extensions) async {
-    final picked = await FilePicker.pickFiles(
+    final picked = await pickFileData(
       type: FileType.custom,
       allowedExtensions: extensions,
-      withData: true,
+      loadBytes: true,
     );
-    if (picked == null || picked.files.isEmpty) return null;
-    final bytes = picked.files.single.bytes;
+    if (picked == null) return null;
+    final bytes = await picked.readAsBytes();
     if (bytes == null) {
-      _showError(StateError('Unable to read ${picked.files.single.name}'));
+      _showError(StateError('Unable to read ${picked.name}'));
     }
     return bytes;
   }
@@ -348,9 +349,9 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                 ),
                           ),
                       ],
@@ -609,10 +610,43 @@ class _PluginsPageState extends ConsumerState<PluginsPage> {
   }
 
   void _showError(Object error) {
+    if (_isPluginPackageError(error)) {
+      unawaited(_showPluginPackageCorruptedDialog());
+      return;
+    }
     final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(localizedErrorMessage(l10n, error))));
+  }
+
+  Future<void> _showPluginPackageCorruptedDialog() async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.pluginErrorTitle),
+        content: Text(l10n.pluginPackageCorruptedMessage),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.close),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isPluginPackageError(Object error) {
+    final message = switch (error) {
+      CommandError(:final message) => message,
+      FormatException(:final message) => message,
+      _ => error.toString(),
+    };
+    return message.contains('ABP manifest.json is missing') ||
+        message.contains('ABP package') ||
+        message.contains('ABP entry is missing');
   }
 }
 

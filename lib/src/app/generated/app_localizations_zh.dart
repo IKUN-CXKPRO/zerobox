@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -1305,7 +1306,55 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceHealthHeartRate => '心率';
 
   @override
+  String get deviceHealthRestingHeartRate => '静息心率';
+
+  @override
+  String get deviceHealthAbnormalHeartRate => '异常心率';
+
+  @override
+  String get deviceHealthHeartRateHigh => '心率过高';
+
+  @override
+  String get deviceHealthHeartRateLow => '心率过低';
+
+  @override
+  String get deviceHealthHeartHealth => '心脏健康';
+
+  @override
+  String get deviceHealthHeartHealthMonitoring => '心脏健康监测';
+
+  @override
+  String get deviceHealthIrregularHeartbeat => '异常心搏';
+
+  @override
+  String get deviceHealthLowBloodOxygen => '血氧过低';
+
+  @override
+  String get deviceHealthHighStress => '压力过高';
+
+  @override
+  String get deviceHealthDetected => '已检测';
+
+  @override
   String get deviceHealthSleep => '最近睡眠';
+
+  @override
+  String get deviceHealthSleepCard => '睡眠';
+
+  @override
+  String get deviceHealthAllDaySleep => '全天睡眠';
+
+  @override
+  String get deviceHealthLongSleep => '长睡眠';
+
+  @override
+  String get deviceHealthSleepStructure => '睡眠结构';
+
+  @override
+  String get deviceHealthSleepAverageHeartRate => '睡眠平均心率';
+
+  @override
+  String get deviceHealthSleepAverageBloodOxygen => '睡眠平均血氧';
 
   @override
   String deviceHealthAverageHeartRate(int value) {
@@ -1517,6 +1566,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get savedDevices => '已配对设备';
+
+  @override
+  String get deviceSwitchAddDevice => '添加设备';
 
   @override
   String get scanAndAdd => '扫描并添加';
@@ -1930,6 +1982,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get xiaomiAccountRequiredForEphemeris => '未登录小米账号，请先登录后再同步星历';
+
+  @override
   String get settingsHuamiAccount => '华米账号';
 
   @override
@@ -1991,6 +2046,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsAutoReconnectDesc => '启动时自动连接上次配对的设备';
+
+  @override
+  String get settingsAutoReconnectOnDisconnectTitle => '自动重连';
+
+  @override
+  String get settingsAutoReconnectOnDisconnectDesc => '被动与设备断开连接时尝试重连设备';
+
+  @override
+  String get deviceReconnectAttempting => '设备连接异常，尝试重连中';
+
+  @override
+  String get deviceReconnectSucceeded => '重连成功';
+
+  @override
+  String get deviceReconnectFailedPrefix => '重连失败，请检查：';
 
   @override
   String get settingsSourceOfficialCdn => 'GitHub 源 CDN';
@@ -2142,6 +2212,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get acknowledgementsGadgetbridge => 'ZeppOS 与可穿戴设备协议研究参考';
+
+  @override
+  String get acknowledgementsBreezyWeather => '中国天气源实现参考';
+
+  @override
+  String get acknowledgementsOpenMeteo => '天气预报、空气质量与地点搜索数据，遵循 CC BY 4.0';
 
   @override
   String get resourceHomeRecommended => '每日推荐';
@@ -2396,12 +2472,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pluginPermissionOperateAppSide => '管理 AppSide 会话';
 
   @override
-  String get pluginErrorTitle => '插件运行错误';
+  String get pluginErrorTitle => '插件损坏';
 
   @override
   String pluginErrorMessage(Object plugin, Object error) {
-    return '“$plugin”运行时发生错误：\n\n$error';
+    return '“$plugin”无法正常运行，可能已损坏。\n\n错误：$error\n\n是否卸载此插件？';
   }
+
+  @override
+  String get pluginPackageCorruptedMessage => '所选插件包无法读取，可能已损坏。请重新获取后再导入。';
 
   @override
   String get pluginErrorClearData => '清除插件数据';
@@ -2440,7 +2519,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get resourceTypeUnknownTitle => '无法识别的资源类型';
 
   @override
-  String get resourceTypeUnknownNoType => 'OronBox 无法识别此文件的资源类型';
+  String get resourceTypeUnknownNoType => 'OronBox 无法识别此文件的资源类型，该文件似乎已损坏';
+
+  @override
+  String get resourceTypeUnknownCancel => '取消';
 
   @override
   String resourceTypeMismatchMessage(Object detectedType, Object selectedType) {
@@ -3462,6 +3544,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceHealthTrend => '趋势';
 
   @override
+  String get deviceHealthDayView => '日';
+
+  @override
+  String get deviceHealthWeekView => '周';
+
+  @override
+  String get deviceHealthMonthView => '月';
+
+  @override
   String get deviceHealthLatest => '最新';
 
   @override
@@ -3490,6 +3581,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deviceHealthSleepStages => '睡眠阶段';
+
+  @override
+  String get deviceHealthSleepHrv => '睡眠 HRV';
 
   @override
   String get deviceHealthSleepAwake => '清醒';
@@ -3679,6 +3773,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get weatherAirQuality => '空气质量';
 
   @override
+  String get weatherAqiGood => '优';
+
+  @override
+  String get weatherAqiModerate => '良';
+
+  @override
+  String get weatherAqiSensitive => '轻度污染';
+
+  @override
+  String get weatherAqiUnhealthy => '中度污染';
+
+  @override
+  String get weatherAqiVeryUnhealthy => '重度污染';
+
+  @override
+  String get weatherAqiHazardous => '严重污染';
+
+  @override
   String get weatherUv => '紫外线';
 
   @override
@@ -3689,6 +3801,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get weatherNext7Days => '未来 7 天';
+
+  @override
+  String weatherDataSource(Object source) {
+    return '数据来源：$source';
+  }
 
   @override
   String weatherLevelDirection(Object level, Object direction) {
@@ -3767,6 +3884,29 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get windNorthWest => '西北';
+
+  @override
+  String get xiaomiScreenshotTitle => '设备截图';
+
+  @override
+  String get xiaomiScreenshotDescription => '在设备上使用组合键截图，截图会自动同步到这里';
+
+  @override
+  String get xiaomiScreenshotAction => '获取截图';
+
+  @override
+  String get xiaomiScreenshotLoading => '获取中…';
+
+  @override
+  String get xiaomiScreenshotEmpty => '暂无截图';
+
+  @override
+  String get xiaomiScreenshotFailed => '获取截图失败';
+
+  @override
+  String xiaomiScreenshotSaved(Object path) {
+    return '手表截图已保存至：$path';
+  }
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -5070,7 +5210,55 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get deviceHealthHeartRate => '心率';
 
   @override
+  String get deviceHealthRestingHeartRate => '靜息心率';
+
+  @override
+  String get deviceHealthAbnormalHeartRate => '異常心率';
+
+  @override
+  String get deviceHealthHeartRateHigh => '心率過高';
+
+  @override
+  String get deviceHealthHeartRateLow => '心率過低';
+
+  @override
+  String get deviceHealthHeartHealth => '心臟健康';
+
+  @override
+  String get deviceHealthHeartHealthMonitoring => '心臟健康監測';
+
+  @override
+  String get deviceHealthIrregularHeartbeat => '異常心搏';
+
+  @override
+  String get deviceHealthLowBloodOxygen => '血氧過低';
+
+  @override
+  String get deviceHealthHighStress => '壓力過高';
+
+  @override
+  String get deviceHealthDetected => '已偵測';
+
+  @override
   String get deviceHealthSleep => '最近睡眠';
+
+  @override
+  String get deviceHealthSleepCard => '睡眠';
+
+  @override
+  String get deviceHealthAllDaySleep => '全天睡眠';
+
+  @override
+  String get deviceHealthLongSleep => '長睡眠';
+
+  @override
+  String get deviceHealthSleepStructure => '睡眠結構';
+
+  @override
+  String get deviceHealthSleepAverageHeartRate => '睡眠平均心率';
+
+  @override
+  String get deviceHealthSleepAverageBloodOxygen => '睡眠平均血氧';
 
   @override
   String deviceHealthAverageHeartRate(int value) {
@@ -5282,6 +5470,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get savedDevices => '已儲存的裝置';
+
+  @override
+  String get deviceSwitchAddDevice => '新增裝置';
 
   @override
   String get scanAndAdd => '掃描並新增';
@@ -5695,6 +5886,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
+  String get xiaomiAccountRequiredForEphemeris => '尚未登入 Xiaomi 帳號，請先登入後再同步星曆';
+
+  @override
   String get settingsHuamiAccount => 'Amazfit帳號';
 
   @override
@@ -5756,6 +5950,21 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get settingsAutoReconnectDesc => '啟動時自動重新連線上次配對的裝置';
+
+  @override
+  String get settingsAutoReconnectOnDisconnectTitle => '自動重新連線';
+
+  @override
+  String get settingsAutoReconnectOnDisconnectDesc => '與裝置的連線被動中斷時嘗試重新連線';
+
+  @override
+  String get deviceReconnectAttempting => '裝置連線異常，正在嘗試重新連線';
+
+  @override
+  String get deviceReconnectSucceeded => '重新連線成功';
+
+  @override
+  String get deviceReconnectFailedPrefix => '重新連線失敗，請檢查：';
 
   @override
   String get settingsSourceOfficialCdn => 'GitHub 來源 CDN';
@@ -5909,6 +6118,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get acknowledgementsGadgetbridge => '參考 ZeppOS 與穿戴式裝置通訊協定研究';
+
+  @override
+  String get acknowledgementsBreezyWeather => '中國天氣來源實作參考';
+
+  @override
+  String get acknowledgementsOpenMeteo => '依 CC BY 4.0 提供的天氣預報、空氣品質與地點搜尋資料';
 
   @override
   String get resourceHomeRecommended => '推薦';
@@ -6163,12 +6378,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get pluginPermissionOperateAppSide => '管理 AppSide 工作階段';
 
   @override
-  String get pluginErrorTitle => '外掛程式執行環境錯誤';
+  String get pluginErrorTitle => '外掛程式已損壞';
 
   @override
   String pluginErrorMessage(Object plugin, Object error) {
-    return '「$plugin」遇到執行環境錯誤：\n\n$error';
+    return '「$plugin」無法正常執行，可能已損壞。\n\n錯誤：$error\n\n是否解除安裝此外掛程式？';
   }
+
+  @override
+  String get pluginPackageCorruptedMessage => '無法讀取選取的外掛程式套件，可能已損壞。請重新取得後再匯入。';
 
   @override
   String get pluginErrorClearData => '清除插件資料';
@@ -6207,7 +6425,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get resourceTypeUnknownTitle => '無法辨識的資源類型';
 
   @override
-  String get resourceTypeUnknownNoType => 'OronBox 無法辨識此檔案的資源類型';
+  String get resourceTypeUnknownNoType => 'OronBox 無法辨識此檔案的資源類型，此檔案似乎已損壞';
+
+  @override
+  String get resourceTypeUnknownCancel => '取消';
 
   @override
   String resourceTypeMismatchMessage(Object detectedType, Object selectedType) {
@@ -7189,7 +7410,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get creatorBandBbsOverwritePreviousDescription => '建立新版本後刪除米壇上一次提交的版本';
 
   @override
+  String get deviceHealthDayView => '日';
+
+  @override
+  String get deviceHealthWeekView => '週';
+
+  @override
+  String get deviceHealthMonthView => '月';
+
+  @override
   String get deviceHealthSleepStages => '睡眠階段';
+
+  @override
+  String get deviceHealthSleepHrv => '睡眠 HRV';
 
   @override
   String get deviceHealthSleepAwake => '清醒';
@@ -7211,4 +7444,50 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get weatherAutoSyncDescription => '同步裝置資料時自動同步天氣資料';
+
+  @override
+  String get weatherAqiGood => '優';
+
+  @override
+  String get weatherAqiModerate => '良';
+
+  @override
+  String get weatherAqiSensitive => '對敏感族群不健康';
+
+  @override
+  String get weatherAqiUnhealthy => '不健康';
+
+  @override
+  String get weatherAqiVeryUnhealthy => '非常不健康';
+
+  @override
+  String get weatherAqiHazardous => '危險';
+
+  @override
+  String weatherDataSource(Object source) {
+    return '資料來源：$source';
+  }
+
+  @override
+  String get xiaomiScreenshotTitle => '裝置截圖';
+
+  @override
+  String get xiaomiScreenshotDescription => '在裝置上使用組合鍵截圖，截圖會自動同步到這裡';
+
+  @override
+  String get xiaomiScreenshotAction => '取得截圖';
+
+  @override
+  String get xiaomiScreenshotLoading => '取得中…';
+
+  @override
+  String get xiaomiScreenshotEmpty => '尚無截圖';
+
+  @override
+  String get xiaomiScreenshotFailed => '取得截圖失敗';
+
+  @override
+  String xiaomiScreenshotSaved(Object path) {
+    return '手錶截圖已儲存至：$path';
+  }
 }

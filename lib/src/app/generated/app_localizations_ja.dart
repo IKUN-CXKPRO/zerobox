@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -1316,7 +1317,55 @@ class AppLocalizationsJa extends AppLocalizations {
   String get deviceHealthHeartRate => '心拍数';
 
   @override
+  String get deviceHealthRestingHeartRate => '安静時心拍数';
+
+  @override
+  String get deviceHealthAbnormalHeartRate => '異常心拍数';
+
+  @override
+  String get deviceHealthHeartRateHigh => '心拍数が高い';
+
+  @override
+  String get deviceHealthHeartRateLow => '心拍数が低い';
+
+  @override
+  String get deviceHealthHeartHealth => '心臓の健康';
+
+  @override
+  String get deviceHealthHeartHealthMonitoring => '心臓の健康モニタリング';
+
+  @override
+  String get deviceHealthIrregularHeartbeat => '不規則な心拍';
+
+  @override
+  String get deviceHealthLowBloodOxygen => '血中酸素低下';
+
+  @override
+  String get deviceHealthHighStress => '高ストレス';
+
+  @override
+  String get deviceHealthDetected => '検出済み';
+
+  @override
   String get deviceHealthSleep => '最近の睡眠';
+
+  @override
+  String get deviceHealthSleepCard => '睡眠';
+
+  @override
+  String get deviceHealthAllDaySleep => '終日の睡眠';
+
+  @override
+  String get deviceHealthLongSleep => '長時間の睡眠';
+
+  @override
+  String get deviceHealthSleepStructure => '睡眠構造';
+
+  @override
+  String get deviceHealthSleepAverageHeartRate => '睡眠中の平均心拍数';
+
+  @override
+  String get deviceHealthSleepAverageBloodOxygen => '睡眠中の平均血中酸素';
 
   @override
   String deviceHealthAverageHeartRate(int value) {
@@ -1529,6 +1578,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get savedDevices => '保存済みデバイス';
+
+  @override
+  String get deviceSwitchAddDevice => 'デバイスを追加';
 
   @override
   String get scanAndAdd => 'スキャンして追加';
@@ -1938,6 +1990,10 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get xiaomiAccountRequiredForEphemeris =>
+      'Xiaomiアカウントにサインインしてからエフェメリスデータを同期してください';
+
+  @override
   String get settingsHuamiAccount => 'Amazfitアカウント';
 
   @override
@@ -2000,6 +2056,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAutoReconnectDesc => '起動時に最後にペアリングしたデバイスへ自動接続';
+
+  @override
+  String get settingsAutoReconnectOnDisconnectTitle => '自動再接続';
+
+  @override
+  String get settingsAutoReconnectOnDisconnectDesc =>
+      'デバイスが予期せず切断されたときに再接続を試みる';
+
+  @override
+  String get deviceReconnectAttempting => 'デバイス接続に異常があり、再接続を試行中';
+
+  @override
+  String get deviceReconnectSucceeded => '再接続しました';
+
+  @override
+  String get deviceReconnectFailedPrefix => '再接続に失敗しました。確認してください：';
 
   @override
   String get settingsSourceOfficialCdn => 'GitHubソースCDN';
@@ -2157,6 +2229,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get acknowledgementsGadgetbridge => 'ZeppOSおよびウェアラブルプロトコル研究を参考にしました';
+
+  @override
+  String get acknowledgementsBreezyWeather => '中国向け天気ソース実装の参考';
+
+  @override
+  String get acknowledgementsOpenMeteo => 'CC BY 4.0で提供される天気予報、空気質、ジオコーディングデータ';
 
   @override
   String get resourceHomeRecommended => 'おすすめ';
@@ -2411,12 +2489,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get pluginPermissionOperateAppSide => 'AppSideセッションを管理';
 
   @override
-  String get pluginErrorTitle => 'プラグインランタイムエラー';
+  String get pluginErrorTitle => 'プラグインが破損しています';
 
   @override
   String pluginErrorMessage(Object plugin, Object error) {
-    return '「$plugin」でランタイムエラーが発生しました：\\n\\n$error';
+    return '「$plugin」を実行できません。破損している可能性があります。\\n\\nエラー：$error\\n\\nこのプラグインをアンインストールしますか？';
   }
+
+  @override
+  String get pluginPackageCorruptedMessage =>
+      '選択したプラグインパッケージを読み取れません。破損している可能性があります。再取得してからインポートしてください。';
 
   @override
   String get pluginErrorClearData => 'プラグインデータを消去';
@@ -2456,7 +2538,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get resourceTypeUnknownTitle => 'リソース種別を認識できません';
 
   @override
-  String get resourceTypeUnknownNoType => 'OronBoxはこのファイルのリソース種別を判別できません';
+  String get resourceTypeUnknownNoType =>
+      'OronBoxはこのファイルのリソース種別を判別できません。このファイルは破損している可能性があります';
+
+  @override
+  String get resourceTypeUnknownCancel => 'キャンセル';
 
   @override
   String resourceTypeMismatchMessage(Object detectedType, Object selectedType) {
@@ -3488,6 +3574,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get deviceHealthTrend => 'Trend';
 
   @override
+  String get deviceHealthDayView => '日';
+
+  @override
+  String get deviceHealthWeekView => '週';
+
+  @override
+  String get deviceHealthMonthView => '月';
+
+  @override
   String get deviceHealthLatest => 'Latest';
 
   @override
@@ -3516,6 +3611,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get deviceHealthSleepStages => '睡眠ステージ';
+
+  @override
+  String get deviceHealthSleepHrv => '睡眠 HRV';
 
   @override
   String get deviceHealthSleepAwake => '覚醒';
@@ -3713,6 +3811,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get weatherAirQuality => 'Air quality';
 
   @override
+  String get weatherAqiGood => '良好';
+
+  @override
+  String get weatherAqiModerate => '普通';
+
+  @override
+  String get weatherAqiSensitive => '敏感な人に影響';
+
+  @override
+  String get weatherAqiUnhealthy => '不健康';
+
+  @override
+  String get weatherAqiVeryUnhealthy => '非常に不健康';
+
+  @override
+  String get weatherAqiHazardous => '危険';
+
+  @override
   String get weatherUv => 'UV index';
 
   @override
@@ -3723,6 +3839,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get weatherNext7Days => 'Next 7 days';
+
+  @override
+  String weatherDataSource(Object source) {
+    return 'データソース：$source';
+  }
 
   @override
   String weatherLevelDirection(Object level, Object direction) {
@@ -3801,4 +3922,28 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get windNorthWest => 'NW';
+
+  @override
+  String get xiaomiScreenshotTitle => 'デバイスのスクリーンショット';
+
+  @override
+  String get xiaomiScreenshotDescription =>
+      'デバイスのキー操作でスクリーンショットを撮ると、ここに自動同期されます';
+
+  @override
+  String get xiaomiScreenshotAction => 'スクリーンショットを取得';
+
+  @override
+  String get xiaomiScreenshotLoading => '取得中…';
+
+  @override
+  String get xiaomiScreenshotEmpty => 'スクリーンショットはありません';
+
+  @override
+  String get xiaomiScreenshotFailed => 'スクリーンショットを取得できませんでした';
+
+  @override
+  String xiaomiScreenshotSaved(Object path) {
+    return 'ウォッチのスクリーンショットを保存しました：$path';
+  }
 }

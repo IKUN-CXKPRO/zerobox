@@ -42,6 +42,7 @@ class HuamiPublisherPage extends ConsumerWidget {
                       vertical: StyleConstants.pagePadding,
                     ),
                     itemBuilder: (context, index) => PageContainer(
+                      safeArea: false,
                       padding: const EdgeInsets.symmetric(
                         horizontal: StyleConstants.pagePadding,
                       ),

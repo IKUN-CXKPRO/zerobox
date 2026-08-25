@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'astrobox_models.dart';
@@ -9,6 +9,7 @@ part of 'astrobox_models.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 
@@ -66,7 +67,7 @@ class _$AstroBoxIndexItemCopyWithImpl<$Res>
 /// Create a copy of AstroBoxIndexItem
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? type = null,Object? repoOwner = null,Object? repoName = null,Object? repoCommitHash = null,Object? icon = null,Object? cover = null,Object? tags = null,Object? deviceVendors = null,Object? devices = null,Object? paidType = null,}) {
-  return _then(_self.copyWith(
+  return _then(AstroBoxIndexItem(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
@@ -220,7 +221,7 @@ return $default(_that.id,_that.name,_that.type,_that.repoOwner,_that.repoName,_t
 @JsonSerializable()
 
 class _AstroBoxIndexItem implements AstroBoxIndexItem {
-  const _AstroBoxIndexItem({required this.id, required this.name, @JsonKey(name: 'restype') required this.type, required this.repoOwner, required this.repoName, required this.repoCommitHash, required this.icon, required this.cover, final  List<String> tags = const [], @JsonKey(name: 'device_vendors') final  List<String> deviceVendors = const [], final  List<String> devices = const [], @JsonKey(name: 'paid_type') required this.paidType}): _tags = tags,_deviceVendors = deviceVendors,_devices = devices;
+  const _AstroBoxIndexItem({required this.id, required this.name, @JsonKey(name: 'restype') required this.type, required this.repoOwner, required this.repoName, required this.repoCommitHash, required this.icon, required this.cover,  List<String> tags = const [], @JsonKey(name: 'device_vendors')  List<String> deviceVendors = const [],  List<String> devices = const [], @JsonKey(name: 'paid_type') required this.paidType}): _tags = tags,_deviceVendors = deviceVendors,_devices = devices;
   factory _AstroBoxIndexItem.fromJson(Map<String, dynamic> json) => _$AstroBoxIndexItemFromJson(json);
 
 @override final  String id;
@@ -380,7 +381,7 @@ class _$AstroBoxManifestCopyWithImpl<$Res>
 /// Create a copy of AstroBoxManifest
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? item = null,Object? links = null,Object? downloads = null,Object? ext = null,}) {
-  return _then(_self.copyWith(
+  return _then(AstroBoxManifest(
 item: null == item ? _self.item : item // ignore: cast_nullable_to_non_nullable
 as AstroBoxManifestItem,links: null == links ? _self.links : links // ignore: cast_nullable_to_non_nullable
 as List<AstroBoxManifestLink>,downloads: null == downloads ? _self.downloads : downloads // ignore: cast_nullable_to_non_nullable
@@ -535,7 +536,7 @@ return $default(_that.item,_that.links,_that.downloads,_that.ext);case _:
 @JsonSerializable()
 
 class _AstroBoxManifest implements AstroBoxManifest {
-  const _AstroBoxManifest({required this.item, final  List<AstroBoxManifestLink> links = const [], final  Map<String, AstroBoxManifestDownload> downloads = const {}, final  Map<String, dynamic> ext = const {}}): _links = links,_downloads = downloads,_ext = ext;
+  const _AstroBoxManifest({required this.item,  List<AstroBoxManifestLink> links = const [],  Map<String, AstroBoxManifestDownload> downloads = const {},  Map<String, dynamic> ext = const {}}): _links = links,_downloads = downloads,_ext = ext;
   factory _AstroBoxManifest.fromJson(Map<String, dynamic> json) => _$AstroBoxManifestFromJson(json);
 
 @override final  AstroBoxManifestItem item;
@@ -688,7 +689,7 @@ class _$AstroBoxManifestItemCopyWithImpl<$Res>
 /// Create a copy of AstroBoxManifestItem
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? restype = null,Object? name = null,Object? description = null,Object? descriptionHtml = freezed,Object? descriptionBaseUrl = freezed,Object? preview = null,Object? icon = null,Object? cover = null,Object? paidType = freezed,Object? author = null,}) {
-  return _then(_self.copyWith(
+  return _then(AstroBoxManifestItem(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,restype: null == restype ? _self.restype : restype // ignore: cast_nullable_to_non_nullable
 as AstroBoxResourceType,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -841,7 +842,7 @@ return $default(_that.id,_that.restype,_that.name,_that.description,_that.descri
 @JsonSerializable()
 
 class _AstroBoxManifestItem implements AstroBoxManifestItem {
-  const _AstroBoxManifestItem({required this.id, required this.restype, required this.name, required this.description, this.descriptionHtml, this.descriptionBaseUrl, final  List<String> preview = const [], required this.icon, required this.cover, this.paidType, final  List<AstroBoxManifestAuthor> author = const []}): _preview = preview,_author = author;
+  const _AstroBoxManifestItem({required this.id, required this.restype, required this.name, required this.description, this.descriptionHtml, this.descriptionBaseUrl,  List<String> preview = const [], required this.icon, required this.cover, this.paidType,  List<AstroBoxManifestAuthor> author = const []}): _preview = preview,_author = author;
   factory _AstroBoxManifestItem.fromJson(Map<String, dynamic> json) => _$AstroBoxManifestItemFromJson(json);
 
 @override final  String id;
@@ -993,7 +994,7 @@ class _$AstroBoxManifestAuthorCopyWithImpl<$Res>
 /// Create a copy of AstroBoxManifestAuthor
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? bindAbAccount = null,}) {
-  return _then(_self.copyWith(
+  return _then(AstroBoxManifestAuthor(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,bindAbAccount: null == bindAbAccount ? _self.bindAbAccount : bindAbAccount // ignore: cast_nullable_to_non_nullable
 as bool,
@@ -1259,7 +1260,7 @@ class _$AstroBoxManifestLinkCopyWithImpl<$Res>
 /// Create a copy of AstroBoxManifestLink
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? icon = freezed,Object? title = null,Object? url = null,}) {
-  return _then(_self.copyWith(
+  return _then(AstroBoxManifestLink(
 icon: freezed == icon ? _self.icon : icon // ignore: cast_nullable_to_non_nullable
 as String?,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
@@ -1528,7 +1529,7 @@ class _$AstroBoxManifestDownloadCopyWithImpl<$Res>
 /// Create a copy of AstroBoxManifestDownload
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? version = null,Object? fileName = null,Object? versionCode = freezed,Object? url = freezed,Object? sha256 = freezed,Object? displayName = freezed,}) {
-  return _then(_self.copyWith(
+  return _then(AstroBoxManifestDownload(
 version: null == version ? _self.version : version // ignore: cast_nullable_to_non_nullable
 as String,fileName: null == fileName ? _self.fileName : fileName // ignore: cast_nullable_to_non_nullable
 as String,versionCode: freezed == versionCode ? _self.versionCode : versionCode // ignore: cast_nullable_to_non_nullable
@@ -1806,7 +1807,7 @@ class _$AstroBoxDeviceMapCopyWithImpl<$Res>
 /// Create a copy of AstroBoxDeviceMap
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? xiaomi = null,}) {
-  return _then(_self.copyWith(
+  return _then(AstroBoxDeviceMap(
 xiaomi: null == xiaomi ? _self.xiaomi : xiaomi // ignore: cast_nullable_to_non_nullable
 as Map<String, AstroBoxDevice>,
   ));
@@ -1949,7 +1950,7 @@ return $default(_that.xiaomi);case _:
 @JsonSerializable()
 
 class _AstroBoxDeviceMap implements AstroBoxDeviceMap {
-  const _AstroBoxDeviceMap({final  Map<String, AstroBoxDevice> xiaomi = const {}}): _xiaomi = xiaomi;
+  const _AstroBoxDeviceMap({ Map<String, AstroBoxDevice> xiaomi = const {}}): _xiaomi = xiaomi;
   factory _AstroBoxDeviceMap.fromJson(Map<String, dynamic> json) => _$AstroBoxDeviceMapFromJson(json);
 
  final  Map<String, AstroBoxDevice> _xiaomi;
@@ -2075,7 +2076,7 @@ class _$AstroBoxDeviceCopyWithImpl<$Res>
 /// Create a copy of AstroBoxDevice
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = null,Object? chip = null,Object? fetch = null,}) {
-  return _then(_self.copyWith(
+  return _then(AstroBoxDevice(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable

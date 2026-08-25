@@ -14,6 +14,7 @@ import 'package:oronbox/src/core/providers/app_settings_providers.dart';
 import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/device/core/connect_type.dart';
 import 'package:oronbox/src/device/core/event_bus.dart';
+import 'package:oronbox/src/device/core/watchface_install_policy.dart';
 import 'package:oronbox/src/data/community/community_source.dart';
 import 'package:oronbox/src/data/bandbbs/bandbbs_resource_provider.dart';
 import 'package:oronbox/src/data/huami/huami_app_store_resource_provider.dart';
@@ -123,6 +124,50 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
           ),
         );
       }
+      if (event case XiaomiScreenshotReceived(:final bytes)) {
+        _events.add(
+          CommandEvent(
+            'device.xiaomi.screenshot.received',
+            data: {
+              'deviceId': event.deviceId,
+              'bytes': bytes.toList(growable: false),
+            },
+          ),
+        );
+      }
+      if (event is XiaomiGnssAccountRequired) {
+        _events.add(
+          CommandEvent(
+            XiaomiGnssAccountRequired.commandEvent,
+            data: {'deviceId': event.deviceId},
+          ),
+        );
+      }
+      if (event case PassiveReconnectStatus(:final phase, :final attempt)) {
+        _events.add(
+          CommandEvent(
+            PassiveReconnectStatus.commandEvent,
+            data: {
+              'deviceId': event.deviceId,
+              'phase': phase.name,
+              'attempt': attempt,
+            },
+          ),
+        );
+      }
+      if (event case XiaomiProtocolTrace(:final trace)) {
+        if (!_protocolTraceEnabled) return;
+        _events.add(
+          CommandEvent(
+            'debug.protocol_trace',
+            data: {
+              'deviceId': event.deviceId,
+              'time': DateTime.now().toUtc().toIso8601String(),
+              ...trace,
+            },
+          ),
+        );
+      }
     });
     _pluginManager = PluginManager(
       deviceManager: _manager,
@@ -134,6 +179,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       container: container,
     );
     unawaited(_pluginManager.initialize());
+    unawaited(_restoreXiaomiAccountSession());
   }
 
   final ProviderContainer container;
@@ -153,6 +199,10 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
   late final StreamSubscription<DeviceEvent> _deviceEventSubscription;
   bool _activeCommandCancelled = false;
   bool _rawBluetoothEnabled = false;
+  bool _protocolTraceEnabled = false;
+  bool? _batterySyncPausedBeforeTrace;
+  MiAccountToken? _xiaomiAccountToken;
+  var _xiaomiAccountSessionLoaded = false;
   Future<void> _commandTail = Future<void>.value();
   late final PluginManager _pluginManager;
   late final PluginRepositories _pluginRepositories;
@@ -282,6 +332,10 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       final result = await _dispatch(command);
       return CommandResult.success(_wireValue(result));
     } on CommandFailure catch (error) {
+      return CommandResult.failure(
+        CommandError(error.code, error.message, details: error.details),
+      );
+    } on WatchfaceInstallBlockedException catch (error) {
       return CommandResult.failure(
         CommandError(error.code, error.message, details: error.details),
       );
@@ -664,6 +718,15 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'debug.rawBluetooth.set' => _setRawBluetoothListener(
       command.params['enabled'] == true,
     ),
+    'debug.protocolTrace.set' => _setProtocolTrace(
+      command.params['enabled'] == true,
+    ),
+    'debug.batterySync.get' => Future.value({
+      'paused': _manager.batteryRefreshPaused,
+    }),
+    'debug.batterySync.set' => _setBatterySyncPaused(
+      command.params['paused'] == true,
+    ),
     'debug.sources' => _debugSources(),
     'debug.plugin.snapshot' => _debugPluginSnapshot(command.params),
     'debug.runtime' => collectDebugRuntimeEnvironment(),
@@ -820,13 +883,44 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       'records': records,
       'plugins': _pluginManager.diagnostics(),
       'rawBluetoothEnabled': _rawBluetoothEnabled,
+      'protocolTraceEnabled': _protocolTraceEnabled,
+      'batterySyncPaused': _manager.batteryRefreshPaused,
     };
+  }
+
+  Future<Map<String, Object?>> _setBatterySyncPaused(bool paused) async {
+    await _manager.setBatteryRefreshPaused(paused);
+    return {'paused': _manager.batteryRefreshPaused};
   }
 
   Future<Map<String, Object?>> _setRawBluetoothListener(bool enabled) async {
     _rawBluetoothEnabled = enabled;
     if (!enabled) _rawBluetoothPackets.clear();
     return {'enabled': enabled};
+  }
+
+  Future<Map<String, Object?>> _setProtocolTrace(bool enabled) async {
+    if (enabled == _protocolTraceEnabled) {
+      return {
+        'enabled': enabled,
+        'batterySyncPaused': _manager.batteryRefreshPaused,
+      };
+    }
+    if (enabled) {
+      _batterySyncPausedBeforeTrace = _manager.batteryRefreshPaused;
+      await _manager.setBatteryRefreshPaused(true);
+    } else {
+      final previous = _batterySyncPausedBeforeTrace;
+      _batterySyncPausedBeforeTrace = null;
+      if (previous != null) {
+        await _manager.setBatteryRefreshPaused(previous);
+      }
+    }
+    _protocolTraceEnabled = enabled;
+    return {
+      'enabled': enabled,
+      'batterySyncPaused': _manager.batteryRefreshPaused,
+    };
   }
 
   void _recordRawBluetoothPacket(Uint8List frame, {required String direction}) {
@@ -918,9 +1012,9 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     final removedSources = (await _pluginManager.providers())
         .where((provider) => provider['pluginId']?.toString() == id)
         .map(
-          (provider) => CommunitySourceId.plugin(
-            provider['name']?.toString() ?? '',
-          ).storageKey,
+          (provider) =>
+              CommunitySourceId.plugin(provider['name']?.toString() ?? '')
+                  .storageKey,
         )
         .toSet();
     await _pluginManager.remove(id);
@@ -1078,6 +1172,7 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     'xiaoAiActive': state.xiaoAiActive,
     'xiaoAiFrameCount': state.xiaoAiFrameCount,
     'xiaoAiCapabilities': state.xiaoAiCapabilities,
+    'findingXiaomiWearable': state.findingXiaomiWearable,
     'uploadBytesPerSecond': state.uploadBytesPerSecond,
     'downloadBytesPerSecond': state.downloadBytesPerSecond,
     if (state.error != null) 'error': state.error,
@@ -1888,12 +1983,14 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
 
   static const _settingKeys = <String>{
     'auto_reconnect',
+    'auto_reconnect_on_disconnect',
     'auto_install',
     'disable_auto_clean',
     'community_source',
     'github_cdn',
     'bandbbs_load_previews',
     'bandbbs_show_all_categories',
+    'check_update_on_launch',
     removeBondBeforeSppSettingKey,
     realtimeActivityNotificationSettingKey,
   };
@@ -1935,10 +2032,12 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
     final prefs = SharedPrefsService.instance;
     return switch (key) {
       'auto_reconnect' ||
+      'auto_reconnect_on_disconnect' ||
       'auto_install' ||
       'disable_auto_clean' ||
       'bandbbs_load_previews' ||
-      'bandbbs_show_all_categories' => prefs.getBool(key),
+      'bandbbs_show_all_categories' ||
+      'check_update_on_launch' => prefs.getBool(key),
       removeBondBeforeSppSettingKey => prefs.getBool(key) ?? true,
       realtimeActivityNotificationSettingKey => prefs.getBool(key) ?? true,
       'community_source' || 'github_cdn' => prefs.getString(key),
@@ -2187,11 +2286,9 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
 
   Future<Object?> _bandBbsCategories() async {
     await _ensureAccountsRestored();
-    final catalog =
-        container.read(
-              localCommunityCatalogProviderForSource(CommunitySourceId.bandbbs),
-            )
-            as BandBbsCatalog;
+    final catalog = container.read(
+      localCommunityCatalogProviderForSource(CommunitySourceId.bandbbs),
+    ) as BandBbsCatalog;
     final tree = await catalog.getCategoryTree();
     Map<String, Object?> encode(BandBbsCategoryNode node) => {
       'id': node.id,
@@ -2204,11 +2301,9 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
 
   Future<Object?> _bandBbsPublicationCategories() async {
     await _ensureAccountsRestored();
-    final catalog =
-        container.read(
-              localCommunityCatalogProviderForSource(CommunitySourceId.bandbbs),
-            )
-            as BandBbsCatalog;
+    final catalog = container.read(
+      localCommunityCatalogProviderForSource(CommunitySourceId.bandbbs),
+    ) as BandBbsCatalog;
     final tree = await catalog.getPublicationCategories();
     Map<String, Object?> encode(BandBbsCategoryNode node) => {
       'id': node.id,
@@ -2221,13 +2316,9 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
 
   Future<Object?> _huamiPublisher(Map<String, Object?> params) async {
     await _ensureAccountsRestored();
-    final catalog =
-        container.read(
-              localCommunityCatalogProviderForSource(
-                CommunitySourceId.huamiAppStore,
-              ),
-            )
-            as HuamiAppStoreCatalog;
+    final catalog = container.read(
+      localCommunityCatalogProviderForSource(CommunitySourceId.huamiAppStore),
+    ) as HuamiAppStoreCatalog;
     final resources = await catalog.getPublisherResources(
       publisherName: params['publisher']?.toString() ?? '',
     );
@@ -2436,7 +2527,10 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       communityResourceDetailToJson(detail);
 
   Future<List<Map<String, Object?>>> _accountList() async {
-    await _ensureAccountsRestored();
+    await Future.wait([
+      _ensureAccountsRestored(),
+      _restoreXiaomiAccountSession(),
+    ]);
     return [
       _accountStatus('xiaomi'),
       _accountStatus('amazfit'),
@@ -2445,20 +2539,30 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
   }
 
   Future<Map<String, Object?>> _freshAccountStatus(String? provider) async {
-    if (provider == 'bandbbs') {
-      await _ensureAccountsRestored();
-    }
+    if (provider == 'bandbbs') await _ensureAccountsRestored();
+    if (provider == 'xiaomi') await _restoreXiaomiAccountSession();
     return _accountStatus(provider);
   }
 
   Future<void> _ensureAccountsRestored() =>
       container.read(bandBbsAuthProvider.notifier).restoreCredentials();
 
+  Future<void> _restoreXiaomiAccountSession() async {
+    if (_xiaomiAccountSessionLoaded) return;
+    _xiaomiAccountToken = await container
+        .read(miAccountServiceProvider)
+        .loadStoredToken();
+    _xiaomiAccountSessionLoaded = true;
+  }
+
   Map<String, Object?> _accountStatus(String? provider) {
     return switch (provider) {
       'xiaomi' => {
         'provider': 'xiaomi',
-        'signedIn': _state.pairedDevices.isNotEmpty,
+        'signedIn': _xiaomiAccountToken?.isValid == true,
+        if (_xiaomiAccountToken?.userId case final userId?
+            when userId.isNotEmpty)
+          'userId': userId,
         'syncedDevices': _state.pairedDevices.length,
       },
       'amazfit' || 'huami' => () {
@@ -2572,6 +2676,9 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
             details: {'url': error.url, 'deviceId': error.deviceId},
           );
         }
+        await service.persistToken(token);
+        _xiaomiAccountToken = token;
+        _xiaomiAccountSessionLoaded = true;
         final devices = await service.fetchBoundDevices(token: token);
         final imported = await _manager.importMiCloudDevices(devices);
         return {
@@ -2597,6 +2704,9 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
       ),
       cookieHeader: params['cookieHeader']?.toString() ?? '',
     );
+    await service.persistToken(token);
+    _xiaomiAccountToken = token;
+    _xiaomiAccountSessionLoaded = true;
     final devices = await service.fetchBoundDevices(token: token);
     final imported = await _manager.importMiCloudDevices(devices);
     return {
@@ -2640,10 +2750,10 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
         await container.read(bandBbsAuthProvider.notifier).signOut();
         return {'provider': 'bandbbs', 'signedIn': false};
       case 'xiaomi':
-        throw const CommandFailure(
-          'unsupported',
-          'Xiaomi credentials are not persisted as a login session',
-        );
+        await container.read(miAccountServiceProvider).clearStoredToken();
+        _xiaomiAccountToken = null;
+        _xiaomiAccountSessionLoaded = true;
+        return {'provider': 'xiaomi', 'signedIn': false};
       default:
         throw CommandFailure('usage', 'Unknown account provider: $provider');
     }
@@ -2667,6 +2777,17 @@ class LocalCommandBus implements OronBoxCommandBus, ActiveOperationController {
 
   @override
   Future<void> close() async {
+    if (_protocolTraceEnabled) {
+      try {
+        await _setProtocolTrace(false);
+      } catch (error, stackTrace) {
+        _log.warning(
+          'Failed to restore battery synchronization after protocol trace',
+          error,
+          stackTrace,
+        );
+      }
+    }
     try {
       await _manager.disconnect().timeout(const Duration(seconds: 3));
     } catch (error, stackTrace) {

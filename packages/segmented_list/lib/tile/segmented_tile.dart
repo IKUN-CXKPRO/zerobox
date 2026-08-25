@@ -174,6 +174,8 @@ class SegmentedTile<T> extends AbstractSegmentedTile {
   }
 
   Widget buildTitle(BuildContext context) {
+    final inheritedTextStyle = DefaultTextStyle.of(context).style;
+
     return Padding(
       padding: EdgeInsetsDirectional.symmetric(
         vertical: description != null ? 17 : 24,
@@ -184,25 +186,25 @@ class SegmentedTile<T> extends AbstractSegmentedTile {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           DefaultTextStyle(
-            style: TextStyle(
+            style: inheritedTextStyle.merge(TextStyle(
               color: enabled
                   ? Theme.of(context).colorScheme.onSurface
                   : Theme.of(context).disabledColor,
               fontWeight: FontWeight.w600,
               fontSize: 15,
-            ),
+            )),
             child: title,
           ),
           if (description != null) ...[
             const SizedBox(height: 2),
             DefaultTextStyle(
-              style: TextStyle(
+              style: inheritedTextStyle.merge(TextStyle(
                 color: enabled
                     ? Theme.of(context).hintColor
                     : Theme.of(context).disabledColor,
                 fontWeight: FontWeight.w500,
                 fontSize: 13,
-              ),
+              )),
               child: description!,
             ),
           ],
@@ -212,6 +214,8 @@ class SegmentedTile<T> extends AbstractSegmentedTile {
   }
 
   Widget buildTrailing(BuildContext context) {
+    final inheritedTextStyle = DefaultTextStyle.of(context).style;
+
     return Row(
       children: [
         if (trailing != null)
@@ -256,13 +260,13 @@ class SegmentedTile<T> extends AbstractSegmentedTile {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: DefaultTextStyle(
-              style: TextStyle(
+              style: inheritedTextStyle.merge(TextStyle(
                 color: enabled
                     ? Theme.of(context).hintColor
                     : Theme.of(context).disabledColor,
                 fontWeight: FontWeight.w500,
                 fontSize: 13,
-              ),
+              )),
               child: value!,
             ),
           ),

@@ -824,7 +824,12 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
       _error = null;
     });
     try {
-      final weather = await _weatherService.fetch(_cityController.text);
+      final systemInfo = ref.read(deviceManagerProvider).systemInfo;
+      final weather = await _weatherService.fetch(
+        _cityController.text,
+        model: systemInfo?.model,
+        firmwareVersion: systemInfo?.firmwareVersion,
+      );
       await ref.read(deviceManagerProvider.notifier).syncXiaomiWeather(weather);
       final syncedAt = DateTime.now();
       await XiaomiSyncPreferences.setWeatherLastCity(weather.cityName);
@@ -920,7 +925,6 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
           SegmentedSection(
             tiles: [
               SegmentedTile.switchTile(
-                leading: const Icon(Icons.autorenew_outlined),
                 title: Text(l10n.weatherAutoSyncTitle),
                 description: Text(l10n.weatherAutoSyncDescription),
                 initialValue: _autoSync,
@@ -948,17 +952,17 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
                               width: 64,
                               height: 64,
                               decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primaryContainer,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 _weatherIcon(weather.conditionCode),
                                 size: 34,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onPrimaryContainer,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onPrimaryContainer,
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -968,34 +972,45 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
                                 children: [
                                   Text(
                                     weather.cityName,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleMedium,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium,
                                   ),
                                   Text(
                                     '${weather.temperature}℃',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.displaySmall,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .displaySmall,
                                   ),
                                   Text(
                                     _weatherCondition(
                                       l10n,
                                       weather.conditionCode,
                                     ),
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge,
                                   ),
                                   if (_lastSyncedAt != null)
                                     Text(
                                       l10n.deviceHealthLastSynced(
                                         _weatherDateTime(_lastSyncedAt!),
                                       ),
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodySmall,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall,
                                     ),
+                                  Text(
+                                    l10n.weatherDataSource(
+                                      weather.source.displayName,
+                                    ),
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -1091,9 +1106,9 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
                                 width: 104,
                                 child: Card(
                                   margin: EdgeInsets.zero,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.surfaceContainerHighest,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest,
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 8,
@@ -1119,9 +1134,9 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
                                             l10n,
                                             hour.conditionCode,
                                           ),
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodySmall,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall,
                                         ),
                                         Text(
                                           l10n.weatherLevelDirectionCompact(
@@ -1131,9 +1146,9 @@ class _XiaomiWeatherPageState extends ConsumerState<XiaomiWeatherPage> {
                                               hour.windDirection,
                                             ),
                                           ),
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodySmall,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall,
                                         ),
                                       ],
                                     ),
@@ -1226,9 +1241,8 @@ class _WeatherMetric extends StatelessWidget {
                 value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                style: Theme.of(context).textTheme.bodyLarge
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),

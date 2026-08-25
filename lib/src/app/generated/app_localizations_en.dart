@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -1375,7 +1376,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceHealthHeartRate => 'Heart rate';
 
   @override
+  String get deviceHealthRestingHeartRate => 'Resting heart rate';
+
+  @override
+  String get deviceHealthAbnormalHeartRate => 'Abnormal heart rate';
+
+  @override
+  String get deviceHealthHeartRateHigh => 'High heart rate';
+
+  @override
+  String get deviceHealthHeartRateLow => 'Low heart rate';
+
+  @override
+  String get deviceHealthHeartHealth => 'Heart health';
+
+  @override
+  String get deviceHealthHeartHealthMonitoring => 'Heart health monitoring';
+
+  @override
+  String get deviceHealthIrregularHeartbeat => 'Irregular heartbeat';
+
+  @override
+  String get deviceHealthLowBloodOxygen => 'Low blood oxygen';
+
+  @override
+  String get deviceHealthHighStress => 'High stress';
+
+  @override
+  String get deviceHealthDetected => 'Detected';
+
+  @override
   String get deviceHealthSleep => 'Recent sleep';
+
+  @override
+  String get deviceHealthSleepCard => 'Sleep';
+
+  @override
+  String get deviceHealthAllDaySleep => 'All-day sleep';
+
+  @override
+  String get deviceHealthLongSleep => 'Long sleep';
+
+  @override
+  String get deviceHealthSleepStructure => 'Sleep structure';
+
+  @override
+  String get deviceHealthSleepAverageHeartRate => 'Average sleep heart rate';
+
+  @override
+  String get deviceHealthSleepAverageBloodOxygen =>
+      'Average sleep blood oxygen';
 
   @override
   String deviceHealthAverageHeartRate(int value) {
@@ -1596,6 +1646,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savedDevices => 'Saved devices';
+
+  @override
+  String get deviceSwitchAddDevice => 'Add device';
 
   @override
   String get scanAndAdd => 'Scan and add';
@@ -2026,6 +2079,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get xiaomiAccountRequiredForEphemeris =>
+      'Sign in to your Xiaomi account before syncing ephemeris data';
+
+  @override
   String get settingsHuamiAccount => 'Amazfit account';
 
   @override
@@ -2092,6 +2149,23 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsAutoReconnectDesc =>
       'Automatically reconnect to the last paired device on startup';
+
+  @override
+  String get settingsAutoReconnectOnDisconnectTitle => 'Auto reconnect';
+
+  @override
+  String get settingsAutoReconnectOnDisconnectDesc =>
+      'Try to reconnect when the device is disconnected unexpectedly';
+
+  @override
+  String get deviceReconnectAttempting =>
+      'Device connection lost, trying to reconnect';
+
+  @override
+  String get deviceReconnectSucceeded => 'Reconnected successfully';
+
+  @override
+  String get deviceReconnectFailedPrefix => 'Reconnect failed. Check: ';
 
   @override
   String get settingsSourceOfficialCdn => 'GitHub source CDN';
@@ -2259,6 +2333,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get acknowledgementsGadgetbridge =>
       'Reference for ZeppOS and wearable protocol research.';
+
+  @override
+  String get acknowledgementsBreezyWeather =>
+      'Reference for the China weather source implementation.';
+
+  @override
+  String get acknowledgementsOpenMeteo =>
+      'Weather forecasts, air quality, and geocoding data under CC BY 4.0';
 
   @override
   String get resourceHomeRecommended => 'Recommended';
@@ -2521,12 +2603,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pluginPermissionOperateAppSide => 'manage AppSide sessions';
 
   @override
-  String get pluginErrorTitle => 'Plugin runtime error';
+  String get pluginErrorTitle => 'Plugin corrupted';
 
   @override
   String pluginErrorMessage(Object plugin, Object error) {
-    return '\"$plugin\" encountered a runtime error:\n\n$error';
+    return '\"$plugin\" cannot run and may be corrupted.\n\nError: $error\n\nUninstall this plugin?';
   }
+
+  @override
+  String get pluginPackageCorruptedMessage =>
+      'The selected plugin package cannot be read and may be corrupted. Obtain it again and try importing it.';
 
   @override
   String get pluginErrorClearData => 'Clear plugin data';
@@ -2568,7 +2654,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resourceTypeUnknownNoType =>
-      'OronBox cannot identify the resource type of this file';
+      'OronBox cannot identify the resource type of this file; it may be corrupted';
+
+  @override
+  String get resourceTypeUnknownCancel => 'Cancel';
 
   @override
   String resourceTypeMismatchMessage(Object detectedType, Object selectedType) {
@@ -3628,6 +3717,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deviceHealthTrend => 'Trend';
 
   @override
+  String get deviceHealthDayView => 'Day';
+
+  @override
+  String get deviceHealthWeekView => 'Week';
+
+  @override
+  String get deviceHealthMonthView => 'Month';
+
+  @override
   String get deviceHealthLatest => 'Latest';
 
   @override
@@ -3656,6 +3754,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deviceHealthSleepStages => 'Sleep stages';
+
+  @override
+  String get deviceHealthSleepHrv => 'Sleep HRV';
 
   @override
   String get deviceHealthSleepAwake => 'Awake';
@@ -3854,6 +3955,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weatherAirQuality => 'Air quality';
 
   @override
+  String get weatherAqiGood => 'Good';
+
+  @override
+  String get weatherAqiModerate => 'Moderate';
+
+  @override
+  String get weatherAqiSensitive => 'Unhealthy for sensitive groups';
+
+  @override
+  String get weatherAqiUnhealthy => 'Unhealthy';
+
+  @override
+  String get weatherAqiVeryUnhealthy => 'Very unhealthy';
+
+  @override
+  String get weatherAqiHazardous => 'Hazardous';
+
+  @override
   String get weatherUv => 'UV index';
 
   @override
@@ -3864,6 +3983,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get weatherNext7Days => 'Next 7 days';
+
+  @override
+  String weatherDataSource(Object source) {
+    return 'Data source: $source';
+  }
 
   @override
   String weatherLevelDirection(Object level, Object direction) {
@@ -3942,4 +4066,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get windNorthWest => 'NW';
+
+  @override
+  String get xiaomiScreenshotTitle => 'Device screenshot';
+
+  @override
+  String get xiaomiScreenshotDescription =>
+      'Use the wearable\'s key combination to take a screenshot; it will sync here automatically';
+
+  @override
+  String get xiaomiScreenshotAction => 'Capture screenshot';
+
+  @override
+  String get xiaomiScreenshotLoading => 'Capturing screenshot…';
+
+  @override
+  String get xiaomiScreenshotEmpty => 'No screenshot yet';
+
+  @override
+  String get xiaomiScreenshotFailed => 'Screenshot failed';
+
+  @override
+  String xiaomiScreenshotSaved(Object path) {
+    return 'Watch screenshot saved to: $path';
+  }
 }

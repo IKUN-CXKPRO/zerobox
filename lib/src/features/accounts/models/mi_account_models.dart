@@ -16,6 +16,31 @@ class MiAccountToken {
   final String cUserId;
   final String passToken;
   final String psecurity;
+
+  bool get isValid => ssecurity.isNotEmpty && serviceToken.isNotEmpty;
+
+  Map<String, Object?> toJson() => {
+    'user_id': userId,
+    'device_id': deviceId,
+    'ssecurity': ssecurity,
+    'service_token': serviceToken,
+    'c_user_id': cUserId,
+    'pass_token': passToken,
+    'psecurity': psecurity,
+  };
+
+  static MiAccountToken? fromJson(Map<String, Object?> json) {
+    final token = MiAccountToken(
+      userId: json['user_id']?.toString() ?? '',
+      deviceId: json['device_id']?.toString() ?? '',
+      ssecurity: json['ssecurity']?.toString() ?? '',
+      serviceToken: json['service_token']?.toString() ?? '',
+      cUserId: json['c_user_id']?.toString() ?? '',
+      passToken: json['pass_token']?.toString() ?? '',
+      psecurity: json['psecurity']?.toString() ?? '',
+    );
+    return token.isValid ? token : null;
+  }
 }
 
 class MiCloudDevice {

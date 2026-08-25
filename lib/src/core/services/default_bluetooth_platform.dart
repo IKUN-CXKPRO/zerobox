@@ -174,6 +174,9 @@ class DefaultBluetoothPlatform implements BluetoothPlatform {
   }
 
   @override
+  Future<void> cancelPendingSppConnection() => _rfcomm.disconnect();
+
+  @override
   Future<void> disconnect(String address) async {
     await _disposeConnection(address);
     final canonical = _connectionKey(address, ConnectType.spp);

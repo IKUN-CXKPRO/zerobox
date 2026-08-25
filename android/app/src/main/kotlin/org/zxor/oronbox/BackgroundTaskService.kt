@@ -36,16 +36,22 @@ class BackgroundTaskService : Service() {
         )
         val mode = intent?.getStringExtra(EXTRA_MODE)
         val label = intent?.getStringExtra(EXTRA_LABEL) ?: "Installing resources"
+        val battery = intent?.getIntExtra(EXTRA_BATTERY, -1) ?: -1
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("OronBox")
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(pendingIntent)
             .apply {
-                // The connection keep-alive is an implementation detail. It
-                // must not expose the old noisy “Connected: …” label.
-                if (mode != MODE_CONNECTION) setContentText(label)
+                if (mode == MODE_CONNECTION) {
+                    setContentTitle(getString(R.string.notification_connected, label))
+                    if (battery in 0..100) {
+                        setContentText(getString(R.string.notification_battery, battery))
+                    }
+                } else {
+                    setContentTitle(getString(R.string.notification_title))
+                    setContentText(label)
+                }
             }
             .build()
         val serviceType = when (mode) {
@@ -76,6 +82,7 @@ class BackgroundTaskService : Service() {
     companion object {
         const val EXTRA_LABEL = "label"
         const val EXTRA_MODE = "mode"
+        const val EXTRA_BATTERY = "battery"
         const val MODE_TASK = "task"
         const val MODE_CONNECTION = "connection"
         private const val CHANNEL_ID = "oronbox_background_tasks"

@@ -89,6 +89,7 @@ class _DeviceInfoPageState extends ConsumerState<DeviceInfoPage> {
         separatorBuilder: (context, index) =>
             const SizedBox(height: StyleConstants.sectionSpacing),
         itemBuilder: (context, index) => PageContainer(
+          safeArea: false,
           padding: EdgeInsets.fromLTRB(
             StyleConstants.pagePadding,
             index == 0 ? 8 : 0,

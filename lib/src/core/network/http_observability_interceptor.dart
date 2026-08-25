@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
 
-/// Logs one compact record per HTTP operation. It deliberately excludes query
-/// strings, headers and request bodies because those routinely contain login
-/// credentials or private user content.
+/// Logs failed HTTP operations. Successful requests remain quiet by default.
+/// Query strings, headers and request bodies are deliberately excluded because
+/// they routinely contain login credentials or private user content.
 class HttpObservabilityInterceptor extends Interceptor {
   HttpObservabilityInterceptor({Logger? logger})
     : _log = logger ?? getLogger('HTTP');
@@ -24,22 +24,6 @@ class HttpObservabilityInterceptor extends Interceptor {
     Response<Object?> response,
     ResponseInterceptorHandler handler,
   ) {
-    final request = response.requestOptions;
-    logDiagnostic(
-      _log,
-      Level.INFO,
-      'HTTP request completed',
-      fields: {
-        'method': request.method,
-        'endpoint': safeHttpEndpoint(request.uri),
-        'status': response.statusCode,
-        'durationMs': _durationMs(request),
-        if (httpRequestId(response) case final requestId?)
-          'requestId': requestId,
-        if (_contentLength(response) case final length?)
-          'responseBytes': length,
-      },
-    );
     handler.next(response);
   }
 
@@ -71,17 +55,6 @@ class HttpObservabilityInterceptor extends Interceptor {
     final started = options.extra[_startedAtKey];
     if (started is! int) return 0;
     return ((DateTime.now().microsecondsSinceEpoch - started) / 1000).round();
-  }
-
-  int? _contentLength(Response<Object?> response) {
-    final header = response.headers.value(Headers.contentLengthHeader);
-    final parsed = int.tryParse(header ?? '');
-    if (parsed != null) return parsed;
-    return switch (response.data) {
-      String value => utf8.encode(value).length,
-      List<int> value => value.length,
-      _ => null,
-    };
   }
 }
 

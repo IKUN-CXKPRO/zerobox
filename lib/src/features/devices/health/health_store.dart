@@ -10,15 +10,20 @@ import 'package:oronbox/src/features/devices/health/health_models.dart';
 /// not migrated: its entry is removed when this store is first opened for a
 /// device.
 class HealthStore {
-  // v2 was written while activity timestamps were incorrectly treated as
-  // UTC. Drop it so the first sync after this fix cannot mix shifted and
-  // corrected records.
-  static const _keyPrefix = 'health_data_v3_';
-  static const _legacyKeyPrefixes = ['health_data_v1_', 'health_data_v2_'];
+  // v2 and v3 were written with activity timestamps shifted by the host
+  // timezone. Drop them so the first sync after this fix cannot mix shifted
+  // and corrected records.
+  static const _keyPrefix = 'health_data_v4_';
+  static const _legacyKeyPrefixes = [
+    'health_data_v1_',
+    'health_data_v2_',
+    'health_data_v3_',
+  ];
   static const _maxDailyRecords = 90;
   static const _maxSampleRecords = 30 * 24 * 60;
   static const _maxSleepRecords = 90;
   static const _maxWorkoutRecords = 90;
+  static const _maxAbnormalHealthRecords = 90;
 
   final _prefs = SharedPrefsService.instance;
 
@@ -36,20 +41,33 @@ class HealthStore {
   }
 
   Future<void> write(String deviceId, XiaomiHealthData data) async {
-    final daily = [...data.daily]..sort((a, b) => b.date.compareTo(a.date));
-    final samples = [...data.samples]
+    // De-duplicate before sorting so the caller's merge order is preserved
+    // for equal keys. XiaomiHealthSyncService puts freshly received records
+    // before the cached records, which lets a repeated sync replace stale
+    // daily/sample values for the same date or timestamp.
+    final daily = [..._deduplicateDaily(data.daily)]
+      ..sort((a, b) => b.date.compareTo(a.date));
+    final samples = [..._deduplicateSamples(data.samples)]
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    final sleep = [...data.sleep]
+    final sleep = [..._deduplicateSleep(data.sleep)]
+      ..sort((a, b) {
+        final endComparison = b.endedAt.compareTo(a.endedAt);
+        if (endComparison != 0) return endComparison;
+        return b.startedAt.compareTo(a.startedAt);
+      });
+    final workouts = [..._deduplicateWorkouts(data.workouts)]
       ..sort((a, b) => b.startedAt.compareTo(a.startedAt));
-    final workouts = [...data.workouts]
-      ..sort((a, b) => b.startedAt.compareTo(a.startedAt));
+    final abnormalHealthRecords = [
+      ..._deduplicateAbnormalHealthRecords(data.abnormalHealthRecords),
+    ]..sort((a, b) => b.timestamp.compareTo(a.timestamp));
     final normalized = XiaomiHealthData(
-      daily: _deduplicateDaily(daily).take(_maxDailyRecords).toList(),
-      samples: _deduplicateSamples(samples).take(_maxSampleRecords).toList(),
-      sleep: _deduplicateSleep(sleep).take(_maxSleepRecords).toList(),
-      workouts: _deduplicateWorkouts(
-        workouts,
-      ).take(_maxWorkoutRecords).toList(),
+      daily: daily.take(_maxDailyRecords).toList(),
+      samples: samples.take(_maxSampleRecords).toList(),
+      sleep: sleep.take(_maxSleepRecords).toList(),
+      workouts: workouts.take(_maxWorkoutRecords).toList(),
+      abnormalHealthRecords: abnormalHealthRecords
+          .take(_maxAbnormalHealthRecords)
+          .toList(),
       capabilities: data.capabilities,
       lastSyncedAt: data.lastSyncedAt,
     );
@@ -100,6 +118,22 @@ class HealthStore {
     for (final value in values) {
       result['${value.startedAt.toIso8601String()}|${value.activityType}'] ??=
           value;
+    }
+    return result.values.toList(growable: false);
+  }
+
+  List<HealthAbnormalHealthRecord> _deduplicateAbnormalHealthRecords(
+    List<HealthAbnormalHealthRecord> values,
+  ) {
+    final result = <String, HealthAbnormalHealthRecord>{};
+    for (final value in values) {
+      final key = [
+        value.kind.name,
+        value.timestamp.toIso8601String(),
+        value.startedAt?.toIso8601String() ?? '',
+        value.endedAt?.toIso8601String() ?? '',
+      ].join('|');
+      result[key] ??= value;
     }
     return result.values.toList(growable: false);
   }

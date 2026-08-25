@@ -5,14 +5,18 @@ import 'package:oronbox/src/device/core/system.dart';
 import 'package:oronbox/src/device/xiaomi/components/xiaomi_device_component.dart';
 import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
 import 'package:oronbox/src/protocols/xiaomi/packet/l1_packet.dart';
+import 'package:oronbox/src/protocols/xiaomi/packet/l1cmd_packet.dart';
 import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
 import 'package:oronbox/src/protocols/xiaomi/packet/spp_v1_packet.dart';
 import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
+import 'package:oronbox/src/device/xiaomi/system/xiaomi_protocol_trace.dart';
 
 class XiaomiDispatcher extends Dispatcher {
-  XiaomiDispatcher(this._component) : _log = getLogger('XiaomiDispatcher');
+  XiaomiDispatcher(this._component, {this.tracer})
+    : _log = getLogger('XiaomiDispatcher');
 
   final XiaomiDeviceComponent _component;
+  final XiaomiProtocolTracer? tracer;
   final Logger _log;
   final _systems = <XiaomiSystem>[];
   Uint8List _l1Buffer = Uint8List(0);
@@ -114,6 +118,31 @@ class XiaomiDispatcher extends Dispatcher {
       return;
     }
     _log.fine('L1 type=${l1.pktType} seq=${l1.seq} len=${l1.payload.length}');
+    final traceLargeData =
+        l1.pktType != L1DataType.data ||
+        l1.payload.length <= 64 ||
+        l1.seq.isEven;
+    if (traceLargeData) {
+      final sampled = l1.pktType == L1DataType.data && l1.payload.length > 64;
+      final trace = <String, Object?>{
+        'layer': 'l1',
+        'direction': 'in',
+        'type': l1.pktType.name,
+        'seq': l1.seq,
+        'frx': l1.frx,
+        'size': l1.payload.length,
+        'hex': sampled ? _hexPreview(l1.payload) : _hex(l1.payload),
+        if (sampled) 'sampled': true,
+      };
+      if (l1.pktType == L1DataType.cmd) {
+        try {
+          trace['command'] = L1CmdPacket.fromPayloadBytes(l1.payload)?.cmd.name;
+        } catch (_) {
+          trace['command'] = 'decode_failed';
+        }
+      }
+      tracer?.emit(trace);
+    }
     _component.sar.onL1Packet(l1);
   }
 
@@ -128,9 +157,23 @@ class XiaomiDispatcher extends Dispatcher {
     _log.fine(
       'L2 channel=${l2.channel} opcode=${l2.opcode} len=${l2.payload.length}',
     );
+    final encrypted = l2.opcode == L2OpCode.writeEnc;
+    if (l2.channel != L2Channel.mass || l2.payload.length <= 64) {
+      tracer?.emit({
+        'layer': 'l2',
+        'direction': 'in',
+        'channel': l2.channel.name,
+        'opcode': l2.opcode.name,
+        'encrypted': encrypted,
+        'cipherApplied': encrypted && _component.authKeys != null,
+        'size': l2.payload.length,
+        'hex': _hex(l2.payload),
+      });
+    }
     if (l2.channel == L2Channel.pb) {
       try {
         final packet = pb.WearPacket.fromBuffer(l2.payload);
+        tracer?.emitWearPacket(direction: 'in', bytes: l2.payload);
         if (packet.whichPayload() == pb.WearPacket_Payload.notSet) {
           _log.warning(
             'unhandled Xiaomi protobuf packet id=${packet.id} '
@@ -138,6 +181,12 @@ class XiaomiDispatcher extends Dispatcher {
           );
         }
       } catch (e) {
+        tracer?.emit({
+          'layer': 'wear_packet',
+          'direction': 'in',
+          'decode': 'failed',
+          'error': e.toString(),
+        });
         _log.warning(
           'unsupported Xiaomi protobuf packet len=${l2.payload.length}',
           e,
@@ -151,5 +200,14 @@ class XiaomiDispatcher extends Dispatcher {
         _log.warning('system ${system.runtimeType} error', e, st);
       }
     }
+  }
+
+  static String _hex(Uint8List bytes) =>
+      bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join(' ');
+
+  static String _hexPreview(Uint8List bytes, {int maxBytes = 64}) {
+    final length = bytes.length > maxBytes ? maxBytes : bytes.length;
+    final preview = _hex(Uint8List.sublistView(bytes, 0, length));
+    return bytes.length > length ? '$preview …' : preview;
   }
 }

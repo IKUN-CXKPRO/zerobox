@@ -48,8 +48,9 @@ class _QuickJsPluginRuntime implements PluginRuntime {
     await close();
     final runtime = QuickJsRuntime2(
       stackSize: 1024 * 1024,
-      // quickjs_engine 0.1.1 declares jsSetMemoryLimit in Dart but does not
-      // export an implementation from its native bridge
+      // The native bridge does not export jsSetMemoryLimit, even though the
+      // Dart FFI surface declares it. Keep memory limits disabled until the
+      // upstream bridge exports the symbol on every platform.
       memoryLimit: 0,
       timeout: 10 * 1000,
       hostPromiseRejectionHandler: (reason) {

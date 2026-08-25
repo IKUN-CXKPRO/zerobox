@@ -18,9 +18,15 @@ ThemeData oledDarkTheme(ThemeData defaultDarkTheme) {
 abstract final class AppTheme {
   static const _windowsFontFallback = <String>[
     'Microsoft YaHei UI',
+    'Microsoft YaHei',
+    'DengXian',
+    'SimSun',
     'Microsoft JhengHei UI',
+    'Microsoft JhengHei',
     'Yu Gothic UI',
     'Malgun Gothic',
+    'Noto Sans CJK SC',
+    'Source Han Sans SC',
   ];
 
   static final ThemeData light = buildLightTheme();

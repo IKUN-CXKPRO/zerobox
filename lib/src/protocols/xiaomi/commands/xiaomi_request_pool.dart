@@ -76,14 +76,17 @@ class XiaomiRequestPool {
     );
     _slots.add(slot as XiaomiRequestSlot<Object?>);
     slot.startTimeout();
-    await sendPacket(packet);
     try {
+      // Keep the slot lifecycle covered by the same finally block as the
+      // send. A transport error before the response wait used to leave a
+      // live matcher in the pool until its timeout, so the next request could
+      // consume the next matching response on behalf of the failed request.
+      await sendPacket(packet);
       final result = await slot.future;
-      _slots.remove(slot);
       return result;
-    } catch (e) {
+    } finally {
+      slot._timer?.cancel();
       _slots.remove(slot);
-      rethrow;
     }
   }
 
@@ -91,7 +94,14 @@ class XiaomiRequestPool {
     for (final listener in _packetListeners.toList()) {
       listener(packet);
     }
-    _slots.removeWhere((slot) => slot.tryComplete(packet));
+    // A response belongs to one request. Several callers can legitimately
+    // use the same response predicate, so completing every matching slot
+    // would broadcast one device response to unrelated requests.
+    for (final slot in _slots.toList()) {
+      if (!slot.tryComplete(packet)) continue;
+      _slots.remove(slot);
+      break;
+    }
   }
 
   void clear() {

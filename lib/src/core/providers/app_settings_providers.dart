@@ -145,6 +145,7 @@ class AppSettings {
     required this.autoInstall,
     required this.disableAutoClean,
     required this.autoReconnect,
+    this.autoReconnectOnDisconnect = false,
     required this.wideNavigationRailPosition,
     required this.bandbbsLoadPreviews,
     required this.bandbbsShowAllCategories,
@@ -160,6 +161,7 @@ class AppSettings {
   final bool autoInstall;
   final bool disableAutoClean;
   final bool autoReconnect;
+  final bool autoReconnectOnDisconnect;
   final WideNavigationRailPosition wideNavigationRailPosition;
   final bool bandbbsLoadPreviews;
   final bool bandbbsShowAllCategories;
@@ -175,6 +177,7 @@ class AppSettings {
     bool? autoInstall,
     bool? disableAutoClean,
     bool? autoReconnect,
+    bool? autoReconnectOnDisconnect,
     WideNavigationRailPosition? wideNavigationRailPosition,
     bool? bandbbsLoadPreviews,
     bool? checkUpdateOnLaunch,
@@ -190,6 +193,8 @@ class AppSettings {
       autoInstall: autoInstall ?? this.autoInstall,
       disableAutoClean: disableAutoClean ?? this.disableAutoClean,
       autoReconnect: autoReconnect ?? this.autoReconnect,
+      autoReconnectOnDisconnect:
+          autoReconnectOnDisconnect ?? this.autoReconnectOnDisconnect,
       wideNavigationRailPosition:
           wideNavigationRailPosition ?? this.wideNavigationRailPosition,
       bandbbsLoadPreviews: bandbbsLoadPreviews ?? this.bandbbsLoadPreviews,
@@ -209,6 +214,8 @@ class AppSettings {
   static const String _keyAutoInstall = 'auto_install';
   static const String _keyDisableAutoClean = 'disable_auto_clean';
   static const String _keyAutoReconnect = 'auto_reconnect';
+  static const String _keyAutoReconnectOnDisconnect =
+      'auto_reconnect_on_disconnect';
   static const String _keyWideNavigationRailPosition =
       'wide_navigation_rail_position';
   static const String _keyBandBbsLoadPreviews = 'bandbbs_load_previews';
@@ -233,6 +240,8 @@ class AppSettings {
       autoInstall: prefs.getBool(_keyAutoInstall) ?? true,
       disableAutoClean: prefs.getBool(_keyDisableAutoClean) ?? false,
       autoReconnect: prefs.getBool(_keyAutoReconnect) ?? false,
+      autoReconnectOnDisconnect:
+          prefs.getBool(_keyAutoReconnectOnDisconnect) ?? false,
       wideNavigationRailPosition: _enumByName(
         WideNavigationRailPosition.values,
         railPositionRaw,
@@ -276,6 +285,7 @@ class AppSettings {
     autoInstall: true,
     disableAutoClean: false,
     autoReconnect: false,
+    autoReconnectOnDisconnect: false,
     wideNavigationRailPosition: WideNavigationRailPosition.bottom,
     bandbbsLoadPreviews: false,
     bandbbsShowAllCategories: false,
@@ -291,6 +301,10 @@ class AppSettings {
     await prefs.setBool(_keyAutoInstall, autoInstall);
     await prefs.setBool(_keyDisableAutoClean, disableAutoClean);
     await prefs.setBool(_keyAutoReconnect, autoReconnect);
+    await prefs.setBool(
+      _keyAutoReconnectOnDisconnect,
+      autoReconnectOnDisconnect,
+    );
     await prefs.setString(
       _keyWideNavigationRailPosition,
       wideNavigationRailPosition.name,
@@ -344,6 +358,7 @@ abstract class AppSettingsNotifier extends Notifier<AppSettings> {
   Future<void> setAutoInstall(bool value);
   Future<void> setDisableAutoClean(bool value);
   Future<void> setAutoReconnect(bool value);
+  Future<void> setAutoReconnectOnDisconnect(bool value);
   Future<void> setWideNavigationRailPosition(WideNavigationRailPosition value);
   Future<void> setBandBbsLoadPreviews(bool value);
   Future<void> setBandBbsShowAllCategories(bool value);
@@ -415,6 +430,12 @@ class LocalAppSettingsNotifier extends AppSettingsNotifier {
   @override
   Future<void> setAutoReconnect(bool value) async {
     state = state.copyWith(autoReconnect: value);
+    await state.save();
+  }
+
+  @override
+  Future<void> setAutoReconnectOnDisconnect(bool value) async {
+    state = state.copyWith(autoReconnectOnDisconnect: value);
     await state.save();
   }
 
@@ -500,6 +521,8 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
       autoInstall: json['auto_install'] as bool? ?? true,
       disableAutoClean: json['disable_auto_clean'] as bool? ?? false,
       autoReconnect: json['auto_reconnect'] as bool? ?? false,
+      autoReconnectOnDisconnect:
+          json['auto_reconnect_on_disconnect'] as bool? ?? false,
       wideNavigationRailPosition: state.wideNavigationRailPosition,
       bandbbsLoadPreviews: json['bandbbs_load_previews'] as bool? ?? false,
       bandbbsShowAllCategories:
@@ -507,6 +530,7 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
       removeBondBeforeSpp: json[removeBondBeforeSppSettingKey] as bool? ?? true,
       realtimeActivityNotification:
           json[realtimeActivityNotificationSettingKey] as bool? ?? true,
+      checkUpdateOnLaunch: json['check_update_on_launch'] as bool? ?? true,
       clean: state.clean,
     );
   }
@@ -571,6 +595,13 @@ class HostAppSettingsNotifier extends AppSettingsNotifier {
   @override
   Future<void> setAutoReconnect(bool value) =>
       _set('auto_reconnect', value, state.copyWith(autoReconnect: value));
+
+  @override
+  Future<void> setAutoReconnectOnDisconnect(bool value) => _set(
+    'auto_reconnect_on_disconnect',
+    value,
+    state.copyWith(autoReconnectOnDisconnect: value),
+  );
   @override
   Future<void> setWideNavigationRailPosition(
     WideNavigationRailPosition value,

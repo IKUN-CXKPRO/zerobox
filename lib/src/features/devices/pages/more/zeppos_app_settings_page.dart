@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/utils/picked_file.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
@@ -416,14 +417,13 @@ class _SupplementDialogState extends State<_SupplementDialog> {
 
   Future<void> _pick({required bool setting}) async {
     final l10n = AppLocalizations.of(context)!;
-    final picked = await FilePicker.pickFiles(
+    final file = await pickFileData(
       type: FileType.custom,
       allowedExtensions: const ['js'],
-      withData: true,
+      loadBytes: true,
     );
-    final file = picked?.files.singleOrNull;
     if (file == null) return;
-    final bytes = file.bytes;
+    final bytes = await file.readAsBytes();
     if (bytes == null) {
       setState(() => _error = l10n.selectedFileReadFailed);
       return;

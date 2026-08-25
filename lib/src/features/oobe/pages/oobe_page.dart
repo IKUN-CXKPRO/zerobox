@@ -750,8 +750,8 @@ SegmentedTile _xiaomiTile(
     title: Text(l10n.settingsMiAccount),
     description: Text(
       account.isSignedIn
-          ? (account.username?.isNotEmpty == true
-                ? account.username!
+          ? (account.userId?.isNotEmpty == true
+                ? account.userId!
                 : l10n.settingsConnected)
           : l10n.oobeLoginXiaomiDesc,
     ),

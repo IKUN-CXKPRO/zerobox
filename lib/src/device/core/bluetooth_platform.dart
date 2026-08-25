@@ -129,6 +129,12 @@ abstract class BluetoothPlatform {
     String name,
     BluetoothConnectOptions options,
   );
+
+  /// Aborts an RFCOMM connection whose native socket is still connecting.
+  ///
+  /// This is separate from [disconnect] because a pending connection has
+  /// not been added to the platform's active connection map yet.
+  Future<void> cancelPendingSppConnection();
   Future<void> disconnect(String address);
   Future<void> disconnectAll();
 }

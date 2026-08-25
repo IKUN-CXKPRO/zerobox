@@ -13,6 +13,7 @@ import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/devices/health/health_cards.dart';
 import 'package:oronbox/src/features/devices/health/health_models.dart';
 import 'package:oronbox/src/features/devices/pages/more/xiaomi_health_detail_page.dart';
+import 'package:oronbox/src/features/devices/services/xiaomi_automatic_sync_service.dart';
 import 'package:oronbox/src/features/devices/services/xiaomi_sync_preferences.dart';
 import 'package:oronbox/src/features/devices/widgets/xiaomi_fitness_logo.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart';
@@ -67,9 +68,9 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
       _error = null;
     });
     try {
-      final result = await ref
-          .read(deviceManagerProvider.notifier)
-          .syncXiaomiHealth();
+      final result = await XiaomiAutomaticSyncService(
+        ref.read(deviceManagerProvider.notifier),
+      ).runHealthSync();
       unawaited(
         updateHealthStatusSurface(healthStatusSurfaceData(result.data)),
       );
@@ -136,7 +137,6 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
                   },
                 ),
                 SegmentedTile.switchTile(
-                  leading: const Icon(Icons.autorenew_outlined),
                   title: Text(l10n.deviceHealthAutoSyncTitle),
                   description: Text(l10n.deviceHealthAutoSyncDescription),
                   initialValue: _autoSync,
@@ -192,7 +192,8 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
       ),
     ];
     final capabilities = value.capabilities;
-    if (capabilities.heartRate) {
+    final restingDay = _latestDaily(value.daily, (day) => day.restingHeartRate);
+    if (capabilities.heartRate || restingDay != null) {
       cards.add(
         _metricCard(
           data: value,
@@ -207,6 +208,37 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
             value.latestDay?.maxHeartRate,
             'bpm',
           ),
+        ),
+      );
+    }
+    if (restingDay != null) {
+      cards.add(
+        HealthDailyMetricCard(
+          title: l10n.deviceHealthRestingHeartRate,
+          icon: Icons.favorite_border,
+          color: Colors.pinkAccent,
+          value: '${restingDay.restingHeartRate} bpm',
+          detail: _formatDateOnly(restingDay.date),
+          days: value.daily,
+          valueFor: (day) => day.restingHeartRate,
+          onPressed: () => _openDetail(XiaomiHealthMetric.restingHeartRate),
+        ),
+      );
+    }
+    final heartHealthRecords = _abnormalRecords(value, const {
+      HealthAbnormalHealthKind.highHeartRate,
+      HealthAbnormalHealthKind.lowHeartRate,
+      HealthAbnormalHealthKind.irregularHeartbeat,
+    });
+    if (heartHealthRecords.isNotEmpty) {
+      cards.add(
+        HealthAbnormalHealthCard(
+          title: l10n.deviceHealthHeartHealthMonitoring,
+          records: heartHealthRecords,
+          labelFor: (record) => _abnormalLabel(l10n, record),
+          valueFor: (record) => _abnormalValue(l10n, record),
+          recordLabel: l10n.deviceHealthRecordCount,
+          onPressed: () => _openDetail(XiaomiHealthMetric.heartRate),
         ),
       );
     }
@@ -228,6 +260,23 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
         ),
       );
     }
+    final lowBloodOxygenRecords = _abnormalRecords(value, const {
+      HealthAbnormalHealthKind.lowBloodOxygen,
+    });
+    if (lowBloodOxygenRecords.isNotEmpty) {
+      cards.add(
+        HealthAbnormalHealthCard(
+          title: l10n.deviceHealthLowBloodOxygen,
+          records: lowBloodOxygenRecords,
+          labelFor: (record) => _abnormalLabel(l10n, record),
+          valueFor: (record) => _abnormalValue(l10n, record),
+          recordLabel: l10n.deviceHealthRecordCount,
+          icon: Icons.bloodtype_outlined,
+          color: Colors.indigo,
+          onPressed: () => _openDetail(XiaomiHealthMetric.bloodOxygen),
+        ),
+      );
+    }
     if (capabilities.stress) {
       cards.add(
         _metricCard(
@@ -243,6 +292,23 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
             value.latestDay?.maxStress,
             '',
           ),
+        ),
+      );
+    }
+    final highStressRecords = _abnormalRecords(value, const {
+      HealthAbnormalHealthKind.highStress,
+    });
+    if (highStressRecords.isNotEmpty) {
+      cards.add(
+        HealthAbnormalHealthCard(
+          title: l10n.deviceHealthHighStress,
+          records: highStressRecords,
+          labelFor: (record) => _abnormalLabel(l10n, record),
+          valueFor: (record) => _abnormalValue(l10n, record),
+          recordLabel: l10n.deviceHealthRecordCount,
+          icon: Icons.spa_outlined,
+          color: Colors.orange,
+          onPressed: () => _openDetail(XiaomiHealthMetric.stress),
         ),
       );
     }
@@ -264,7 +330,7 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
       final sleep = value.latestSleep;
       cards.add(
         HealthSleepCard(
-          title: l10n.deviceHealthSleep,
+          title: l10n.deviceHealthSleepCard,
           icon: Icons.bedtime_outlined,
           color: Colors.deepPurple,
           summary: sleep,
@@ -288,6 +354,43 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
       );
     }
     return cards;
+  }
+
+  List<HealthAbnormalHealthRecord> _abnormalRecords(
+    XiaomiHealthData data,
+    Set<HealthAbnormalHealthKind> kinds,
+  ) => data.abnormalHealthRecords
+      .where((record) => kinds.contains(record.kind))
+      .toList(growable: false);
+
+  String _abnormalLabel(
+    AppLocalizations l10n,
+    HealthAbnormalHealthRecord record,
+  ) => switch (record.kind) {
+    HealthAbnormalHealthKind.highHeartRate => l10n.deviceHealthHeartRateHigh,
+    HealthAbnormalHealthKind.lowHeartRate => l10n.deviceHealthHeartRateLow,
+    HealthAbnormalHealthKind.lowBloodOxygen => l10n.deviceHealthLowBloodOxygen,
+    HealthAbnormalHealthKind.highStress => l10n.deviceHealthHighStress,
+    HealthAbnormalHealthKind.irregularHeartbeat =>
+      l10n.deviceHealthIrregularHeartbeat,
+  };
+
+  String _abnormalValue(
+    AppLocalizations l10n,
+    HealthAbnormalHealthRecord record,
+  ) {
+    final value = record.value;
+    if (record.kind == HealthAbnormalHealthKind.irregularHeartbeat) {
+      return l10n.deviceHealthDetected;
+    }
+    if (value == null) return '—';
+    return switch (record.kind) {
+      HealthAbnormalHealthKind.highHeartRate ||
+      HealthAbnormalHealthKind.lowHeartRate => '$value bpm',
+      HealthAbnormalHealthKind.lowBloodOxygen => '$value%',
+      HealthAbnormalHealthKind.highStress => '$value',
+      HealthAbnormalHealthKind.irregularHeartbeat => l10n.deviceHealthDetected,
+    };
   }
 
   HealthMetricCard _metricCard({
@@ -338,6 +441,15 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
     return '$min–$max $unit'.trim();
   }
 
+  HealthDailySummary? _latestDaily(
+    List<HealthDailySummary> days,
+    int? Function(HealthDailySummary day) valueFor,
+  ) {
+    final matching = days.where((day) => valueFor(day) != null).toList()
+      ..sort((left, right) => left.date.compareTo(right.date));
+    return matching.isEmpty ? null : matching.last;
+  }
+
   String _healthErrorMessage(Object error) {
     if (error is UnsupportedError) {
       return AppLocalizations.of(context)!.errorUnknown;
@@ -349,6 +461,11 @@ class _XiaomiHealthPageState extends ConsumerState<XiaomiHealthPage> {
 String _formatDateTime(DateTime value) {
   final local = value.toLocal();
   return '${local.month}/${local.day} ${_formatTime(local)}';
+}
+
+String _formatDateOnly(DateTime value) {
+  final local = value.toLocal();
+  return '${local.year}/${local.month}/${local.day}';
 }
 
 String _formatTime(DateTime value) {

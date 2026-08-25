@@ -5,6 +5,7 @@ import 'package:oronbox/src/device/core/transport.dart';
 import 'package:oronbox/src/device/xiaomi/components/auth_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/info_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/health_system.dart';
+import 'package:oronbox/src/device/xiaomi/components/gnss_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/install_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/mass_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/media_system.dart';
@@ -16,7 +17,9 @@ import 'package:oronbox/src/device/xiaomi/components/sync_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/thirdparty_app_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/watchface_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/xiaomi_device_component.dart';
+import 'package:oronbox/src/device/xiaomi/components/screenshot_system.dart';
 import 'package:oronbox/src/device/xiaomi/system/xiaomi_dispatcher.dart';
+import 'package:oronbox/src/device/xiaomi/system/xiaomi_protocol_trace.dart';
 
 class XiaomiDeviceFactory implements DeviceEntityFactory {
   @override
@@ -38,13 +41,21 @@ class XiaomiDeviceFactory implements DeviceEntityFactory {
       sppV1: kind == 'xiaomi-spp-v1',
     );
     component.onTransportFailure = (error, stackTrace) {
+      entity.system<XiaomiMassSystem>()?.abortPending(error, stackTrace);
+      entity.system<XiaomiScreenshotSystem>()?.abortPending(error, stackTrace);
       entity.emit(DeviceError(deviceId: id, error: error.toString()));
       entity.emit(TransportDisconnected(deviceId: id));
     };
     component.onRawOutgoing = entity.recordRawOutgoing;
+    final tracer = XiaomiProtocolTracer((trace) {
+      entity.emit(
+        XiaomiProtocolTrace(deviceId: id, trace: Map.unmodifiable(trace)),
+      );
+    });
+    component.protocolTracer = tracer;
     entity.set(component);
 
-    final dispatcher = XiaomiDispatcher(component);
+    final dispatcher = XiaomiDispatcher(component, tracer: tracer);
     component.onL2Payload = dispatcher.onL2Payload;
     entity.setDispatcher(dispatcher);
 
@@ -52,6 +63,8 @@ class XiaomiDeviceFactory implements DeviceEntityFactory {
     entity.registerSystem(XiaomiAuthSystem());
 
     entity.registerSystem(XiaomiMassSystem());
+    entity.registerSystem(XiaomiGnssSystem());
+    entity.registerSystem(XiaomiScreenshotSystem());
     entity.registerSystem(XiaomiMediaSystem());
     entity.registerSystem(XiaomiNetworkSystem());
 

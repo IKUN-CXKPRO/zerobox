@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/core/network/app_http_transport.dart';
 import 'package:oronbox/src/core/network/dio_provider.dart';
+import 'package:oronbox/src/core/services/shared_prefs_service.dart';
 import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
 
 /// Extracts bound-device credentials from a Xiaomi Fitness wearable-log ZIP.
@@ -101,6 +102,8 @@ class MiAccountService {
 
   final Dio _dio;
 
+  static const _sessionKey = 'mi.account.token';
+  static const _legacySessionKey = 'mi_account.session';
   static const _sdkVersion = 'accountsdk-18.8.15';
   static const _healthSid = 'miothealth';
   static const _serviceLoginUrl =
@@ -113,6 +116,47 @@ class MiAccountService {
   static const defaultUserAgent =
       'Mozilla/5.0 (Linux; Android 13; OronBox) AppleWebKit/537.36 '
       '(KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36';
+
+  Future<MiAccountToken?> loadStoredToken() async {
+    final prefs = SharedPrefsService.instance;
+    if (!prefs.isInitialized) await prefs.init();
+    final raw =
+        prefs.getString(_sessionKey) ?? prefs.getString(_legacySessionKey);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final value = jsonDecode(raw);
+      final token = value is Map<String, Object?>
+          ? MiAccountToken.fromJson(value)
+          : value is Map
+          ? MiAccountToken.fromJson(value.cast<String, Object?>())
+          : null;
+      if (token != null && prefs.getString(_sessionKey) == null) {
+        await prefs.setString(_sessionKey, jsonEncode(token.toJson()));
+        await prefs.remove(_legacySessionKey);
+      }
+      return token;
+    } catch (_) {
+      // Treat a malformed session as signed out.
+    }
+    return null;
+  }
+
+  Future<void> persistToken(MiAccountToken token) async {
+    if (!token.isValid) {
+      throw StateError('Cannot persist an invalid Xiaomi session');
+    }
+    final prefs = SharedPrefsService.instance;
+    if (!prefs.isInitialized) await prefs.init();
+    await prefs.setString(_sessionKey, jsonEncode(token.toJson()));
+    await prefs.remove(_legacySessionKey);
+  }
+
+  Future<void> clearStoredToken() async {
+    final prefs = SharedPrefsService.instance;
+    if (!prefs.isInitialized) await prefs.init();
+    await prefs.remove(_sessionKey);
+    await prefs.remove(_legacySessionKey);
+  }
 
   Future<MiAccountToken> login({
     required String username,
@@ -200,6 +244,51 @@ class MiAccountService {
         .whereType<Map>()
         .map((item) => MiCloudDevice.fromJson(item.cast<String, dynamic>()))
         .toList();
+  }
+
+  Future<String> fetchAgpsFileUrl({
+    required MiAccountToken token,
+    required String source,
+    required int type,
+    required bool online,
+    required int days,
+    required String model,
+    String userAgent = defaultUserAgent,
+  }) async {
+    final url = online
+        ? 'https://hlth.io.mi.com/healthapp/agps/get_online_file'
+        : 'https://hlth.io.mi.com/healthapp/agps/get_offline_file';
+    final body = await _miServiceCallEncrypted(
+      token: token,
+      url: url,
+      signaturePath: '/agps/${online ? 'get_online_file' : 'get_offline_file'}',
+      paramsPlain: {
+        'data': jsonEncode({
+          'source': source,
+          'days': days,
+          'gps_type': type,
+          'model': model,
+        }),
+      },
+      userAgent: userAgent,
+    );
+    final decoded = jsonDecode(body);
+    final payload = decoded is Map
+        ? decoded.cast<String, dynamic>()
+        : const <String, dynamic>{};
+    final code = _parseCode(payload);
+    if (code != 0 && code != 200) {
+      throw StateError(
+        'Xiaomi AGPS metadata failed: code=$code, '
+        'message=${payload['message'] ?? payload['msg'] ?? ''}',
+      );
+    }
+    final result = (payload['result'] as Map?)?.cast<String, dynamic>();
+    final fileUrl = result?['agps_fds_url']?.toString() ?? '';
+    if (fileUrl.isEmpty) {
+      throw StateError('Xiaomi AGPS response has no file URL');
+    }
+    return fileUrl;
   }
 
   Future<MiAccountToken> completeTwoFactorLogin({
@@ -315,15 +404,17 @@ class MiAccountService {
   Future<String> _miServiceCallEncrypted({
     required MiAccountToken token,
     required String url,
+    String? signaturePath,
     required Map<String, String> paramsPlain,
     required String userAgent,
   }) async {
     final nonce = _generateNonce(DateTime.now().millisecondsSinceEpoch);
     final signedNonce = _calcSignedNonce(token.ssecurity, nonce);
+    final path = signaturePath ?? Uri.parse(url).path;
 
     final signedParams = Map<String, String>.from(paramsPlain);
     signedParams['rc4_hash__'] = _generateEncSignature(
-      path: Uri.parse(url).path,
+      path: path,
       method: 'POST',
       signedNonce: signedNonce,
       params: paramsPlain,
@@ -331,7 +422,7 @@ class MiAccountService {
 
     final encryptedParams = _rc4EncryptParams(signedNonce, signedParams);
     encryptedParams['signature'] = _generateEncSignature(
-      path: Uri.parse(url).path,
+      path: path,
       method: 'POST',
       signedNonce: signedNonce,
       params: encryptedParams,
@@ -344,6 +435,7 @@ class MiAccountService {
       if (token.deviceId.isNotEmpty) 'deviceId=${token.deviceId}',
       if (token.userId.isNotEmpty) 'userId=${token.userId}',
       if (token.cUserId.isNotEmpty) 'cUserId=${token.cUserId}',
+      if (token.passToken.isNotEmpty) 'passToken=${token.passToken}',
       'serviceToken=${token.serviceToken}',
     ];
 

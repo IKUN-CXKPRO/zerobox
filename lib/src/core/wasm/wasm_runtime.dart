@@ -9,10 +9,16 @@ final class WasmRuntime {
   static final WasmRuntime shared = WasmRuntime._();
 
   final Map<String, Future<WasmModule>> _compiledModules = {};
+  Future<void>? _libraryInitialization;
 
   WasmScope openScope(String owner) => WasmScope._(this, owner);
 
-  Future<WasmModule> _compile(Uint8List bytes, {required String? cacheKey}) {
+  Future<WasmModule> _compile(
+    Uint8List bytes, {
+    required String? cacheKey,
+  }) async {
+    await _ensureLibraryInitialized();
+
     if (cacheKey == null) return compileWasmModule(bytes);
 
     final cached = _compiledModules[cacheKey];
@@ -31,6 +37,28 @@ final class WasmRuntime {
     }();
     _compiledModules[cacheKey] = pending;
     return pending;
+  }
+
+  Future<void> _ensureLibraryInitialized() async {
+    final pending = _libraryInitialization;
+    if (pending != null) {
+      return pending;
+    }
+
+    final initialization = WasmRunLibrary.setUp(
+      override: false,
+      isFlutter: true,
+      loadAsset: rootBundle.load,
+    );
+    _libraryInitialization = initialization;
+    try {
+      await initialization;
+    } catch (_) {
+      if (identical(_libraryInitialization, initialization)) {
+        _libraryInitialization = null;
+      }
+      rethrow;
+    }
   }
 }
 

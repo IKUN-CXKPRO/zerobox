@@ -25,4 +25,7 @@
     <string name="widget_queue_waiting">等待中</string>
     <string name="widget_device_status">裝置狀態</string>
     <string name="widget_health_status">運動健康</string>
+    <string name="notification_title">OronBox</string>
+    <string name="notification_connected">已連接 %1$s</string>
+    <string name="notification_battery">電量 %1$d%%</string>
 </resources>

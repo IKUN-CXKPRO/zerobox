@@ -86,7 +86,9 @@ set_target_properties(${BINARY_NAME}
 # them to the application.
 include(flutter/generated_plugins.cmake)
 
-# quickjs_engine 0.1.1 omits the Linux export macro from its public header
+# The published quickjs_engine Linux header relies on Flutter's export macro.
+# Keep the local shim and default visibility so the generated registrant can
+# link against the plugin on Linux builds.
 if(TARGET quickjs_engine_plugin)
   target_compile_definitions(quickjs_engine_plugin PRIVATE
     FLUTTER_PLUGIN_EXPORT=)

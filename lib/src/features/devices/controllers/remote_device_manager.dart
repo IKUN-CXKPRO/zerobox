@@ -3,16 +3,20 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/widgets/dialog_helper.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/core/models/xiaomi_health_models.dart';
 import 'package:oronbox/src/device/core/connect_type.dart';
 import 'package:oronbox/src/device/core/device_kind.dart';
+import 'package:oronbox/src/device/core/event_bus.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_app_side_system.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_voice_memos_system.dart';
 import 'package:oronbox/src/features/accounts/models/mi_account_models.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
+import 'package:oronbox/src/features/devices/services/xiaomi_screenshot_storage.dart';
 import 'package:oronbox/src/features/devices/services/phone_finder.dart';
 import 'package:oronbox/src/features/devices/health/health_models.dart';
 import 'package:oronbox/src/features/devices/models/xiaomi_device_features.dart';
@@ -26,6 +30,7 @@ class HostDeviceManager extends DeviceManager {
   static final _log = getLogger('HostDeviceManager');
 
   StreamSubscription<CommandEvent>? _eventSubscription;
+  final _deviceEventBus = DeviceEventBus();
   bool _disposed = false;
   var _connectGeneration = 0;
   String? _pendingConnectionAddr;
@@ -37,6 +42,7 @@ class HostDeviceManager extends DeviceManager {
     ref.onDispose(() {
       _disposed = true;
       unawaited(_eventSubscription?.cancel());
+      _deviceEventBus.dispose();
     });
     _eventSubscription = host.events.listen(_handleEvent);
     scheduleMicrotask(_refreshSnapshot);
@@ -55,6 +61,49 @@ class HostDeviceManager extends DeviceManager {
         emitXiaoAiOpusFrame(
           Uint8List.fromList(
             raw.whereType<num>().map((value) => value.toInt() & 0xff).toList(),
+          ),
+        );
+      }
+      return;
+    }
+    if (event.event == 'device.xiaomi.screenshot.received') {
+      final raw = event.data['bytes'];
+      if (raw is List) {
+        final bytes = Uint8List.fromList(
+          raw.whereType<num>().map((value) => value.toInt() & 0xff).toList(),
+        );
+        _log.info(
+          'received Xiaomi screenshot event (${bytes.length} bytes); '
+          'saving to Pictures/WatchScreenshots',
+        );
+        unawaited(_saveXiaomiScreenshot(bytes));
+      }
+      return;
+    }
+    if (event.event == XiaomiGnssAccountRequired.commandEvent) {
+      final context = OronBoxDialog.observer.scaffoldContext;
+      if (context != null && context.mounted) {
+        final l10n = AppLocalizations.of(context);
+        if (l10n != null) {
+          OronBoxDialog.showToast(
+            context: context,
+            message: l10n.xiaomiAccountRequiredForEphemeris,
+            duration: const Duration(seconds: 4),
+          );
+        }
+      }
+      return;
+    }
+    if (event.event == PassiveReconnectStatus.commandEvent) {
+      final phase = PassiveReconnectPhase.values
+          .where((value) => value.name == event.data['phase']?.toString())
+          .firstOrNull;
+      if (phase != null) {
+        _deviceEventBus.emit(
+          PassiveReconnectStatus(
+            deviceId: event.data['deviceId']?.toString() ?? '',
+            phase: phase,
+            attempt: (event.data['attempt'] as num?)?.toInt() ?? 0,
           ),
         );
       }
@@ -85,6 +134,34 @@ class HostDeviceManager extends DeviceManager {
     if (event.event != 'device.state') return;
     final raw = event.data['state'];
     if (raw is Map) _applyState(raw.cast<String, Object?>());
+  }
+
+  @override
+  Stream<DeviceEvent> get deviceEvents => _deviceEventBus.stream;
+
+  Future<void> _saveXiaomiScreenshot(Uint8List bytes) async {
+    try {
+      final path = await saveXiaomiScreenshot(bytes);
+      if (path != null) {
+        _log.info('saved Xiaomi screenshot to $path');
+        final context = OronBoxDialog.observer.scaffoldContext;
+        if (context != null && context.mounted) {
+          final l10n = AppLocalizations.of(context);
+          if (l10n != null) {
+            OronBoxDialog.showToast(
+              context: context,
+              message: l10n.xiaomiScreenshotSaved(path),
+            );
+          }
+        }
+      } else {
+        _log.warning(
+          'Xiaomi screenshot received but no storage path was available',
+        );
+      }
+    } catch (error, stackTrace) {
+      _log.warning('saving Xiaomi screenshot failed', error, stackTrace);
+    }
   }
 
   Future<void> _dispatchZmlHook(Map<String, Object?> data) async {
@@ -184,6 +261,7 @@ class HostDeviceManager extends DeviceManager {
       xiaoAiCapabilities: raw['xiaoAiCapabilities'] is Map
           ? (raw['xiaoAiCapabilities'] as Map).cast<String, Object?>()
           : const {},
+      findingXiaomiWearable: raw['findingXiaomiWearable'] == true,
       uploadBytesPerSecond:
           (raw['uploadBytesPerSecond'] as num?)?.toDouble() ?? 0,
       downloadBytesPerSecond:
@@ -370,6 +448,22 @@ class HostDeviceManager extends DeviceManager {
     await _refreshSnapshot();
   }
 
+  var _batteryRefreshPaused = false;
+
+  @override
+  bool get batteryRefreshPaused => _batteryRefreshPaused;
+
+  @override
+  Future<void> setBatteryRefreshPaused(bool paused) async {
+    await _execute(
+      OronBoxCommand(
+        method: 'debug.batterySync.set',
+        params: {'paused': paused},
+      ),
+    );
+    _batteryRefreshPaused = paused;
+  }
+
   @override
   Future<void> refreshBattery() async {
     await _executeState('device.refresh.battery');
@@ -381,8 +475,12 @@ class HostDeviceManager extends DeviceManager {
   }
 
   @override
-  Future<void> syncDevice() async {
-    await _executeState('device.sync');
+  Future<void> syncDevice() {
+    final deviceId = state.currentDevice?.addr;
+    return runExclusiveDeviceSync(() async {
+      await _executeState('device.sync');
+      await recordSuccessfulDeviceSync(deviceId);
+    });
   }
 
   @override

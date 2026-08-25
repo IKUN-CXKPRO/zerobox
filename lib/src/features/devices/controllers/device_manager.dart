@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+
 import 'package:crypto/crypto.dart' as crypto;
 
 import 'package:flutter/foundation.dart';
@@ -66,6 +67,7 @@ import 'package:oronbox/src/features/devices/health/health_models.dart';
 import 'package:oronbox/src/features/devices/health/health_store.dart';
 import 'package:oronbox/src/features/devices/health/xiaomi_health_sync_service.dart';
 import 'package:oronbox/src/features/devices/models/xiaomi_device_features.dart';
+import 'package:oronbox/src/features/devices/services/xiaomi_sync_preferences.dart';
 import 'package:oronbox/src/features/devices/domain/device_scan_results.dart';
 import 'package:oronbox/src/features/devices/utils/device_address.dart';
 import 'package:oronbox/src/protocols/common/device_protocol.dart'
@@ -307,6 +309,7 @@ class DeviceManagerState {
     this.xiaoAiActive = false,
     this.xiaoAiFrameCount = 0,
     this.xiaoAiCapabilities = const {},
+    this.findingXiaomiWearable = false,
     this.uploadBytesPerSecond = 0,
     this.downloadBytesPerSecond = 0,
     this.error,
@@ -330,6 +333,7 @@ class DeviceManagerState {
   final bool xiaoAiActive;
   final int xiaoAiFrameCount;
   final Map<String, Object?> xiaoAiCapabilities;
+  final bool findingXiaomiWearable;
   final double uploadBytesPerSecond;
   final double downloadBytesPerSecond;
   final String? error;
@@ -353,6 +357,7 @@ class DeviceManagerState {
     bool? xiaoAiActive,
     int? xiaoAiFrameCount,
     Map<String, Object?>? xiaoAiCapabilities,
+    bool? findingXiaomiWearable,
     double? uploadBytesPerSecond,
     double? downloadBytesPerSecond,
     String? error,
@@ -391,6 +396,8 @@ class DeviceManagerState {
       xiaoAiActive: xiaoAiActive ?? this.xiaoAiActive,
       xiaoAiFrameCount: xiaoAiFrameCount ?? this.xiaoAiFrameCount,
       xiaoAiCapabilities: xiaoAiCapabilities ?? this.xiaoAiCapabilities,
+      findingXiaomiWearable:
+          findingXiaomiWearable ?? this.findingXiaomiWearable,
       uploadBytesPerSecond: uploadBytesPerSecond ?? this.uploadBytesPerSecond,
       downloadBytesPerSecond:
           downloadBytesPerSecond ?? this.downloadBytesPerSecond,
@@ -413,6 +420,7 @@ class _DeviceConnectCancelled implements Exception {
 
 abstract class DeviceManager extends Notifier<DeviceManagerState> {
   static const errorBluetoothUnavailable = 'bluetooth_unavailable';
+  static final _log = getLogger('DeviceManager');
   final _xiaoAiOpusFrames = StreamController<Uint8List>.broadcast();
   final _interconnectMessages =
       StreamController<InterconnectMessage>.broadcast();
@@ -436,6 +444,8 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
     ).kind;
   }
 
+  SystemInfo? get systemInfo => state.systemInfo;
+
   /// The health protocol surface for the currently connected Xiaomi device.
   ///
   /// This is available in the daemon-side manager where the protocol systems
@@ -453,6 +463,81 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
     _interconnectMessages.add(message);
   }
 
+  Future<void>? _syncDeviceFuture;
+  Future<void>? _syncCycleFuture;
+
+  Future<void> runExclusiveDeviceSync(Future<void> Function() action) {
+    final activeSync = _syncDeviceFuture;
+    if (activeSync != null) return activeSync;
+
+    final sync = action();
+    _syncDeviceFuture = sync;
+    sync.then<void>(
+      (_) {
+        if (identical(_syncDeviceFuture, sync)) _syncDeviceFuture = null;
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        if (identical(_syncDeviceFuture, sync)) _syncDeviceFuture = null;
+      },
+    );
+    return sync;
+  }
+
+  /// Serializes the complete automatic/manual synchronization workflow.
+  ///
+  /// [syncDevice] already prevents two device-level sync commands from
+  /// overlapping.  This second lock also covers the optional Xiaomi health
+  /// and weather requests that follow it, so a manual request cannot start a
+  /// second workflow while an automatic one is still draining its data.
+  Future<void> runExclusiveSyncCycle(Future<void> Function() action) {
+    final activeCycle = _syncCycleFuture;
+    if (activeCycle != null) {
+      _log.fine('joining active device synchronization cycle');
+      return activeCycle;
+    }
+
+    _log.fine('acquired device synchronization cycle lock');
+    final cycle = action();
+    _syncCycleFuture = cycle;
+    cycle.then<void>(
+      (_) {
+        _log.fine('released device synchronization cycle lock');
+        if (identical(_syncCycleFuture, cycle)) _syncCycleFuture = null;
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        _log.warning(
+          'device synchronization cycle ended with an error',
+          error,
+          stackTrace,
+        );
+        if (identical(_syncCycleFuture, cycle)) _syncCycleFuture = null;
+      },
+    );
+    return cycle;
+  }
+
+  /// Records the completion point used by the one-hour automatic-sync
+  /// cooldown.  The timestamp is per device so switching devices does not
+  /// suppress the first automatic sync for the newly selected device.
+  Future<void> recordSuccessfulDeviceSync([String? deviceId]) async {
+    if (!SharedPrefsService.instance.isInitialized) {
+      _log.fine('device synchronization timestamp skipped: preferences unset');
+      return;
+    }
+    final resolvedDeviceId = (deviceId ?? state.currentDevice?.addr)?.trim();
+    if (resolvedDeviceId == null || resolvedDeviceId.isEmpty) {
+      _log.fine('device synchronization timestamp skipped: no device');
+      return;
+    }
+    await XiaomiSyncPreferences.setLastSuccessfulDeviceSyncAt(
+      resolvedDeviceId,
+      DateTime.now(),
+    );
+    _log.fine(
+      'recorded successful device synchronization for $resolvedDeviceId',
+    );
+  }
+
   Future<void> startBluetoothScan({ConnectType connectType = ConnectType.ble});
   Future<void> stopBluetoothScan();
   Future<void> connect(
@@ -465,6 +550,8 @@ abstract class DeviceManager extends Notifier<DeviceManagerState> {
   Future<void> disconnect([String? address]);
   Future<void> cancelConnect();
   Future<void> removeDevice(String addr);
+  bool get batteryRefreshPaused;
+  Future<void> setBatteryRefreshPaused(bool paused);
   Future<void> refreshBattery();
   Future<void> syncTime();
   Future<void> syncDevice();
@@ -600,12 +687,44 @@ class LocalDeviceManager extends DeviceManager {
   }
 
   @override
-  Future<XiaomiHealthSyncResult> syncXiaomiHealth() async {
+  Future<XiaomiHealthSyncResult> syncXiaomiHealth() {
+    final active = _xiaomiHealthSyncFuture;
+    if (active != null) {
+      _log.fine('joining active Xiaomi health synchronization');
+      return active;
+    }
+
     final system = _requireXiaomiHealthSystem();
-    return XiaomiHealthSyncService(
+    final deviceId = _currentEntity!.id;
+    _log.info('Xiaomi health synchronization requested for $deviceId');
+    final sync = XiaomiHealthSyncService(
       system: system,
-      deviceId: _currentEntity!.id,
+      deviceId: deviceId,
     ).sync();
+    _xiaomiHealthSyncFuture = sync;
+    sync.then<void>(
+      (result) {
+        _log.info(
+          'Xiaomi health synchronization completed for $deviceId: '
+          'daily=${result.updatedDaily}, samples=${result.updatedSamples}, '
+          'sleep=${result.updatedSleep}, workouts=${result.updatedWorkouts}',
+        );
+        if (identical(_xiaomiHealthSyncFuture, sync)) {
+          _xiaomiHealthSyncFuture = null;
+        }
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        _log.warning(
+          'Xiaomi health synchronization failed for $deviceId',
+          error,
+          stackTrace,
+        );
+        if (identical(_xiaomiHealthSyncFuture, sync)) {
+          _xiaomiHealthSyncFuture = null;
+        }
+      },
+    );
+    return sync;
   }
 
   @override
@@ -658,13 +777,27 @@ class LocalDeviceManager extends DeviceManager {
     listenSelf((previous, next) {
       final wasReady = previous?.protocolState == ProtocolState.ready;
       final isReady = next.protocolState == ProtocolState.ready;
-      if (wasReady == isReady) return;
-      if (isReady) {
+      if (!isReady) {
+        if (wasReady) unawaited(endConnectionKeepAlive());
+        return;
+      }
+      final deviceName = next.currentDevice?.name ?? 'device';
+      if (!wasReady) {
         unawaited(
-          beginConnectionKeepAlive(next.currentDevice?.name ?? 'device'),
+          beginConnectionKeepAlive(deviceName, battery: next.battery?.capacity),
         );
-      } else {
-        unawaited(endConnectionKeepAlive());
+        return;
+      }
+      final batteryChanged =
+          previous?.battery?.capacity != next.battery?.capacity;
+      final deviceChanged = previous?.currentDevice?.name != deviceName;
+      if (batteryChanged || deviceChanged) {
+        unawaited(
+          updateConnectionKeepAlive(
+            deviceName,
+            battery: next.battery?.capacity,
+          ),
+        );
       }
     });
     listenSelf((previous, next) {
@@ -761,6 +894,7 @@ class LocalDeviceManager extends DeviceManager {
 
   static final _log = getLogger('DeviceManager');
   static const _defaultConnectMaxAttempts = 2;
+  static const _passiveReconnectMaxAttempts = 2;
   static const _macOsSppConnectMaxAttempts = 2;
   static const _defaultConnectRetryDelay = Duration(milliseconds: 300);
   static const _macOsSppConnectRetryDelay = Duration(seconds: 4);
@@ -776,6 +910,8 @@ class LocalDeviceManager extends DeviceManager {
   Timer? _scanTimer;
   Timer? _batteryRefreshTimer;
   bool _batteryRefreshInProgress = false;
+  bool _batteryRefreshPaused = false;
+  Future<XiaomiHealthSyncResult>? _xiaomiHealthSyncFuture;
   int _activeTransfers = 0;
   Completer<void>? _recordingSyncCancellation;
   BluetoothConnection? _bluetoothConnection;
@@ -784,9 +920,13 @@ class LocalDeviceManager extends DeviceManager {
   final _pooledEntities = <String, DeviceEntity>{};
   final _scannedProfiles = <String, DeviceProfile>{};
   var _connectGeneration = 0;
+  ConnectType? _pendingConnectType;
+  var _passiveReconnectInProgress = false;
 
   static const String _keyPairedDevices = 'paired_devices';
   static const String _keyAutoReconnect = 'auto_reconnect';
+  static const String _keyAutoReconnectOnDisconnect =
+      'auto_reconnect_on_disconnect';
 
   DeviceManagerState _loadStateSync() {
     final prefs = SharedPrefsService.instance;
@@ -818,6 +958,17 @@ class LocalDeviceManager extends DeviceManager {
   bool _shouldAutoReconnect() {
     try {
       return SharedPrefsService.instance.getBool(_keyAutoReconnect) ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  bool _shouldAutoReconnectOnDisconnect() {
+    try {
+      return SharedPrefsService.instance.getBool(
+            _keyAutoReconnectOnDisconnect,
+          ) ??
+          false;
     } catch (e) {
       return false;
     }
@@ -1183,6 +1334,10 @@ class LocalDeviceManager extends DeviceManager {
       'authkeyPresent=${authKey.trim().isNotEmpty}',
     );
     _log.info('connecting to $displayName @ $addr via $effectiveConnectType');
+    final transportType = effectiveConnectType == ConnectType.spp.name
+        ? ConnectType.spp
+        : ConnectType.ble;
+    _pendingConnectType = transportType;
     state = state.copyWith(
       connecting: true,
       connectionTargetAddr: addr,
@@ -1201,9 +1356,6 @@ class LocalDeviceManager extends DeviceManager {
       clearError: true,
     );
     try {
-      final transportType = effectiveConnectType == ConnectType.spp.name
-          ? ConnectType.spp
-          : ConnectType.ble;
       await stopBluetoothScan();
       _throwIfConnectCancelled(generation);
       await _cleanupConnection(keepAlive: true, nextConnectType: transportType);
@@ -1288,6 +1440,7 @@ class LocalDeviceManager extends DeviceManager {
         await _savePairedDevices();
         _startBatteryRefreshLoop();
         unawaited(_loadInitialDeviceData(existingEntity));
+        _pendingConnectType = null;
         return;
       }
       if (existingConnection != null) {
@@ -1446,6 +1599,7 @@ class LocalDeviceManager extends DeviceManager {
       await _savePairedDevices();
       _startBatteryRefreshLoop();
       unawaited(_loadInitialDeviceData(entity));
+      _pendingConnectType = null;
     } on _DeviceConnectCancelled {
       _log.info('connect to $addr cancelled');
       await _finishCancelledConnect(addr);
@@ -1460,10 +1614,12 @@ class LocalDeviceManager extends DeviceManager {
         connecting: false,
         connectStatus: 3,
         protocolState: ProtocolState.error,
-        error: e.toString(),
+        error: _passiveReconnectInProgress ? null : e.toString(),
+        clearError: _passiveReconnectInProgress,
         clearConnectionPhase: true,
       );
       await _cleanupConnection();
+      _pendingConnectType = null;
     }
   }
 
@@ -1493,6 +1649,7 @@ class LocalDeviceManager extends DeviceManager {
   }
 
   void _startBatteryRefreshLoop() {
+    if (_batteryRefreshPaused) return;
     _batteryRefreshTimer?.cancel();
     _batteryRefreshTimer = Timer.periodic(
       const Duration(seconds: 2),
@@ -1500,8 +1657,26 @@ class LocalDeviceManager extends DeviceManager {
     );
   }
 
+  @override
+  bool get batteryRefreshPaused => _batteryRefreshPaused;
+
+  @override
+  Future<void> setBatteryRefreshPaused(bool paused) async {
+    _batteryRefreshPaused = paused;
+    if (paused) {
+      _batteryRefreshTimer?.cancel();
+      _batteryRefreshTimer = null;
+      return;
+    }
+    if (_currentEntity != null && state.protocolState == ProtocolState.ready) {
+      _startBatteryRefreshLoop();
+      await _refreshBatteryInBackground();
+    }
+  }
+
   Future<void> _refreshBatteryInBackground() async {
-    if (_batteryRefreshInProgress ||
+    if (_batteryRefreshPaused ||
+        _batteryRefreshInProgress ||
         _activeTransfers > 0 ||
         _currentEntity == null ||
         state.protocolState != ProtocolState.ready) {
@@ -1598,7 +1773,7 @@ class LocalDeviceManager extends DeviceManager {
         );
       case TransportDisconnected _:
         _log.warning('event: transport disconnected');
-        _onDisconnected();
+        unawaited(_onDisconnected());
       case LinkTrafficUpdated(:final traffic):
         state = state.copyWith(
           uploadBytesPerSecond: traffic.uploadBytesPerSecond,
@@ -1634,6 +1809,11 @@ class LocalDeviceManager extends DeviceManager {
         _log.info(
           'event: wearable phone finder ${finding ? 'started' : 'stopped'}',
         );
+      case XiaomiFindWearableRequested(:final finding):
+        _log.info('event: wearable finder ${finding ? 'started' : 'stopped'}');
+        state = state.copyWith(findingXiaomiWearable: finding);
+      case XiaomiScreenshotReceived(:final bytes):
+        _log.info('event: Xiaomi screenshot received (${bytes.length} bytes)');
       case DeviceInfoUpdated(:final info):
         _log.info(
           'device info ${event.deviceId}: model=${info.model}, '
@@ -1713,7 +1893,7 @@ class LocalDeviceManager extends DeviceManager {
     }
   }
 
-  void _onDisconnected() {
+  Future<void> _onDisconnected() async {
     if (state.connecting) {
       _log.fine('ignoring disconnect state transition during connect attempt');
       return;
@@ -1727,11 +1907,18 @@ class LocalDeviceManager extends DeviceManager {
         clearBattery: true,
         clearHealth: true,
         clearSystemInfo: true,
+        findingXiaomiWearable: false,
         clearError: true,
       );
-      unawaited(_cleanupConnection());
+      await _cleanupConnection();
       return;
     }
+    final shouldReconnect =
+        state.protocolState == ProtocolState.ready &&
+        !current.disconnected &&
+        !_passiveReconnectInProgress &&
+        _shouldAutoReconnectOnDisconnect() &&
+        current.authkey?.isNotEmpty == true;
     final disconnected = current.copyWith(disconnected: true);
     final alreadyPersistedOffline =
         current.disconnected &&
@@ -1750,10 +1937,86 @@ class LocalDeviceManager extends DeviceManager {
       clearBattery: true,
       clearHealth: true,
       clearSystemInfo: true,
+      findingXiaomiWearable: false,
       clearError: true,
     );
     if (!alreadyPersistedOffline) _savePairedDevices();
-    _cleanupConnection();
+    await _cleanupConnection();
+    if (shouldReconnect) {
+      unawaited(_attemptPassiveReconnect(disconnected));
+    }
+  }
+
+  Future<void> _attemptPassiveReconnect(MiWearState device) async {
+    if (_passiveReconnectInProgress) return;
+    final authKey = device.authkey;
+    if (authKey == null || authKey.isEmpty) return;
+
+    _passiveReconnectInProgress = true;
+    try {
+      for (
+        var attempt = 1;
+        attempt <= _passiveReconnectMaxAttempts;
+        attempt++
+      ) {
+        if (state.protocolState == ProtocolState.ready &&
+            state.currentDevice?.addr == device.addr &&
+            state.currentDevice?.disconnected == false) {
+          return;
+        }
+        _log.warning(
+          'passive reconnect attempt $attempt/$_passiveReconnectMaxAttempts '
+          'to ${device.addr}',
+        );
+        _runtime.emit(
+          PassiveReconnectStatus(
+            deviceId: device.addr,
+            phase: PassiveReconnectPhase.attempt,
+            attempt: attempt,
+          ),
+        );
+        try {
+          await connect(
+            device.addr,
+            device.name,
+            authKey,
+            connectType: device.connectType,
+          );
+        } catch (error, stackTrace) {
+          _log.warning(
+            'passive reconnect attempt $attempt failed for ${device.addr}',
+            error,
+            stackTrace,
+          );
+        }
+        if (state.protocolState == ProtocolState.ready &&
+            state.currentDevice?.addr == device.addr &&
+            state.currentDevice?.disconnected == false) {
+          _log.info('passive reconnect succeeded for ${device.addr}');
+          _runtime.emit(
+            PassiveReconnectStatus(
+              deviceId: device.addr,
+              phase: PassiveReconnectPhase.success,
+              attempt: attempt,
+            ),
+          );
+          return;
+        }
+      }
+      _log.warning(
+        'passive reconnect failed after $_passiveReconnectMaxAttempts attempts '
+        'for ${device.addr}',
+      );
+      _runtime.emit(
+        PassiveReconnectStatus(
+          deviceId: device.addr,
+          phase: PassiveReconnectPhase.failed,
+          attempt: _passiveReconnectMaxAttempts,
+        ),
+      );
+    } finally {
+      _passiveReconnectInProgress = false;
+    }
   }
 
   @override
@@ -1773,6 +2036,7 @@ class LocalDeviceManager extends DeviceManager {
   @override
   Future<void> disconnect([String? address]) async {
     _connectGeneration += 1;
+    _pendingConnectType = null;
     final current = state.currentDevice;
     final targetAddress = address ?? current?.addr;
     final targetIsPooled =
@@ -1820,6 +2084,7 @@ class LocalDeviceManager extends DeviceManager {
       clearBattery: true,
       clearHealth: true,
       clearSystemInfo: true,
+      findingXiaomiWearable: false,
       clearError: true,
       clearConnectionTarget: true,
       clearConnectionPhase: true,
@@ -1832,6 +2097,17 @@ class LocalDeviceManager extends DeviceManager {
   Future<void> cancelConnect() async {
     if (!state.connecting) return;
     _connectGeneration += 1;
+    final pendingConnectType = _pendingConnectType;
+    _pendingConnectType = null;
+    if (pendingConnectType == ConnectType.spp) {
+      try {
+        await _bluetooth.cancelPendingSppConnection().timeout(
+          const Duration(seconds: 1),
+        );
+      } catch (e, st) {
+        _log.warning('cancelling pending SPP connection failed', e, st);
+      }
+    }
     state = state.copyWith(
       connecting: false,
       connectStatus: 0,
@@ -1842,6 +2118,7 @@ class LocalDeviceManager extends DeviceManager {
   }
 
   Future<void> _finishCancelledConnect(String targetAddress) async {
+    _pendingConnectType = null;
     final entity = _currentEntity;
     if (entity != null && entity.id != targetAddress) {
       state = state.copyWith(
@@ -1868,6 +2145,7 @@ class LocalDeviceManager extends DeviceManager {
       clearBattery: true,
       clearHealth: true,
       clearSystemInfo: true,
+      findingXiaomiWearable: false,
       clearConnectionTarget: true,
       clearConnectionPhase: true,
       clearError: true,
@@ -2094,7 +2372,26 @@ class LocalDeviceManager extends DeviceManager {
   }
 
   @override
-  Future<void> syncDevice() async {
+  Future<void> syncDevice() {
+    final deviceId = _currentEntity?.id ?? state.currentDevice?.addr;
+    return runExclusiveDeviceSync(() async {
+      _log.info('device synchronization started for ${deviceId ?? '-'}');
+      try {
+        await _syncDeviceInternal();
+        await recordSuccessfulDeviceSync(deviceId);
+        _log.info('device synchronization completed for ${deviceId ?? '-'}');
+      } catch (error, stackTrace) {
+        _log.warning(
+          'device synchronization failed for ${deviceId ?? '-'}',
+          error,
+          stackTrace,
+        );
+        rethrow;
+      }
+    });
+  }
+
+  Future<void> _syncDeviceInternal() async {
     final entity = _currentEntity;
     if (entity == null || state.protocolState != ProtocolState.ready) {
       throw ProtocolException('Device not ready');
@@ -2113,7 +2410,11 @@ class LocalDeviceManager extends DeviceManager {
     for (final operation in operations) {
       if (_currentEntity != entity) return;
       try {
+        _log.fine('device synchronization operation started: ${operation.$1}');
         await operation.$2();
+        _log.fine(
+          'device synchronization operation completed: ${operation.$1}',
+        );
       } on UnsupportedError catch (error) {
         _log.fine('device synchronization ${operation.$1} unavailable: $error');
       } catch (error, stackTrace) {
@@ -2184,6 +2485,7 @@ class LocalDeviceManager extends DeviceManager {
       );
     }
     await system.setFindingWearable(finding);
+    state = state.copyWith(findingXiaomiWearable: finding);
   }
 
   @override
@@ -2799,10 +3101,8 @@ class LocalDeviceManager extends DeviceManager {
           await media.requestMediaFile(identifier);
         }
         try {
-          await Future.any<void>([
-            activity.future,
-            receive.then<void>((_) {}),
-          ]).timeout(const Duration(seconds: 8));
+          await Future.any<void>([activity.future, receive.then<void>((_) {})])
+              .timeout(const Duration(seconds: 8));
         } on TimeoutException {
           throw const _NoReverseMassActivity();
         }
@@ -3142,7 +3442,15 @@ class LocalDeviceManager extends DeviceManager {
 
   @override
   Future<void> syncXiaomiWeather(XiaomiWeatherData weather) async {
+    _log.info(
+      'Xiaomi weather synchronization requested for ${_currentEntity?.id}: '
+      'city=${weather.cityName}, source=${weather.source.name}',
+    );
     await _requireXiaomiInfoSystem().sendWeather(weather);
+    _log.info(
+      'Xiaomi weather synchronization completed for ${_currentEntity?.id}: '
+      'city=${weather.cityName}',
+    );
   }
 
   XiaomiInfoSystem _requireXiaomiInfoSystem() {

@@ -5,6 +5,8 @@ import 'package:oronbox/src/core/models/bt_models.dart' as models;
 import 'package:oronbox/src/device/core/event_bus.dart';
 import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
 import 'package:oronbox/src/features/devices/models/xiaomi_device_features.dart';
+import 'package:oronbox/src/features/devices/services/xiaomi_sync_preferences.dart';
+import 'package:oronbox/src/features/devices/services/xiaomi_weather_sync_service.dart';
 import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
 import 'package:oronbox/src/protocols/generated/xiaomi/wear_clock.pb.dart'
     as pb_clock;
@@ -22,6 +24,24 @@ import 'package:oronbox/src/protocols/xiaomi/commands/xiaomi_request_pool.dart';
 
 class XiaomiInfoSystem extends XiaomiPbSystem {
   static final _log = getLogger('XiaomiInfoSystem');
+
+  String? _model;
+  String? _firmwareVersion;
+  String? _productDevice;
+  Future<void> _weatherSendTail = Future<void>.value();
+  bool _deviceWeatherRequestInFlight = false;
+
+  String? get model => _model;
+
+  String? get firmwareVersion => _firmwareVersion;
+
+  /// Internal product identifier reported by the wearable.
+  ///
+  /// Mi Fitness uses the server-side product metadata (rather than the
+  /// display model) when selecting an AGPS source. Keep this identifier in
+  /// the protocol layer so GNSS fallback logic does not have to guess from a
+  /// localized product name.
+  String? get productDevice => _productDevice;
 
   Future<models.BatteryStatus> fetchBatteryInfo() async {
     final response = await component.requestPool
@@ -73,8 +93,16 @@ class XiaomiInfoSystem extends XiaomiPbSystem {
       imei: response.imei,
       model: response.model,
     );
+    _model = info.model.trim().isEmpty ? null : info.model.trim();
+    _firmwareVersion = info.firmwareVersion.trim().isEmpty
+        ? null
+        : info.firmwareVersion.trim();
+    _productDevice = response.productDevice.trim().isEmpty
+        ? null
+        : response.productDevice.trim();
     _log.fine(
-      '[${entity.id}] device info: model=${info.model}, fw=${info.firmwareVersion}, serial=${info.serialNumber}, imei=${info.imei}',
+      '[${entity.id}] device info: model=${info.model}, productDevice=${_productDevice ?? '-'}, '
+      'fw=${info.firmwareVersion}, serial=${info.serialNumber}, imei=${info.imei}',
     );
     entity.emit(DeviceInfoUpdated(deviceId: entity.id, info: info));
     return info;
@@ -225,24 +253,41 @@ class XiaomiInfoSystem extends XiaomiPbSystem {
     );
   }
 
-  Future<void> sendWeather(XiaomiWeatherData weather) async {
+  Future<void> sendWeather(XiaomiWeatherData weather) {
+    final previous = _weatherSendTail;
+    final current = Completer<void>();
+    _weatherSendTail = current.future;
+    return previous.then<void>((_) async {
+      try {
+        await _sendWeatherNow(weather);
+      } finally {
+        current.complete();
+      }
+    });
+  }
+
+  Future<void> _sendWeatherNow(XiaomiWeatherData weather) async {
+    _log.info(
+      '[${entity.id}] syncing weather: source=${weather.source.name}, '
+      'locationKey=${weather.locationKey}, city=${weather.cityName}, '
+      'location=${weather.locationName}, current=${weather.isCurrentLocation}',
+    );
     final id = buildXiaomiWeatherId(weather);
     final latest = buildXiaomiWeatherLatest(weather, id);
+    _log.fine(
+      '[${entity.id}] weather latest payload: '
+      'city=${id.locationName}, aqi=${latest.aqi.key}/${latest.aqi.value}, '
+      'uv=${latest.uvindex.key}/${latest.uvindex.value}, '
+      'pressure=${latest.pressure}',
+    );
 
     final cityKey = pb_weather.CityKey(
       locationKey: weather.locationKey,
-      cityName: weather.cityName,
+      cityName: _weatherDisplayName(weather),
     );
-    await _sendWeatherPacket(
-      pb_weather.Weather_WeatherID.ADD_CITY_KEY,
-      weather: pb_weather.Weather(cityKey: cityKey),
-    );
-    await _sendWeatherPacket(
-      pb_weather.Weather_WeatherID.UPDATE_CITY_KEYS,
-      weather: pb_weather.Weather(
-        cityKeyList: pb_weather.CityKey_List(list: [cityKey]),
-      ),
-    );
+    if (weather.isCurrentLocation) {
+      await _replaceWeatherCityKeys(cityKey);
+    }
     await _sendWeatherPacket(
       pb_weather.Weather_WeatherID.SET_CONFIG,
       weather: pb_weather.Weather(
@@ -251,23 +296,34 @@ class XiaomiInfoSystem extends XiaomiPbSystem {
         ),
       ),
     );
+    if (weather.isCurrentLocation && weather.pressureHpa > 0) {
+      _log.fine(
+        '[${entity.id}] sending atmospheric pressure: '
+        '${weather.pressureHpa.toStringAsFixed(1)} hPa',
+      );
+      await _sendWeatherPacket(
+        pb_weather.Weather_WeatherID.SET_PRESSURE,
+        weather: pb_weather.Weather(pressure: weather.pressureHpa * 100),
+      );
+    }
     await _sendWeatherPacket(
       pb_weather.Weather_WeatherID.LATEST_WEATHER,
       weather: pb_weather.Weather(latest: latest),
     );
+    final daily = weather.daily.take(7).toList(growable: false);
     await _sendWeatherPacket(
       pb_weather.Weather_WeatherID.DAILY_FORECAST,
       weather: pb_weather.Weather(
         forecast: pb_weather.WeatherForecast(
           id: id,
           dataList: pb_weather.WeatherForecast_Data_List(
-            list: weather.daily
+            list: daily
                 .map(
                   (day) => pb_weather.WeatherForecast_Data(
-                    aqi: _weatherValue('Unknown', 0),
+                    aqi: _weatherValue(day.aqiLevel, day.aqi ?? 0),
                     weather: pb_common.RangeValue(
-                      from: day.conditionCode,
-                      to: day.conditionCode,
+                      from: day.weatherFrom ?? day.conditionCode,
+                      to: day.weatherTo ?? day.conditionCode,
                     ),
                     temperature: xiaomiDailyTemperatureRange(day),
                     temperatureUnit: '℃',
@@ -297,6 +353,82 @@ class XiaomiInfoSystem extends XiaomiPbSystem {
         ),
       );
     }
+    _log.info(
+      '[${entity.id}] weather sync sent: daily=${daily.length}, '
+      'hourly=${weather.hourly.length}, alerts=${weather.alerts.length}',
+    );
+  }
+
+  String _weatherDisplayName(XiaomiWeatherData weather) {
+    final locationName = weather.locationName.trim();
+    return locationName.isNotEmpty ? locationName : weather.cityName.trim();
+  }
+
+  Future<void> _replaceWeatherCityKeys(pb_weather.CityKey selected) async {
+    var existing = <pb_weather.CityKey>[];
+    try {
+      final response = await component.requestPool
+          .request<pb_weather.CityKey_List>(
+            packet: pb.WearPacket(
+              type: pb.WearPacket_Type.WEATHER,
+              id: pb_weather.Weather_WeatherID.GET_CITY_KEYS.value,
+              weather: pb_weather.Weather(),
+            ),
+            typeMatcher: (packet) =>
+                packet.whichPayload() == pb.WearPacket_Payload.weather &&
+                packet.id == pb_weather.Weather_WeatherID.GET_CITY_KEYS.value &&
+                packet.weather.hasCityKeyList(),
+            responseMapper: (packet) => packet.weather.cityKeyList,
+            timeout: const Duration(seconds: 3),
+          );
+      existing = response.list.toList(growable: false);
+      _log.fine(
+        '[${entity.id}] weather city keys loaded: existing=${existing.length}, '
+        'selected=${selected.cityName}',
+      );
+    } catch (error, stackTrace) {
+      _log.warning(
+        '[${entity.id}] loading weather city keys failed; replacing without '
+        'reading existing entries',
+        error,
+        stackTrace,
+      );
+    }
+
+    if (existing.isNotEmpty) {
+      _log.info(
+        '[${entity.id}] clearing weather city keys: count=${existing.length}',
+      );
+      try {
+        // Mi Fitness removes city keys with a fire-and-forget packet, then
+        // writes the complete replacement list in a separately acknowledged
+        // UPDATE_CITY_KEYS packet.
+        await _sendWeatherPacket(
+          pb_weather.Weather_WeatherID.REMOVE_CITY_KEYS,
+          weather: pb_weather.Weather(
+            cityKeyList: pb_weather.CityKey_List(list: existing),
+          ),
+          waitForAck: false,
+        );
+      } catch (error, stackTrace) {
+        _log.warning(
+          '[${entity.id}] clearing weather city keys failed; continuing with '
+          'replacement',
+          error,
+          stackTrace,
+        );
+      }
+    }
+
+    await _sendWeatherPacket(
+      pb_weather.Weather_WeatherID.UPDATE_CITY_KEYS,
+      weather: pb_weather.Weather(
+        cityKeyList: pb_weather.CityKey_List(list: [selected]),
+      ),
+    );
+    _log.info(
+      '[${entity.id}] weather city keys replaced: selected=${selected.cityName}',
+    );
   }
 
   pb_common.KeyValue _weatherValue(String key, int value) =>
@@ -305,14 +437,19 @@ class XiaomiInfoSystem extends XiaomiPbSystem {
   Future<void> _sendWeatherPacket(
     pb_weather.Weather_WeatherID id, {
     required pb_weather.Weather weather,
+    bool waitForAck = true,
   }) async {
+    _log.fine(
+      '[${entity.id}] sending weather packet id=${id.value}, '
+      'waitForAck=$waitForAck',
+    );
     await component.sendPbPacket(
       pb.WearPacket(
         type: pb.WearPacket_Type.WEATHER,
         id: id.value,
         weather: weather,
       ),
-      waitForAck: true,
+      waitForAck: waitForAck,
     );
   }
 
@@ -395,12 +532,108 @@ class XiaomiInfoSystem extends XiaomiPbSystem {
 
   @override
   void onWearPacket(pb.WearPacket packet) {
+    if (packet.whichPayload() == pb.WearPacket_Payload.weather &&
+        packet.type == pb.WearPacket_Type.WEATHER &&
+        packet.id == pb_weather.Weather_WeatherID.WEAR_REQUEST.value) {
+      final requestedCityKey = packet.weather.hasCityKey()
+          ? packet.weather.cityKey
+          : null;
+      _handleDeviceWeatherRequest(
+        requestedLocationKey: requestedCityKey?.locationKey.trim(),
+        requestedCity: requestedCityKey?.cityName.trim(),
+      );
+      return;
+    }
     if (packet.whichPayload() != pb.WearPacket_Payload.system ||
         packet.system.whichPayload() !=
             pb_system.System_Payload.batteryStatus) {
       return;
     }
     _emitBattery(_batteryStatus(packet.system.batteryStatus));
+  }
+
+  void _handleDeviceWeatherRequest({
+    required String? requestedLocationKey,
+    required String? requestedCity,
+  }) {
+    if (_deviceWeatherRequestInFlight) {
+      _log.fine(
+        '[${entity.id}] wearable weather request ignored while refresh is '
+        'already running',
+      );
+      return;
+    }
+    _deviceWeatherRequestInFlight = true;
+    unawaited(
+      _refreshWeatherForDeviceRequest(
+        requestedLocationKey: requestedLocationKey,
+        requestedCity: requestedCity,
+      ).then<void>(
+        (_) => _deviceWeatherRequestInFlight = false,
+        onError: (Object error, StackTrace stackTrace) {
+          _deviceWeatherRequestInFlight = false;
+          _log.warning(
+            '[${entity.id}] wearable weather refresh failed unexpectedly',
+            error,
+            stackTrace,
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _refreshWeatherForDeviceRequest({
+    required String? requestedLocationKey,
+    required String? requestedCity,
+  }) async {
+    final configuredCity = XiaomiSyncPreferences.weatherLastCity?.trim();
+    final cachedWeather = XiaomiSyncPreferences.cachedWeather;
+    final city = configuredCity != null && configuredCity.isNotEmpty
+        ? configuredCity
+        : cachedWeather?.cityName.trim() ?? requestedCity;
+    _log.info(
+      '[${entity.id}] wearable requested weather refresh: '
+      'locationKey=${requestedLocationKey?.isNotEmpty == true ? requestedLocationKey : '-'}, '
+      'requestedCity=${requestedCity?.isNotEmpty == true ? requestedCity : '-'}, '
+      'city=${city?.isNotEmpty == true ? city : '-'}',
+    );
+
+    if (city == null || city.isEmpty) {
+      _log.warning(
+        '[${entity.id}] wearable weather refresh skipped: no saved city',
+      );
+      return;
+    }
+    if (requestedLocationKey != null &&
+        requestedLocationKey.isNotEmpty &&
+        cachedWeather != null &&
+        cachedWeather.locationKey != requestedLocationKey) {
+      _log.fine(
+        '[${entity.id}] wearable requested a different weather location; '
+        'refreshing the configured city',
+      );
+    }
+
+    try {
+      final weather = await XiaomiWeatherSyncService().fetch(
+        city,
+        model: _model,
+        firmwareVersion: _firmwareVersion,
+      );
+      await sendWeather(weather);
+      await XiaomiSyncPreferences.setWeatherLastCity(weather.cityName);
+      await XiaomiSyncPreferences.setCachedWeather(weather, DateTime.now());
+      _log.info(
+        '[${entity.id}] wearable weather refresh completed: '
+        'city=${weather.cityName}, source=${weather.source.name}',
+      );
+    } catch (error, stackTrace) {
+      _log.warning(
+        '[${entity.id}] wearable weather refresh failed',
+        error,
+        stackTrace,
+      );
+    }
   }
 }
 
@@ -416,7 +649,7 @@ pb_weather.WeatherId buildXiaomiWeatherId(XiaomiWeatherData weather) =>
       cityName: weather.cityName,
       locationName: weather.locationName,
       locationKey: weather.locationKey,
-      isCurrentLocation: true,
+      isCurrentLocation: weather.isCurrentLocation,
     );
 
 pb_weather.WeatherLatest buildXiaomiWeatherLatest(
@@ -431,16 +664,31 @@ pb_weather.WeatherLatest buildXiaomiWeatherLatest(
     key: weather.windDirection.toString(),
     value: weather.windSpeedBeaufort,
   ),
-  uvindex: pb_common.KeyValue(key: '', value: weather.uvIndex),
-  aqi: pb_common.KeyValue(key: 'Unknown', value: weather.aqi ?? 0),
-  alertsList: pb_weather.Alerts_List(),
+  uvindex: pb_common.KeyValue(
+    key: weather.uvIndexLevel,
+    value: weather.uvIndex,
+  ),
+  aqi: pb_common.KeyValue(key: weather.aqiLevel, value: weather.aqi ?? 0),
+  alertsList: pb_weather.Alerts_List(
+    list: weather.alerts
+        .map(
+          (alert) => pb_weather.Alerts(
+            type: alert.type,
+            level: alert.level,
+            title: alert.title,
+            detail: alert.detail,
+            id: alert.id,
+          ),
+        )
+        .toList(growable: false),
+  ),
   pressure: weather.pressureHpa * 100,
 );
 
 pb_weather.WeatherForecast_Data buildXiaomiHourlyWeatherEntry(
   XiaomiWeatherHour hour,
 ) => pb_weather.WeatherForecast_Data(
-  aqi: pb_common.KeyValue(key: 'Unknown', value: 0),
+  aqi: pb_common.KeyValue(key: hour.aqiLevel, value: hour.aqi ?? 0),
   weather: pb_common.RangeValue(from: 0, to: hour.conditionCode),
   temperature: pb_common.RangeValue(from: 0, to: hour.temperature),
   temperatureUnit: '℃',

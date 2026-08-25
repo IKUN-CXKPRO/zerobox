@@ -108,18 +108,29 @@ class XiaomiSyncSystem extends XiaomiPbSystem {
   @override
   void onWearPacket(pb.WearPacket packet) {
     if (packet.type != pb.WearPacket_Type.SYSTEM ||
-        packet.id != pb_system.System_SystemID.FIND_PHONE.value ||
+        (packet.id != pb_system.System_SystemID.FIND_PHONE.value &&
+            packet.id != pb_system.System_SystemID.FIND_WEAR.value) ||
         !packet.hasSystem() ||
         !packet.system.hasFindMode()) {
       return;
     }
     final finding = packet.system.findMode == pb_system.FindMode.FIND_START;
-    _log.info(
-      '[${entity.id}] wearable phone finder '
-      '${finding ? 'started' : 'stopped'}',
-    );
-    entity.emit(
-      XiaomiFindPhoneRequested(deviceId: entity.id, finding: finding),
-    );
+    if (packet.id == pb_system.System_SystemID.FIND_PHONE.value) {
+      _log.info(
+        '[${entity.id}] wearable phone finder '
+        '${finding ? 'started' : 'stopped'}',
+      );
+      entity.emit(
+        XiaomiFindPhoneRequested(deviceId: entity.id, finding: finding),
+      );
+    } else {
+      _log.info(
+        '[${entity.id}] wearable finder '
+        '${finding ? 'started' : 'stopped'}',
+      );
+      entity.emit(
+        XiaomiFindWearableRequested(deviceId: entity.id, finding: finding),
+      );
+    }
   }
 }

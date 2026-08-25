@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/device/core/device_kind.dart';
 import 'package:oronbox/src/device/core/device_profile.dart';
+import 'package:oronbox/src/device/core/watchface_install_policy.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/resources/services/install_queue_notifier.dart';
 import 'package:oronbox/src/features/resources/services/resource_install_service.dart';
@@ -36,6 +37,19 @@ Future<bool> confirmAndEnqueueResourceFile({
     source: 'manual-picker',
   );
   if (!context.mounted) return false;
+  final isWatchface =
+      analysis?.type == LocalDeviceInstallType.watchface ||
+      selectedType == LocalDeviceInstallType.watchface;
+  if (isWatchface) {
+    final restrictedId = restrictedWatchfaceIdFor(
+      payload: analysis?.payload ?? bytes,
+      analyzedIdentifier: analysis?.identifier,
+    );
+    if (restrictedId != null) {
+      await _showRestrictedWatchfaceDialog(context);
+      return false;
+    }
+  }
   final decision = await _confirmInstall(
     context,
     ref,
@@ -67,6 +81,26 @@ Future<bool> confirmAndEnqueueResourceFile({
         identifier: analysis!.identifier,
       );
   return true;
+}
+
+Future<void> _showRestrictedWatchfaceDialog(BuildContext context) async {
+  final l10n = AppLocalizations.of(context)!;
+  await showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(l10n.resourceTypeUnknownTitle),
+      content: Text(l10n.resourceTypeUnknownNoType),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          child: Text(l10n.resourceTypeUnknownCancel),
+        ),
+      ],
+    ),
+  );
 }
 
 Future<_InstallDecision> _confirmInstall(

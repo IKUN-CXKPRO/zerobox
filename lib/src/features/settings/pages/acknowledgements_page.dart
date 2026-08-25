@@ -64,6 +64,16 @@ class AcknowledgementsPage extends StatelessWidget {
         description: l10n.acknowledgementsGadgetbridge,
         url: 'https://codeberg.org/Freeyourgadget/Gadgetbridge',
       ),
+      AcknowledgementItem(
+        name: 'Breezy Weather',
+        description: l10n.acknowledgementsBreezyWeather,
+        url: 'https://github.com/breezy-weather/breezy-weather',
+      ),
+      AcknowledgementItem(
+        name: 'Open-Meteo',
+        description: l10n.acknowledgementsOpenMeteo,
+        url: 'https://open-meteo.com/',
+      ),
     ];
   }
 
@@ -74,20 +84,22 @@ class AcknowledgementsPage extends StatelessWidget {
 
     return Scaffold(
       appBar: SysAppBar(secondary: true, title: Text(l10n.acknowledgements)),
-      body: ListView.builder(
-        padding: EdgeInsets.zero,
+      body: ListView.separated(
+        padding: const EdgeInsets.symmetric(
+          vertical: StyleConstants.pagePadding,
+        ),
         itemCount: items.length,
+        separatorBuilder: (_, _) =>
+            const SizedBox(height: StyleConstants.cardSpace),
         itemBuilder: (context, index) {
           final item = items[index];
           return PageContainer(
-            padding: EdgeInsets.fromLTRB(
-              StyleConstants.pagePadding,
-              index == 0 ? StyleConstants.pagePadding : 0,
-              StyleConstants.pagePadding,
-              index == items.length - 1 ? StyleConstants.pagePadding : 0,
+            safeArea: false,
+            padding: const EdgeInsets.symmetric(
+              horizontal: StyleConstants.pagePadding,
             ),
             child: Card(
-              margin: const EdgeInsets.only(bottom: StyleConstants.cardSpace),
+              margin: EdgeInsets.zero,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(StyleConstants.cardRadius),
               ),

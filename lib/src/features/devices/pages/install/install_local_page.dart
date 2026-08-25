@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/utils/picked_file.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/smooth_linear_progress_indicator.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
@@ -33,23 +34,20 @@ class _InstallLocalPageState extends ConsumerState<InstallLocalPage> {
   String? _error;
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.pickFiles(
+    final file = await pickFileData(
       // Package contents are authoritative. Extensions are often renamed and
       // must not prevent a valid package from being selected.
       type: FileType.any,
-      withData: shouldLoadPickedFileData,
+      loadBytes: shouldLoadPickedFileData,
     );
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.first;
-    if (file.bytes == null && file.path == null) return;
-    final selected = file.bytes == null
-        ? XFile(file.path!, name: file.name)
-        : XFile.fromData(file.bytes!, name: file.name);
+    final selected = file?.xFile;
+    if (file == null || selected == null) return;
+    final selectedSize = await selected.length();
 
     setState(() {
       _fileName = file.name;
       _file = selected;
-      _fileSize = file.size;
+      _fileSize = selectedSize;
       _error = null;
       _progress = 0;
     });

@@ -15,6 +15,8 @@ class DeviceRuntime {
 
   Stream<DeviceEvent> get eventStream => _eventBus.stream;
 
+  void emit(DeviceEvent event) => _eventBus.emit(event);
+
   DeviceEntity? entity(String id) => _entities[id];
 
   DeviceEntity spawnDevice({

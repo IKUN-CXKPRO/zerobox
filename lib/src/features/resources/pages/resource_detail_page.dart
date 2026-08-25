@@ -417,9 +417,8 @@ class _CoinButtonState extends ConsumerState<_CoinButton> {
           .read(oronBoxCoinServiceProvider)
           .coin(widget.resource.ref.id, count);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.resourceCoinSuccess)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.resourceCoinSuccess)));
       ref.invalidate(communityResourceDetailProvider(widget.resource.ref));
       ref.invalidate(oronBoxMyCoinsProvider(widget.resource.ref.id));
       ref.read(resourceRefreshProvider.notifier).refresh();
@@ -983,13 +982,58 @@ class _PreviewGallery extends StatelessWidget {
   }
 }
 
-class _Actions extends ConsumerWidget {
+class _Actions extends ConsumerStatefulWidget {
   const _Actions({required this.detail, required this.currentCodename});
   final CommunityResourceDetail detail;
   final String currentCodename;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Actions> createState() => _ActionsState();
+}
+
+class _ActionsState extends ConsumerState<_Actions> {
+  String? _sizeKey;
+  int? _preferredFileSize;
+  bool _probeScheduled = false;
+
+  CommunityResourceDetail get detail => widget.detail;
+  String get currentCodename => widget.currentCodename;
+
+  void _ensurePreferredFileSize(CommunityResourceFile? file) {
+    if (file == null) return;
+    final key = _fileSizeKey(file);
+    if (key == _sizeKey || _probeScheduled) return;
+    _probeScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _probeScheduled = false;
+      if (mounted) _probeFileSize(file, key);
+    });
+  }
+
+  Future<void> _probeFileSize(CommunityResourceFile file, String key) async {
+    if (!mounted) return;
+    setState(() {
+      _sizeKey = key;
+      _preferredFileSize = file.size;
+    });
+    if (file.size != null) return;
+    try {
+      final size = await ref
+          .read(communityCatalogProviderForSource(detail.ref.source))
+          .probeDownloadSize(file);
+      if (!mounted || _sizeKey != key) return;
+      setState(() => _preferredFileSize = size);
+    } catch (_) {
+      // A HEAD request is only an enhancement. The install action remains
+      // usable when a source does not expose Content-Length.
+    }
+  }
+
+  String _fileSizeKey(CommunityResourceFile file) =>
+      '${file.id}|${file.downloadUrl}';
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final files = detail.files;
     final choices = buildResourceInstallChoices(detail);
@@ -1002,6 +1046,14 @@ class _Actions extends ConsumerWidget {
       choices,
       currentCodename,
     );
+    final preferredFile = preferred?.file;
+    _ensurePreferredFileSize(preferredFile);
+    final preferredFileKey = preferredFile == null
+        ? null
+        : _fileSizeKey(preferredFile);
+    final preferredFileSize = preferredFileKey == _sizeKey
+        ? _preferredFileSize
+        : preferredFile?.size;
     final inDownloadQueue = ref.watch(
       downloadQueueProvider.select(
         (tasks) => tasks.any(
@@ -1030,16 +1082,18 @@ class _Actions extends ConsumerWidget {
           .read(downloadQueueProvider.notifier)
           .enqueue(resource: detail, file: choice.file, codename: target);
       if (!accepted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.downloadStarted)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.downloadStarted)));
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final expand = constraints.maxWidth < 520;
         final color = Theme.of(context).colorScheme;
-        final label = inQueue ? l10n.productInQueue : l10n.install;
+        final baseLabel = inQueue ? l10n.productInQueue : l10n.install;
+        final label = preferredFileSize == null
+            ? baseLabel
+            : '$baseLabel (${_formatResourceFileSize(preferredFileSize)})';
         final foreground = canInstall
             ? color.onPrimaryContainer
             : color.onSurface.withValues(alpha: .38);
@@ -1154,10 +1208,7 @@ class _Actions extends ConsumerWidget {
     );
   }
 
-  String _purchaseLabel(
-    AppLocalizations l10n,
-    CommunityResourceDetail detail,
-  ) {
+  String _purchaseLabel(AppLocalizations l10n, CommunityResourceDetail detail) {
     final price = detail.purchasePrice;
     if (price == null) return l10n.resourcePurchaseFullVersion;
     final amount = price.toStringAsFixed(2);
@@ -1172,6 +1223,20 @@ class _Actions extends ConsumerWidget {
       controller.open();
     }
   }
+}
+
+String _formatResourceFileSize(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) {
+    final value = bytes / 1024;
+    return '${value.toStringAsFixed(value >= 100 ? 0 : 1)} KB';
+  }
+  if (bytes < 1024 * 1024 * 1024) {
+    final value = bytes / (1024 * 1024);
+    return '${value.toStringAsFixed(value >= 100 ? 0 : 1)} MB';
+  }
+  final value = bytes / (1024 * 1024 * 1024);
+  return '${value.toStringAsFixed(value >= 100 ? 0 : 2)} GB';
 }
 
 class ResourceInstallChoice {
@@ -1357,10 +1422,8 @@ class _Compatibility extends StatelessWidget {
                 compatible
                     ? '${AppLocalizations.of(context)!.compatible} $deviceName'
                     : '${AppLocalizations.of(context)!.incompatible} $deviceName ${AppLocalizations.of(context)!.incompatibleSuffix}',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: statusColor,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(context).textTheme.titleSmall
+                    ?.copyWith(color: statusColor, fontWeight: FontWeight.w700),
               ),
             ),
           ],
@@ -1369,9 +1432,8 @@ class _Compatibility extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             AppLocalizations.of(context)!.productOtherVersions,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: color.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: color.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           Wrap(

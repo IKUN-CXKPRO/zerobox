@@ -25,4 +25,7 @@
     <string name="widget_queue_waiting">Ожидание</string>
     <string name="widget_device_status">Состояние устройства</string>
     <string name="widget_health_status">Здоровье</string>
+    <string name="notification_title">OronBox</string>
+    <string name="notification_connected">Подключено: %1$s</string>
+    <string name="notification_battery">Заряд %1$d%%</string>
 </resources>

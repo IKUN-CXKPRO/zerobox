@@ -14,7 +14,11 @@ void main() {
             Response<List<dynamic>>(
               requestOptions: options,
               data: [
-                _release(product: 'miwear.watch.n67cn', version: 'v3.1.175'),
+                _release(
+                  product: 'miwear.watch.n67cn',
+                  version: 'v3.1.175',
+                  incrementalFrom: ['3.1.162'],
+                ),
                 _release(product: 'miwear.watch.n67cn', version: 'v3.1.171'),
               ],
             ),
@@ -38,6 +42,10 @@ void main() {
       expect(
         releases.first.fileName,
         'miwear.watch.n67cn_v3.1.175_full_test.bin',
+      );
+      expect(
+        releases.first.packageFor('3.1.162').fileName,
+        'miwear.watch.n67cn_v3.1.175_from_v3.1.162_incremental_test.bin',
       );
     },
   );
@@ -78,11 +86,20 @@ void main() {
 Map<String, dynamic> _release({
   required String product,
   required String version,
+  List<String> incrementalFrom = const [],
 }) {
   return {
     'name': '$product $version',
     'body': 'Release notes',
     'assets': [
+      for (final source in incrementalFrom)
+        {
+          'name': '${product}_${version}_from_v${source}_incremental_test.bin',
+          'browser_download_url':
+              'https://example.com/$product/$version-$source.bin',
+          'size': 512,
+          'digest': 'sha256:incremental-$source',
+        },
       {
         'name': '${product}_${version}_full_test.bin',
         'browser_download_url': 'https://example.com/$product/$version.bin',

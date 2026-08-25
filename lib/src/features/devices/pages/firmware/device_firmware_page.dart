@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/utils/picked_file.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/release_notes_view.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
@@ -87,15 +87,23 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
     }
   }
 
-  Future<void> _downloadLatest(FirmwareRelease release) async {
-    final device = ref.read(deviceManagerProvider).currentDevice;
+  Future<void> _downloadLatest(
+    FirmwareRelease release, {
+    bool fullPackage = false,
+  }) async {
+    final state = ref.read(deviceManagerProvider);
+    final device = state.currentDevice;
     final codename = device?.codename ?? '';
+    final currentVersion = state.systemInfo?.firmwareVersion ?? '';
+    final package = fullPackage
+        ? release.fullPackage
+        : release.packageFor(currentVersion);
     final detail = CommunityResourceDetail(
       ref: ResourceRef(
         source: CommunitySourceId.astroboxRepo,
-        id: release.fileName,
+        id: package.fileName,
       ),
-      name: release.fileName,
+      name: package.fileName,
       type: CommunityResourceType.firmware,
       paidType: CommunityPaidType.free,
       authors: const [],
@@ -106,11 +114,11 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
       ),
       files: [
         CommunityResourceFile(
-          id: release.fileName,
-          fileName: release.fileName,
+          id: package.fileName,
+          fileName: package.fileName,
           version: release.version,
-          downloadUrl: release.downloadUrl,
-          size: release.size,
+          downloadUrl: package.downloadUrl,
+          size: package.size,
         ),
       ],
       version: release.version,
@@ -141,16 +149,12 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
   }
 
   Future<void> _installLocal() async {
-    final result = await FilePicker.pickFiles(
+    final file = await pickFileData(
       type: FileType.any,
-      withData: shouldLoadPickedFileData,
+      loadBytes: shouldLoadPickedFileData,
     );
-    if (result == null || result.files.isEmpty || !mounted) return;
-    final file = result.files.first;
-    if (file.bytes == null && file.path == null) return;
-    final selected = file.bytes == null
-        ? XFile(file.path!, name: file.name)
-        : XFile.fromData(file.bytes!, name: file.name);
+    final selected = file?.xFile;
+    if (selected == null || !mounted) return;
     if (!mounted) return;
     await confirmAndEnqueueResourceFile(
       context: context,
@@ -223,7 +227,7 @@ class _DeviceFirmwarePageState extends ConsumerState<DeviceFirmwarePage> {
                       child: FilledButton.tonalIcon(
                         onPressed: latest == null
                             ? null
-                            : () => _downloadLatest(latest),
+                            : () => _downloadLatest(latest, fullPackage: true),
                         icon: const Icon(Icons.download_outlined),
                         label: Text(l10n.firmwareDownloadLatestFull),
                       ),

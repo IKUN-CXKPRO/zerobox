@@ -3,6 +3,13 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart' as crypto;
 
 enum MassDataType {
+  /// GNSS files use data type 0 and a detail type from 0 to 5.
+  gnssAgpsOnline(0),
+  gnssAgpsOffline(1),
+  gnssBeidouOnline(2),
+  gnssBeidouOffline(3),
+  gnssGalileoOnline(4),
+  gnssGalileoOffline(5),
   watchface(16),
   firmware(32),
   watchfaceImage(48),
@@ -16,6 +23,12 @@ enum MassDataType {
 
   static MassDataType fromValue(int value) {
     return switch (value) {
+      0 => MassDataType.gnssAgpsOnline,
+      1 => MassDataType.gnssAgpsOffline,
+      2 => MassDataType.gnssBeidouOnline,
+      3 => MassDataType.gnssBeidouOffline,
+      4 => MassDataType.gnssGalileoOnline,
+      5 => MassDataType.gnssGalileoOffline,
       16 => MassDataType.watchface,
       32 => MassDataType.firmware,
       48 => MassDataType.watchfaceImage,

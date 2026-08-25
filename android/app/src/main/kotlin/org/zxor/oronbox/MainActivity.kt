@@ -20,6 +20,7 @@ import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
+import android.media.MediaScannerConnection
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
@@ -78,6 +79,7 @@ class MainActivity : FlutterActivity() {
     private val backgroundTaskIds = mutableSetOf<Int>()
     private var nextBackgroundTaskId = 0
     private var connectionLabel: String? = null
+    private var connectionBattery: Int? = null
     private var lastTaskLabel: String? = null
     private var zeppSettingsContainer: ViewGroup? = null
     private var zeppSettingsWebView: WebView? = null
@@ -87,6 +89,7 @@ class MainActivity : FlutterActivity() {
     private var fileOpenChannel: MethodChannel? = null
     private var pendingOpenFilePath: String? = null
     private var pendingWearableLogResult: MethodChannel.Result? = null
+    private var pendingScreenshotSave: PendingScreenshotSave? = null
     @Volatile
     private var phoneFinderPlayer: MediaPlayer? = null
     @Volatile
@@ -94,8 +97,15 @@ class MainActivity : FlutterActivity() {
     private val wearableLogExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private var sessionMarker: File? = null
 
+    private data class PendingScreenshotSave(
+        val bytes: ByteArray,
+        val fileName: String,
+        val result: MethodChannel.Result,
+    )
+
     companion object {
         private const val NOTIFICATION_PERMISSION_REQUEST = 0x5A12
+        private const val SCREENSHOT_STORAGE_PERMISSION_REQUEST = 0x5A13
         private const val WEARABLE_LOG_DIRECTORY_REQUEST = 0x5A11
         private const val WEARABLE_LOG_DIRECTORY_PREF = "wearable_log_directory"
         private const val MAX_WEARABLE_LOG_BYTES = 64 * 1024 * 1024
@@ -204,10 +214,11 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun startBackgroundService(label: String, mode: String) {
+    private fun startBackgroundService(label: String, mode: String, battery: Int? = null) {
         val intent = Intent(this, BackgroundTaskService::class.java).apply {
             putExtra(BackgroundTaskService.EXTRA_LABEL, label)
             putExtra(BackgroundTaskService.EXTRA_MODE, mode)
+            battery?.let { putExtra(BackgroundTaskService.EXTRA_BATTERY, it) }
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
@@ -280,6 +291,15 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            PlatformChannelNames.XIAOMI_SCREENSHOT,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "save" -> saveXiaomiScreenshot(call, result)
+                else -> result.notImplemented()
+            }
+        }
         xmsWearableChannel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             PlatformChannelNames.XMS_WEARABLE,
@@ -307,6 +327,7 @@ class MainActivity : FlutterActivity() {
                             startBackgroundService(
                                 it,
                                 BackgroundTaskService.MODE_CONNECTION,
+                                connectionBattery,
                             )
                         }
                     }
@@ -317,6 +338,7 @@ class MainActivity : FlutterActivity() {
                 // is connected; task labels take precedence while both run.
                 "beginConnection" -> {
                     connectionLabel = call.argument<String>("label") ?: "Device connected"
+                    connectionBattery = call.argument<Int>("battery")
                     startBackgroundService(
                         lastTaskLabel ?: connectionLabel!!,
                         if (lastTaskLabel == null) {
@@ -324,11 +346,25 @@ class MainActivity : FlutterActivity() {
                         } else {
                             BackgroundTaskService.MODE_TASK
                         },
+                        call.argument<Int>("battery"),
                     )
+                    result.success(null)
+                }
+                "updateConnection" -> {
+                    connectionLabel = call.argument<String>("label") ?: "Device connected"
+                    connectionBattery = call.argument<Int>("battery")
+                    if (lastTaskLabel == null) {
+                        startBackgroundService(
+                            connectionLabel!!,
+                            BackgroundTaskService.MODE_CONNECTION,
+                            call.argument<Int>("battery"),
+                        )
+                    }
                     result.success(null)
                 }
                 "endConnection" -> {
                     connectionLabel = null
+                    connectionBattery = null
                     lastTaskLabel?.let {
                         startBackgroundService(it, BackgroundTaskService.MODE_TASK)
                     }
@@ -593,6 +629,124 @@ class MainActivity : FlutterActivity() {
         }
 
         requestBluetoothPermissionsIfNeeded()
+    }
+
+    private fun saveXiaomiScreenshot(call: MethodCall, result: MethodChannel.Result) {
+        val bytes = call.argument<ByteArray>("bytes")
+        val requestedName = call.argument<String>("fileName")
+        if (bytes == null || bytes.isEmpty() || requestedName.isNullOrBlank()) {
+            result.error("INVALID_ARGUMENT", "screenshot bytes and fileName are required", null)
+            return
+        }
+        val fileName = requestedName
+            .substringAfterLast('/')
+            .substringAfterLast('\\')
+            .let { if (it.endsWith(".png", ignoreCase = true)) it else "$it.png" }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+            checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            if (pendingScreenshotSave != null) {
+                result.error(
+                    "PERMISSION_REQUEST_PENDING",
+                    "A screenshot permission request is already pending",
+                    null,
+                )
+                return
+            }
+            pendingScreenshotSave = PendingScreenshotSave(bytes, fileName, result)
+            requestPermissions(
+                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                SCREENSHOT_STORAGE_PERMISSION_REQUEST,
+            )
+            return
+        }
+
+        writeXiaomiScreenshot(bytes, fileName, result)
+    }
+
+    private fun writeXiaomiScreenshot(
+        bytes: ByteArray,
+        fileName: String,
+        result: MethodChannel.Result,
+    ) {
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val values = ContentValues().apply {
+                    put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
+                    put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                    put(
+                        MediaStore.Images.Media.RELATIVE_PATH,
+                        Environment.DIRECTORY_PICTURES + "/WatchScreenshots",
+                    )
+                    put(MediaStore.Images.Media.IS_PENDING, 1)
+                }
+                val uri = contentResolver.insert(
+                    MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                    values,
+                ) ?: throw IOException("Unable to create screenshot media entry")
+                try {
+                    contentResolver.openOutputStream(uri, "w").use { output ->
+                        if (output == null) throw IOException("Unable to open screenshot media entry")
+                        output.write(bytes)
+                    }
+                    values.clear()
+                    values.put(MediaStore.Images.Media.IS_PENDING, 0)
+                    contentResolver.update(uri, values, null, null)
+                    result.success(
+                        Environment.getExternalStorageDirectory().path +
+                            "/Pictures/WatchScreenshots/$fileName",
+                    )
+                } catch (error: Exception) {
+                    contentResolver.delete(uri, null, null)
+                    throw error
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                val directory = File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                    "WatchScreenshots",
+                )
+                if (!directory.exists() && !directory.mkdirs()) {
+                    throw IOException("Unable to create screenshot directory")
+                }
+                val file = File(directory, fileName)
+                file.writeBytes(bytes)
+                MediaScannerConnection.scanFile(
+                    this,
+                    arrayOf(file.absolutePath),
+                    arrayOf("image/png"),
+                    null,
+                )
+                result.success(file.absolutePath)
+            }
+        } catch (error: Exception) {
+            result.error("SCREENSHOT_SAVE_FAILED", error.message, null)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != SCREENSHOT_STORAGE_PERMISSION_REQUEST) return
+
+        val pending = pendingScreenshotSave ?: return
+        pendingScreenshotSave = null
+        if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
+            writeXiaomiScreenshot(pending.bytes, pending.fileName, pending.result)
+        } else {
+            pending.result.error(
+                "SCREENSHOT_PERMISSION_DENIED",
+                "Storage permission is required to save screenshots",
+                null,
+            )
+        }
     }
 
     private fun scanLatestWearableLog(result: MethodChannel.Result) {

@@ -2515,11 +2515,107 @@ abstract class AppLocalizations {
   /// **'Heart rate'**
   String get deviceHealthHeartRate;
 
+  /// No description provided for @deviceHealthRestingHeartRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Resting heart rate'**
+  String get deviceHealthRestingHeartRate;
+
+  /// No description provided for @deviceHealthAbnormalHeartRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Abnormal heart rate'**
+  String get deviceHealthAbnormalHeartRate;
+
+  /// No description provided for @deviceHealthHeartRateHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High heart rate'**
+  String get deviceHealthHeartRateHigh;
+
+  /// No description provided for @deviceHealthHeartRateLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low heart rate'**
+  String get deviceHealthHeartRateLow;
+
+  /// No description provided for @deviceHealthHeartHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Heart health'**
+  String get deviceHealthHeartHealth;
+
+  /// No description provided for @deviceHealthHeartHealthMonitoring.
+  ///
+  /// In en, this message translates to:
+  /// **'Heart health monitoring'**
+  String get deviceHealthHeartHealthMonitoring;
+
+  /// No description provided for @deviceHealthIrregularHeartbeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Irregular heartbeat'**
+  String get deviceHealthIrregularHeartbeat;
+
+  /// No description provided for @deviceHealthLowBloodOxygen.
+  ///
+  /// In en, this message translates to:
+  /// **'Low blood oxygen'**
+  String get deviceHealthLowBloodOxygen;
+
+  /// No description provided for @deviceHealthHighStress.
+  ///
+  /// In en, this message translates to:
+  /// **'High stress'**
+  String get deviceHealthHighStress;
+
+  /// No description provided for @deviceHealthDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'Detected'**
+  String get deviceHealthDetected;
+
   /// No description provided for @deviceHealthSleep.
   ///
   /// In en, this message translates to:
   /// **'Recent sleep'**
   String get deviceHealthSleep;
+
+  /// No description provided for @deviceHealthSleepCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep'**
+  String get deviceHealthSleepCard;
+
+  /// No description provided for @deviceHealthAllDaySleep.
+  ///
+  /// In en, this message translates to:
+  /// **'All-day sleep'**
+  String get deviceHealthAllDaySleep;
+
+  /// No description provided for @deviceHealthLongSleep.
+  ///
+  /// In en, this message translates to:
+  /// **'Long sleep'**
+  String get deviceHealthLongSleep;
+
+  /// No description provided for @deviceHealthSleepStructure.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep structure'**
+  String get deviceHealthSleepStructure;
+
+  /// No description provided for @deviceHealthSleepAverageHeartRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Average sleep heart rate'**
+  String get deviceHealthSleepAverageHeartRate;
+
+  /// No description provided for @deviceHealthSleepAverageBloodOxygen.
+  ///
+  /// In en, this message translates to:
+  /// **'Average sleep blood oxygen'**
+  String get deviceHealthSleepAverageBloodOxygen;
 
   /// No description provided for @deviceHealthAverageHeartRate.
   ///
@@ -2880,6 +2976,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Saved devices'**
   String get savedDevices;
+
+  /// No description provided for @deviceSwitchAddDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Add device'**
+  String get deviceSwitchAddDevice;
 
   /// No description provided for @scanAndAdd.
   ///
@@ -3661,6 +3763,12 @@ abstract class AppLocalizations {
   /// **'Synced {count} Mi devices'**
   String settingsMiAccountSyncedDevices(int count);
 
+  /// No description provided for @xiaomiAccountRequiredForEphemeris.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to your Xiaomi account before syncing ephemeris data'**
+  String get xiaomiAccountRequiredForEphemeris;
+
   /// No description provided for @settingsHuamiAccount.
   ///
   /// In en, this message translates to:
@@ -3786,6 +3894,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Automatically reconnect to the last paired device on startup'**
   String get settingsAutoReconnectDesc;
+
+  /// No description provided for @settingsAutoReconnectOnDisconnectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto reconnect'**
+  String get settingsAutoReconnectOnDisconnectTitle;
+
+  /// No description provided for @settingsAutoReconnectOnDisconnectDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Try to reconnect when the device is disconnected unexpectedly'**
+  String get settingsAutoReconnectOnDisconnectDesc;
+
+  /// No description provided for @deviceReconnectAttempting.
+  ///
+  /// In en, this message translates to:
+  /// **'Device connection lost, trying to reconnect'**
+  String get deviceReconnectAttempting;
+
+  /// No description provided for @deviceReconnectSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnected successfully'**
+  String get deviceReconnectSucceeded;
+
+  /// No description provided for @deviceReconnectFailedPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect failed. Check: '**
+  String get deviceReconnectFailedPrefix;
 
   /// No description provided for @settingsSourceOfficialCdn.
   ///
@@ -4086,6 +4224,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reference for ZeppOS and wearable protocol research.'**
   String get acknowledgementsGadgetbridge;
+
+  /// No description provided for @acknowledgementsBreezyWeather.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference for the China weather source implementation.'**
+  String get acknowledgementsBreezyWeather;
+
+  /// No description provided for @acknowledgementsOpenMeteo.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather forecasts, air quality, and geocoding data under CC BY 4.0'**
+  String get acknowledgementsOpenMeteo;
 
   /// No description provided for @resourceHomeRecommended.
   ///
@@ -4546,14 +4696,20 @@ abstract class AppLocalizations {
   /// No description provided for @pluginErrorTitle.
   ///
   /// In en, this message translates to:
-  /// **'Plugin runtime error'**
+  /// **'Plugin corrupted'**
   String get pluginErrorTitle;
 
   /// No description provided for @pluginErrorMessage.
   ///
   /// In en, this message translates to:
-  /// **'\"{plugin}\" encountered a runtime error:\n\n{error}'**
+  /// **'\"{plugin}\" cannot run and may be corrupted.\n\nError: {error}\n\nUninstall this plugin?'**
   String pluginErrorMessage(Object plugin, Object error);
+
+  /// No description provided for @pluginPackageCorruptedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected plugin package cannot be read and may be corrupted. Obtain it again and try importing it.'**
+  String get pluginPackageCorruptedMessage;
 
   /// No description provided for @pluginErrorClearData.
   ///
@@ -4630,8 +4786,14 @@ abstract class AppLocalizations {
   /// No description provided for @resourceTypeUnknownNoType.
   ///
   /// In en, this message translates to:
-  /// **'OronBox cannot identify the resource type of this file'**
+  /// **'OronBox cannot identify the resource type of this file; it may be corrupted'**
   String get resourceTypeUnknownNoType;
+
+  /// No description provided for @resourceTypeUnknownCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get resourceTypeUnknownCancel;
 
   /// No description provided for @resourceTypeMismatchMessage.
   ///
@@ -6534,6 +6696,24 @@ abstract class AppLocalizations {
   /// **'Trend'**
   String get deviceHealthTrend;
 
+  /// No description provided for @deviceHealthDayView.
+  ///
+  /// In en, this message translates to:
+  /// **'Day'**
+  String get deviceHealthDayView;
+
+  /// No description provided for @deviceHealthWeekView.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get deviceHealthWeekView;
+
+  /// No description provided for @deviceHealthMonthView.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get deviceHealthMonthView;
+
   /// No description provided for @deviceHealthLatest.
   ///
   /// In en, this message translates to:
@@ -6593,6 +6773,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sleep stages'**
   String get deviceHealthSleepStages;
+
+  /// No description provided for @deviceHealthSleepHrv.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep HRV'**
+  String get deviceHealthSleepHrv;
 
   /// No description provided for @deviceHealthSleepAwake.
   ///
@@ -6960,6 +7146,42 @@ abstract class AppLocalizations {
   /// **'Air quality'**
   String get weatherAirQuality;
 
+  /// No description provided for @weatherAqiGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get weatherAqiGood;
+
+  /// No description provided for @weatherAqiModerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Moderate'**
+  String get weatherAqiModerate;
+
+  /// No description provided for @weatherAqiSensitive.
+  ///
+  /// In en, this message translates to:
+  /// **'Unhealthy for sensitive groups'**
+  String get weatherAqiSensitive;
+
+  /// No description provided for @weatherAqiUnhealthy.
+  ///
+  /// In en, this message translates to:
+  /// **'Unhealthy'**
+  String get weatherAqiUnhealthy;
+
+  /// No description provided for @weatherAqiVeryUnhealthy.
+  ///
+  /// In en, this message translates to:
+  /// **'Very unhealthy'**
+  String get weatherAqiVeryUnhealthy;
+
+  /// No description provided for @weatherAqiHazardous.
+  ///
+  /// In en, this message translates to:
+  /// **'Hazardous'**
+  String get weatherAqiHazardous;
+
   /// No description provided for @weatherUv.
   ///
   /// In en, this message translates to:
@@ -6983,6 +7205,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Next 7 days'**
   String get weatherNext7Days;
+
+  /// No description provided for @weatherDataSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Data source: {source}'**
+  String weatherDataSource(Object source);
 
   /// No description provided for @weatherLevelDirection.
   ///
@@ -7119,6 +7347,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'NW'**
   String get windNorthWest;
+
+  /// No description provided for @xiaomiScreenshotTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Device screenshot'**
+  String get xiaomiScreenshotTitle;
+
+  /// No description provided for @xiaomiScreenshotDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the wearable\'s key combination to take a screenshot; it will sync here automatically'**
+  String get xiaomiScreenshotDescription;
+
+  /// No description provided for @xiaomiScreenshotAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture screenshot'**
+  String get xiaomiScreenshotAction;
+
+  /// No description provided for @xiaomiScreenshotLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Capturing screenshot…'**
+  String get xiaomiScreenshotLoading;
+
+  /// No description provided for @xiaomiScreenshotEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No screenshot yet'**
+  String get xiaomiScreenshotEmpty;
+
+  /// No description provided for @xiaomiScreenshotFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot failed'**
+  String get xiaomiScreenshotFailed;
+
+  /// No description provided for @xiaomiScreenshotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch screenshot saved to: {path}'**
+  String xiaomiScreenshotSaved(Object path);
 }
 
 class _AppLocalizationsDelegate

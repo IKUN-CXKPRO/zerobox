@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -1385,7 +1386,57 @@ class AppLocalizationsRu extends AppLocalizations {
   String get deviceHealthHeartRate => 'Пульс';
 
   @override
+  String get deviceHealthRestingHeartRate => 'Пульс в покое';
+
+  @override
+  String get deviceHealthAbnormalHeartRate => 'Аномальный пульс';
+
+  @override
+  String get deviceHealthHeartRateHigh => 'Высокий пульс';
+
+  @override
+  String get deviceHealthHeartRateLow => 'Низкий пульс';
+
+  @override
+  String get deviceHealthHeartHealth => 'Здоровье сердца';
+
+  @override
+  String get deviceHealthHeartHealthMonitoring => 'Мониторинг здоровья сердца';
+
+  @override
+  String get deviceHealthIrregularHeartbeat => 'Нерегулярное сердцебиение';
+
+  @override
+  String get deviceHealthLowBloodOxygen => 'Низкий уровень кислорода';
+
+  @override
+  String get deviceHealthHighStress => 'Высокий стресс';
+
+  @override
+  String get deviceHealthDetected => 'Обнаружено';
+
+  @override
   String get deviceHealthSleep => 'Последний сон';
+
+  @override
+  String get deviceHealthSleepCard => 'Сон';
+
+  @override
+  String get deviceHealthAllDaySleep => 'Сон за весь день';
+
+  @override
+  String get deviceHealthLongSleep => 'Длительный сон';
+
+  @override
+  String get deviceHealthSleepStructure => 'Структура сна';
+
+  @override
+  String get deviceHealthSleepAverageHeartRate =>
+      'Средняя частота пульса во сне';
+
+  @override
+  String get deviceHealthSleepAverageBloodOxygen =>
+      'Средний уровень кислорода во сне';
 
   @override
   String deviceHealthAverageHeartRate(int value) {
@@ -1606,6 +1657,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get savedDevices => 'Сохранённые устройства';
+
+  @override
+  String get deviceSwitchAddDevice => 'Добавить устройство';
 
   @override
   String get scanAndAdd => 'Сканировать и добавить';
@@ -2036,6 +2090,10 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get xiaomiAccountRequiredForEphemeris =>
+      'Войдите в аккаунт Xiaomi перед синхронизацией эфемеридных данных';
+
+  @override
   String get settingsHuamiAccount => 'Аккаунт Amazfit';
 
   @override
@@ -2103,6 +2161,24 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get settingsAutoReconnectDesc =>
       'Автоматически подключаться к последнему сопряжённому устройству при запуске';
+
+  @override
+  String get settingsAutoReconnectOnDisconnectTitle => 'Автоподключение';
+
+  @override
+  String get settingsAutoReconnectOnDisconnectDesc =>
+      'Пытаться повторно подключиться при неожиданном отключении устройства';
+
+  @override
+  String get deviceReconnectAttempting =>
+      'Соединение с устройством потеряно, выполняется переподключение';
+
+  @override
+  String get deviceReconnectSucceeded => 'Подключение восстановлено';
+
+  @override
+  String get deviceReconnectFailedPrefix =>
+      'Не удалось переподключиться. Проверьте: ';
 
   @override
   String get settingsSourceOfficialCdn => 'Официальный CDN';
@@ -2268,6 +2344,14 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get acknowledgementsGadgetbridge => 'Благодарности Gadgetbridge';
+
+  @override
+  String get acknowledgementsBreezyWeather =>
+      '参考 реализации китайского источника погоды';
+
+  @override
+  String get acknowledgementsOpenMeteo =>
+      'Данные о погоде, качестве воздуха и геокодировании по CC BY 4.0';
 
   @override
   String get resourceHomeRecommended => 'Рекомендуемые';
@@ -2531,12 +2615,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get pluginPermissionOperateAppSide => 'управлять сеансами AppSide';
 
   @override
-  String get pluginErrorTitle => 'Ошибка среды плагина';
+  String get pluginErrorTitle => 'Плагин повреждён';
 
   @override
   String pluginErrorMessage(Object plugin, Object error) {
-    return 'В плагине «$plugin» произошла ошибка:\\n\\n$error';
+    return 'Плагин «$plugin» не удаётся запустить. Возможно, он повреждён.\\n\\nОшибка: $error\\n\\nУдалить этот плагин?';
   }
+
+  @override
+  String get pluginPackageCorruptedMessage =>
+      'Не удалось прочитать выбранный пакет плагина. Возможно, он повреждён. Получите пакет заново и повторите импорт.';
 
   @override
   String get pluginErrorClearData => 'Очистить данные плагина';
@@ -2580,7 +2668,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get resourceTypeUnknownNoType =>
-      'OronBox не может определить тип этого файла';
+      'OronBox не может определить тип этого файла; возможно, файл повреждён';
+
+  @override
+  String get resourceTypeUnknownCancel => 'Отмена';
 
   @override
   String resourceTypeMismatchMessage(Object detectedType, Object selectedType) {
@@ -3647,6 +3738,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get deviceHealthTrend => 'Trend';
 
   @override
+  String get deviceHealthDayView => 'День';
+
+  @override
+  String get deviceHealthWeekView => 'Неделя';
+
+  @override
+  String get deviceHealthMonthView => 'Месяц';
+
+  @override
   String get deviceHealthLatest => 'Latest';
 
   @override
@@ -3675,6 +3775,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get deviceHealthSleepStages => 'Фазы сна';
+
+  @override
+  String get deviceHealthSleepHrv => 'HRV сна';
 
   @override
   String get deviceHealthSleepAwake => 'Бодрствование';
@@ -3874,6 +3977,24 @@ class AppLocalizationsRu extends AppLocalizations {
   String get weatherAirQuality => 'Air quality';
 
   @override
+  String get weatherAqiGood => 'Хорошо';
+
+  @override
+  String get weatherAqiModerate => 'Умеренно';
+
+  @override
+  String get weatherAqiSensitive => 'Вредно для чувствительных групп';
+
+  @override
+  String get weatherAqiUnhealthy => 'Вредно';
+
+  @override
+  String get weatherAqiVeryUnhealthy => 'Очень вредно';
+
+  @override
+  String get weatherAqiHazardous => 'Опасно';
+
+  @override
   String get weatherUv => 'UV index';
 
   @override
@@ -3884,6 +4005,11 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get weatherNext7Days => 'Next 7 days';
+
+  @override
+  String weatherDataSource(Object source) {
+    return 'Источник данных: $source';
+  }
 
   @override
   String weatherLevelDirection(Object level, Object direction) {
@@ -3962,4 +4088,28 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get windNorthWest => 'NW';
+
+  @override
+  String get xiaomiScreenshotTitle => 'Снимок экрана устройства';
+
+  @override
+  String get xiaomiScreenshotDescription =>
+      'Сделайте снимок сочетанием клавиш на устройстве, и он автоматически появится здесь';
+
+  @override
+  String get xiaomiScreenshotAction => 'Сделать снимок экрана';
+
+  @override
+  String get xiaomiScreenshotLoading => 'Получение…';
+
+  @override
+  String get xiaomiScreenshotEmpty => 'Снимков экрана пока нет';
+
+  @override
+  String get xiaomiScreenshotFailed => 'Не удалось получить снимок экрана';
+
+  @override
+  String xiaomiScreenshotSaved(Object path) {
+    return 'Снимок экрана часов сохранён в: $path';
+  }
 }

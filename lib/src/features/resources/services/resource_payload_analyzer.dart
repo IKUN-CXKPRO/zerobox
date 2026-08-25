@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
+import 'package:oronbox/src/device/core/watchface_install_policy.dart';
 import 'package:oronbox/src/device/zeppos/install/zeppos_package_parser.dart';
 
 enum LocalDeviceInstallType { app, watchface, firmware }
@@ -186,7 +187,7 @@ class ResourcePayloadAnalyzer {
     final name = _xmlValue(description, 'name');
     final version = _xmlValue(description, 'version');
     final target = _xmlValue(description, 'deviceType');
-    final identifier = _watchfaceId(resource);
+    final identifier = extractVelaWatchfaceId(resource);
     return ResourcePayloadAnalysis(
       type: LocalDeviceInstallType.watchface,
       platform: ResourcePlatform.vela,
@@ -206,7 +207,7 @@ class ResourcePayloadAnalyzer {
 
   ResourcePayloadAnalysis? _analyzeRaw(Uint8List bytes) {
     if (_isVelaWatchface(bytes)) {
-      final identifier = _watchfaceId(bytes);
+      final identifier = extractVelaWatchfaceId(bytes);
       return ResourcePayloadAnalysis(
         type: LocalDeviceInstallType.watchface,
         platform: ResourcePlatform.vela,
@@ -263,9 +264,6 @@ class ResourcePayloadAnalyzer {
       bytes[1] == 0xa5 &&
       bytes[2] == 0x34 &&
       bytes[3] == 0x12;
-
-  static String? _watchfaceId(Uint8List bytes) =>
-      _nullTerminatedAscii(bytes, 0x28, 12);
 
   static bool _validWatchfaceId(String? id) =>
       id != null &&

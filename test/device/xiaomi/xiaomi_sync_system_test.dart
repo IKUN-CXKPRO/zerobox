@@ -37,6 +37,34 @@ void main() {
     await entity.dispose();
     eventBus.dispose();
   });
+
+  test('forwards an inbound wearable finder stop notification', () async {
+    final eventBus = DeviceEventBus();
+    final entity = DeviceEntity(
+      id: 'device-a',
+      kind: 'xiaomi',
+      transport: _UnusedTransport(),
+      eventBus: eventBus,
+    );
+    final system = XiaomiSyncSystem();
+    entity.registerSystem(system);
+    final event = eventBus.stream
+        .where((value) => value is XiaomiFindWearableRequested)
+        .cast<XiaomiFindWearableRequested>()
+        .first;
+
+    system.onWearPacket(
+      pb.WearPacket(
+        type: pb.WearPacket_Type.SYSTEM,
+        id: pb_system.System_SystemID.FIND_WEAR.value,
+        system: pb_system.System(findMode: pb_system.FindMode.FIND_STOP),
+      ),
+    );
+
+    expect((await event).finding, isFalse);
+    await entity.dispose();
+    eventBus.dispose();
+  });
 }
 
 class _UnusedTransport implements Transport {

@@ -13,10 +13,7 @@
   <a href="https://github.com/zxor-org/OronBox/stargazers"><img src="https://img.shields.io/github/stars/zxor-org/OronBox?style=flat" alt="GitHub stars"></a>
 </p>
 
-[简体中文](README.md) · English
-
-OronBox is built for daily device management and resource publishing, covering device connectivity, resource installation, community discovery and cross-platform publication
-The main desktop, mobile and web workflows are complete, with release packages and build automation maintained through GitHub Actions
+<p align="center"><a href="README.md">简体中文</a> · English</p>
 
 ## Quick links
 
@@ -25,39 +22,63 @@ The main desktop, mobile and web workflows are complete, with release packages a
 - [Developer documentation](https://oronbox.zxor.org/developer)
 - [Report an issue](https://github.com/zxor-org/OronBox/issues)
 
-## Project focus
-
-OronBox connects to and manages VelaOS / Xiaomi and ZeppOS devices without requiring the official client
-It combines resource installation, community discovery, creator publishing and device maintenance in one application, sharing the same resource and device model across desktop, Android and web targets
-
 ## What is OronBox?
 
-OronBox is a cross-platform wearable device management tool that lets you connect, manage and install resources on VelaOS / Xiaomi and ZeppOS devices without the official client
+OronBox is a cross-platform wearable device management tool that connects to and manages VelaOS / ZeppOS devices without the official client, installs resources, and synchronizes fitness and weather data.
 
 ## Supported platforms
 
+> We recommend using a device with Bluetooth support. If you are using Ubuntu, Ubuntu 24.04 or later is recommended.
+
 | Platform | Status | Notes |
 |----------|--------|-------|
-| Android | ✅ Supported | Tested on CrDroid 12.11 (Android 16) |
-| Linux | ✅ Supported | Tested on Arch Linux x86_64 |
-| Web | ✅ Supported | Tested on Chromium 150; requires a browser with Web Serial / Bluetooth support |
-| macOS | ✅ Supported | Tested on macOS 27 (Beta 3) |
-| Windows | ✅ Supported | Tested on Windows 11 25H2 |
-| iOS | ❌ Not supported | No plans yet |
+| Android | ✅ Supported | Android 7+ |
+| Linux | ✅ Supported | x86_64 / aarch64 |
+| Web | ✅ Supported | The browser must support Web Serial / Bluetooth |
+| macOS | ✅ Supported | macOS 12+ |
+| Windows | ✅ Supported | Windows 10+; Xiaomi account 2FA login requires WebView2 |
+| iOS | ❌ Not currently supported | No physical device is available for debugging or testing |
 
-## Features status
+## Supported devices
 
-| Feature | Status |
-|---------|--------|
-| VelaOS / Xiaomi device connection | ✅ Done |
-| Install watch faces, mini apps and firmware packages | ✅ Done |
-| Xiaomi account login with 2FA | ✅ Done |
-| AstroBox-Repo community source integration | ✅ Done |
-| Optimize resource installation flow | ✅ Done |
-| Optimize device connection experience | ✅ Done |
-| Integrate BandBBS OAuth login for BandBBS community resources | ✅ Done |
-| Creator center, one-click publish resources to BandBBS / AstroBox-Repo | ✅ Done |
-| Home page improvements | ✅ Done |
+### Xiaomi VelaOS
+
+| Device / family | Status |
+|-----------------|--------|
+| Xiaomi Smart Band 8 Pro / 9 / 9 Pro / 10 / 10 Pro | ✅ Supported |
+| Xiaomi Watch S1 Pro / S3 series / S4 series / S5 | ✅ Supported |
+| REDMI Watch 4 / 5 / 5 eSIM / 6 | ✅ Supported |
+
+### ZeppOS
+
+| Device / family | Status |
+|-----------------|--------|
+| Amazfit ZeppOS devices | ✅ Supported |
+| Xiaomi Smart Band 7 | ✅ Supported |
+
+## Feature support
+
+| Feature | Description |
+|---------|-------------|
+| Connect VelaOS and ZeppOS devices | Manage paired devices and their connection state |
+| View device status and resource overview | Show battery, storage, apps and watch face information |
+| Install watch face and app resources | Install watch faces and apps on the device |
+| Adjust device app order | Change the app order in the device launcher |
+| Set the device app layout | Adjust how the device app list is displayed |
+| Manage device alarms | Add, edit and delete device alarms |
+| Find devices in both directions | Let the wearable ring the phone, or make the wearable ring or vibrate from the phone |
+| Check or install device firmware | Download and install full or incremental packages, or install local firmware |
+| Schedule background data synchronization | Check every 15 minutes and synchronize every hour |
+| Sync music to the device | Transfer MP3 files to the device music library |
+| Sync and export device recordings | Retrieve and save recordings from the device |
+| Receive and save watch screenshots | Save screenshots to the user's Pictures directory |
+| Sync city weather to the device | Update weather information for the selected city |
+| Sign in to Xiaomi accounts with 2FA | Download GNSS ephemeris data and obtain the device authkey |
+| Read authkey from Xiaomi Fitness logs | Parse local Xiaomi Fitness app logs to retrieve the device authkey |
+| Sync Xiaomi device GNSS ephemeris | Support watch-initiated ephemeris updates; Xiaomi account required |
+| Access AstroBox-Repo and BandBBS resources | Browse and obtain community resources |
+| Sign in to BandBBS with OAuth | Obtain BandBBS community resources |
+| Publish resources from the creator center | Publish to BandBBS and AstroBox-Repo |
 
 ## CLI usage
 
@@ -68,7 +89,6 @@ OronBox provides a powerful, scriptable command-line interface for managing devi
 ### Prerequisites
 
 - Flutter stable (we recommend managing it with [fvm](https://fvm.app); the repo root `.fvmrc` pins the version), then `flutter pub get`
-- The `oronbox_network` network plugin downloads prebuilt binaries from GitHub Releases at build time, so no Rust toolchain is required
 - Platform-specific dependencies:
   - **Linux**: `gtk3` `webkit2gtk-4.1` `bluez` `libblkid` `libasound2` (`libasound2-dev` when building) `xz`; packaging tools as needed: `dpkg-deb` (deb), `rpmbuild` (rpm), `makepkg` (arch), `linuxdeploy` or `appimagetool` (AppImage), `flatpak-builder` with the GNOME SDK (Flatpak)
   - **Linux ARM64**: also require `libflac-dev`, `libogg-dev`, `libopus-dev`, and `libvorbis-dev`; the `flutter_soloud` bundled Xiph `.so` files are amd64-only, so ARM64 builds use system libraries and ARM64 packages declare the matching runtime dependencies
@@ -109,29 +129,35 @@ tool/build_web.sh
 - Android release signing is configured through environment variables: `ORONBOX_KEYSTORE_PATH`, `ORONBOX_KEYSTORE_PASSWORD`, `ORONBOX_KEY_ALIAS`, `ORONBOX_KEY_PASSWORD`; without them the debug signing config is used
 - Cross-building Linux aarch64 from an x86_64 host requires `ORONBOX_LINUX_ARM64_SYSROOT` pointing to an arm64 sysroot with the gtk3/webkit2gtk/alsa/flac/ogg/opus/vorbis development packages; cross mode only produces tar.gz / deb / rpm / arch packages
 
+### Version and artifact conventions
+
+- The version is taken from the `version` field in `pubspec.yaml`
+- The git worktree must be clean by default; `--dev` allows a dirty worktree and appends git metadata to the version (for example, `1.0.0.dirty.abc1234`)
+- Artifacts are named `oronbox-<version>-<platform>[-<arch>].<ext>`, with symbol files archived alongside the packages
+
 ## AI development disclosure
 
-This project was developed with the help of AI agent tools
+This project was developed with the help of AI agent tools.
 
 Usage:
 
 | Model | Areas assisted |
 |-------|----------------|
-| GPT 5.5/5.6-Sol | Dart Bluetooth connection behavior/protocol, backend rewrite, parts of the frontend |
-| GPT 5.6-Luna | GitHub CI / Release script rewrites and fixes |
+| GPT 5.5/5.6-Sol | Dart Bluetooth connection behavior/protocol, backend logic rewrite and parts of the frontend |
+| GPT 5.6-Luna | GitHub CI / Release script rewrites and fixes, and Fitness implementation |
 | Kimi K3 | OOBE, creator-related logic |
 | Kimi K2.6 | Parts of the frontend, UI/UX, initial backend |
 
 ## Acknowledgements
 
-OronBox benefits from the following excellent projects:
+OronBox references and uses code from the following excellent projects:
 
 | Project | What we referenced |
 |---------|--------------------|
 | [AstroBox-Public](https://github.com/AstralSightStudios/AstroBox-Public) | UI structure, resource flow and interaction design |
 | [AstroBox-NG-Module-Core](https://github.com/AstralSightStudios/AstroBox-NG-Module-Core) | Xiaomi device protocol, installation flow and transfer behavior |
 | [AstroBox-NG-Module-Bluetooth](https://github.com/AstralSightStudios/AstroBox-NG-Module-Bluetooth) | Bluetooth connection behavior |
-| [AstroBox-NG-Module-Account](https://github.com/AstralSightStudios/AstroBox-NG-Module-Account) | Xiaomi account login, device sync and authkey retrieval |
+| [AstroBox-NG-Module-Account](https://github.com/AstralSightStudios/AstroBox-NG-Module-Account) | Xiaomi account login, device synchronization and authkey retrieval |
 | [AstroBox-NG-Module-Provider](https://github.com/AstralSightStudios/AstroBox-NG-Module-Provider) | Community resource index, CDN and manifest parsing |
 | [AstroBox-NG-Module-AppWasm](https://github.com/AstralSightStudios/AstroBox-NG-Module-AppWasm) | Web Serial and browser-side connection flow |
 | [Gadgetbridge](https://codeberg.org/Freeyourgadget/Gadgetbridge) | ZeppOS and wearable device protocol research |

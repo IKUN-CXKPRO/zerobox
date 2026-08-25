@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'bt_models.dart';
@@ -9,6 +9,7 @@ part of 'bt_models.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 
@@ -66,7 +67,7 @@ class _$BTDeviceInfoCopyWithImpl<$Res>
 /// Create a copy of BTDeviceInfo
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? addr = null,Object? connectType = null,}) {
-  return _then(_self.copyWith(
+  return _then(BTDeviceInfo(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,addr: null == addr ? _self.addr : addr // ignore: cast_nullable_to_non_nullable
 as String,connectType: null == connectType ? _self.connectType : connectType // ignore: cast_nullable_to_non_nullable
@@ -335,7 +336,7 @@ class _$MiWearStateCopyWithImpl<$Res>
 /// Create a copy of MiWearState
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? addr = null,Object? connectType = null,Object? authkey = freezed,Object? codename = freezed,Object? disconnected = null,}) {
-  return _then(_self.copyWith(
+  return _then(MiWearState(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,addr: null == addr ? _self.addr : addr // ignore: cast_nullable_to_non_nullable
 as String,connectType: null == connectType ? _self.connectType : connectType // ignore: cast_nullable_to_non_nullable
@@ -613,7 +614,7 @@ class _$ChargeInfoCopyWithImpl<$Res>
 /// Create a copy of ChargeInfo
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? state = null,Object? timestamp = freezed,}) {
-  return _then(_self.copyWith(
+  return _then(ChargeInfo(
 state: null == state ? _self.state : state // ignore: cast_nullable_to_non_nullable
 as int,timestamp: freezed == timestamp ? _self.timestamp : timestamp // ignore: cast_nullable_to_non_nullable
 as int?,
@@ -879,7 +880,7 @@ class _$BatteryStatusCopyWithImpl<$Res>
 /// Create a copy of BatteryStatus
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? capacity = null,Object? chargeStatus = null,Object? chargeInfo = freezed,}) {
-  return _then(_self.copyWith(
+  return _then(BatteryStatus(
 capacity: null == capacity ? _self.capacity : capacity // ignore: cast_nullable_to_non_nullable
 as int,chargeStatus: null == chargeStatus ? _self.chargeStatus : chargeStatus // ignore: cast_nullable_to_non_nullable
 as ChargeStatus,chargeInfo: freezed == chargeInfo ? _self.chargeInfo : chargeInfo // ignore: cast_nullable_to_non_nullable
@@ -1172,7 +1173,7 @@ class _$AppInfoCopyWithImpl<$Res>
 /// Create a copy of AppInfo
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? packageName = null,Object? fingerprint = null,Object? versionCode = null,Object? canRemove = null,Object? appName = null,}) {
-  return _then(_self.copyWith(
+  return _then(AppInfo(
 packageName: null == packageName ? _self.packageName : packageName // ignore: cast_nullable_to_non_nullable
 as String,fingerprint: null == fingerprint ? _self.fingerprint : fingerprint // ignore: cast_nullable_to_non_nullable
 as List<int>,versionCode: null == versionCode ? _self.versionCode : versionCode // ignore: cast_nullable_to_non_nullable
@@ -1319,7 +1320,7 @@ return $default(_that.packageName,_that.fingerprint,_that.versionCode,_that.canR
 @JsonSerializable()
 
 class _AppInfo implements AppInfo {
-  const _AppInfo({required this.packageName, final  List<int> fingerprint = const <int>[], this.versionCode = 0, this.canRemove = false, required this.appName}): _fingerprint = fingerprint;
+  const _AppInfo({required this.packageName,  List<int> fingerprint = const <int>[], this.versionCode = 0, this.canRemove = false, required this.appName}): _fingerprint = fingerprint;
   factory _AppInfo.fromJson(Map<String, dynamic> json) => _$AppInfoFromJson(json);
 
 @override final  String packageName;
@@ -1453,7 +1454,7 @@ class _$StorageInfoCopyWithImpl<$Res>
 /// Create a copy of StorageInfo
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? used = null,Object? total = null,}) {
-  return _then(_self.copyWith(
+  return _then(StorageInfo(
 used: null == used ? _self.used : used // ignore: cast_nullable_to_non_nullable
 as int,total: null == total ? _self.total : total // ignore: cast_nullable_to_non_nullable
 as int,
@@ -1719,7 +1720,7 @@ class _$SystemInfoCopyWithImpl<$Res>
 /// Create a copy of SystemInfo
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? serialNumber = null,Object? firmwareVersion = null,Object? imei = null,Object? model = null,Object? storageInfo = freezed,}) {
-  return _then(_self.copyWith(
+  return _then(SystemInfo(
 serialNumber: null == serialNumber ? _self.serialNumber : serialNumber // ignore: cast_nullable_to_non_nullable
 as String,firmwareVersion: null == firmwareVersion ? _self.firmwareVersion : firmwareVersion // ignore: cast_nullable_to_non_nullable
 as String,imei: null == imei ? _self.imei : imei // ignore: cast_nullable_to_non_nullable
@@ -2018,7 +2019,7 @@ class _$WatchfaceInfoCopyWithImpl<$Res>
 /// Create a copy of WatchfaceInfo
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? isCurrent = null,Object? canRemove = null,Object? versionCode = null,Object? canEdit = null,Object? backgroundColor = null,Object? backgroundImage = null,Object? style = null,Object? backgroundImageList = null,}) {
-  return _then(_self.copyWith(
+  return _then(WatchfaceInfo(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,isCurrent: null == isCurrent ? _self.isCurrent : isCurrent // ignore: cast_nullable_to_non_nullable
@@ -2170,7 +2171,7 @@ return $default(_that.id,_that.name,_that.isCurrent,_that.canRemove,_that.versio
 @JsonSerializable()
 
 class _WatchfaceInfo implements WatchfaceInfo {
-  const _WatchfaceInfo({required this.id, required this.name, this.isCurrent = false, this.canRemove = false, this.versionCode = 0, this.canEdit = false, this.backgroundColor = '', this.backgroundImage = '', this.style = '', final  List<String> backgroundImageList = const <String>[]}): _backgroundImageList = backgroundImageList;
+  const _WatchfaceInfo({required this.id, required this.name, this.isCurrent = false, this.canRemove = false, this.versionCode = 0, this.canEdit = false, this.backgroundColor = '', this.backgroundImage = '', this.style = '',  List<String> backgroundImageList = const <String>[]}): _backgroundImageList = backgroundImageList;
   factory _WatchfaceInfo.fromJson(Map<String, dynamic> json) => _$WatchfaceInfoFromJson(json);
 
 @override final  String id;

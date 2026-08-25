@@ -584,27 +584,32 @@ class InstallQueueNotifier extends Notifier<InstallQueueState> {
     }
 
     if (task.resource != null && task.file != null) {
-      final analysis = task.analysis;
-      if (analysis != null) {
-        await ResourceInstallService().installAnalyzedPayload(
-          analysis: analysis,
-          fileName: task.file!.fileName,
-          deviceManager: manager,
-          identifierOverride: task.identifier,
-          onProgress: (progress) =>
-              update(ResourceTaskStatus.installing, progress, null),
-        );
-        update(ResourceTaskStatus.completed, 1, null);
-      } else {
-        await ResourceInstallService().installDownloadedResource(
-          resource: task.resource!,
-          file: task.file!,
-          filePath: task.filePath,
-          bytes: task.bytes,
-          deviceManager: manager,
-          onUpdate: update,
-        );
+      try {
+        final analysis = task.analysis;
+        if (analysis != null) {
+          await ResourceInstallService().installAnalyzedPayload(
+            analysis: analysis,
+            fileName: task.file!.fileName,
+            deviceManager: manager,
+            identifierOverride: task.identifier,
+            onProgress: (progress) =>
+                update(ResourceTaskStatus.installing, progress, null),
+          );
+          update(ResourceTaskStatus.completed, 1, null);
+        } else {
+          await ResourceInstallService().installDownloadedResource(
+            resource: task.resource!,
+            file: task.file!,
+            filePath: task.filePath,
+            bytes: task.bytes,
+            deviceManager: manager,
+            onUpdate: update,
+          );
+        }
+      } catch (error) {
+        update(ResourceTaskStatus.failed, 0, error.toString());
       }
+      return;
     } else {
       final service = ResourceInstallService();
       final bytes = task.bytes;

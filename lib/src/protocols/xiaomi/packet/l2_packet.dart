@@ -105,12 +105,28 @@ class L2Packet {
     );
   }
 
+  factory L2Packet.pbWriteBytes(Uint8List payload) {
+    return L2Packet(
+      channel: L2Channel.pb,
+      opcode: L2OpCode.write,
+      payload: payload,
+    );
+  }
+
   factory L2Packet.pbWriteEnc(pb.WearPacket packet, L2Cipher cipher) {
     final plaintext = packet.writeToBuffer();
     return L2Packet(
       channel: L2Channel.pb,
       opcode: L2OpCode.writeEnc,
       payload: cipher.encrypt(plaintext),
+    );
+  }
+
+  factory L2Packet.pbWriteEncBytes(Uint8List payload, L2Cipher cipher) {
+    return L2Packet(
+      channel: L2Channel.pb,
+      opcode: L2OpCode.writeEnc,
+      payload: cipher.encrypt(payload),
     );
   }
 

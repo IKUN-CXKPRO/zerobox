@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/utils/picked_file.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
 import 'package:oronbox/src/app/widgets/smooth_linear_progress_indicator.dart';
@@ -89,20 +90,20 @@ class _DeviceMusicUploadPageState extends ConsumerState<DeviceMusicUploadPage> {
 
   Future<void> _chooseFile() async {
     final l10n = AppLocalizations.of(context)!;
-    final result = await FilePicker.pickFiles(
+    final result = await pickFilesData(
       dialogTitle: l10n.deviceMusicChooseDialog,
       type: FileType.custom,
       allowedExtensions: const ['mp3'],
-      withData: true,
       allowMultiple: true,
+      loadBytes: true,
     );
-    if (result == null || result.files.isEmpty) return;
+    if (result.isEmpty) return;
     final maxBytes = widget.xiaomi
         ? 100 * 1024 * 1024
         : ZeppOsMusicUploadSystem.maxFileBytes;
     final additions = <_PendingMusicFile>[];
-    for (final file in result.files) {
-      final bytes = file.bytes;
+    for (final file in result) {
+      final bytes = await file.readAsBytes();
       if (bytes == null) {
         setState(() => _error = l10n.deviceMusicReadFailed);
         return;
@@ -151,24 +152,25 @@ class _DeviceMusicUploadPageState extends ConsumerState<DeviceMusicUploadPage> {
       final manager = ref.read(deviceManagerProvider.notifier);
       for (var index = 0; index < files.length; index++) {
         final file = files[index];
+        final bytes = file.bytes;
         if (mounted) setState(() => _activeFileIndex = index);
         _lastProgressBytes = 0;
         void progress(double value) => _updateTransferProgress(
           value,
-          file.bytes.length,
+          bytes.length,
           queueIndex: index,
           queueLength: files.length,
         );
         if (widget.xiaomi) {
           await manager.uploadXiaomiMusic(
-            file.bytes,
+            bytes,
             title: file.title,
             artist: file.artist,
             onProgress: progress,
           );
         } else {
           await manager.uploadZeppOsMusic(
-            file.bytes,
+            bytes,
             fileName: file.fileName,
             title: file.title,
             artist: file.artist,

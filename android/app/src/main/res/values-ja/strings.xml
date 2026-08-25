@@ -25,4 +25,7 @@
     <string name="widget_queue_waiting">待機中</string>
     <string name="widget_device_status">デバイスの状態</string>
     <string name="widget_health_status">ヘルス</string>
+    <string name="notification_title">OronBox</string>
+    <string name="notification_connected">接続済み %1$s</string>
+    <string name="notification_battery">バッテリー %1$d%%</string>
 </resources>

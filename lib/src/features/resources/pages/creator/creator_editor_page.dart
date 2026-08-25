@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/utils/picked_file.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/features/accounts/application/host_accounts.dart';
 import 'package:oronbox/src/features/resources/application/creator/creator_workspace_controller.dart';
@@ -920,14 +921,11 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
   bool get _githubPublishingAuthorized =>
       (widget.state.grants['github_login']?.toString() ?? '').isNotEmpty;
 
-  Future<PlatformFile?> _pickFile({bool image = false}) async {
-    final picked = await FilePicker.pickFiles(
+  Future<PickedFileData?> _pickFile({bool image = false}) async {
+    return pickFileData(
       type: image ? FileType.image : FileType.any,
-      withData: true,
+      loadBytes: true,
     );
-    final file = picked?.files.singleOrNull;
-    if (file == null || file.bytes == null) return null;
-    return file;
   }
 
   Future<void> _pickMediaRole(String role) => _run(() async {
@@ -937,7 +935,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     await WidgetsBinding.instance.endOfFrame;
     try {
       final asset = await _processedImageAsset(
-        file.bytes!,
+        (await file.readAsBytes())!,
         maxDimension: role == 'icon'
             ? creatorIconMaxDimension
             : creatorMediaMaxDimension,
@@ -965,7 +963,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     setState(() => _addingPreview = true);
     await WidgetsBinding.instance.endOfFrame;
     try {
-      final asset = await _processedImageAsset(file.bytes!);
+      final asset = await _processedImageAsset((await file.readAsBytes())!);
       if (!mounted) return;
       if (asset == null) {
         _showFailure(AppLocalizations.of(context)!.creatorInvalidImage);
@@ -983,7 +981,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
     setState(() => _processingPreviewIndex = index);
     await WidgetsBinding.instance.endOfFrame;
     try {
-      final asset = await _processedImageAsset(file.bytes!);
+      final asset = await _processedImageAsset((await file.readAsBytes())!);
       if (!mounted) return;
       if (asset == null) {
         _showFailure(AppLocalizations.of(context)!.creatorInvalidImage);
@@ -1022,7 +1020,7 @@ class _CreatorEditorViewState extends State<CreatorEditorView> {
         .read(resourceInstallServiceProvider)
         .analyzePayload(
           fileName: file.name,
-          bytes: file.bytes!,
+          bytes: (await file.readAsBytes())!,
           source: 'creator',
         );
     final isApp = analysis?.type == LocalDeviceInstallType.app;

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
+import 'package:oronbox/src/app/utils/picked_file.dart';
 import 'package:oronbox/src/app/router/app_router.dart';
 import 'package:oronbox/src/commands/command_protocol.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
@@ -220,13 +221,13 @@ class _PluginHostRequestHandlerState
   }
 
   Future<Map<String, Object?>> _pickFile(Map<String, Object?> request) async {
-    final result = await FilePicker.pickFiles(withData: true);
-    final selected = result?.files.firstOrNull;
-    if (selected?.bytes == null) return const {'cancelled': true};
+    final selected = await pickFileData(loadBytes: true);
+    final bytes = await selected?.readAsBytes();
+    if (selected == null || bytes == null) return const {'cancelled': true};
     return {
       'cancelled': false,
-      'name': selected!.name,
-      'bytes': selected.bytes!.toList(growable: false),
+      'name': selected.name,
+      'bytes': bytes.toList(growable: false),
     };
   }
 
@@ -238,7 +239,7 @@ class _PluginHostRequestHandlerState
           .toList(growable: false),
     );
     final path = await FilePicker.saveFile(
-      fileName: request['name']?.toString(),
+      fileName: request['name']?.toString() ?? 'oronbox-export.bin',
       bytes: bytes,
     );
     return {
@@ -285,17 +286,9 @@ class _PluginHostRequestHandlerState
             onPressed: () => Navigator.pop(context, 'cancel'),
             child: Text(l10n.cancel),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () => Navigator.pop(context, 'uninstall'),
             child: Text(l10n.pluginErrorUninstall),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'clear'),
-            child: Text(l10n.pluginErrorClearData),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, 'safeMode'),
-            child: Text(l10n.pluginErrorSafeMode),
           ),
         ],
       ),
@@ -304,14 +297,6 @@ class _PluginHostRequestHandlerState
       'uninstall' => OronBoxCommand(
         method: 'plugin.remove',
         params: {'id': pluginId},
-      ),
-      'clear' => OronBoxCommand(
-        method: 'plugin.data.clear',
-        params: {'id': pluginId},
-      ),
-      'safeMode' => const OronBoxCommand(
-        method: 'plugin.safeMode.set',
-        params: {'enabled': true},
       ),
       _ => null,
     };

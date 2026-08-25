@@ -42,20 +42,9 @@ subprojects {
         }
     }
     if (name == "quickjs_engine") {
-        pluginManager.withPlugin("com.android.library") {
-            extensions.configure<com.android.build.api.dsl.LibraryExtension> {
-                defaultConfig {
-                    externalNativeBuild {
-                        cmake {
-                            arguments += "-DCMAKE_SHARED_LINKER_FLAGS=-llog"
-                        }
-                    }
-                }
-            }
-        }
-        // The plugin's own build script re-pins compileOptions to 1.8 after
-        // any extension-level override, and AGP finalizes compileOptions
-        // during evaluation. Align Java with the Kotlin target at task level.
+        // quickjs_engine 0.1.5 still pins its legacy Android build script to
+        // Java/Kotlin 1.8. Align its compile tasks with the app's JVM 17
+        // target; the native log dependency is now supplied upstream.
         tasks.withType<JavaCompile>().configureEach {
             sourceCompatibility = "17"
             targetCompatibility = "17"

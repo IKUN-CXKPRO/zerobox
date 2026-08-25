@@ -157,7 +157,7 @@ class DebugServer {
   Future<void> _handleRequest(HttpRequest request) async {
     try {
       if (request.method == 'GET' && request.uri.path == '/debug/v1/info') {
-        return _sendJson(request, 200, {
+        return await _sendJson(request, 200, {
           ...info.toJson(),
           'publicKey': identity.publicKey.toJson(),
         });
@@ -177,7 +177,7 @@ class DebugServer {
         if (!_hasScope(session, 'device.list')) {
           return _sendError(request, 403, 'scope_required');
         }
-        return _executeJson(
+        return await _executeJson(
           request,
           const OronBoxCommand(method: 'device.paired'),
         );
@@ -187,7 +187,7 @@ class DebugServer {
         if (!_hasScope(session, 'device.list')) {
           return _sendError(request, 403, 'scope_required');
         }
-        return _executeJson(
+        return await _executeJson(
           request,
           const OronBoxCommand(method: 'device.paired'),
         );
@@ -197,7 +197,7 @@ class DebugServer {
         if (!_hasScope(session, 'device.read')) {
           return _sendError(request, 403, 'scope_required');
         }
-        return _executeJson(
+        return await _executeJson(
           request,
           const OronBoxCommand(method: 'device.status'),
         );
@@ -207,7 +207,7 @@ class DebugServer {
         if (!_hasScope(session, 'device.read')) {
           return _sendError(request, 403, 'scope_required');
         }
-        return _executeJson(
+        return await _executeJson(
           request,
           const OronBoxCommand(method: 'device.status'),
         );
@@ -222,7 +222,7 @@ class DebugServer {
         if (deviceId.isEmpty) {
           return _sendError(request, 400, 'device_id_required');
         }
-        return _executeJson(
+        return await _executeJson(
           request,
           OronBoxCommand(
             method: 'device.connect',
@@ -237,7 +237,7 @@ class DebugServer {
         }
         final body = await _readJson(request, maxBytes: 64 * 1024);
         final deviceId = body['deviceId']?.toString().trim();
-        return _executeJson(
+        return await _executeJson(
           request,
           OronBoxCommand(
             method: 'device.disconnect',
@@ -247,9 +247,8 @@ class DebugServer {
           ),
         );
       }
-      final appMatch = RegExp(
-        r'^/debug/v1/app(?:/([^/]+))?$',
-      ).firstMatch(request.uri.path);
+      final appMatch = RegExp(r'^/debug/v1/app(?:/([^/]+))?$')
+          .firstMatch(request.uri.path);
       if (request.method == 'POST' &&
           request.uri.path == '/debug/v1/app/launch') {
         if (!_hasScope(session, 'app.launch')) {
@@ -263,7 +262,7 @@ class DebugServer {
         if (packageName.isEmpty) {
           return _sendError(request, 400, 'package_required');
         }
-        return _executeDeviceCommand(
+        return await _executeDeviceCommand(
           request,
           'app.launch',
           params: {'package': packageName},
@@ -282,19 +281,19 @@ class DebugServer {
         }
         final packageName = appMatch.group(1);
         if (request.method == 'GET' && packageName == null) {
-          return _executeDeviceCommand(request, 'app.list');
+          return await _executeDeviceCommand(request, 'app.list');
         }
         if (request.method == 'POST' &&
             packageName != null &&
             request.uri.path.endsWith('/launch')) {
-          return _executeDeviceCommand(
+          return await _executeDeviceCommand(
             request,
             'app.launch',
             params: {'package': Uri.decodeComponent(packageName)},
           );
         }
         if (request.method == 'DELETE' && packageName != null) {
-          return _executeDeviceCommand(
+          return await _executeDeviceCommand(
             request,
             'app.uninstall',
             params: {'package': Uri.decodeComponent(packageName)},
@@ -307,15 +306,14 @@ class DebugServer {
           return _sendError(request, 403, 'scope_required');
         }
         final packageName = Uri.decodeComponent(request.uri.path.split('/')[4]);
-        return _executeDeviceCommand(
+        return await _executeDeviceCommand(
           request,
           'app.launch',
           params: {'package': packageName},
         );
       }
-      final watchfaceMatch = RegExp(
-        r'^/debug/v1/watchface(?:/([^/]+))?$',
-      ).firstMatch(request.uri.path);
+      final watchfaceMatch = RegExp(r'^/debug/v1/watchface(?:/([^/]+))?$')
+          .firstMatch(request.uri.path);
       if (request.method == 'POST' &&
           request.uri.path == '/debug/v1/watchface/set') {
         if (!_hasScope(session, 'watchface.set')) {
@@ -326,7 +324,7 @@ class DebugServer {
         if (watchfaceId.isEmpty) {
           return _sendError(request, 400, 'watchface_id_required');
         }
-        return _executeDeviceCommand(
+        return await _executeDeviceCommand(
           request,
           'watchface.set',
           params: {'id': watchfaceId},
@@ -345,19 +343,19 @@ class DebugServer {
         }
         final watchfaceId = watchfaceMatch.group(1);
         if (request.method == 'GET' && watchfaceId == null) {
-          return _executeDeviceCommand(request, 'watchface.list');
+          return await _executeDeviceCommand(request, 'watchface.list');
         }
         if (request.method == 'POST' &&
             watchfaceId != null &&
             request.uri.path.endsWith('/set')) {
-          return _executeDeviceCommand(
+          return await _executeDeviceCommand(
             request,
             'watchface.set',
             params: {'id': Uri.decodeComponent(watchfaceId)},
           );
         }
         if (request.method == 'DELETE' && watchfaceId != null) {
-          return _executeDeviceCommand(
+          return await _executeDeviceCommand(
             request,
             'watchface.remove',
             params: {'id': Uri.decodeComponent(watchfaceId)},
@@ -365,14 +363,13 @@ class DebugServer {
         }
       }
       if (request.method == 'POST' &&
-          RegExp(
-            r'^/debug/v1/watchface/[^/]+/set$',
-          ).hasMatch(request.uri.path)) {
+          RegExp(r'^/debug/v1/watchface/[^/]+/set$')
+              .hasMatch(request.uri.path)) {
         if (!_hasScope(session, 'watchface.set')) {
           return _sendError(request, 403, 'scope_required');
         }
         final watchfaceId = Uri.decodeComponent(request.uri.path.split('/')[4]);
-        return _executeDeviceCommand(
+        return await _executeDeviceCommand(
           request,
           'watchface.set',
           params: {'id': watchfaceId},
@@ -383,7 +380,7 @@ class DebugServer {
         if (!_hasScope(session, 'diagnostics.read')) {
           return _sendError(request, 403, 'scope_required');
         }
-        return _startDeviceLogExport(request);
+        return await _startDeviceLogExport(request);
       }
       final logMatch = RegExp(
         r'^/debug/v1/device-logs/([^/]+)(?:/(archive|current-log|cancel))?$',
@@ -405,13 +402,13 @@ class DebugServer {
           operation.state = OdsOperationState.cancelled;
           operation.finishedAt = _now().toUtc();
           operation.message = 'cancelled';
-          return _sendJson(request, 200, operation.toJson());
+          return await _sendJson(request, 200, operation.toJson());
         }
         if (suffix == null) {
           if (request.method != 'GET') {
             return _sendError(request, 405, 'method_not_allowed');
           }
-          return _sendJson(request, 200, operation.toJson());
+          return await _sendJson(request, 200, operation.toJson());
         }
         if (request.method != 'GET' ||
             operation.state != OdsOperationState.completed) {
@@ -423,17 +420,20 @@ class DebugServer {
         if (file == null || !await file.exists()) {
           return _sendError(request, 404, 'file_not_available');
         }
-        return _sendFile(request, file, currentLog: suffix == 'current-log');
+        return await _sendFile(
+          request,
+          file,
+          currentLog: suffix == 'current-log',
+        );
       }
       if (request.method == 'POST' && request.uri.path == '/debug/v1/install') {
         if (!_hasScope(session, 'install.upload')) {
           return _sendError(request, 403, 'scope_required');
         }
-        return _install(request);
+        return await _install(request);
       }
-      final queueMatch = RegExp(
-        r'^/debug/v1/tasks/([^/]+)(?:/(cancel))?$',
-      ).firstMatch(request.uri.path);
+      final queueMatch = RegExp(r'^/debug/v1/tasks/([^/]+)(?:/(cancel))?$')
+          .firstMatch(request.uri.path);
       if (queueMatch != null) {
         if (!_hasScope(session, 'task.status')) {
           return _sendError(request, 403, 'scope_required');
@@ -443,7 +443,7 @@ class DebugServer {
           if (request.method != 'POST' || !_hasScope(session, 'task.cancel')) {
             return _sendError(request, 403, 'scope_required');
           }
-          return _executeJson(
+          return await _executeJson(
             request,
             OronBoxCommand(method: 'queue.cancel', params: {'id': taskId}),
           );
@@ -451,7 +451,7 @@ class DebugServer {
         if (request.method != 'GET') {
           return _sendError(request, 405, 'method_not_allowed');
         }
-        return _executeJson(
+        return await _executeJson(
           request,
           OronBoxCommand(method: 'queue.get', params: {'id': taskId}),
         );
@@ -525,7 +525,7 @@ class DebugServer {
     }
     if (result.status == DebugAuthStatus.pendingApproval) {
       onChanged?.call();
-      return _sendJson(request, 202, {
+      return await _sendJson(request, 202, {
         'status': 'pending_approval',
         'fingerprint': result.fingerprint,
       });
@@ -687,7 +687,7 @@ class DebugServer {
         await file.delete();
         return _sendCommandFailure(request, queued);
       }
-      return _sendJson(request, 202, {
+      return await _sendJson(request, 202, {
         'taskId': (queued.value as Map)['taskId'],
         'fileName': safeName,
         'sha256': metadata.sha256,

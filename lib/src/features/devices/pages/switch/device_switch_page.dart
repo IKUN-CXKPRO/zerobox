@@ -163,9 +163,8 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
           previous?.connectionTargetAddr == connectedTarget &&
           next.currentDevice?.addr == connectedTarget;
       if (wasConnecting && justBecameReady) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.deviceConnected)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l10n.deviceConnected)));
         if (context.mounted) {
           context.pop();
         }
@@ -179,9 +178,8 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
         final message = localizedErrorMessage(l10n, next.error);
         if (message != _lastErrorToast) {
           _lastErrorToast = message;
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(message)));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(message)));
         }
       }
     });
@@ -243,9 +241,8 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
                       Container(
                         width: 1,
                         margin: const EdgeInsets.symmetric(vertical: 12),
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        color: Theme.of(context).colorScheme.outlineVariant
+                            .withValues(alpha: 0.5),
                       ),
                       Expanded(
                         child: _ListWrapper(isFirst: false, child: scanList),
@@ -286,6 +283,17 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
                   ),
                   child: _SectionHeader(
                     title: AppLocalizations.of(context)!.savedDevices,
+                    trailing: state.pairedDevices.isEmpty
+                        ? null
+                        : _DeviceImportButton(
+                            onMiAccountLogin: () =>
+                                SettingsPage.showMiAccountLoginDialog(
+                                  context,
+                                  ref,
+                                ),
+                            onWearableLogImport: () =>
+                                showWearableLogSyncDialog(context, ref),
+                          ),
                   ),
                 ),
               ),
@@ -368,9 +376,8 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
                 Container(
                   width: 1,
                   margin: const EdgeInsets.symmetric(vertical: 12),
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  color: Theme.of(context).colorScheme.outlineVariant
+                      .withValues(alpha: 0.5),
                 ),
                 const Expanded(
                   child: _ListWrapper(isFirst: false, child: _WebSerialHint()),
@@ -395,6 +402,17 @@ class _DeviceSwitchPageState extends ConsumerState<DeviceSwitchPage> {
                   ),
                   child: _SectionHeader(
                     title: AppLocalizations.of(context)!.savedDevices,
+                    trailing: state.pairedDevices.isEmpty
+                        ? null
+                        : _DeviceImportButton(
+                            onMiAccountLogin: () =>
+                                SettingsPage.showMiAccountLoginDialog(
+                                  context,
+                                  ref,
+                                ),
+                            onWearableLogImport: () =>
+                                showWearableLogSyncDialog(context, ref),
+                          ),
                   ),
                 ),
               ),
@@ -616,29 +634,18 @@ class _DeviceImportActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final supportsMiAccountImport =
-        !kIsWeb &&
-        switch (defaultTargetPlatform) {
-          TargetPlatform.android ||
-          TargetPlatform.linux ||
-          TargetPlatform.macOS ||
-          TargetPlatform.windows => true,
-          _ => false,
-        };
-    final supportsWearableLogImport =
-        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (supportsMiAccountImport)
+          if (_supportsMiAccountDeviceImport)
             _DeviceImportActionCard(
               leading: const MiLogo(),
               title: l10n.deviceSwitchMiAccountImport,
               onTap: onMiAccountLogin,
             ),
-          if (supportsWearableLogImport)
+          if (_supportsWearableLogDeviceImport)
             _DeviceImportActionCard(
               leading: const XiaomiFitnessLogo(),
               title: l10n.deviceSwitchWearableLogImport,
@@ -648,6 +655,86 @@ class _DeviceImportActions extends StatelessWidget {
       ),
     );
   }
+}
+
+bool get _supportsMiAccountDeviceImport =>
+    !kIsWeb &&
+    switch (defaultTargetPlatform) {
+      TargetPlatform.android ||
+      TargetPlatform.linux ||
+      TargetPlatform.macOS ||
+      TargetPlatform.windows => true,
+      _ => false,
+    };
+
+bool get _supportsWearableLogDeviceImport =>
+    !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+class _DeviceImportButton extends StatelessWidget {
+  const _DeviceImportButton({
+    required this.onMiAccountLogin,
+    required this.onWearableLogImport,
+  });
+
+  final VoidCallback onMiAccountLogin;
+  final VoidCallback onWearableLogImport;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    if (!_supportsMiAccountDeviceImport && !_supportsWearableLogDeviceImport) {
+      return const SizedBox.shrink();
+    }
+    return IconButton(
+      icon: const Icon(Icons.add),
+      tooltip: l10n.add,
+      onPressed: () => _showDeviceImportSheet(
+        context,
+        onMiAccountLogin: onMiAccountLogin,
+        onWearableLogImport: onWearableLogImport,
+      ),
+    );
+  }
+}
+
+Future<void> _showDeviceImportSheet(
+  BuildContext context, {
+  required VoidCallback onMiAccountLogin,
+  required VoidCallback onWearableLogImport,
+}) {
+  final l10n = AppLocalizations.of(context)!;
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.deviceSwitchAddDevice,
+                style: Theme.of(sheetContext).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+              _DeviceImportActions(
+                onMiAccountLogin: () {
+                  Navigator.of(sheetContext).pop();
+                  onMiAccountLogin();
+                },
+                onWearableLogImport: () {
+                  Navigator.of(sheetContext).pop();
+                  onWearableLogImport();
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 class _DeviceImportActionCard extends StatelessWidget {
@@ -710,7 +797,16 @@ class _SavedDeviceList extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionHeader(title: l10n.savedDevices, hiddenOnMobile: true),
+        _SectionHeader(
+          title: l10n.savedDevices,
+          hiddenOnMobile: true,
+          trailing: sorted.isEmpty
+              ? null
+              : _DeviceImportButton(
+                  onMiAccountLogin: onMiAccountLogin,
+                  onWearableLogImport: onWearableLogImport,
+                ),
+        ),
         if (sorted.isEmpty) ...[
           _DeviceImportActions(
             onMiAccountLogin: onMiAccountLogin,
@@ -1547,9 +1643,8 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
               TextButton(
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: link));
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text(l10n.copied)));
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(SnackBar(content: Text(l10n.copied)));
                 },
                 child: Text(l10n.copy),
               ),

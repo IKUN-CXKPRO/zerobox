@@ -6,6 +6,7 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:fixnum/fixnum.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/device/core/event_bus.dart';
+import 'package:oronbox/src/device/core/watchface_install_policy.dart';
 import 'package:oronbox/src/device/xiaomi/components/info_system.dart';
 import 'package:oronbox/src/device/xiaomi/components/mass_system.dart';
 import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
@@ -102,6 +103,16 @@ class XiaomiInstallSystem extends XiaomiPbSystem {
     required String watchfaceId,
     void Function(double progress)? onProgress,
   }) async {
+    final restrictedId = restrictedWatchfaceIdFor(
+      payload: watchfaceBytes,
+      identifier: watchfaceId,
+    );
+    if (restrictedId != null) {
+      _log.warning(
+        '[${entity.id}] blocked restricted watchface install id=$restrictedId',
+      );
+      throw WatchfaceInstallBlockedException(restrictedId);
+    }
     return _runInstall(
       dataType: MassDataType.watchface,
       fileData: watchfaceBytes,
@@ -364,6 +375,12 @@ class XiaomiInstallSystem extends XiaomiPbSystem {
   Future<void> _refreshPostInstallState(MassDataType dataType) async {
     try {
       switch (dataType) {
+        case MassDataType.gnssAgpsOnline:
+        case MassDataType.gnssAgpsOffline:
+        case MassDataType.gnssBeidouOnline:
+        case MassDataType.gnssBeidouOffline:
+        case MassDataType.gnssGalileoOnline:
+        case MassDataType.gnssGalileoOffline:
         case MassDataType.watchface:
           await _infoSystem.fetchInstalledWatchfaces();
         case MassDataType.thirdPartyApp:

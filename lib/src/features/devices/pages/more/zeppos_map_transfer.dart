@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/utils/picked_file.dart';
 import 'package:oronbox/src/app/widgets/smooth_linear_progress_indicator.dart';
 import 'package:oronbox/src/device/zeppos/systems/zeppos_map_upload_system.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
@@ -10,15 +11,16 @@ import 'package:oronbox/src/features/devices/pages/more/zeppos_map_preview.dart'
 
 Future<void> showZeppOsMapTransfer(BuildContext context) async {
   final l10n = AppLocalizations.of(context)!;
-  final selection = await FilePicker.pickFiles(
+  final selection = await pickFileData(
     dialogTitle: l10n.zeppOsMapSelectPackage,
     type: FileType.custom,
     allowedExtensions: const ['zip', 'img'],
-    withData: true,
+    loadBytes: true,
   );
-  if (!context.mounted || selection == null || selection.files.isEmpty) return;
-  final file = selection.files.single;
-  final bytes = file.bytes;
+  if (!context.mounted || selection == null) return;
+  final file = selection;
+  final bytes = await file.readAsBytes();
+  if (!context.mounted) return;
   if (bytes == null) {
     await _showMapError(context, l10n.zeppOsMapReadFailed);
     return;

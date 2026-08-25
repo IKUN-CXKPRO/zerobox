@@ -15,6 +15,7 @@ import 'package:oronbox/src/protocols/xiaomi/commands/xiaomi_request_pool.dart';
 import 'package:oronbox/src/protocols/xiaomi/packet/l2_packet.dart';
 import 'package:oronbox/src/protocols/xiaomi/packet/mass_packet.dart';
 import 'package:oronbox/src/protocols/xiaomi/transport/xiaomi_sar_controller.dart';
+import 'package:oronbox/src/device/xiaomi/system/xiaomi_protocol_trace.dart';
 
 class MassConfig {
   const MassConfig({
@@ -233,6 +234,7 @@ class MassTransfer {
     required this.sar,
     required this.requestPool,
     required this.deviceAddr,
+    this.tracer,
     this.config = const MassConfig(),
   }) : _log = getLogger('MassTransfer');
 
@@ -240,6 +242,7 @@ class MassTransfer {
   final XiaomiSarController sar;
   final XiaomiRequestPool requestPool;
   final String deviceAddr;
+  final XiaomiProtocolTracer? tracer;
   final MassConfig config;
   final Logger _log;
 
@@ -264,54 +267,77 @@ class MassTransfer {
     int? expectedSliceLength,
     void Function(SendMassCallbackData data)? onProgress,
   }) async {
+    final operation = tracer?.beginOperation(
+      'mass.transfer',
+      data: {
+        'deviceAddr': deviceAddr,
+        'dataType': dataType.name,
+        'fileLength': fileData.length,
+      },
+    );
     final fileMd5 = _md5(fileData);
     final fileLen = fileData.length;
 
+    operation?.step('prepare_request');
     _log.fine('Building MASS Prepare response listener...');
-
-    final prepareResponse = await requestPool.request<PrepareResponse>(
-      packet: _buildMassPrepareRequest(dataType, fileMd5, fileLen),
-      typeMatcher: (p) =>
-          p.whichPayload() == pb.WearPacket_Payload.mass &&
-          p.id == Mass_MassID.PREPARE.value,
-      responseMapper: (p) => p.mass.prepareResponse,
-      timeout: const Duration(seconds: 10),
-    );
-
-    if (prepareResponse.prepareStatus != pb_common.PrepareStatus.READY) {
-      throw ProtocolException(
-        'Mass data prepare was not READY. '
-        'Please check whether the device has enough storage space and try again.',
-      );
-    }
-
-    final sliceLength =
-        expectedSliceLength ??
-        (prepareResponse.hasExpectedSliceLength()
-            ? prepareResponse.expectedSliceLength
-            : 244);
-
-    final remainedDataLength = prepareResponse.hasRemainedDataLength()
-        ? prepareResponse.remainedDataLength
-        : 0;
-    var sentLength = remainedDataLength.clamp(0, fileLen);
-    if (sentLength > 0) {
-      _log.fine(
-        '[Mass] device retained $sentLength / $fileLen bytes from a previous transfer, resuming from there',
-      );
-    }
-
     try {
+      final prepareResponse = await requestPool.request<PrepareResponse>(
+        packet: _buildMassPrepareRequest(dataType, fileMd5, fileLen),
+        typeMatcher: (p) =>
+            p.whichPayload() == pb.WearPacket_Payload.mass &&
+            p.id == Mass_MassID.PREPARE.value,
+        responseMapper: (p) => p.mass.prepareResponse,
+        timeout: const Duration(seconds: 10),
+      );
+
+      operation?.step(
+        'prepare_response',
+        data: {
+          'status': prepareResponse.prepareStatus.name,
+          if (prepareResponse.hasExpectedSliceLength())
+            'expectedSliceLength': prepareResponse.expectedSliceLength,
+          if (prepareResponse.hasRemainedDataLength())
+            'remainedDataLength': prepareResponse.remainedDataLength,
+        },
+      );
+      if (prepareResponse.prepareStatus != pb_common.PrepareStatus.READY) {
+        throw ProtocolException(
+          'Mass data prepare was not READY. '
+          'Please check whether the device has enough storage space and try again.',
+        );
+      }
+
+      final sliceLength =
+          expectedSliceLength ??
+          (prepareResponse.hasExpectedSliceLength()
+              ? prepareResponse.expectedSliceLength
+              : 244);
+
+      final remainedDataLength = prepareResponse.hasRemainedDataLength()
+          ? prepareResponse.remainedDataLength
+          : 0;
+      var sentLength = remainedDataLength.clamp(0, fileLen);
+      if (sentLength > 0) {
+        _log.fine(
+          '[Mass] device retained $sentLength / $fileLen bytes from a previous transfer, resuming from there',
+        );
+      }
+
+      operation?.step('sending_chunks', data: {'sliceLength': sliceLength});
       return await _sendFileWithSliceLength(
         fileData: fileData,
         dataType: dataType,
         expectedSliceLength: sliceLength,
         sentLength: sentLength,
+        operation: operation,
         onProgress: onProgress,
       );
     } catch (e) {
       sar.abortPendingTransmissions(e);
+      operation?.fail(e);
       rethrow;
+    } finally {
+      operation?.complete();
     }
   }
 
@@ -441,6 +467,7 @@ class MassTransfer {
     required MassDataType dataType,
     required int expectedSliceLength,
     required int sentLength,
+    XiaomiTraceOperation? operation,
     void Function(SendMassCallbackData data)? onProgress,
   }) async {
     final fileLen = fileData.length;
@@ -563,6 +590,10 @@ class MassTransfer {
       lastProgressAt: lastProgressAt,
     );
 
+    operation?.step(
+      'awaiting_final_ack',
+      data: {'pendingParts': pendingParts.length},
+    );
     while (pendingParts.isNotEmpty) {
       final frontSeq = pendingParts.first.seq;
       await _waitForSeqAck(frontSeq);
@@ -574,6 +605,7 @@ class MassTransfer {
       );
     }
 
+    operation?.step('all_parts_acknowledged');
     _log.fine('[Mass] All mass data parts acknowledged.');
   }
 

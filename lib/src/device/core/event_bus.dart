@@ -19,6 +19,21 @@ final class TransportDisconnected extends DeviceEvent {
   const TransportDisconnected({required super.deviceId});
 }
 
+enum PassiveReconnectPhase { attempt, success, failed }
+
+final class PassiveReconnectStatus extends DeviceEvent {
+  const PassiveReconnectStatus({
+    required super.deviceId,
+    required this.phase,
+    this.attempt = 0,
+  });
+
+  static const commandEvent = 'device.reconnect.status';
+
+  final PassiveReconnectPhase phase;
+  final int attempt;
+}
+
 final class LinkTrafficUpdated extends DeviceEvent {
   const LinkTrafficUpdated({required super.deviceId, required this.traffic});
 
@@ -60,6 +75,44 @@ final class XiaomiFindPhoneRequested extends DeviceEvent {
   });
 
   final bool finding;
+}
+
+/// The wearable started or stopped its own finder through the Xiaomi private
+/// system channel. This is an inbound state notification: the phone updates
+/// the device-page switch instead of sending a second command back.
+final class XiaomiFindWearableRequested extends DeviceEvent {
+  const XiaomiFindWearableRequested({
+    required super.deviceId,
+    required this.finding,
+  });
+
+  final bool finding;
+}
+
+final class XiaomiScreenshotReceived extends DeviceEvent {
+  const XiaomiScreenshotReceived({
+    required super.deviceId,
+    required this.bytes,
+  });
+
+  final Uint8List bytes;
+}
+
+/// The wearable requested Xiaomi-hosted GNSS assistance data, but the host
+/// does not have a signed-in Xiaomi account session.
+final class XiaomiGnssAccountRequired extends DeviceEvent {
+  const XiaomiGnssAccountRequired({required super.deviceId});
+
+  static const commandEvent = 'device.xiaomi.gnss.account_required';
+}
+
+/// A structured protocol trace item emitted after a Xiaomi transport frame has
+/// been parsed.  This is intentionally separate from ordinary application
+/// logs so DevTools can inspect the protocol without scraping log strings.
+final class XiaomiProtocolTrace extends DeviceEvent {
+  const XiaomiProtocolTrace({required super.deviceId, required this.trace});
+
+  final Map<String, Object?> trace;
 }
 
 final class DeviceInfoUpdated extends DeviceEvent {

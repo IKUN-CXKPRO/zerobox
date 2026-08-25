@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/device/core/device_kind.dart';
+import 'package:oronbox/src/device/core/watchface_install_policy.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
 import 'package:oronbox/src/features/resources/domain/community_resource.dart';
 import 'package:oronbox/src/features/resources/domain/resource_catalog.dart';
@@ -59,11 +60,7 @@ class ResourceInstallService {
   }) async {
     var lastProgress = 0.0;
 
-    void report(
-      ResourceTaskStatus status,
-      double progress,
-      String? error,
-    ) {
+    void report(ResourceTaskStatus status, double progress, String? error) {
       final normalized = progress.clamp(0.0, 1.0).toDouble();
       if (status != ResourceTaskStatus.failed && normalized < lastProgress) {
         return;
@@ -318,6 +315,21 @@ class ResourceInstallService {
     String? identifierOverride,
     bool validatePlatform = true,
   }) async {
+    if (analysis.type == LocalDeviceInstallType.watchface) {
+      final restrictedId = restrictedWatchfaceIdFor(
+        payload: analysis.payload,
+        identifier: identifierOverride,
+        analyzedIdentifier: analysis.identifier,
+        fallbackIdentifier: _guessWatchfaceId(fileName),
+      );
+      if (restrictedId != null) {
+        _log.warning(
+          'blocked restricted watchface install id=$restrictedId '
+          'file="$fileName"',
+        );
+        throw WatchfaceInstallBlockedException(restrictedId);
+      }
+    }
     final resourceKind = analysis.platform == ResourcePlatform.zeppOs
         ? DeviceKind.zepp
         : DeviceKind.xiaomi;

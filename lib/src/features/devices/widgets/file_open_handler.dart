@@ -184,15 +184,46 @@ class _FileOpenHandlerState extends ConsumerState<FileOpenHandler> {
         }
       } catch (error) {
         if (!context.mounted) return;
+        if (_isPluginPackageError(error)) {
+          await _showPluginPackageCorruptedDialog(context);
+          continue;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(localizedErrorMessage(l10n, error))),
         );
       }
     }
     if (!context.mounted || enqueued == 0) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l10n.queueAddedFiles(enqueued))));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(l10n.queueAddedFiles(enqueued))));
+  }
+
+  Future<void> _showPluginPackageCorruptedDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.pluginErrorTitle),
+        content: Text(l10n.pluginPackageCorruptedMessage),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.close),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isPluginPackageError(Object error) {
+    final message = switch (error) {
+      CommandError(:final message) => message,
+      FormatException(:final message) => message,
+      _ => error.toString(),
+    };
+    return message.contains('ABP manifest.json is missing') ||
+        message.contains('ABP package') ||
+        message.contains('ABP entry is missing');
   }
 
   static String _extensionOf(String path) {
@@ -225,9 +256,8 @@ class _FileOpenHandlerState extends ConsumerState<FileOpenHandler> {
             child: IgnorePointer(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.12),
+                  color: Theme.of(context).colorScheme.primary
+                      .withValues(alpha: 0.12),
                   border: Border.all(
                     color: Theme.of(context).colorScheme.primary,
                     width: 2,

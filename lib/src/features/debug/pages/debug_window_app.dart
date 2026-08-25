@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/theme/app_theme.dart';
+import 'package:oronbox/src/app/theme/dynamic_color_adapter.dart';
 import 'package:oronbox/src/app/theme/system_accent_color.dart';
 import 'package:oronbox/src/app/window/secondary_window_host.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
@@ -15,6 +16,7 @@ import 'package:oronbox/src/core/utils/layout.dart';
 import 'package:oronbox/src/features/debug/widgets/debug_console.dart';
 import 'package:oronbox/src/features/debug/widgets/debug_inspectors.dart';
 import 'package:oronbox/src/host/application_host_provider.dart';
+import 'package:material_ui/material_ui.dart' as material_ui;
 
 final _desktopAccentColorProvider = FutureProvider<Color?>((ref) {
   final source = ref.watch(
@@ -37,34 +39,46 @@ class DebugWindowApp extends ConsumerWidget {
         .maybeWhen(data: (color) => color, orElse: () => null);
 
     return DynamicColorBuilder(
-      builder: (lightDynamic, darkDynamic) {
-        final useDynamicColor = themeSettings.useDynamicColor;
-        final lightColorScheme = useDynamicColor
-            ? lightDynamic ??
-                  _accentColorScheme(desktopAccentColor, Brightness.light)
-            : _seedColorScheme(themeSettings.customSeedColor, Brightness.light);
-        final darkColorScheme = useDynamicColor
-            ? darkDynamic ??
-                  _accentColorScheme(desktopAccentColor, Brightness.dark)
-            : _seedColorScheme(themeSettings.customSeedColor, Brightness.dark);
+      builder:
+          (
+            material_ui.ColorScheme? lightDynamic,
+            material_ui.ColorScheme? darkDynamic,
+          ) {
+            final lightFlutterDynamic = toFlutterColorScheme(lightDynamic);
+            final darkFlutterDynamic = toFlutterColorScheme(darkDynamic);
+            final useDynamicColor = themeSettings.useDynamicColor;
+            final lightColorScheme = useDynamicColor
+                ? lightFlutterDynamic ??
+                      _accentColorScheme(desktopAccentColor, Brightness.light)
+                : _seedColorScheme(
+                    themeSettings.customSeedColor,
+                    Brightness.light,
+                  );
+            final darkColorScheme = useDynamicColor
+                ? darkFlutterDynamic ??
+                      _accentColorScheme(desktopAccentColor, Brightness.dark)
+                : _seedColorScheme(
+                    themeSettings.customSeedColor,
+                    Brightness.dark,
+                  );
 
-        return MaterialApp(
-          title: 'OronBox DevTools',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.buildLightTheme(colorScheme: lightColorScheme),
-          darkTheme: themeSettings.isOledDark
-              ? AppTheme.buildOledDarkTheme(colorScheme: darkColorScheme)
-              : AppTheme.buildDarkTheme(colorScheme: darkColorScheme),
-          themeMode: themeSettings.materialThemeMode,
-          locale: localeSettings.materialLocale,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: const SecondaryWindowHost(
-            role: 'debug',
-            child: DebugWindowPage(),
-          ),
-        );
-      },
+            return MaterialApp(
+              title: 'OronBox DevTools',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.buildLightTheme(colorScheme: lightColorScheme),
+              darkTheme: themeSettings.isOledDark
+                  ? AppTheme.buildOledDarkTheme(colorScheme: darkColorScheme)
+                  : AppTheme.buildDarkTheme(colorScheme: darkColorScheme),
+              themeMode: themeSettings.materialThemeMode,
+              locale: localeSettings.materialLocale,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const SecondaryWindowHost(
+                role: 'debug',
+                child: DebugWindowPage(),
+              ),
+            );
+          },
     );
   }
 
@@ -98,12 +112,15 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
   StreamSubscription<CommandEvent>? _events;
   final _records = <DiagnosticEvent>[];
   final _plugins = <String, Map<String, Object?>>{};
-  final _rawPackets = <Map<String, Object?>>[];
+  final _protocolTraces = <Map<String, Object?>>[];
+  final _pendingProtocolTraces = <Map<String, Object?>>[];
+  Timer? _protocolTraceFlushTimer;
   final _search = TextEditingController();
   String _source = 'all';
   String _level = 'ALL';
   bool _paused = false;
-  bool _rawBluetoothEnabled = false;
+  bool _protocolTraceEnabled = false;
+  bool _batterySyncPaused = false;
   Object? _error;
 
   @override
@@ -118,6 +135,7 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
   @override
   void dispose() {
     _events?.cancel();
+    _protocolTraceFlushTimer?.cancel();
     _tabs.dispose();
     _search.dispose();
     super.dispose();
@@ -153,7 +171,8 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
           _source = 'all';
         }
         _error = null;
-        _rawBluetoothEnabled = snapshot['rawBluetoothEnabled'] == true;
+        _protocolTraceEnabled = snapshot['protocolTraceEnabled'] == true;
+        _batterySyncPaused = snapshot['batterySyncPaused'] == true;
       });
     } catch (error) {
       if (mounted) setState(() => _error = error);
@@ -173,27 +192,53 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
       if (value is! Map || !mounted) return;
       final plugin = value.cast<String, Object?>();
       setState(() => _plugins[plugin['id'].toString()] = plugin);
-    } else if (event.event == 'debug.raw_packet' &&
-        _rawBluetoothEnabled &&
+    } else if (event.event == 'debug.protocol_trace' &&
+        _protocolTraceEnabled &&
         mounted) {
-      setState(() {
-        _rawPackets.add(event.data);
-        if (_rawPackets.length > 500) _rawPackets.removeAt(0);
-      });
+      _pendingProtocolTraces.add(event.data);
+      _protocolTraceFlushTimer ??= Timer(
+        const Duration(milliseconds: 100),
+        _flushProtocolTraces,
+      );
     }
   }
 
-  Future<void> _setRawBluetooth(bool enabled) async {
+  void _flushProtocolTraces() {
+    _protocolTraceFlushTimer = null;
+    if (!mounted || !_protocolTraceEnabled || _pendingProtocolTraces.isEmpty) {
+      _pendingProtocolTraces.clear();
+      return;
+    }
+    final pending = List<Map<String, Object?>>.from(_pendingProtocolTraces);
+    _pendingProtocolTraces.clear();
+    setState(() {
+      _protocolTraces.addAll(pending);
+      if (_protocolTraces.length > 2000) {
+        _protocolTraces.removeRange(0, _protocolTraces.length - 2000);
+      }
+    });
+  }
+
+  Future<void> _setProtocolTrace(bool enabled) async {
     final result = await _host.execute(
       OronBoxCommand(
-        method: 'debug.rawBluetooth.set',
+        method: 'debug.protocolTrace.set',
         params: {'enabled': enabled},
       ),
     );
     if (!mounted || !result.ok) return;
+    final value = result.value;
     setState(() {
-      _rawBluetoothEnabled = enabled;
-      if (!enabled) _rawPackets.clear();
+      _protocolTraceEnabled = value is Map ? value['enabled'] == true : enabled;
+      _batterySyncPaused = value is Map
+          ? value['batterySyncPaused'] == true
+          : _batterySyncPaused;
+      if (!enabled) {
+        _protocolTraceFlushTimer?.cancel();
+        _protocolTraceFlushTimer = null;
+        _pendingProtocolTraces.clear();
+        _protocolTraces.clear();
+      }
     });
   }
 
@@ -240,7 +285,7 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
             Tab(icon: Icon(Icons.account_tree_outlined), text: 'Layout'),
             Tab(icon: Icon(Icons.memory), text: 'Runtime'),
             Tab(icon: Icon(Icons.folder_outlined), text: 'Storage'),
-            Tab(icon: Icon(Icons.bluetooth_searching), text: 'Bluetooth Raw'),
+            Tab(icon: Icon(Icons.account_tree), text: 'Protocol Trace'),
           ],
         ),
         const Divider(height: 1),
@@ -264,10 +309,15 @@ class _DebugWindowPageState extends ConsumerState<DebugWindowPage>
                       source: _source,
                       plugin: _selectedPlugin,
                     ),
-                    _RawBluetoothInspector(
-                      enabled: _rawBluetoothEnabled,
-                      packets: _rawPackets,
-                      onToggle: _setRawBluetooth,
+                    _ProtocolTraceInspector(
+                      enabled: _protocolTraceEnabled,
+                      batterySyncPaused: _batterySyncPaused,
+                      traces: _protocolTraces,
+                      onToggle: _setProtocolTrace,
+                      onClear: () => setState(() {
+                        _pendingProtocolTraces.clear();
+                        _protocolTraces.clear();
+                      }),
                     ),
                   ],
                 ),
@@ -386,48 +436,66 @@ class _SourceChips extends StatelessWidget {
   }
 }
 
-class _RawBluetoothInspector extends StatelessWidget {
-  const _RawBluetoothInspector({
+class _ProtocolTraceInspector extends StatelessWidget {
+  const _ProtocolTraceInspector({
     required this.enabled,
-    required this.packets,
+    required this.batterySyncPaused,
+    required this.traces,
     required this.onToggle,
+    required this.onClear,
   });
 
   final bool enabled;
-  final List<Map<String, Object?>> packets;
+  final bool batterySyncPaused;
+  final List<Map<String, Object?>> traces;
   final Future<void> Function(bool enabled) onToggle;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         SwitchListTile(
-          title: const Text('Bluetooth raw listener'),
+          title: const Text('Protocol trace'),
           subtitle: const Text(
-            'Observe incoming and outgoing protocol frames without consuming them',
+            'Decode Xiaomi transport, encrypted PB and protocol payloads',
           ),
           value: enabled,
           onChanged: (value) => onToggle(value),
         ),
+        ListTile(
+          dense: true,
+          leading: Icon(batterySyncPaused ? Icons.pause_circle : Icons.sync),
+          title: Text(
+            batterySyncPaused
+                ? 'Background synchronization paused'
+                : 'Background synchronization running',
+          ),
+          trailing: TextButton(onPressed: onClear, child: const Text('Clear')),
+        ),
         const Divider(height: 1),
         Expanded(
-          child: packets.isEmpty
-              ? const Center(child: Text('No raw frames captured'))
+          child: traces.isEmpty
+              ? const Center(child: Text('No protocol events captured'))
               : SelectionArea(
                   child: ListView.builder(
-                    itemCount: packets.length,
+                    itemCount: traces.length,
                     itemBuilder: (context, index) {
-                      final packet = packets[packets.length - index - 1];
+                      final trace = traces[traces.length - index - 1];
+                      final direction =
+                          trace['direction']?.toString() ??
+                          trace['operation']?.toString() ??
+                          '';
                       return Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 5,
                         ),
                         child: Text(
-                          '${packet['time'] ?? ''}  '
-                          '${packet['direction'] ?? 'in'}  '
-                          '${packet['size'] ?? 0} bytes\n'
-                          '${packet['hex'] ?? ''}',
+                          '${trace['time'] ?? ''}  '
+                          '$direction  '
+                          '${trace['layer'] ?? ''}\n'
+                          '${_formatProtocolTrace(trace)}',
                           style: const TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 12,
@@ -442,6 +510,17 @@ class _RawBluetoothInspector extends StatelessWidget {
       ],
     );
   }
+}
+
+String _formatProtocolTrace(Map<String, Object?> trace) {
+  final fields = <String>[];
+  for (final entry in trace.entries) {
+    if ({'time', 'direction', 'layer', 'deviceId'}.contains(entry.key)) {
+      continue;
+    }
+    fields.add('${entry.key}=${entry.value}');
+  }
+  return fields.join('  ');
 }
 
 class _SourceList extends StatelessWidget {

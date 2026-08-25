@@ -22,19 +22,53 @@ class FirmwareCatalogQuery {
 class FirmwareRelease {
   const FirmwareRelease({
     required this.version,
-    required this.downloadUrl,
-    required this.fileName,
+    required this.fullPackage,
+    this.incrementalPackages = const [],
     this.releaseNotes,
-    this.size,
-    this.sha256,
   });
 
   final String version;
+  final FirmwarePackage fullPackage;
+  final List<FirmwarePackage> incrementalPackages;
+  final String? releaseNotes;
+
+  // Keep the full-package accessors convenient for callers that do not need
+  // to choose between package types (for example, a manual full download).
+  Uri get downloadUrl => fullPackage.downloadUrl;
+  String get fileName => fullPackage.fileName;
+  int? get size => fullPackage.size;
+  String? get sha256 => fullPackage.sha256;
+
+  FirmwarePackage packageFor(String currentVersion) {
+    final normalized = normalizeFirmwareVersion(currentVersion);
+    if (normalized.isEmpty) return fullPackage;
+    return incrementalPackages.firstWhere(
+      (package) =>
+          normalizeFirmwareVersion(package.fromVersion ?? '') == normalized,
+      orElse: () => fullPackage,
+    );
+  }
+}
+
+class FirmwarePackage {
+  const FirmwarePackage({
+    required this.downloadUrl,
+    required this.fileName,
+    this.size,
+    this.sha256,
+    this.fromVersion,
+  });
+
   final Uri downloadUrl;
   final String fileName;
-  final String? releaseNotes;
   final int? size;
   final String? sha256;
+
+  /// The source firmware version for an incremental package. A full package
+  /// has no source version.
+  final String? fromVersion;
+
+  bool get isIncremental => fromVersion != null;
 }
 
 abstract interface class FirmwareCatalog {
@@ -81,26 +115,27 @@ class DeviceFirmwareCatalog implements FirmwareCatalog {
       final parts = name.split(RegExp(r'\s+'));
       final product = parts.first.toLowerCase();
       if (parts.length < 2 || !products.contains(product)) continue;
-      final version = _normalizeVersion(parts[1]);
+      final version = normalizeFirmwareVersion(parts[1]);
       if (version.isEmpty) continue;
 
       final assets = release.assets
-          .where((asset) => asset.name.endsWith('.bin'))
+          .where((asset) => asset.name.toLowerCase().endsWith('.bin'))
           .toList(growable: false);
-      final asset = _selectFullAsset(assets);
-      if (asset == null) continue;
-      final downloadUrl = Uri.tryParse(asset.downloadUrl);
-      if (downloadUrl == null) continue;
+      final fullAsset = _selectFullAsset(assets);
+      final fullPackage = _packageFromAsset(fullAsset);
+      if (fullPackage == null) continue;
+      final incrementalPackages = assets
+          .map(_incrementalPackageFromAsset)
+          .whereType<FirmwarePackage>()
+          .toList(growable: false);
       releasesByProduct
           .putIfAbsent(product, () => [])
           .add(
             FirmwareRelease(
               version: version,
-              downloadUrl: downloadUrl,
-              fileName: asset.name,
+              fullPackage: fullPackage,
+              incrementalPackages: incrementalPackages,
               releaseNotes: release.body,
-              size: asset.size,
-              sha256: asset.digest?.replaceFirst('sha256:', ''),
             ),
           );
     }
@@ -136,12 +171,41 @@ class DeviceFirmwareCatalog implements FirmwareCatalog {
     return null;
   }
 
-  String _normalizeVersion(String value) => value
-      .trim()
-      .toLowerCase()
-      .replaceFirst(RegExp(r'^v'), '')
-      .split(RegExp(r'[^0-9.]'))
-      .first;
+  FirmwarePackage? _packageFromAsset(GitHubReleaseAsset? asset) {
+    if (asset == null) return null;
+    final downloadUrl = Uri.tryParse(asset.downloadUrl);
+    if (downloadUrl == null) return null;
+    return FirmwarePackage(
+      downloadUrl: downloadUrl,
+      fileName: asset.name,
+      size: asset.size,
+      sha256: asset.digest?.replaceFirst('sha256:', ''),
+    );
+  }
+
+  FirmwarePackage? _incrementalPackageFromAsset(GitHubReleaseAsset asset) {
+    final fromVersion = _incrementalSourceVersion(asset.name);
+    if (fromVersion == null) return null;
+    final package = _packageFromAsset(asset);
+    if (package == null) return null;
+    return FirmwarePackage(
+      downloadUrl: package.downloadUrl,
+      fileName: package.fileName,
+      size: package.size,
+      sha256: package.sha256,
+      fromVersion: fromVersion,
+    );
+  }
+
+  String? _incrementalSourceVersion(String fileName) {
+    final match = RegExp(
+      r'_from_v([^_]+)_incremental_',
+      caseSensitive: false,
+    ).firstMatch(fileName);
+    if (match == null) return null;
+    final version = normalizeFirmwareVersion(match.group(1) ?? '');
+    return version.isEmpty ? null : version;
+  }
 
   int _compareVersions(String left, String right) {
     final a = left.split('.').map((part) => int.tryParse(part) ?? 0).toList();
@@ -156,6 +220,13 @@ class DeviceFirmwareCatalog implements FirmwareCatalog {
     return 0;
   }
 }
+
+String normalizeFirmwareVersion(String value) => value
+    .trim()
+    .toLowerCase()
+    .replaceFirst(RegExp(r'^v'), '')
+    .split(RegExp(r'[^0-9.]'))
+    .first;
 
 final firmwareCatalogProvider = Provider<FirmwareCatalog>(
   (ref) => DeviceFirmwareCatalog(ref.watch(appDioProvider)),

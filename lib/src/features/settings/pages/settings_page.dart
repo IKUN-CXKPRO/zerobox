@@ -93,7 +93,35 @@ class SettingsPage extends ConsumerWidget {
                       SettingsPage.showMiAccountLoginDialog(context, ref),
                   leading: const MiLogo(),
                   title: Text(l10n.settingsMiAccount),
-                  description: Text(l10n.settingsMiAccountDesc),
+                  description: Consumer(
+                    builder: (context, ref, _) {
+                      final account = ref.watch(hostAccountsProvider).xiaomi;
+                      if (account.isSignedIn) {
+                        return Text(
+                          account.userId?.isNotEmpty == true
+                              ? account.userId!
+                              : l10n.settingsConnected,
+                        );
+                      }
+                      return Text(l10n.settingsMiAccountDesc);
+                    },
+                  ),
+                  value: Consumer(
+                    builder: (context, ref, _) {
+                      final account = ref.watch(hostAccountsProvider).xiaomi;
+                      if (account.isBusy) {
+                        return const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        );
+                      }
+                      return Text(
+                        account.isSignedIn
+                            ? l10n.settingsConnected
+                            : l10n.settingsTapToSignIn,
+                      );
+                    },
+                  ),
                 ),
                 SegmentedTile.navigation(
                   onPressed: (_) => _showHuamiAccountLogin(context, ref),
@@ -356,6 +384,19 @@ class SettingsPage extends ConsumerWidget {
                   leading: const Icon(Icons.bluetooth_connected_outlined),
                   title: Text(l10n.settingsAutoReconnectTitle),
                   description: Text(l10n.settingsAutoReconnectDesc),
+                ),
+                SegmentedTile.switchTile(
+                  onToggle: (value) async {
+                    await ref
+                        .read(appSettingsProvider.notifier)
+                        .setAutoReconnectOnDisconnect(value ?? false);
+                  },
+                  initialValue: ref
+                      .watch(appSettingsProvider)
+                      .autoReconnectOnDisconnect,
+                  leading: const Icon(Icons.bluetooth_disabled_outlined),
+                  title: Text(l10n.settingsAutoReconnectOnDisconnectTitle),
+                  description: Text(l10n.settingsAutoReconnectOnDisconnectDesc),
                 ),
                 SegmentedTile.switchTile(
                   onToggle: (value) async {
@@ -645,6 +686,7 @@ class SettingsPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final accounts = ref.read(hostAccountsProvider.notifier);
     final credentials = await accounts.rememberedCredentials('xiaomi');
+    final existing = ref.read(hostAccountsProvider).xiaomi;
     var rememberCredentials = credentials['remember'] == true;
     var username = rememberCredentials
         ? credentials['username']?.toString() ?? ''
@@ -753,6 +795,30 @@ class SettingsPage extends ConsumerWidget {
               }
             }
 
+            Future<void> signOut() async {
+              setState(() {
+                running = true;
+                error = null;
+              });
+              try {
+                await accounts.logout('xiaomi');
+                await accounts.saveCredentials(
+                  provider: 'xiaomi',
+                  remember: false,
+                  username: '',
+                  password: '',
+                );
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
+              } catch (e) {
+                setState(() {
+                  running = false;
+                  error = localizedErrorMessage(l10n, e);
+                });
+              }
+            }
+
             return AlertDialog(
               title: Text(l10n.settingsMiAccountLoginTitle),
               content: ConstrainedBox(
@@ -830,6 +896,11 @@ class SettingsPage extends ConsumerWidget {
                 ),
               ),
               actions: [
+                if (existing.isSignedIn)
+                  TextButton(
+                    onPressed: running ? null : signOut,
+                    child: Text(l10n.bandBbsLogout),
+                  ),
                 TextButton(
                   onPressed: running
                       ? null

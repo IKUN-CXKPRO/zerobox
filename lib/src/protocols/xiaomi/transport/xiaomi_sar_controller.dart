@@ -243,6 +243,9 @@ class XiaomiSarController {
     _commandPool.clear();
     _txQueue.clear();
     _acked.clear();
+    _rxCumAckTimer?.cancel();
+    _rxCumAckTimer = null;
+    _rxCumAckIndex = 0;
     for (final waiter in _ackWaiters.values) {
       if (!waiter.isCompleted) {
         waiter.completeError(StateError('SAR transmissions aborted'));

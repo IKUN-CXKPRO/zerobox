@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:developer' as developer;
 
-import 'package:cross_file/cross_file.dart';
 import 'package:segmented_list/segmented_list.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -11,19 +9,17 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oronbox/src/app/generated/app_localizations.dart';
 import 'package:oronbox/src/app/utils/error_localization.dart';
+import 'package:oronbox/src/app/utils/picked_file.dart';
 import 'package:oronbox/src/app/widgets/page_container.dart';
 import 'package:oronbox/src/app/widgets/sys_app_bar.dart';
-import 'package:oronbox/src/app/layout/app_navigation_bar.dart';
 import 'package:oronbox/src/core/constants/style_constants.dart';
 import 'package:oronbox/src/core/models/bt_models.dart';
 import 'package:oronbox/src/core/models/device.dart';
-import 'package:oronbox/src/core/services/status_surface_bridge.dart';
 import 'package:oronbox/src/core/utils/layout.dart';
 import 'package:oronbox/src/device/zeppos/zeppos_device_catalog.dart';
+import 'package:oronbox/src/device/core/event_bus.dart';
 import 'package:oronbox/src/features/devices/controllers/device_manager.dart';
-import 'package:oronbox/src/features/devices/health/health_models.dart';
-import 'package:oronbox/src/features/devices/services/xiaomi_sync_preferences.dart';
-import 'package:oronbox/src/features/devices/services/xiaomi_weather_sync_service.dart';
+import 'package:oronbox/src/features/devices/services/xiaomi_automatic_sync_service.dart';
 import 'package:oronbox/src/features/devices/widgets/device_connection_text.dart';
 import 'package:oronbox/src/features/devices/widgets/xiaomi_fitness_logo.dart';
 import 'package:oronbox/src/features/resources/services/install_queue_notifier.dart';
@@ -41,96 +37,36 @@ class DevicesPage extends ConsumerStatefulWidget {
 class _DevicesPageState extends ConsumerState<DevicesPage> {
   bool _syncingTime = false;
   String? _lastErrorToast;
-  int? _lastShellBranch;
-  bool _automaticSyncStarted = false;
-  bool _automaticSyncRunning = false;
+  StreamSubscription<DeviceEvent>? _deviceEventSubscription;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final branch = ShellBranchIndex.maybeOf(context);
-    if (branch == null || branch == _lastShellBranch) return;
-    _lastShellBranch = branch;
-    if (branch == 1 && !_automaticSyncRunning) {
-      _automaticSyncStarted = false;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _maybeStartAutomaticSync();
-      });
-    }
+  void initState() {
+    super.initState();
+    _deviceEventSubscription = ref
+        .read(deviceManagerProvider.notifier)
+        .deviceEvents
+        .listen(_handleDeviceEvent);
   }
 
-  void _maybeStartAutomaticSync() {
-    if (!mounted || _automaticSyncStarted || _automaticSyncRunning) return;
-    final deviceState = ref.read(deviceManagerProvider);
-    if (deviceState.protocolState != proto.ProtocolState.ready ||
-        deviceState.currentDevice == null ||
-        deviceState.currentDevice!.disconnected) {
-      return;
-    }
-
-    final queue = ref.read(installQueueProvider);
-    if (!queue.loaded || queue.hasActiveTasks) return;
-
-    _automaticSyncStarted = true;
-    _automaticSyncRunning = true;
-    unawaited(
-      _runAutomaticSync().whenComplete(() => _automaticSyncRunning = false),
-    );
+  @override
+  void dispose() {
+    unawaited(_deviceEventSubscription?.cancel());
+    super.dispose();
   }
 
-  Future<void> _runAutomaticSync() async {
-    final manager = ref.read(deviceManagerProvider.notifier);
-    try {
-      await manager.syncDevice();
-    } catch (error, stackTrace) {
-      developer.log(
-        'Automatic device synchronization failed',
-        name: 'oronbox.devices',
-        error: error,
-        stackTrace: stackTrace,
-      );
-    }
-
-    await _syncEnabledXiaomiData(manager);
-  }
-
-  Future<void> _syncEnabledXiaomiData(DeviceManager manager) async {
-    if (!mounted) return;
-    if (XiaomiSyncPreferences.healthAutoSync) {
-      try {
-        final result = await manager.syncXiaomiHealth();
-        unawaited(
-          updateHealthStatusSurface(healthStatusSurfaceData(result.data)),
-        );
-      } catch (error, stackTrace) {
-        developer.log(
-          'Automatic health synchronization failed',
-          name: 'oronbox.devices',
-          error: error,
-          stackTrace: stackTrace,
-        );
-      }
-    }
-
-    final city = XiaomiSyncPreferences.weatherLastCity?.trim();
-    if (!XiaomiSyncPreferences.weatherAutoSync ||
-        city == null ||
-        city.isEmpty) {
-      return;
-    }
-    try {
-      final weather = await XiaomiWeatherSyncService().fetch(city);
-      await manager.syncXiaomiWeather(weather);
-      await XiaomiSyncPreferences.setWeatherLastCity(weather.cityName);
-      await XiaomiSyncPreferences.setCachedWeather(weather, DateTime.now());
-    } catch (error, stackTrace) {
-      developer.log(
-        'Automatic weather synchronization failed',
-        name: 'oronbox.devices',
-        error: error,
-        stackTrace: stackTrace,
-      );
-    }
+  void _handleDeviceEvent(DeviceEvent event) {
+    if (!mounted || event is! PassiveReconnectStatus) return;
+    if (ModalRoute.of(context)?.isCurrent != true) return;
+    final l10n = AppLocalizations.of(context)!;
+    final message = switch (event.phase) {
+      PassiveReconnectPhase.attempt => l10n.deviceReconnectAttempting,
+      PassiveReconnectPhase.success => l10n.deviceReconnectSucceeded,
+      PassiveReconnectPhase.failed =>
+        '${l10n.deviceReconnectFailedPrefix}${l10n.errorBluetoothConnectFailed}',
+    };
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -139,16 +75,7 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
     final state = ref.watch(deviceManagerProvider);
     final device = state.currentDevice;
 
-    ref.listen<InstallQueueState>(installQueueProvider, (_, next) {
-      if (next.loaded && !next.hasActiveTasks) {
-        _maybeStartAutomaticSync();
-      }
-    });
-
     ref.listen<DeviceManagerState>(deviceManagerProvider, (previous, next) {
-      if (next.protocolState == proto.ProtocolState.ready) {
-        _maybeStartAutomaticSync();
-      }
       if (next.error == null) _lastErrorToast = null;
       if (next.error == null) return;
       if (ModalRoute.of(context)?.isCurrent != true) return;
@@ -162,9 +89,8 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
       final message = localizedErrorMessage(l10n, next.error);
       if (message == _lastErrorToast) return;
       _lastErrorToast = message;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     });
 
     final isReady = state.protocolState == proto.ProtocolState.ready;
@@ -196,9 +122,9 @@ class _DevicesPageState extends ConsumerState<DevicesPage> {
       if (_syncingTime) return;
       setState(() => _syncingTime = true);
       try {
-        final manager = ref.read(deviceManagerProvider.notifier);
-        await manager.syncDevice();
-        await _syncEnabledXiaomiData(manager);
+        await XiaomiAutomaticSyncService(
+          ref.read(deviceManagerProvider.notifier),
+        ).run(automatic: false);
       } finally {
         if (mounted) setState(() => _syncingTime = false);
       }
@@ -759,9 +685,8 @@ class _DeviceMetricCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         title,
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.labelLarge
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -842,21 +767,17 @@ class _DeviceFeaturesPanel extends ConsumerStatefulWidget {
 }
 
 class _DeviceFeaturesPanelState extends ConsumerState<_DeviceFeaturesPanel> {
-  bool _finding = false;
   bool _findingBusy = false;
 
   Future<void> _setFinding(bool finding) async {
     if (_findingBusy) return;
-    final previousValue = _finding;
     setState(() => _findingBusy = true);
     try {
       await ref
           .read(deviceManagerProvider.notifier)
           .setFindingXiaomiWearable(finding);
-      if (mounted) setState(() => _finding = finding);
     } catch (error) {
       if (mounted) {
-        setState(() => _finding = previousValue);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -955,7 +876,7 @@ class _DeviceFeaturesPanelState extends ConsumerState<_DeviceFeaturesPanel> {
                   leading: const Icon(Icons.vibration),
                   title: Text(l10n.zeppOsFindDevice),
                   description: Text(l10n.findDeviceDescription),
-                  initialValue: _finding,
+                  initialValue: state.findingXiaomiWearable,
                   enabled: widget.enabled && !_findingBusy,
                   onToggle: (value) => _setFinding(value ?? false),
                 ),
@@ -1033,16 +954,12 @@ class _DeviceFeaturesPanelState extends ConsumerState<_DeviceFeaturesPanel> {
     WidgetRef ref,
     LocalDeviceInstallType selectedType,
   ) async {
-    final result = await FilePicker.pickFiles(
+    final file = await pickFileData(
       type: FileType.any,
-      withData: shouldLoadPickedFileData,
+      loadBytes: shouldLoadPickedFileData,
     );
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.first;
-    if (file.bytes == null && file.path == null) return;
-    final selected = file.bytes == null
-        ? XFile(file.path!, name: file.name)
-        : XFile.fromData(file.bytes!, name: file.name);
+    final selected = file?.xFile;
+    if (selected == null) return;
     if (!context.mounted) return;
 
     await confirmAndEnqueueResourceFile(
@@ -1146,16 +1063,12 @@ Future<void> _pickAndEnqueueResource(
   WidgetRef ref,
   LocalDeviceInstallType selectedType,
 ) async {
-  final result = await FilePicker.pickFiles(
+  final file = await pickFileData(
     type: FileType.any,
-    withData: shouldLoadPickedFileData,
+    loadBytes: shouldLoadPickedFileData,
   );
-  if (result == null || result.files.isEmpty) return;
-  final file = result.files.first;
-  if (file.bytes == null && file.path == null) return;
-  final selected = file.bytes == null
-      ? XFile(file.path!, name: file.name)
-      : XFile.fromData(file.bytes!, name: file.name);
+  final selected = file?.xFile;
+  if (selected == null) return;
   if (!context.mounted) return;
   await confirmAndEnqueueResourceFile(
     context: context,

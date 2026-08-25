@@ -39,13 +39,6 @@ target_compile_definitions(
   PRIVATE "_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
 )
 
-# quickjs_engine 0.1.1 declares QuickjsEnginePlugin in its manifest but only
-# exports the C API registration symbol. Correct the generated registrant call
-# without editing Flutter-managed generated files or the global Pub cache.
-target_compile_definitions(${BINARY_NAME} PRIVATE
-  "QuickjsEnginePluginRegisterWithRegistrar=QuickjsEnginePluginCApiRegisterWithRegistrar"
-)
-
 # Add dependency libraries and include directories. Add any application-specific
 # dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)

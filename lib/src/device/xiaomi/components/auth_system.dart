@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:oronbox/src/core/logging/logging_service.dart';
 import 'package:oronbox/src/device/core/event_bus.dart';
+import 'package:oronbox/src/device/xiaomi/components/screenshot_system.dart';
 import 'package:oronbox/src/device/xiaomi/system/xiaomi_system.dart';
 import 'package:oronbox/src/device/xiaomi/utils/auth_utils.dart';
 import 'package:oronbox/src/protocols/generated/xiaomi/wear.pb.dart' as pb;
@@ -18,6 +19,7 @@ class XiaomiAuthSystem extends XiaomiPbSystem {
 
   Future<void> authenticate(String authKeyHex) async {
     _log.info('[${entity.id}] starting auth');
+    entity.system<XiaomiScreenshotSystem>()?.resetSession();
     _authKeyHex = authKeyHex;
     _appRandom = generateRandomBytes(16);
     _completer = Completer<void>();
@@ -70,17 +72,26 @@ class XiaomiAuthSystem extends XiaomiPbSystem {
   void _onDeviceConfirm(pb_account.Auth_DeviceConfirm confirm) {
     if (confirm.confirmResult) {
       _log.info('[${entity.id}] auth confirmed');
-      entity.emit(DeviceAuthenticated(deviceId: entity.id));
-      final c = _completer;
-      _completer = null;
-      if (c != null && !c.isCompleted) {
-        c.complete();
-      }
+      unawaited(_finishAuthentication());
     } else {
       final error = 'auth confirm rejected by device';
       _log.warning('[${entity.id}] $error');
       entity.emit(AuthFailed(deviceId: entity.id, error: error));
       _completeError(Exception(error));
+    }
+  }
+
+  Future<void> _finishAuthentication() async {
+    // Capability registration is best effort.  It must not turn an otherwise
+    // usable device connection into an auth failure.
+    await entity
+        .system<XiaomiScreenshotSystem>()
+        ?.negotiateAfterAuthentication();
+    entity.emit(DeviceAuthenticated(deviceId: entity.id));
+    final c = _completer;
+    _completer = null;
+    if (c != null && !c.isCompleted) {
+      c.complete();
     }
   }
 

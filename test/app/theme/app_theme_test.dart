@@ -11,9 +11,15 @@ void main() {
 
     expect(theme.textTheme.bodyMedium?.fontFamilyFallback, [
       'Microsoft YaHei UI',
+      'Microsoft YaHei',
+      'DengXian',
+      'SimSun',
       'Microsoft JhengHei UI',
+      'Microsoft JhengHei',
       'Yu Gothic UI',
       'Malgun Gothic',
+      'Noto Sans CJK SC',
+      'Source Han Sans SC',
     ]);
   });
 }

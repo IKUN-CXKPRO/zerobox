@@ -19,4 +19,5 @@ object PlatformChannelNames {
     const val CLASSIC_SPP_SCAN_EVENTS = "oronbox/classic_spp/scan_events"
     const val MI_ACCOUNT_2FA = "oronbox/mi_account_2fa"
     const val ZEPPOS_APP_SETTINGS = "oronbox/zeppos_app_settings"
+    const val XIAOMI_SCREENSHOT = "oronbox/xiaomi_screenshot"
 }
